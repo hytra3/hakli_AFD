@@ -100,7 +100,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
 /* ---------- record control ---------- */
 .rec{
   width:100%;padding:19px;margin-top:14px;font-size:18px;font-weight:600;
-  background:var(--frank);color:#fff;border:none
+  background:var(--frank);color:#fff;border:none;
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+  touch-action:manipulation
+}
+.rec .timer{
+  display:block;font-family:var(--mono);font-size:13px;font-weight:400;
+  opacity:.85;margin-top:3px
 }
 .rec.recording{background:var(--alert)}
 .rec .dot{
@@ -231,8 +237,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
     <canvas id="canvas"></canvas>
   </div>
 
-  <button class="rec" id="recBtn"><span class="dot"></span>Hold to record</button>
-
   <div class="card hidden" id="reviewCard">
     <h2>How did it sound?</h2>
     <audio id="player" controls style="width:100%;margin-bottom:6px"></audio>
@@ -242,6 +246,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
       <button class="btn" id="keepBtn">Keep it</button>
     </div>
   </div>
+
+  <button class="rec" id="recBtn"><span class="dot"></span>Hold to record</button>
 
   <div class="row">
     <button class="btn ghost" id="skipBtn">Speaker doesn't know this word</button>
@@ -406,6 +412,8 @@ function renderPrompt(){
   $("glossAr").textContent=w.ar;
   $("progress").textContent="STEP 3 / 3 · WORD "+(idx+1)+" OF "+WORDS.length;
   $("reviewCard").classList.add("hidden");
+  recBtn.classList.remove("hidden");
+  $("skipBtn").classList.remove("hidden");
   $("silLabel").textContent="ready";
   liveBars=[]; drawBars([],false);
 }
@@ -423,16 +431,52 @@ $("playGloss").onclick=()=>{
 
 /* ================= recording ================= */
 const recBtn=$("recBtn");
-recBtn.addEventListener("pointerdown",e=>{e.preventDefault();startRec();});
-recBtn.addEventListener("pointerup",e=>{e.preventDefault();stopRec();});
-recBtn.addEventListener("pointercancel",stopRec);
-recBtn.addEventListener("pointerleave",()=>{if(recording)stopRec();});
+let recStart=0, timerId=null, pressAt=0, mode=null;
+const MAX_MS=12000;      // safety stop
+const TAP_MS=350;        // shorter than this = a tap, not a hold
+
+/* Long-press normally opens Chrome's context menu and steals the pointer,
+   which would leave a recording running forever. Suppress it on the button. */
+["contextmenu","selectstart","dragstart"].forEach(ev=>
+  recBtn.addEventListener(ev,e=>e.preventDefault()));
+
+recBtn.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  if(recording && mode==="tap"){ stopRec(); return; }   // tap-mode: 2nd tap stops
+  if(recording) return;
+  pressAt=Date.now(); mode=null;
+  try{ recBtn.setPointerCapture(e.pointerId); }catch(_){}
+  startRec();
+});
+
+recBtn.addEventListener("pointerup",e=>{
+  e.preventDefault();
+  if(!recording || mode==="tap") return;
+  if(Date.now()-pressAt < TAP_MS){
+    // released too quickly to be a hold — switch to tap-to-stop
+    mode="tap";
+    const el=recBtn.querySelector(".timer");
+    recBtn.childNodes[1].nodeValue="Tap again when finished";
+    if(el) el.style.opacity=".85";
+  }else{
+    stopRec();                                          // hold-mode: release stops
+  }
+});
+
+recBtn.addEventListener("pointercancel",()=>{ if(recording && mode!=="tap") stopRec(); });
 
 function startRec(){
   if(recording||!stream) return;
   recording=true; chunks=[]; liveBars=[];
+  recStart=Date.now(); mode=null;
   recBtn.classList.add("recording");
-  recBtn.innerHTML='<span class="dot"></span>Recording — release when finished';
+  recBtn.innerHTML='<span class="dot"></span>Release when finished<span class="timer">0.0s</span>';
+  timerId=setInterval(()=>{
+    const el=recBtn.querySelector(".timer");
+    const ms=Date.now()-recStart;
+    if(el) el.textContent=(ms/1000).toFixed(1)+"s";
+    if(ms>=MAX_MS) stopRec();
+  },100);
   $("silLabel").textContent="listening";
   if(ctx&&ctx.state==="suspended") ctx.resume();
 
@@ -449,7 +493,8 @@ function startRec(){
 
 function stopRec(){
   if(!recording) return;
-  recording=false;
+  recording=false; mode=null;
+  if(timerId){ clearInterval(timerId); timerId=null; }
   recBtn.classList.remove("recording");
   recBtn.innerHTML='<span class="dot"></span>Hold to record';
   $("silLabel").textContent="checking";
@@ -463,8 +508,9 @@ async function onRecStop(){
   lastQC=await analyse(lastBlob);
   renderQC(lastQC);
   $("reviewCard").classList.remove("hidden");
+  recBtn.classList.add("hidden");        // nothing to collide with while reviewing
+  $("skipBtn").classList.add("hidden");
   $("silLabel").textContent=lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard";
-  $("reviewCard").scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 
 /* live meter -> signature silhouette strip */
@@ -592,7 +638,13 @@ function row(ok,label,val,msg,forceClass){
 }
 
 /* ================= keep / redo / skip ================= */
-$("redoBtn").onclick=()=>{ $("reviewCard").classList.add("hidden"); $("silLabel").textContent="ready"; };
+$("redoBtn").onclick=()=>{
+  $("reviewCard").classList.add("hidden");
+  recBtn.classList.remove("hidden");
+  $("skipBtn").classList.remove("hidden");
+  $("silLabel").textContent="ready";
+  liveBars=[]; drawBars([],false);
+};
 
 $("keepBtn").onclick=()=>{
   const w=WORDS[idx];
