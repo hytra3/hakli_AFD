@@ -184,6 +184,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
       <div class="verdict ok"><strong>Signed in</strong><span id="whoami"></span></div>
       <button class="btn ghost" id="signoutBtn">Sign out</button>
     </div>
+
+    <button class="btn ghost" id="listenOnlyBtn" style="margin-top:14px">
+      Just listen — no account, no microphone</button>
   </div>
 
   <div class="card">
@@ -249,6 +252,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
       <button class="btn" id="toRecord">Start recording words</button>
       <button class="btn ghost" id="retryMic">Check again</button>
     </div>
+    <button class="btn ghost" id="listenOnlyBtn2" style="margin-top:14px">
+      No microphone? Listen to other speakers instead</button>
   </div>
 </section>
 
@@ -289,11 +294,16 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
     <button class="btn secondary" id="compareNext">Next word</button>
   </div>
 
+  <div class="row hidden" id="browseNav">
+    <button class="btn secondary" id="prevWord">← Previous</button>
+    <button class="btn secondary" id="nextWord">Next word →</button>
+  </div>
+
   <div class="row">
     <button class="btn ghost" id="skipBtn">Speaker doesn't know this word</button>
   </div>
 
-  <div class="card">
+  <div class="card" id="sessionCard">
     <p class="eyebrow">This session</p>
     <div id="clips"><p class="note">No recordings kept yet.</p></div>
     <button class="btn" id="syncBtn">Upload to the dictionary</button>
@@ -624,6 +634,20 @@ function show(which){
   window.scrollTo(0,0);
 }
 
+/* ---- listen-only mode: no microphone, no account needed ---- */
+let listenOnly=false;
+function enterListenMode(){
+  listenOnly=true;
+  show("recorder");
+  renderPrompt();
+  sizeCanvas();
+}
+$("listenOnlyBtn").onclick=enterListenMode;
+$("listenOnlyBtn2").onclick=enterListenMode;
+
+$("nextWord").onclick=()=>{ idx=(idx+1)%WORDS.length; renderPrompt(); window.scrollTo(0,0); };
+$("prevWord").onclick=()=>{ idx=(idx-1+WORDS.length)%WORDS.length; renderPrompt(); window.scrollTo(0,0); };
+
 /* ================= microphone ================= */
 $("startMic").onclick=openMic;
 $("retryMic").onclick=openMic;
@@ -705,13 +729,30 @@ function renderPrompt(){
   $("picto").textContent=w.pic;
   $("glossEn").textContent=showRef&&w.ref ? w.en+"  ·  "+w.ref : w.en;
   $("glossAr").textContent=w.ar;
-  $("progress").textContent="STEP 3 / 3 · WORD "+(idx+1)+" OF "+WORDS.length;
   $("reviewCard").classList.add("hidden");
   $("compareCard").classList.add("hidden");
-  recBtn.classList.remove("hidden");
-  $("skipBtn").classList.remove("hidden");
   $("silLabel").textContent="ready";
   liveBars=[]; drawBars([],false);
+
+  const sil=document.querySelector(".silhouette");
+  const sess=$("sessionCard");
+  if(listenOnly){
+    $("progress").textContent="LISTENING · WORD "+(idx+1)+" OF "+WORDS.length;
+    $("instruction").textContent="Hear how other speakers say this word.";
+    recBtn.classList.add("hidden");
+    $("skipBtn").classList.add("hidden");
+    $("browseNav").classList.remove("hidden");
+    if(sil) sil.classList.add("hidden");
+    if(sess) sess.classList.add("hidden");
+    showCompare(WORDS[idx], null);      // load other speakers straight away
+  }else{
+    $("progress").textContent="STEP 3 / 3 · WORD "+(idx+1)+" OF "+WORDS.length;
+    $("instruction").innerHTML="Say the Hakli word <b>twice</b>, with a short pause between.";
+    recBtn.classList.remove("hidden");
+    $("skipBtn").classList.remove("hidden");
+    $("browseNav").classList.add("hidden");
+    if(sil) sil.classList.remove("hidden");
+  }
 }
 
 // Audio gloss: speech synthesis stands in for pre-recorded gloss audio.
@@ -1023,7 +1064,11 @@ function clipRow(name, meta, key, isMine){
          '<button data-clip="'+key+'">Play</button></div>';
 }
 
-$("compareNext").onclick=()=>{ $("compareCard").classList.add("hidden"); next(); };
+$("compareNext").onclick=()=>{
+  $("compareCard").classList.add("hidden");
+  if(listenOnly){ idx=(idx+1)%WORDS.length; renderPrompt(); window.scrollTo(0,0); }
+  else next();
+};
 
 $("hearOthers").onclick=async ()=>{ await showCompare(WORDS[idx], null); };
 
