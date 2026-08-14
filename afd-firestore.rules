@@ -34,8 +34,11 @@ service cloud.firestore {
       // ---------------- contributed recordings ----------------
       match /recordings/{recordingId} {
 
-        // anyone may listen, signed in or not
-        allow read: if true;
+        // Anyone may listen — but ONLY to recordings whose speaker consented
+        // to public playback. Authors can always read their own.
+        // Queries must be constrained with where('allowPlayback','==',true).
+        allow read: if resource.data.allowPlayback == true
+                    || (signedIn() && resource.data.uid == request.auth.uid);
 
         allow create: if signedIn()
                       // the author must claim their own uid
@@ -43,7 +46,8 @@ service cloud.firestore {
                       // protocol rules, enforced where the client cannot bypass them
                       && request.resource.data.capture.sampleRate >= 44100
                       && request.resource.data.gloss is string
-                      && request.resource.data.entryId is string;
+                      && request.resource.data.entryId is string
+                      && request.resource.data.allowPlayback is bool;
 
         // an author may fix their own metadata but never reassign ownership
         allow update: if signedIn()

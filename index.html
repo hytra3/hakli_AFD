@@ -261,6 +261,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
     <p class="gloss" id="glossEn">sun</p>
     <p class="gloss-ar" id="glossAr"></p>
     <button class="btn ghost" id="playGloss" style="margin-top:14px">▶ Hear the word in English</button>
+    <button class="btn ghost" id="hearOthers" style="margin-top:8px">Hear how others said it in Hakli</button>
     <p class="instruction" id="instruction">Say the Hakli word <b>twice</b>, with a short pause between.</p>
   </div>
 
@@ -280,6 +281,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
   </div>
 
   <button class="rec" id="recBtn"><span class="dot"></span>Hold to record</button>
+
+  <div class="card hidden" id="compareCard">
+    <p class="eyebrow">How others said it</p>
+    <h2 id="compareTitle">&nbsp;</h2>
+    <div id="compareList"><p class="note">Looking…</p></div>
+    <button class="btn secondary" id="compareNext">Next word</button>
+  </div>
 
   <div class="row">
     <button class="btn ghost" id="skipBtn">Speaker doesn't know this word</button>
@@ -318,9 +326,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
          signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, serverTimestamp }
+import { getFirestore, doc, setDoc, serverTimestamp,
+         collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes }
+import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
@@ -412,7 +421,11 @@ async function uploadClip(rec, speaker){
   const { blob, ...meta } = rec;
   await setDoc(
     doc(db, "afd_entries", rec.entryId, "recordings", rec.recordingId),
-    { ...meta, uid, uploadedAt: serverTimestamp() }
+    { ...meta, uid,
+      // Denormalised from the speaker's consent so playback permission can be
+      // enforced by rules. A speaker who refuses public playback is never heard.
+      allowPlayback: speaker.consent.publicPlayback === true,
+      uploadedAt: serverTimestamp() }
   );
 
   // speaker profile: one doc per signed-in user
@@ -429,11 +442,42 @@ async function uploadClip(rec, speaker){
   return true;
 }
 
+/* ---- other speakers' recordings of the same word ----
+   Anyone may listen, signed in or not. The query is constrained to
+   allowPlayback == true so it satisfies the read rule.              */
+async function listOthers(entryId, excludeUid){
+  if(!CONFIGURED) return [];
+  const q = query(
+    collection(db, "afd_entries", entryId, "recordings"),
+    where("allowPlayback", "==", true),
+    limit(12)
+  );
+  const snap = await getDocs(q);
+  const out = [];
+  for(const d of snap.docs){
+    const v = d.data();
+    if(!v.storagePath) continue;
+    if(excludeUid && v.uid === excludeUid) continue;
+    let url = null;
+    try{ url = await getDownloadURL(ref(store, v.storagePath)); }catch(e){ continue; }
+    out.push({
+      recordingId: d.id,
+      url,
+      durationMs: (v.capture && v.capture.durationMs) || 0,
+      bursts: (v.qc && v.qc.bursts) || null,
+      town: (v.speakerTown) || null,
+      mine: excludeUid ? false : (currentUser && v.uid === currentUser.uid)
+    });
+  }
+  return out;
+}
+
 window.AFD = {
   configured: CONFIGURED,
   user: ()=>currentUser,
   isSignedIn: ()=>CONFIGURED && !!currentUser,
-  uploadClip
+  uploadClip,
+  listOthers
 };
 </script>
 
@@ -663,6 +707,7 @@ function renderPrompt(){
   $("glossAr").textContent=w.ar;
   $("progress").textContent="STEP 3 / 3 · WORD "+(idx+1)+" OF "+WORDS.length;
   $("reviewCard").classList.add("hidden");
+  $("compareCard").classList.add("hidden");
   recBtn.classList.remove("hidden");
   $("skipBtn").classList.remove("hidden");
   $("silLabel").textContent="ready";
@@ -924,9 +969,63 @@ $("keepBtn").onclick=async ()=>{
   kept.push(rec);
   try{ await idbPut(STORE,rec); await saveSpeaker(); }
   catch(e){ alert("Could not save to this device: "+e); }
-  renderClips(); next();
-  syncOne(rec);            // upload in the background; local copy already safe
+  renderClips();
+  $("reviewCard").classList.add("hidden");
+  await syncOne(rec);                 // upload first so the comparison includes it
+  showCompare(WORDS[idx], rec);
 };
+
+/* ---- compare your take against other speakers ---- */
+async function showCompare(word, mine){
+  const card=$("compareCard"), list=$("compareList");
+  $("compareTitle").textContent='"'+word.en+'"';
+  card.classList.remove("hidden");
+  recBtn.classList.add("hidden");
+  $("skipBtn").classList.add("hidden");
+  list.innerHTML='<p class="note">Looking…</p>';
+
+  let others=[];
+  try{
+    if(window.AFD && window.AFD.configured)
+      others = await window.AFD.listOthers("ent_"+word.id, window.AFD.user()?window.AFD.user().uid:null);
+  }catch(e){ console.warn("compare failed",e); }
+
+  let html="";
+  if(mine && mine.blob){
+    html += clipRow("Your recording", (mine.capture.durationMs/1000).toFixed(1)+"s · "+
+                    mine.qc.bursts+" reps", "mine", true);
+  }
+  if(!others.length){
+    html += '<p class="note">No one else has recorded this word yet. '+
+            'Yours is the first — check back as more speakers contribute.</p>';
+  }else{
+    others.forEach((o,i)=>{
+      html += clipRow("Speaker "+(i+1),
+                      (o.durationMs/1000).toFixed(1)+"s"+(o.bursts?" · "+o.bursts+" reps":""),
+                      "other"+i, false);
+    });
+  }
+  list.innerHTML=html;
+
+  if(mine && mine.blob){
+    const b=list.querySelector('[data-clip="mine"]');
+    if(b) b.onclick=()=>new Audio(URL.createObjectURL(mine.blob)).play();
+  }
+  others.forEach((o,i)=>{
+    const b=list.querySelector('[data-clip="other'+i+'"]');
+    if(b) b.onclick=()=>new Audio(o.url).play();
+  });
+}
+
+function clipRow(name, meta, key, isMine){
+  return '<div class="clip"><div class="name"><b>'+name+'</b><span>'+meta+'</span></div>'+
+         (isMine?'<span class="sync up">YOURS</span>':'')+
+         '<button data-clip="'+key+'">Play</button></div>';
+}
+
+$("compareNext").onclick=()=>{ $("compareCard").classList.add("hidden"); next(); };
+
+$("hearOthers").onclick=async ()=>{ await showCompare(WORDS[idx], null); };
 
 /* ---- upload, then mark the LOCAL copy as synced ---- */
 async function syncOne(rec){
