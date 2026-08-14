@@ -1005,6 +1005,7 @@ $("keepBtn").onclick=async ()=>{
       passed:lastQC.sampleRate>=44100&&lastQC.bursts>=2&&lastQC.peak<0.99
     },
     recordedAt:new Date().toISOString(),
+    ownerUid:(window.AFD&&window.AFD.user())?window.AFD.user().uid:null,
     blob:lastBlob
   };
   kept.push(rec);
@@ -1090,7 +1091,7 @@ async function syncOne(rec){
 }
 
 async function syncPending(){
-  const pend=kept.filter(k=>!k.skipped&&!k.synced);
+  const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(!pend.length){ alert("Everything is already uploaded."); return; }
   if(!(window.AFD&&window.AFD.isSignedIn())){ alert("Sign in first to upload."); return; }
   const btn=$("syncBtn"), label=btn.textContent;
@@ -1108,6 +1109,7 @@ $("skipBtn").onclick=async ()=>{
   const w=WORDS[idx];
   const rec={recordingId:"skip_"+w.id+"_"+Date.now(),entryId:"ent_"+w.id,
     gloss:w.en,speakerId:$("spkId").value,skipped:true,
+    ownerUid:(window.AFD&&window.AFD.user())?window.AFD.user().uid:null,
     recordedAt:new Date().toISOString(),blob:null};
   kept.push(rec);
   try{ await idbPut(STORE,rec); await saveSpeaker(); }catch(e){}
@@ -1144,11 +1146,26 @@ function next(){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+/* Recordings live in IndexedDB, which is per-BROWSER, not per-account.
+   Without this filter a second account would see — and could re-upload
+   under its own uid — the first account's clips. Only ever show and sync
+   recordings whose ownerUid matches whoever is signed in now.          */
+function myClips(){
+  const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
+  return kept.filter(k=>(k.ownerUid||null)===uid);
+}
+
 function renderClips(){
-  const real=kept.filter(k=>!k.skipped);
-  if(!kept.length){ $("clips").innerHTML='<p class="note">No recordings kept yet.</p>'; return; }
-  $("clips").innerHTML=kept.slice().reverse().map((k,i)=>{
-    const n=kept.length-1-i;
+  const mine=myClips();
+  const real=mine.filter(k=>!k.skipped);
+  const otherAcct=kept.length-mine.length;
+  if(!mine.length){
+    $("clips").innerHTML='<p class="note">No recordings kept yet.'+
+      (otherAcct?' ('+otherAcct+' on this device belong to another account.)':'')+'</p>';
+    return;
+  }
+  $("clips").innerHTML=mine.slice().reverse().map((k,i)=>{
+    const n=mine.length-1-i;
     if(k.skipped) return '<div class="clip"><div class="name"><b>'+k.gloss+
       '</b><span>skipped</span></div></div>';
     const badge=k.synced?'<span class="sync up">UPLOADED</span>'
@@ -1158,17 +1175,19 @@ function renderClips(){
       k.qc.bursts+' reps</span></div>'+badge+
       '<button data-play="'+n+'">Play</button></div>';
   }).join("")+'<p class="note">'+real.length+' recording'+(real.length===1?'':'s')+
-    ' kept · '+kept.filter(k=>!k.skipped&&k.synced).length+' uploaded.</p>';
+    ' kept · '+mine.filter(k=>!k.skipped&&k.synced).length+' uploaded.'+
+    (otherAcct?' '+otherAcct+' more belong to another account on this device.':'')+'</p>';
 
   $("clips").querySelectorAll("[data-play]").forEach(b=>{
-    b.onclick=()=>{ new Audio(URL.createObjectURL(kept[+b.dataset.play].blob)).play(); };
+    b.onclick=()=>{ new Audio(URL.createObjectURL(mine[+b.dataset.play].blob)).play(); };
   });
 }
 
 /* ================= export ================= */
 $("dlManifest").onclick=async ()=>{
-  const real=kept.filter(k=>!k.skipped&&k.blob);
-  if(!kept.length){ alert("Nothing recorded yet."); return; }
+  const mine=myClips();
+  const real=mine.filter(k=>!k.skipped&&k.blob);
+  if(!mine.length){ alert("Nothing recorded yet for this account."); return; }
   const btn=$("dlManifest"); const label=btn.textContent;
   btn.textContent="Packaging…"; btn.disabled=true;
   try{
@@ -1185,7 +1204,7 @@ $("dlManifest").onclick=async ()=>{
       speaker:{speakerId:spk.speakerId,origin:spk.origin,ageBand:spk.ageBand,
                gender:spk.gender,consent:spk.consent},
       micCheck:actualSettings,
-      recordings:kept.map(k=>{
+      recordings:mine.map(k=>{
         const {blob,...rest}=k;
         if(!k.skipped) rest.audioFile="audio/"+k.recordingId+
           (/mp4/.test(k.capture.codec)?".m4a":".webm");
@@ -1204,7 +1223,7 @@ $("dlManifest").onclick=async ()=>{
 };
 
 $("clearBtn").onclick=async ()=>{
-  const real=kept.filter(k=>!k.skipped).length;
+  const real=kept.filter(k=>!k.skipped).length;  // clearing removes ALL local data
   if(!confirm("Delete all "+real+" recording(s) from this device?\n\n"+
               "Export first if you have not already — this cannot be undone.")) return;
   await idbClear(STORE);
@@ -1221,8 +1240,9 @@ $("syncBtn").onclick=syncPending;
 
 // when a user signs in, quietly retry anything still sitting on the phone
 window.afdOnAuth=(u)=>{
+  renderClips();                       // session list is per-account
   if(!u) return;
-  const pend=kept.filter(k=>!k.skipped&&!k.synced);
+  const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(pend.length) console.log(pend.length+" recording(s) pending upload");
 };
 
