@@ -1,0 +1,72 @@
+rules_version = '2';
+
+/*  Audio First Dictionary — Firestore rules
+ *  ------------------------------------------------------------------
+ *  COMPLETE, STANDALONE FILE for the AFD's own Firebase project.
+ *  Deploy as-is. Nothing to merge. This project contains no tawq.in
+ *  data, so a mistake here cannot affect tawq.in.
+ *
+ *  Model:
+ *    read    — anyone (listening is open, no account needed)
+ *    create  — signed-in users only, writing their own uid
+ *    update  — only the author of that recording
+ *    delete  — never from the client
+ *
+ *  Deploy:   firebase deploy --only firestore:rules
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ---------------- word entries ----------------
+    match /afd_entries/{entryId} {
+
+      // entry metadata (gloss, domain, prompt image) — public
+      allow read: if true;
+
+      // entries are seeded from the console / a script, not the app
+      allow write: if false;
+
+      // ---------------- contributed recordings ----------------
+      match /recordings/{recordingId} {
+
+        // anyone may listen, signed in or not
+        allow read: if true;
+
+        allow create: if signedIn()
+                      // the author must claim their own uid
+                      && request.resource.data.uid == request.auth.uid
+                      // protocol rules, enforced where the client cannot bypass them
+                      && request.resource.data.capture.sampleRate >= 44100
+                      && request.resource.data.gloss is string
+                      && request.resource.data.entryId is string;
+
+        // an author may fix their own metadata but never reassign ownership
+        allow update: if signedIn()
+                      && resource.data.uid == request.auth.uid
+                      && request.resource.data.uid == resource.data.uid;
+
+        allow delete: if false;
+      }
+    }
+
+    // ---------------- speaker profiles ----------------
+    // Holds town and tribe, so this is private to its owner.
+    match /afd_speakers/{uid} {
+      allow read:   if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // ---------------- everything else ----------------
+    // Explicit deny, so an unplanned collection is never writable.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

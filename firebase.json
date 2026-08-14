@@ -1,0 +1,18 @@
+{
+  "firestore": {
+    "rules": "afd-firestore.rules"
+  },
+  "storage": {
+    "rules": "afd-storage.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "*.rules",
+      "SETUP.md"
+    ]
+  }
+}

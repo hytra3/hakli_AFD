@@ -1,0 +1,37 @@
+rules_version = '2';
+
+/*  Audio First Dictionary — Cloud Storage rules
+ *  ------------------------------------------------------------------
+ *  COMPLETE, STANDALONE FILE for the AFD's own Firebase project.
+ *  Deploy as-is. Nothing to merge.
+ *
+ *  Path shape:  afd/{uid}/{recordingId}.webm
+ *
+ *  Deploy:   firebase deploy --only storage
+ */
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /afd/{uid}/{fileName} {
+
+      // anyone may listen to contributed audio
+      allow read: if true;
+
+      // only the signed-in owner may upload, audio only, 10 MB cap
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+
+      // recordings are immutable once uploaded
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // everything else is closed
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
