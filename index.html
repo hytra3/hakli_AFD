@@ -9,66 +9,86 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --mist:#E9EEE7;
+  --fog:#EAF0EE;          /* misty background */
   --paper:#FFFFFF;
-  --ink:#14251F;
-  --ink-soft:#4A5C54;
-  --hairline:#CBD5C7;
-  --frank:#C8781E;
+  --cloud:#FFFFFF;
+  --ink:#17241F;          /* deep juniper ink */
+  --ink-soft:#5B6E66;
+  --hairline:#D7E1DB;
+  --mist:#E9EEE7;         /* pale well (silhouette bg) */
+  --mist-2:#C4D2CC;
+  --frank:#C6873F;        /* frankincense — the LIVE/active accent, used sparingly */
+  --frank-soft:#E7C9A0;
   --monsoon:#2F6B4F;
+  --mountain:#1F3A34;     /* primary green */
   --alert:#A33B2A;
+  --shadow:0 18px 44px rgba(31,58,52,.10);
+  --shadow-sm:0 6px 16px rgba(31,58,52,.10);
+  --r:18px;
   --sans:"IBM Plex Sans Arabic",system-ui,-apple-system,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
 body{
   font-family:var(--sans);
-  background:var(--mist);
+  background:radial-gradient(120% 80% at 50% -10%, #F3F7F5 0%, var(--fog) 55%, #DFE8E4 100%) fixed;
   color:var(--ink);
   line-height:1.5;
+  min-height:100dvh;
   padding-bottom:env(safe-area-inset-bottom);
 }
-.wrap{max-width:560px;margin:0 auto;padding:16px}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
+
+/* ---------- brand mark ---------- */
+.brand{display:flex;align-items:center;gap:10px;margin:2px 0 16px;color:var(--mountain)}
+.brand svg{width:28px;height:28px;flex:0 0 auto}
+.brand b{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.2px}
+.brand small{font-family:var(--sans);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#9AB0A8}
 
 /* ---------- shared bits ---------- */
 .eyebrow{
   font-family:var(--mono);font-size:11px;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--ink-soft);margin:0 0 6px
+  text-transform:uppercase;color:var(--ink-soft);margin:0 0 8px
 }
 .card{
-  background:var(--paper);border:1px solid var(--hairline);
-  border-radius:14px;padding:18px;margin-bottom:14px
+  background:var(--cloud);
+  border:1px solid rgba(31,58,52,.05);
+  border-radius:var(--r);
+  padding:20px;margin-bottom:14px;
+  box-shadow:var(--shadow);
 }
-h1{font-size:22px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
-h2{font-size:15px;font-weight:600;margin:0 0 10px}
+h1{font-family:var(--serif);font-size:27px;font-weight:500;margin:0 0 4px;letter-spacing:-.01em;color:var(--mountain)}
+h2{font-size:15px;font-weight:600;margin:0 0 10px;color:var(--ink)}
 p.note{font-size:13px;color:var(--ink-soft);margin:6px 0 0}
 
-button{font-family:inherit;font-size:16px;cursor:pointer;border-radius:11px;border:1px solid transparent}
+button{font-family:inherit;font-size:16px;cursor:pointer;border-radius:14px;border:1px solid transparent}
 button:focus-visible{outline:3px solid var(--frank);outline-offset:2px}
 .btn{
-  display:block;width:100%;padding:15px;font-weight:600;
-  background:var(--ink);color:var(--paper);margin-top:10px
+  display:block;width:100%;padding:16px;font-weight:600;
+  background:var(--mountain);color:var(--paper);margin-top:10px;
+  border-radius:14px;box-shadow:var(--shadow-sm)
 }
-.btn.secondary{background:var(--paper);color:var(--ink);border-color:var(--ink)}
-.btn.ghost{background:transparent;color:var(--ink-soft);border-color:var(--hairline);font-weight:500}
-.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.secondary{background:var(--paper);color:var(--mountain);border-color:var(--mountain);box-shadow:none}
+.btn.ghost{background:transparent;color:var(--ink-soft);border-color:var(--hairline);font-weight:500;box-shadow:none}
+.btn[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none}
 .row{display:flex;gap:10px}
 .row .btn{margin-top:10px}
 
-label.field{display:block;margin:12px 0 0}
-label.field span{display:block;font-size:13px;font-weight:500;margin-bottom:5px}
-input[type=text],select{
-  width:100%;padding:12px;font-family:inherit;font-size:16px;
-  border:1px solid var(--hairline);border-radius:10px;background:var(--paper);color:var(--ink)
+label.field{display:block;margin:14px 0 0}
+label.field span{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--ink)}
+input[type=text],input[type=password],select{
+  width:100%;padding:13px;font-family:inherit;font-size:16px;
+  border:1px solid var(--hairline);border-radius:12px;background:var(--paper);color:var(--ink)
 }
-input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
+input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;border-color:var(--frank-soft)}
 
-.check{display:flex;gap:11px;align-items:flex-start;margin:11px 0;font-size:14px}
-.check input{width:22px;height:22px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--monsoon)}
+.check{display:flex;gap:12px;align-items:flex-start;margin:12px 0;font-size:14px}
+.check input{width:23px;height:23px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--monsoon)}
 
 /* ---------- capture verification ---------- */
-.verdict{border-radius:12px;padding:14px;margin-bottom:14px;border:1px solid}
+.verdict{border-radius:14px;padding:15px;margin-bottom:14px;border:1px solid}
 .verdict.ok{background:#EAF3ED;border-color:var(--monsoon);color:#1D4633}
 .verdict.bad{background:#F7EAE7;border-color:var(--alert);color:#6E2418}
 .verdict strong{display:block;font-size:15px;margin-bottom:3px}
@@ -76,31 +96,33 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
 .readout b{font-weight:500;color:var(--ink-soft);display:inline-block;min-width:132px}
 
 /* ---------- prompt ---------- */
-.prompt{text-align:center;padding:26px 18px}
-.picto{font-size:76px;line-height:1;margin-bottom:10px;user-select:none}
-.gloss{font-size:30px;font-weight:600;letter-spacing:-.02em;margin:0}
-.gloss-ar{font-size:24px;font-weight:400;color:var(--ink-soft);margin:2px 0 0}
+.prompt{text-align:center;padding:28px 20px}
+.picto{font-size:80px;line-height:1;margin-bottom:10px;user-select:none}
+.gloss{font-family:var(--serif);font-size:34px;font-weight:500;letter-spacing:-.02em;margin:0;color:var(--ink)}
+.gloss-ar{font-size:23px;font-weight:400;color:var(--ink-soft);margin:3px 0 0;direction:rtl}
 .instruction{
-  font-size:14px;color:var(--ink-soft);margin-top:14px;
-  padding-top:13px;border-top:1px solid var(--hairline)
+  font-size:14px;color:var(--ink-soft);margin-top:16px;
+  padding-top:14px;border-top:1px solid var(--hairline)
 }
 .counter{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em}
 
 /* ---------- signature: silhouette strip ---------- */
 .silhouette{
-  height:92px;background:var(--mist);border-radius:11px;
-  margin:14px 0 0;overflow:hidden;position:relative
+  height:96px;background:var(--mist);border-radius:16px;
+  margin:14px 0 0;overflow:hidden;position:relative;
+  box-shadow:inset 0 1px 3px rgba(31,58,52,.07)
 }
 .silhouette canvas{display:block;width:100%;height:100%}
 .sil-label{
-  position:absolute;left:11px;top:9px;font-family:var(--mono);
+  position:absolute;left:12px;top:10px;font-family:var(--mono);
   font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)
 }
 
 /* ---------- record control ---------- */
 .rec{
-  width:100%;padding:19px;margin-top:14px;font-size:18px;font-weight:600;
-  background:var(--frank);color:#fff;border:none;
+  width:100%;padding:20px;margin-top:14px;font-size:18px;font-weight:600;
+  background:var(--frank);color:#fff;border:none;border-radius:16px;
+  box-shadow:0 10px 26px rgba(198,135,63,.30);
   -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
   touch-action:manipulation
 }
@@ -108,7 +130,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
   display:block;font-family:var(--mono);font-size:13px;font-weight:400;
   opacity:.85;margin-top:3px
 }
-.rec.recording{background:var(--alert)}
+.rec.recording{background:var(--alert);box-shadow:0 10px 26px rgba(163,59,42,.30)}
 .rec .dot{
   display:inline-block;width:11px;height:11px;border-radius:50%;
   background:#fff;margin-right:9px;vertical-align:middle
@@ -130,7 +152,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
 
 /* ---------- session list ---------- */
 .clip{
-  display:flex;align-items:center;gap:11px;padding:10px 0;
+  display:flex;align-items:center;gap:11px;padding:11px 0;
   border-bottom:1px solid var(--hairline);font-size:14px
 }
 .clip:last-child{border-bottom:none}
@@ -138,8 +160,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
 .clip .name b{display:block;font-weight:500}
 .clip .name span{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
 .clip button{
-  padding:7px 13px;font-size:13px;background:var(--paper);
-  border:1px solid var(--hairline);color:var(--ink)
+  padding:8px 14px;font-size:13px;background:var(--paper);
+  border:1px solid var(--hairline);color:var(--ink);border-radius:10px
 }
 .hidden{display:none}
 .sync{
@@ -148,7 +170,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
 }
 .sync.up{background:#EAF3ED;color:#1D4633}
 .sync.pend{background:#FBF0E2;color:#7A4A11}
-.stepdots{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:12px}
+.stepdots{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -157,6 +179,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
 <!-- ============ 1. CONSENT + SPEAKER ============ -->
 <section id="setup">
   <p class="stepdots">STEP 1 / 3 &nbsp;·&nbsp; SPEAKER</p>
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 L11 9 L17 20 L21 13 L30 26 Z" fill="#1F3A34"/><circle cx="24" cy="7" r="3.2" fill="#C6873F"/></svg>
+    <b>Hakli</b><small>Audio First Dictionary</small>
+  </div>
   <h1>Hakli Word Recorder</h1>
   <p class="note">Part of the Audio First Dictionary. Recordings are saved on this
     phone and uploaded when you're signed in.</p>
@@ -201,8 +227,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px}
       </datalist></label>
     <label class="field"><span>Tribe</span>
       <input type="text" id="spkTribe" placeholder="self-identified"></label>
-    <label class="field"><span>Now living in <em style="color:var(--ink-soft);font-style:normal">(optional)</em></span>
-      <input type="text" id="spkNow" placeholder="Muscat"></label>
     <div class="row">
       <label class="field" style="flex:1"><span>Age band</span>
         <select id="spkAge">
@@ -1120,8 +1144,7 @@ function speakerRecord(){
   return {
     key:"speaker",
     speakerId:$("spkId").value,
-    origin:{town:$("spkTown").value,tribe:$("spkTribe").value,
-            currentLocation:$("spkNow").value},
+    origin:{town:$("spkTown").value,tribe:$("spkTribe").value},
     ageBand:$("spkAge").value, gender:$("spkGender").value,
     consent:{
       version:"cv_2026_08",
@@ -1268,7 +1291,6 @@ function dl(blob,name){
       $("spkId").value=spk.speakerId||"spk_01";
       $("spkTown").value=(spk.origin&&spk.origin.town)||"";
       $("spkTribe").value=(spk.origin&&spk.origin.tribe)||"";
-      $("spkNow").value=(spk.origin&&spk.origin.currentLocation)||"";
       $("spkAge").value=spk.ageBand||"";
       $("spkGender").value=spk.gender||"";
       if(spk.consent){
