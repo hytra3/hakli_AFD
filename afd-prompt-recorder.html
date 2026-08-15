@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hakli voice prompts</title>
+<style>
+  :root{
+    --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
+    --line:#e7e0d5; --warm:#b06a2c; --warm-bg:#f6ead9;
+    --go:#2f7d5b; --go-bg:#e3f2ea; --stop:#b23b3b;
+    --accent:#3a6ea5; --accent-bg:#e7f0f8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1a1713; --card:#241f19; --ink:#efe8dd; --muted:#a49a8c;
+      --line:#3a332a; --warm:#e0a163; --warm-bg:#33281c;
+      --go:#5bbd8e; --go-bg:#1d3329; --stop:#e2726f;
+      --accent:#7fb0e0; --accent-bg:#1e2b3a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px; margin:0 auto; padding:16px 16px 48px;}
+  header{position:sticky; top:0; background:var(--bg); padding:10px 0 12px; border-bottom:1px solid var(--line); z-index:5;}
+  .title{font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px;}
+  .bar{height:8px; background:var(--line); border-radius:6px; margin-top:10px; overflow:hidden;}
+  .bar > i{display:block; height:100%; width:0; background:var(--go); border-radius:6px; transition:width .25s;}
+  .barlabel{font-size:12px; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between;}
+  .status{font-size:12px; color:var(--muted);}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:16px;}
+  .sec{font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
+  .badge{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:2px;}
+  .b-narr{background:var(--warm-bg); color:var(--warm);}
+  .b-label{background:var(--accent-bg); color:var(--accent);}
+  .b-tag{background:var(--line); color:var(--muted);}
+  .gloss{font-size:24px; font-weight:600; margin:12px 0 4px;}
+  .gloss-ar{font-size:22px; color:var(--muted); direction:rtl; text-align:right; min-height:0;}
+  .hint{font-size:13px; color:var(--muted); margin-top:8px;}
+  .key{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace; margin-top:10px;}
+  .controls{display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px;}
+  .recbtn{width:96px; height:96px; border-radius:50%; border:none; background:var(--go); color:#fff; font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; user-select:none;}
+  .recbtn.rec{background:var(--stop);}
+  .recbtn:disabled{opacity:.4;}
+  .timer{font-variant-numeric:tabular-nums; font-size:15px; color:var(--muted); min-height:20px;}
+  .review{display:flex; gap:10px; margin-top:14px; width:100%; justify-content:center;}
+  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:12px 16px; font-size:15px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;}
+  .btn.keep{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
+  .btn.wide{width:100%; justify-content:center;}
+  .nav{display:flex; gap:10px; margin-top:14px;}
+  .nav .btn{flex:1; justify-content:center;}
+  .list{margin-top:22px;}
+  .list h2{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 8px;}
+  .row{display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; background:var(--card); cursor:pointer;}
+  .row.active{border-color:var(--warm);}
+  .dot{width:22px; height:22px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-size:14px; border:1px solid var(--line); color:var(--muted);}
+  .dot.done{background:var(--go); border-color:var(--go); color:#fff;}
+  .dot.pend{background:var(--warm-bg); border-color:var(--warm); color:var(--warm);}
+  .rowtext{flex:1; min-width:0;}
+  .rowtext .g{font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rowtext .k{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace;}
+  .note{background:var(--warm-bg); color:var(--warm); border-radius:12px; padding:12px 14px; font-size:13px; margin-top:14px;}
+  .sync{font-size:12px;}
+  .sync.pending{color:var(--warm);} .sync.ok{color:var(--go);}
+  audio{width:100%; margin-top:12px;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">🎙️ Hakli voice prompts <span id="status" class="status">connecting…</span></div>
+    <div class="bar"><i id="barfill"></i></div>
+    <div class="barlabel"><span id="count">0 recorded</span><span id="remaining"></span></div>
+  </header>
+
+  <div id="app" class="hidden">
+    <div class="card">
+      <div class="sec" id="cur-sec">—</div>
+      <div class="gloss" id="cur-gloss">—</div>
+      <div class="gloss-ar" id="cur-ar"></div>
+      <div class="hint" id="cur-hint"></div>
+      <div class="key" id="cur-key"></div>
+
+      <div class="controls">
+        <button id="recbtn" class="recbtn">Record</button>
+        <div class="timer" id="timer"></div>
+        <audio id="player" class="hidden" controls></audio>
+        <div class="review hidden" id="review">
+          <button class="btn" id="redo">↻ Redo</button>
+          <button class="btn keep" id="keep">✓ Keep it</button>
+        </div>
+        <div class="sync" id="sync"></div>
+      </div>
+
+      <div class="nav">
+        <button class="btn" id="prev">← Back</button>
+        <button class="btn" id="next">Next →</button>
+      </div>
+      <button class="btn wide" id="nextpending" style="margin-top:10px;">Go to next unrecorded</button>
+    </div>
+
+    <div class="note" id="offlinenote">
+      Recordings are kept safely on this phone first, then sent on their own. You can close this and come back — your progress waits for you.
+    </div>
+
+    <div class="list" id="list"></div>
+  </div>
+
+  <div id="setup" class="note hidden"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+/* ---- 1. PASTE the afd-dev web config here (same six values as the main recorder) ---- */
+const firebaseConfig = {
+  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
+  authDomain:        "afd-dev.firebaseapp.com",
+  projectId:         "afd-dev",
+  storageBucket:     "afd-dev.firebasestorage.app",
+  messagingSenderId: "454829954488",
+  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
+};
+const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE_");
+
+/* ---- 2. The prompts. Add an `ar` (Arabic gloss) to any item and it will show. ---- */
+const SECTIONS = [
+  { name:"Walkthrough (spoken tour)", items:[
+    { key:"intro.welcome", en:"What this is — a place to hear and add Hakli", kind:"narration" },
+    { key:"intro.longpress", en:"Hold any button to hear what it does", kind:"narration" },
+    { key:"intro.hold_to_speak", en:"To add your voice, hold and speak", kind:"narration" },
+    { key:"intro.find", en:"To find a word, speak it or look by picture", kind:"narration" },
+  ]},
+  { name:"Consent grant (most important)", items:[
+    { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", kind:"narration" },
+    { key:"consent.blessing", en:"Your elders welcomed this", kind:"label" },
+    { key:"consent.truth.world", en:"Anyone, anywhere can hear you", kind:"label" },
+    { key:"consent.truth.permanent", en:"It stays — even after today", kind:"label" },
+    { key:"consent.truth.revocable", en:"You can take it back, anytime", kind:"label" },
+    { key:"consent.give", en:"Hold, and say yes in your own voice", kind:"label" },
+    { key:"consent.give.sub", en:"Your word, in your language", kind:"label" },
+    { key:"consent.notnow", en:"Not now", kind:"label" },
+  ]},
+  { name:"Your voice (consent control)", items:[
+    { key:"voice.title", en:"Your voice", kind:"label" },
+    { key:"voice.reassure", en:"These are yours — take any back anytime", kind:"label" },
+    { key:"voice.state.shared", en:"Shared", kind:"label" },
+    { key:"voice.state.takenback", en:"Taken back, kept safe", kind:"label" },
+    { key:"voice.takeback", en:"Take back", kind:"label" },
+    { key:"voice.shareagain", en:"Share again", kind:"label" },
+    { key:"voice.bulk.words", en:"All my words", kind:"label" },
+    { key:"voice.bulk.definitions", en:"All my definitions", kind:"label" },
+    { key:"voice.bulk.everything", en:"Everything", kind:"label" },
+    { key:"voice.mask", en:"Mask my avatar — be heard, not traceable", kind:"label" },
+    { key:"voice.bulk.confirm", en:"Take back all your words? You can share them again later", kind:"narration", tag:"may change" },
+  ]},
+  { name:"Home", items:[
+    { key:"home.speak", en:"Speak to find", kind:"label" },
+    { key:"home.speak.hint", en:"Tap and say a word", kind:"label" },
+    { key:"home.picture", en:"Look by picture", kind:"label" },
+    { key:"home.addvoice", en:"Add your voice", kind:"label" },
+    { key:"home.recent", en:"Recently heard", kind:"label" },
+    { key:"home.momentum", en:"Frame words only: “words in the dictionary”, “voices sharing” (no numbers)", kind:"label", tag:"count" },
+  ]},
+  { name:"Record", items:[
+    { key:"record.prompt.image", en:"Say what you see, in Hakli", kind:"label" },
+    { key:"record.hold", en:"Hold to speak", kind:"label" },
+    { key:"record.holding", en:"Keep holding", kind:"label" },
+    { key:"record.release", en:"Let go when you finish", kind:"label" },
+  ]},
+  { name:"Review & keep", items:[
+    { key:"review.yourtake", en:"Your take", kind:"label" },
+    { key:"review.clear", en:"Clear, good to keep", kind:"label" },
+    { key:"review.check.loud", en:"Loud enough", kind:"label" },
+    { key:"review.check.long", en:"Long enough", kind:"label" },
+    { key:"review.check.clip", en:"No clipping", kind:"label" },
+    { key:"review.fail.quiet", en:"A bit quiet, try again", kind:"label", tag:"may change" },
+    { key:"review.fail.short", en:"A bit short, try again", kind:"label", tag:"may change" },
+    { key:"review.redo", en:"Redo", kind:"label" },
+    { key:"review.keep", en:"Keep it", kind:"label" },
+    { key:"review.savedonphone", en:"Saved on your phone first", kind:"label" },
+  ]},
+  { name:"Find a word (result)", items:[
+    { key:"result.whatyousaid", en:"Hear what you said", kind:"label" },
+    { key:"result.playing", en:"Playing", kind:"label" },
+    { key:"result.pure_hakli", en:"Pure Hakli", kind:"label" },
+    { key:"result.voices", en:"“How many said this” — frame words only (no number)", kind:"label", tag:"count" },
+    { key:"result.meaning", en:"What it means", kind:"label" },
+    { key:"result.notthis", en:"Not this one?", kind:"label" },
+    { key:"result.sayityourself", en:"Say it yourself", kind:"label" },
+    { key:"result.pick", en:"I heard a few — pick the one you said", kind:"narration", tag:"may change" },
+  ]},
+  { name:"Hear how others say it", items:[
+    { key:"others.title", en:"How others say it", kind:"label" },
+    { key:"others.playall", en:"Play all", kind:"label" },
+    { key:"others.cluster", en:"“How many voices, around one shape” — frame words only (no number)", kind:"label", tag:"count" },
+    { key:"others.more", en:"And more", kind:"label" },
+  ]},
+  { name:"Everywhere (shared)", items:[
+    { key:"nav.back", en:"Go back", kind:"label" },
+    { key:"action.play", en:"Play / listen", kind:"label" },
+    { key:"action.hear_prompt", en:"Hear the prompt", kind:"label" },
+  ]},
+];
+const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.name})));
+
+/* ---- tiny IndexedDB for pending clips (survives reload / bad signal) ---- */
+const IDB = (()=>{
+  let dbp;
+  function open(){ if(dbp) return dbp; dbp = new Promise((res,rej)=>{
+    const r = indexedDB.open("afd_ui_prompts",1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore("clips",{keyPath:"key"});
+    r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error);
+  }); return dbp; }
+  const tx = async (mode,fn)=>{ const db=await open(); return new Promise((res,rej)=>{
+    const t=db.transaction("clips",mode); const s=t.objectStore("clips"); const out=fn(s);
+    t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out); t.onerror=()=>rej(t.error);
+  });};
+  return {
+    put:(rec)=>tx("readwrite",s=>s.put(rec)),
+    del:(key)=>tx("readwrite",s=>s.delete(key)),
+    all:()=>tx("readonly",s=>s.getAll()),
+  };
+})();
+
+const $ = id => document.getElementById(id);
+const state = { i:0, recorded:new Set(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null };
+
+if(!CONFIGURED){
+  $("status").textContent = "not set up";
+  $("setup").classList.remove("hidden");
+  $("setup").innerHTML = "This recorder needs its Firebase config pasted in once (the six PASTE_ values at the top of the file), Anonymous sign-in enabled in the console, and the afd_ui rules deployed. Ask Marty.";
+} else {
+  start();
+}
+
+async function start(){
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const store = getStorage(app);
+  state.db = db; state.store = store;
+
+  onAuthStateChanged(auth, async (u)=>{
+    if(!u) return;
+    $("status").textContent = navigator.onLine ? "ready" : "offline (saving here)";
+    await loadProgress(db);
+    await loadPending();
+    $("app").classList.remove("hidden");
+    render();
+    syncPending();
+  });
+  try{
+    await signInAnonymously(auth);
+  }catch(e){
+    $("status").textContent = "sign-in blocked";
+    $("setup").classList.remove("hidden");
+    $("setup").innerHTML = "Sign-in was refused ("+e.code+"). Ask Marty to enable <b>Anonymous</b> sign-in in Firebase → Authentication → Sign-in method.";
+  }
+  window.addEventListener("online", ()=>{ $("status").textContent="ready"; syncPending(); });
+  window.addEventListener("offline", ()=>{ $("status").textContent="offline (saving here)"; });
+}
+
+async function loadProgress(db){
+  try{
+    const snap = await getDocs(collection(db,"afd_ui_prompts"));
+    snap.forEach(d => { if(d.data().status === "recorded") state.recorded.add(d.id); });
+  }catch(e){ /* offline: rely on local */ }
+}
+async function loadPending(){
+  const all = await IDB.all().catch(()=>[]);
+  (all||[]).forEach(r => { state.pending.set(r.key, r.blob); state.recorded.add(r.key); });
+}
+
+function updateProgress(){
+  const done = state.recorded.size, total = ITEMS.length;
+  $("barfill").style.width = Math.round(done/total*100)+"%";
+  $("count").textContent = done+" of "+total+" recorded";
+  $("remaining").textContent = (total-done)+" to go";
+}
+
+function render(){
+  const it = ITEMS[state.i];
+  $("cur-sec").textContent = it.section;
+  $("cur-gloss").textContent = it.en;
+  $("cur-ar").textContent = it.ar || "";
+  const bits = [];
+  bits.push(it.kind==="narration" ? '<span class="badge b-narr">longer phrase</span>' : '<span class="badge b-label">short label</span>');
+  if(it.tag) bits.push('<span class="badge b-tag">'+it.tag+'</span>');
+  $("cur-hint").innerHTML = bits.join("") + (it.kind==="narration" ? '<div style="margin-top:8px">Take your time — a quiet room helps.</div>' : "");
+  $("cur-key").textContent = it.key;
+
+  resetRecUI();
+  const done = state.recorded.has(it.key);
+  $("sync").className = "sync " + (state.pending.has(it.key) ? "pending" : (done?"ok":""));
+  $("sync").textContent = state.pending.has(it.key) ? "saved here — will send when online" : (done ? "✓ recorded" : "");
+  $("recbtn").textContent = done ? "Record again" : "Record";
+
+  renderList();
+  updateProgress();
+}
+
+function resetRecUI(){
+  stopTimer();
+  state.blob = null; state.chunks = [];
+  $("recbtn").classList.remove("rec"); $("recbtn").disabled=false;
+  $("timer").textContent="";
+  $("player").classList.add("hidden"); $("player").removeAttribute("src");
+  $("review").classList.add("hidden");
+}
+
+function renderList(){
+  const el = $("list"); el.innerHTML="";
+  SECTIONS.forEach(sec=>{
+    const h = document.createElement("h2"); h.textContent = sec.name; el.appendChild(h);
+    sec.items.forEach(it=>{
+      const gi = ITEMS.findIndex(x=>x.key===it.key);
+      const done = state.recorded.has(it.key), pend = state.pending.has(it.key);
+      const row = document.createElement("div");
+      row.className = "row" + (gi===state.i?" active":"");
+      row.innerHTML =
+        '<div class="dot '+(pend?"pend":(done?"done":""))+'">'+(pend?"…":(done?"✓":""))+'</div>'+
+        '<div class="rowtext"><div class="g">'+it.en+'</div><div class="k">'+it.key+'</div></div>';
+      row.onclick = ()=>{ state.i = gi; render(); window.scrollTo({top:0,behavior:"smooth"}); };
+      el.appendChild(row);
+    });
+  });
+}
+
+/* ---- recording ---- */
+$("recbtn").onclick = async ()=>{
+  if(state.rec && state.rec.state==="recording"){ state.rec.stop(); return; }
+  try{
+    if(!state.stream) state.stream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, noiseSuppression:true, echoCancellation:true } });
+  }catch(e){ alert("Microphone permission is needed to record."); return; }
+  state.chunks=[];
+  const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
+  state.rec = new MediaRecorder(state.stream, mime?{mimeType:mime}:undefined);
+  state.rec.ondataavailable = e=>{ if(e.data.size) state.chunks.push(e.data); };
+  state.rec.onstop = ()=>{
+    state.blob = new Blob(state.chunks, {type: state.rec.mimeType || "audio/webm"});
+    const url = URL.createObjectURL(state.blob);
+    $("player").src = url; $("player").classList.remove("hidden");
+    $("review").classList.remove("hidden");
+    $("recbtn").classList.remove("rec"); $("recbtn").textContent="Record again"; $("recbtn").disabled=false;
+    stopTimer();
+  };
+  state.rec.start();
+  $("recbtn").classList.add("rec"); $("recbtn").textContent="Stop";
+  $("review").classList.add("hidden"); $("player").classList.add("hidden");
+  startTimer();
+};
+
+$("redo").onclick = ()=>{ resetRecUI(); $("recbtn").textContent = state.recorded.has(ITEMS[state.i].key)?"Record again":"Record"; };
+
+$("keep").onclick = async ()=>{
+  const it = ITEMS[state.i];
+  if(!state.blob) return;
+  const blob = state.blob;
+  await IDB.put({ key:it.key, blob });          // survives reload immediately
+  state.pending.set(it.key, blob);
+  state.recorded.add(it.key);
+  $("keep").disabled = true;
+  render();
+  $("keep").disabled = false;
+  syncPending();
+  goNextPending();
+};
+
+/* ---- upload pending to Firebase ---- */
+let syncing = false;
+async function syncPending(){
+  if(syncing || !navigator.onLine || !state.store) return;
+  syncing = true;
+  for(const [key, blob] of Array.from(state.pending.entries())){
+    try{
+      const it = ITEMS.find(x=>x.key===key) || {};
+      await uploadBytes(ref(state.store, "afd_ui/"+key+".webm"), blob, { contentType: blob.type || "audio/webm" });
+      await setDoc(doc(state.db,"afd_ui_prompts",key), {
+        key, intent: it.en||"", kind: it.kind||"label", section: it.section||"",
+        status:"recorded", storagePath:"afd_ui/"+key+".webm",
+        contentType: blob.type||"audio/webm", recordedAt: serverTimestamp()
+      }, { merge:true });
+      state.pending.delete(key);
+      await IDB.del(key);
+      if(ITEMS[state.i].key===key){
+        $("sync").className="sync ok"; $("sync").textContent="✓ recorded";
+      }
+      renderList();
+    }catch(e){ /* leave pending, retry next time */ }
+  }
+  syncing = false;
+}
+
+function goNextPending(){ if(!nextUnrecorded()) return; }
+function nextUnrecorded(){
+  for(let n=1;n<=ITEMS.length;n++){
+    const j=(state.i+n)%ITEMS.length;
+    if(!state.recorded.has(ITEMS[j].key)){ state.i=j; render(); window.scrollTo({top:0,behavior:"smooth"}); return true; }
+  }
+  return false;
+}
+
+$("prev").onclick = ()=>{ state.i=(state.i-1+ITEMS.length)%ITEMS.length; render(); };
+$("next").onclick = ()=>{ state.i=(state.i+1)%ITEMS.length; render(); };
+$("nextpending").onclick = ()=>{ if(!nextUnrecorded()) alert("Every prompt is recorded. Thank you!"); };
+
+/* ---- timer ---- */
+function startTimer(){ state.t0=Date.now(); state.timer=setInterval(()=>{ const s=(Date.now()-state.t0)/1000; $("timer").textContent="● "+s.toFixed(1)+"s"; },100); }
+function stopTimer(){ if(state.timer){ clearInterval(state.timer); state.timer=null; } }
+</script>
+</body>
+</html>
