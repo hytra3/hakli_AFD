@@ -423,7 +423,7 @@ async function uploadClip(rec, speaker){
     const path = `afd/${uid}/${rec.recordingId}.${ext}`;
     await uploadBytes(ref(store, path), rec.blob, {
       contentType: rec.blob.type || "audio/webm",
-      customMetadata: { entryId: rec.entryId, gloss: rec.gloss }
+      customMetadata: { entryId: rec.entryId, gloss: rec.gloss, recordingId: rec.recordingId }
     });
     rec.storagePath = path;
   }
