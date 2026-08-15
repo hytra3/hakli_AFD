@@ -1,34 +1,47 @@
 rules_version = '2';
-
 /*  Audio First Dictionary — Cloud Storage rules
  *  ------------------------------------------------------------------
  *  COMPLETE, STANDALONE FILE for the AFD's own Firebase project.
  *  Deploy as-is. Nothing to merge.
  *
- *  Path shape:  afd/{uid}/{recordingId}.webm
+ *  Paths:
+ *    afd/{uid}/{recordingId}.webm   — contributed corpus audio
+ *    afd_ui/{fileName}              — the app's spoken Hakli interface
+ *
+ *  Anonymous sign-in exists ONLY for the UI-prompt recorder and is
+ *  boxed into afd_ui/. It cannot write corpus audio.
  *
  *  Deploy:   firebase deploy --only storage
  */
-
 service firebase.storage {
   match /b/{bucket}/o {
-
     match /afd/{uid}/{fileName} {
-
       // anyone may listen to contributed audio
       allow read: if true;
-
-      // only the signed-in owner may upload, audio only, 10 MB cap
+      // only the signed-in, NON-anonymous owner may upload, audio only, 10 MB cap
       allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
                     && request.auth.uid == uid
                     && request.resource.size < 10 * 1024 * 1024
                     && request.resource.contentType.matches('audio/.*');
-
       // recordings are immutable once uploaded
       allow update: if false;
       allow delete: if false;
     }
-
+    // ---------------- UI voice prompts ----------------
+    // Recorded remotely over anonymous sign-in; played openly by the app.
+    // 25 MB cap — the consent narration is a longer connected phrase.
+    match /afd_ui/{fileName} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.size < 25 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      // let the designated speaker re-record a prompt in place
+      allow update: if request.auth != null
+                    && request.resource.size < 25 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow delete: if false;
+    }
     // everything else is closed
     match /{allPaths=**} {
       allow read, write: if false;
