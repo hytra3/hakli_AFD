@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AFD: Publish site to GitHub (recorder + find)",
+      "detail": "Commit all local changes and push. Updates the live site after ~1 min.",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/publish-site.sh \"${input:commitMessage}\"",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "AFD: Deploy embed service (Cloud Run)",
+      "detail": "Rebuild + redeploy the matcher after editing embed_service/app.py.",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/deploy-service.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "AFD: Deploy trigger (Cloud Function)",
+      "detail": "Redeploy the auto-embed trigger after editing embed_trigger/main.py.",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/deploy-trigger.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "AFD: Health check the service",
+      "detail": "Confirm the matcher is alive and see its routes + corpus size.",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/healthcheck.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "AFD: Reindex search cache",
+      "detail": "Reload the corpus into the matcher after new recordings (or wait for a cold start).",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/reindex.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "commitMessage",
+      "type": "promptString",
+      "description": "What did you change? (commit message)",
+      "default": "Update AFD"
+    }
+  ]
+}
