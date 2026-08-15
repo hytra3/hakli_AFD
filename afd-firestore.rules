@@ -1,5 +1,4 @@
 rules_version = '2';
-
 /*  Audio First Dictionary — Firestore rules
  *  ------------------------------------------------------------------
  *  COMPLETE, STANDALONE FILE for the AFD's own Firebase project.
@@ -8,39 +7,39 @@ rules_version = '2';
  *
  *  Model:
  *    read    — anyone (listening is open, no account needed)
- *    create  — signed-in users only, writing their own uid
+ *    create  — signed-in, NON-anonymous users, writing their own uid
  *    update  — only the author of that recording
  *    delete  — never from the client
  *
+ *  Anonymous sign-in exists ONLY for the UI-prompt recorder, and is
+ *  boxed into afd_ui_prompts. It can touch nothing in the corpus.
+ *
  *  Deploy:   firebase deploy --only firestore:rules
  */
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function signedIn() {
       return request.auth != null;
     }
-
+    // A real, named account — not the anonymous key used by the prompt tool.
+    function notAnon() {
+      return signedIn()
+             && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
     // ---------------- word entries ----------------
     match /afd_entries/{entryId} {
-
       // entry metadata (gloss, domain, prompt image) — public
       allow read: if true;
-
       // entries are seeded from the console / a script, not the app
       allow write: if false;
-
       // ---------------- contributed recordings ----------------
       match /recordings/{recordingId} {
-
         // Anyone may listen — but ONLY to recordings whose speaker consented
         // to public playback. Authors can always read their own.
         // Queries must be constrained with where('allowPlayback','==',true).
         allow read: if resource.data.allowPlayback == true
                     || (signedIn() && resource.data.uid == request.auth.uid);
-
-        allow create: if signedIn()
+        allow create: if notAnon()
                       // the author must claim their own uid
                       && request.resource.data.uid == request.auth.uid
                       // protocol rules, enforced where the client cannot bypass them
@@ -48,25 +47,29 @@ service cloud.firestore {
                       && request.resource.data.gloss is string
                       && request.resource.data.entryId is string
                       && request.resource.data.allowPlayback is bool;
-
         // an author may fix their own metadata but never reassign ownership
-        allow update: if signedIn()
+        allow update: if notAnon()
                       && resource.data.uid == request.auth.uid
                       && request.resource.data.uid == resource.data.uid;
-
         allow delete: if false;
       }
     }
-
     // ---------------- speaker profiles ----------------
     // Holds town and tribe, so this is private to its owner.
     match /afd_speakers/{uid} {
-      allow read:   if signedIn() && request.auth.uid == uid;
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update: if signedIn() && request.auth.uid == uid;
+      allow read:   if notAnon() && request.auth.uid == uid;
+      allow create: if notAnon() && request.auth.uid == uid;
+      allow update: if notAnon() && request.auth.uid == uid;
       allow delete: if false;
     }
-
+    // ---------------- UI voice prompts ----------------
+    // The app's spoken Hakli interface. Recorded remotely by a designated
+    // speaker over anonymous sign-in; played back openly by the finished app.
+    // Separate namespace = the prompt tool can never reach the corpus.
+    match /afd_ui_prompts/{key} {
+      allow read:  if true;
+      allow write: if signedIn();
+    }
     // ---------------- everything else ----------------
     // Explicit deny, so an unplanned collection is never writable.
     match /{document=**} {
