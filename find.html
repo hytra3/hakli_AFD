@@ -43,10 +43,23 @@
   .wordmark small{color:var(--mist); font-family:var(--sans); font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin-inline-start:8px}
 
   /* ---------------------------------------------------------------- hero */
-  main{flex:1; display:flex; flex-direction:column; align-items:center;
-       justify-content:center; padding:12px 20px 32px; gap:26px}
+  main{flex:1; display:flex; flex-direction:column; align-items:center; padding:0 20px 32px}
+  /* idle: the mic is a centered hero */
+  body:not(.has-results) main{justify-content:center}
+  /* results: everything rides up to the top, mic stays put and shrinks */
+  body.has-results main{justify-content:flex-start}
 
-  .stage{position:relative; width:min(74vw,300px); aspect-ratio:1}
+  /* the mic + hint live together in a zone that sticks to the top while
+     results scroll underneath — so the mic never wanders off-screen and a
+     re-tap is always in the same place */
+  .control{width:100%; max-width:560px; display:flex; flex-direction:column;
+           align-items:center; gap:16px; padding:14px 0 12px;
+           position:sticky; top:0; z-index:5;
+           background:linear-gradient(var(--fog) 74%, rgba(234,240,238,0))}
+
+  .stage{position:relative; width:min(66vw,248px); aspect-ratio:1;
+         transition:width .35s ease}
+  body.has-results .stage{width:104px}
   .ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--mist-2);
         opacity:0; transform:scale(.6)}
   body.rec .ring{animation:ripple 1.8s ease-out infinite}
@@ -158,24 +171,21 @@
   </header>
 
   <main>
-    <div class="stage" id="stage">
-      <span class="ring"></span><span class="ring"></span><span class="ring"></span>
-      <span class="bloom" id="bloom"></span>
-      <button class="mic" id="mic" aria-label="Hold and speak a word">
-        <!-- mic glyph -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
-        </svg>
-      </button>
+    <div class="control">
+      <div class="stage" id="stage">
+        <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+        <span class="bloom" id="bloom"></span>
+        <button class="mic" id="mic" aria-label="Hold and speak a word">
+          <!-- mic glyph -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
+          </svg>
+        </button>
+      </div>
+      <p class="hint" id="hint">Hold and speak<span class="ar">تكلّم</span></p>
     </div>
 
-    <p class="hint" id="hint">Hold and speak<span class="ar">تكلّم</span></p>
-
     <div class="results hidden" id="results"></div>
-    <button class="again hidden" id="again">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-      Speak again
-    </button>
   </main>
 
   <div class="dbg hidden" id="dbg"></div>
@@ -217,7 +227,7 @@ const store = getStorage(app);
 
 const $ = id => document.getElementById(id);
 const mic = $("mic"), hint = $("hint"), resultsEl = $("results"),
-      againBtn = $("again"), bloom = $("bloom"), dbg = $("dbg");
+      bloom = $("bloom"), dbg = $("dbg");
 let audioEl = new Audio();
 
 /* --------- optional spoken hint (plays a recorded Hakli UI prompt if one
@@ -240,7 +250,7 @@ let mediaRec=null, chunks=[], stream=null, ac=null, holding=false;
 
 async function startHold(){
   if(holding) return; holding=true;
-  resultsEl.classList.add("hidden"); againBtn.classList.add("hidden");
+  resultsEl.classList.add("hidden");
   try{
     stream = await navigator.mediaDevices.getUserMedia({audio:true});
   }catch(e){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
@@ -297,7 +307,7 @@ async function runSearch(blob){
   }catch(e){
     document.body.classList.remove("busy");
     setHint("Couldn't reach the matcher — try again","حاول مرة أخرى");
-    againShow(); return;
+    document.body.classList.add("has-results"); return;
   }
   document.body.classList.remove("busy");
   const results = (data.results||[]);
@@ -323,7 +333,7 @@ async function render(results){
     const c = await entryCard(res, false);
     resultsEl.appendChild(c.el);
   }
-  resultsEl.classList.remove("hidden"); againShow();
+  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 
   if(confident && lead.firstPlayable){ playInto(lead.playBtn, lead.firstPlayable); }
 }
@@ -419,7 +429,7 @@ function renderEmpty(best){
       Say it yourself
     </a>`;
   resultsEl.innerHTML=""; resultsEl.appendChild(div);
-  resultsEl.classList.remove("hidden"); againShow();
+  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 }
 
 /* ================================================================= visuals */
@@ -464,7 +474,6 @@ function playInto(btn, url){
   audioEl.play().catch(()=>{});
 }
 function setHint(en, ar){ hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:""); }
-function againShow(){ againBtn.classList.remove("hidden"); }
 function banner(msg){
   let b=document.querySelector(".banner");
   if(!b){ b=document.createElement("div"); b.className="banner"; document.querySelector("main").prepend(b); }
@@ -480,8 +489,6 @@ mic.addEventListener("pointerleave", ()=>{ if(holding) endHold(); });
 /* keyboard: space/enter to hold */
 mic.addEventListener("keydown", e=>{ if((e.key===" "||e.key==="Enter")&&!e.repeat){ e.preventDefault(); startHold(); }});
 mic.addEventListener("keyup",   e=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); endHold(); }});
-againBtn.addEventListener("click", ()=>{ resultsEl.classList.add("hidden"); againBtn.classList.add("hidden");
-  hint.classList.remove("small"); setHint("Hold and speak","تكلّم"); });
 
 /* dev distance readout: tap the wordmark three times */
 let taps=0,tt=0;
