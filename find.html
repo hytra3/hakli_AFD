@@ -41,6 +41,11 @@
   .mark{width:30px;height:30px;flex:0 0 auto}
   .wordmark{font-family:var(--serif); font-size:20px; letter-spacing:.2px}
   .wordmark small{color:var(--mist); font-family:var(--sans); font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin-inline-start:8px}
+  .skin{margin-inline-start:auto; width:42px; height:42px; flex:0 0 auto; border-radius:50%;
+        border:1px solid var(--hairline); background:var(--cloud); color:var(--mountain);
+        display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
+  .skin svg{width:20px;height:20px}
+  .skin .lbl{font-family:var(--serif); font-size:18px; line-height:1}
 
   /* ---------------------------------------------------------------- hero */
   main{flex:1; display:flex; flex-direction:column; align-items:center; padding:0 20px 32px}
@@ -120,10 +125,8 @@
   .card.lead .play{width:60px; height:60px; background:var(--resin)}
   .play svg{width:42%;height:42%}
 
-  /* stacked voice silhouettes = how many + how varied, without words */
-  .sils{display:flex; flex-direction:column; gap:7px}
-  .sil{display:block; width:100%; height:18px; fill:rgba(31,58,52,.5)}
-  .sil-flat{height:3px; border-radius:3px; background:var(--mist-2); opacity:.6}
+  /* the word's own voice, drawn inside its box in place of a letter */
+  .thumb-wave{width:78%; height:56%; fill:rgba(255,255,255,.92); display:block}
 
   /* speaker avatars — big enough for an elder to tap confidently */
   .voices{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
@@ -169,6 +172,7 @@
       <circle cx="24" cy="7" r="3.2" fill="#C6873F"/>
     </svg>
     <span class="wordmark" id="wordmark">Hakli<small>speak to find</small></span>
+    <button class="skin" id="skin" aria-label="Change how words are shown"></button>
   </header>
 
   <main>
@@ -220,6 +224,14 @@ const AUTOPLAY_MAX = 0.35;   // <= this: confident, autoplay the top hit
 const MAYBE_MAX    = 0.60;   // <= this: show as candidates ("did you mean")
                              // >  this OR no results: nobody has said it → be first
 const RECORDER_URL = "index.html";  // where "say it yourself" goes
+
+/* How the box shows a word. Default is chosen for us so a non-reader does nothing;
+   the small header control changes it. Stored locally — no account needed. */
+const MODES = ["auto","sound","script"];   // auto = picture → sound → letter
+let displayMode = "auto";
+try{ const m = localStorage.getItem("afd_display_mode"); if(m && MODES.includes(m)) displayMode = m; }catch(_){}
+let lastResults = null;
+function setDisplayMode(m){ displayMode = m; try{ localStorage.setItem("afd_display_mode", m); }catch(_){} }
 
 /* ================================================================= setup */
 const app   = initializeApp(firebaseConfig);
@@ -317,6 +329,7 @@ async function runSearch(blob){
 }
 
 async function render(results){
+  lastResults = results;
   resultsEl.innerHTML=""; hint.classList.add("small");
   const best = results[0];
 
@@ -354,20 +367,25 @@ async function entryCard(res, lead){
   // playable recordings (allowPlayback == true), same query the recorder uses
   const recs = await listPlayable(res.entryId);
 
-  const thumbInner = meta.image
-    ? `<img src="${escapeHtml(meta.image)}" alt="">`
-    : (glossEn ? glossEn.trim()[0].toUpperCase() : "•");
-  const thumbHtml = `<div class="thumb" style="--tile:${tile}">${thumbInner}</div>`;
+  // The box shows the WORD'S VOICE — a waveform of the recording — instead of a
+  // letter. It's painted once the envelope resolves (stored, or computed from the
+  // audio). A real picture still wins if the entry has one; the letter is only a
+  // last resort when there's no audio at all.
+  const letterFallback = glossEn ? glossEn.trim()[0].toUpperCase() : "•";
+  const scriptLabel = glossAr || meta.ref || "";
+  const thumbHtml =
+    `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(meta.image||"")}" ` +
+    `data-pic="${escapeHtml(meta.pic||"")}" data-script="${escapeHtml(scriptLabel)}" ` +
+    `data-letter="${escapeHtml(letterFallback)}"></div>`;
   const glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
   const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>`;
 
   const firstPlayable = recs[0]?.url || null;
 
   if(lead){
-    // header row (thumb · gloss · play), then full-width silhouettes + voices + CTA
+    // header row (box-waveform · gloss · play), then speaker voices + CTA
     el.innerHTML =
       `<div class="head">${thumbHtml}${glossHtml}${playHtml}</div>` +
-      `<div class="sils">${silhouettes(recs)}</div>` +
       `<div class="voices"></div>`;
   }else{
     // candidate: one compact row
@@ -375,7 +393,11 @@ async function entryCard(res, lead){
   }
 
   const playBtn = el.querySelector(".play");
-  playBtn.addEventListener("click", ()=> firstPlayable && playInto(playBtn, firstPlayable));
+  const thumbEl = el.querySelector(".thumb");
+  let currentUrl = firstPlayable;
+  // fill the box per the chosen display mode (picture / sound / script)
+  applyBox(thumbEl, displayMode, recs);
+  playBtn.addEventListener("click", ()=> currentUrl && playInto(playBtn, currentUrl));
 
   if(lead){
     // round fauna avatars, one per voice, tap to hear that speaker
@@ -388,6 +410,8 @@ async function entryCard(res, lead){
       b.addEventListener("click",()=>{
         voices.querySelectorAll(".av").forEach(x=>x.setAttribute("aria-pressed","false"));
         b.setAttribute("aria-pressed","true");
+        currentUrl = rec.url;
+        if(thumbEl && thumbEl.querySelector("svg")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
         playInto(playBtn, rec.url);
       });
       voices.appendChild(b);
@@ -435,25 +459,75 @@ function renderEmpty(best){
 }
 
 /* ================================================================= visuals */
-/* stacked silhouettes: one row per voice, drawn from the recording's REAL
-   amplitude envelope (captured at record time). A glance shows how many people
-   say it AND the true shape of each voice — no faked widths. Legacy clips with
-   no stored envelope fall back to a thin neutral line until re-recorded.
-   To tint each shape to its speaker, add style="fill:${r.avatar.bg}" below. */
-function silhouettes(recs){
-  if(!recs.length) return `<div class="sil sil-flat"></div>`;
-  return recs.map(r=>{
-    const env = r.envelope;
-    if(!env) return `<div class="sil sil-flat"></div>`;
-    const n=env.length, gap=(100/n)*0.28, bw=(100/n)-gap;
-    let bars="";
-    for(let i=0;i<n;i++){
-      const h=Math.max(8, env[i]*100);
-      const x=(i*(bw+gap)).toFixed(2), y=((100-h)/2).toFixed(2);
-      bars+=`<rect x="${x}" y="${y}" width="${bw.toFixed(2)}" height="${h.toFixed(2)}"/>`;
-    }
-    return `<svg class="sil" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>`;
-  }).join("");
+/* =============================================== the word's voice, in its box */
+const _envCache = new Map();
+
+function downsampleEnv(frames, n){
+  n=n||48; if(!frames||!frames.length) return [];
+  const mx=Math.max.apply(null,frames)||1e-9, out=[];
+  if(frames.length<=n){ for(const f of frames) out.push(+(f/mx).toFixed(2)); return out; }
+  const bin=frames.length/n;
+  for(let i=0;i<n;i++){ let pk=0; const s=Math.floor(i*bin),e=Math.floor((i+1)*bin);
+    for(let j=s;j<e;j++) if(frames[j]>pk) pk=frames[j]; out.push(+(pk/mx).toFixed(2)); }
+  return out;
+}
+
+/* stored envelope if the recording has one, else compute it once from the audio
+   (so legacy clips get a shape too) and cache by url. */
+async function envelopeFor(rec){
+  if(rec && rec.envelope && rec.envelope.length) return rec.envelope;
+  if(!rec || !rec.url) return null;
+  if(_envCache.has(rec.url)) return _envCache.get(rec.url);
+  try{
+    const ab = await (await fetch(rec.url)).arrayBuffer();
+    const ac = new (window.AudioContext||window.webkitAudioContext)();
+    const buf = await ac.decodeAudioData(ab); ac.close();
+    const ch=buf.getChannelData(0), fr=Math.floor(buf.sampleRate*0.02), frames=[];
+    for(let i=0;i<ch.length;i+=fr){ let e=0,n=0;
+      for(let j=i;j<Math.min(i+fr,ch.length);j++){ e+=ch[j]*ch[j]; n++; }
+      frames.push(Math.sqrt(e/Math.max(n,1))); }
+    const env=downsampleEnv(frames,48); _envCache.set(rec.url, env); return env;
+  }catch(_){ return null; }
+}
+
+/* resample an envelope to n bars and return centered SVG rects for the square box */
+function boxBars(env, n){
+  n=n||26; const src=env||[], step=src.length? src.length/n : 0; let bars="";
+  for(let i=0;i<n;i++){
+    const v = src.length ? src[Math.min(src.length-1, Math.floor(i*step))] : 0;
+    const h=Math.max(9, v*100), slot=100/n, w=(slot*0.62).toFixed(2),
+          x=(i*slot + slot*0.19).toFixed(2), y=((100-h)/2).toFixed(2);
+    bars+=`<rect x="${x}" y="${y}" width="${w}" height="${h.toFixed(2)}"/>`;
+  }
+  return bars;
+}
+
+/* paint a box: the waveform if we have an envelope, else the letter as last resort */
+function paintBox(thumbEl, env){
+  if(!thumbEl) return;
+  if(env && env.length){
+    thumbEl.innerHTML =
+      `<svg class="thumb-wave" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${boxBars(env)}</svg>`;
+  }else{
+    thumbEl.textContent = thumbEl.getAttribute("data-letter") || "•";
+  }
+}
+
+/* fill a box according to the chosen mode:
+   auto   → picture (image, else pictograph) → sound-shape → letter
+   sound  → the waveform, always
+   script → Arabic / transliteration text */
+async function applyBox(thumbEl, mode, recs){
+  if(!thumbEl) return;
+  const d = thumbEl.dataset;
+  const asText = t => { thumbEl.textContent = t || (d.letter || "•"); };
+  const asWave = async () => paintBox(thumbEl, recs && recs[0] ? await envelopeFor(recs[0]) : null);
+  if(mode==="sound")  return asWave();
+  if(mode==="script") return asText(d.script || d.pic);
+  // auto
+  if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
+  if(d.pic){ return asText(d.pic); }
+  return asWave();
 }
 
 /* deterministic round fauna avatar — pseudonymous, no profile read needed */
@@ -498,6 +572,20 @@ mic.addEventListener("pointerleave", ()=>{ if(holding) endHold(); });
 /* keyboard: space/enter to hold */
 mic.addEventListener("keydown", e=>{ if((e.key===" "||e.key==="Enter")&&!e.repeat){ e.preventDefault(); startHold(); }});
 mic.addEventListener("keyup",   e=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); endHold(); }});
+
+/* the wordless view-changer: cycles picture → sound → script and re-skins */
+const SKIN_ICON = {
+  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  script:`<span class="lbl">أ</span>`,
+};
+function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto; }
+$("skin").addEventListener("click", ()=>{
+  const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
+  setDisplayMode(next); updateSkinIcon();
+  if(lastResults) render(lastResults);      // re-skin what's already on screen
+});
+updateSkinIcon();
 
 /* dev distance readout: tap the wordmark three times */
 let taps=0,tt=0;
