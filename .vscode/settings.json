@@ -1,0 +1,10 @@
+{
+  // The only JavaScript in this project is inline in index.html / find.html,
+  // split across a module <script> and a classic <script>. VS Code's JS language
+  // server analyzes both blocks as one scope, so it wrongly flags the Firestore
+  // `db` (module) and the IndexedDB `db` (classic) — and the two `$` helpers — as
+  // redeclarations. They live in separate runtime scopes and never actually clash.
+  // Turning off JS validation clears that noise; runtime errors still show in the
+  // browser console.
+  "javascript.validate.enable": false
+}

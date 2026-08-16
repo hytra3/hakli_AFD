@@ -121,8 +121,9 @@
   .play svg{width:42%;height:42%}
 
   /* stacked voice silhouettes = how many + how varied, without words */
-  .sils{display:flex; flex-direction:column; gap:4px}
-  .sil{height:7px; border-radius:7px; background:var(--mist-2)}
+  .sils{display:flex; flex-direction:column; gap:7px}
+  .sil{display:block; width:100%; height:18px; fill:rgba(31,58,52,.5)}
+  .sil-flat{height:3px; border-radius:3px; background:var(--mist-2); opacity:.6}
 
   /* speaker avatars — big enough for an elder to tap confidently */
   .voices{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
@@ -411,7 +412,8 @@ async function listPlayable(entryId){
     for(const d of snap.docs){
       const v=d.data(); if(!v.storagePath) continue;
       let url; try{ url=await getDownloadURL(ref(store,v.storagePath)); }catch(_){ continue; }
-      out.push({ url, avatar: faunaAvatar(v.speakerId||v.uid||d.id) });
+      out.push({ url, envelope: (Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
+                 avatar: faunaAvatar(v.speakerId||v.uid||d.id) });
     }
   }catch(_){}
   return out;
@@ -433,18 +435,25 @@ function renderEmpty(best){
 }
 
 /* ================================================================= visuals */
-/* stacked silhouettes: one strip per voice, widths/opacity varied by a hash
-   so a glance shows BOTH how many people say it and how varied they are. */
+/* stacked silhouettes: one row per voice, drawn from the recording's REAL
+   amplitude envelope (captured at record time). A glance shows how many people
+   say it AND the true shape of each voice — no faked widths. Legacy clips with
+   no stored envelope fall back to a thin neutral line until re-recorded.
+   To tint each shape to its speaker, add style="fill:${r.avatar.bg}" below. */
 function silhouettes(recs){
-  const n=Math.max(recs.length,1);
-  let out="";
-  for(let i=0;i<n;i++){
-    const h = recs.length ? hashInt(recs[i].url) : 0;
-    const w = 40 + (h%55);                 // 40–95%
-    const op = recs.length ? (0.35 + (h%50)/100) : 0.25;
-    out += `<span class="sil" style="width:${w}%;opacity:${op.toFixed(2)}"></span>`;
-  }
-  return out;
+  if(!recs.length) return `<div class="sil sil-flat"></div>`;
+  return recs.map(r=>{
+    const env = r.envelope;
+    if(!env) return `<div class="sil sil-flat"></div>`;
+    const n=env.length, gap=(100/n)*0.28, bw=(100/n)-gap;
+    let bars="";
+    for(let i=0;i<n;i++){
+      const h=Math.max(8, env[i]*100);
+      const x=(i*(bw+gap)).toFixed(2), y=((100-h)/2).toFixed(2);
+      bars+=`<rect x="${x}" y="${y}" width="${bw.toFixed(2)}" height="${h.toFixed(2)}"/>`;
+    }
+    return `<svg class="sil" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>`;
+  }).join("");
 }
 
 /* deterministic round fauna avatar — pseudonymous, no profile read needed */

@@ -839,7 +839,6 @@ function startRec(){
     if(ms>=MAX_MS) stopRec();
   },100);
   $("silLabel").textContent="listening";
-  if(ctx&&ctx.state==="suspended") ctx.resume();
 
   let mime="";
   ["audio/webm;codecs=opus","audio/webm","audio/mp4"].forEach(m=>{
@@ -849,7 +848,7 @@ function startRec(){
   recorder.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
   recorder.onstop=onRecStop;
   recorder.start();
-  meter();
+  ensureLiveMeter();
 }
 
 function stopRec(){
@@ -872,6 +871,21 @@ async function onRecStop(){
   recBtn.classList.add("hidden");        // nothing to collide with while reviewing
   $("skipBtn").classList.add("hidden");
   $("silLabel").textContent=lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard";
+}
+
+/* Wake the audio graph before drawing. Browsers suspend the AudioContext under
+   their autoplay policy; iOS reports state "interrupted" rather than "suspended",
+   which the old resume-check missed — so the meter read silent frames and the
+   strip stayed flat. Resume inside the record gesture, then start the loop only
+   once samples actually flow. */
+function ensureLiveMeter(){
+  if(!analyser && stream) setupAnalyser();   // belt-and-suspenders if mic-check skipped it
+  if(!analyser) return;
+  if(ctx && ctx.state!=="running"){
+    ctx.resume().then(meter).catch(meter);
+  }else{
+    meter();
+  }
 }
 
 /* live meter -> signature silhouette strip */
@@ -922,6 +936,28 @@ function drawBars(bars,live){
   });
 }
 
+/* Downsample the per-frame RMS energy into a small, normalized amplitude
+   envelope — the recording's true silhouette. ~48 numbers, stored on the doc
+   and drawn in find.html so each voice shows its own real shape. */
+function downsampleEnvelope(frames, n){
+  n = n || 48;
+  if(!frames || !frames.length) return [];
+  const mx = Math.max.apply(null, frames) || 1e-9;
+  const out = [];
+  if(frames.length <= n){
+    for(const f of frames) out.push(+(f/mx).toFixed(2));
+    return out;
+  }
+  const bin = frames.length / n;
+  for(let i=0;i<n;i++){
+    let peak=0;
+    const s=Math.floor(i*bin), e=Math.floor((i+1)*bin);
+    for(let j=s;j<e;j++) if(frames[j]>peak) peak=frames[j];
+    out.push(+(peak/mx).toFixed(2));
+  }
+  return out;
+}
+
 /* ================= quality checks ================= */
 async function analyse(blob){
   const out={sampleRate:(actualSettings&&actualSettings.sampleRate)||0,
@@ -943,6 +979,7 @@ async function analyse(blob){
       frames.push(Math.sqrt(e/Math.max(n,1)));
     }
     out.peak=peak;
+    out.envelope=downsampleEnvelope(frames,48);
 
     const mx=Math.max.apply(null,frames)||1e-9;
     const thr=mx*0.12;
@@ -1028,6 +1065,7 @@ $("keepBtn").onclick=async ()=>{
       burstBalance:lastQC.burstBalance===null?null:+lastQC.burstBalance.toFixed(3),
       passed:lastQC.sampleRate>=44100&&lastQC.bursts>=2&&lastQC.peak<0.99
     },
+    envelope:lastQC.envelope||[],
     recordedAt:new Date().toISOString(),
     ownerUid:(window.AFD&&window.AFD.user())?window.AFD.user().uid:null,
     blob:lastBlob
