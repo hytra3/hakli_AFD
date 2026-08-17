@@ -1,0 +1,7 @@
+[
+  {"id":"sun","en":"sun","ar":"الشمس","pic":"☀️","dom":"nature","ref":"shoon (shum)"},
+  {"id":"moon","en":"moon","ar":"القمر","pic":"🌙","dom":"nature","ref":"erit"},
+  {"id":"mountain","en":"mountain","ar":"جبل","pic":"⛰️","dom":"nature","ref":"shhr"},
+  {"id":"sand","en":"sand","ar":"رمل","pic":"🏜️","dom":"nature","ref":"hashi"},
+  {"id":"clouds","en":"clouds","ar":"غيوم","pic":"☁️","dom":"nature","ref":"ahfre"}
+]

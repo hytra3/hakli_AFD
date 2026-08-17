@@ -38,9 +38,22 @@ function loadWords(){
   return words;
 }
 
+/* Canonical entry identity — MUST match index.html's entryIdFor exactly.
+   The app and this seeder both derive ids this way, so a recording always
+   lands under the same parent the seeder wrote. Clean ids are unchanged
+   ("sun" -> "ent_sun"); only messy ids get normalised. */
+function entrySlug(id){
+  return String(id)
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
+    .toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g,"_")
+    .replace(/^_+|_+$/g,"");
+}
+const entryIdFor = id => "ent_" + entrySlug(id);
+
 function entryDoc(w){
   return {
-    entryId: "ent_" + w.id,
+    entryId: entryIdFor(w.id),
     gloss:   w.en || "",
     glossAr: w.ar || "",
     domain:  w.dom || "",
@@ -54,7 +67,7 @@ const words = loadWords();
 console.log(`Loaded ${words.length} words from index.html`);
 
 if(DRY){
-  for(const w of words) console.log("  ent_" + w.id, JSON.stringify(entryDoc(w)));
+  for(const w of words) console.log("  " + entryIdFor(w.id), JSON.stringify(entryDoc(w)));
   console.log("\n(dry run — nothing written)");
   process.exit(0);
 }
@@ -67,7 +80,7 @@ const db = getFirestore();
 
 let n = 0;
 for(const w of words){
-  const id = "ent_" + w.id;
+  const id = entryIdFor(w.id);
   await db.collection("afd_entries").doc(id).set(entryDoc(w), { merge: true });
   n++;
   process.stdout.write(`\r  seeded ${n}/${words.length}  ${id}          `);
