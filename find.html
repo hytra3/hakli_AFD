@@ -220,8 +220,17 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const AUTOPLAY_MAX = 0.35;   // <= this: confident, autoplay the top hit
-const MAYBE_MAX    = 0.60;   // <= this: show as candidates ("did you mean")
+const BUILD = "b0817a";      // bump every publish; shown in the wordmark + console
+
+/* Confidence gates. Recalibrated from real measured distances (the old
+   0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
+   are first estimates off a tiny corpus — tune as the corpus grows. The MARGIN
+   gate is the robust part: it's scale-independent, so a near-tie never autoplays
+   as certainty even when the absolute distance looks small (e.g. deer 0.148 vs
+   camel 0.149 — a 0.001 gap — should be "did you mean", not "here it is"). */
+const AUTOPLAY_MAX = 0.15;   // top hit must be at least this close…
+const MAYBE_MAX    = 0.25;   // …and anything past this isn't shown as a candidate
+const MARGIN_MIN   = 0.03;   // …AND must beat the runner-up by this much to autoplay
                              // >  this OR no results: nobody has said it → be first
 const RECORDER_URL = "index.html";  // where "say it yourself" goes
 
@@ -347,7 +356,10 @@ async function render(results){
 
   if(!best || best.distance > MAYBE_MAX){ renderEmpty(best); return; }
 
-  const confident = best.distance <= AUTOPLAY_MAX;
+  const second = results[1];
+  const margin = second ? (second.distance - best.distance) : Infinity;
+  const confident = best.distance <= AUTOPLAY_MAX && margin >= MARGIN_MIN;
+  console.log("[AFD] best", best.distance, "margin", (margin===Infinity?"∞":margin.toFixed(3)), "→", confident?"confident":"maybe");
   setHint(confident ? "Here it is" : "Did you mean…", "");
 
   // lead card
@@ -577,6 +589,10 @@ function banner(msg){
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* press-and-hold on the mic (pointer covers touch + mouse) */
+// Visible build stamp — compare laptop vs phone to catch a stale cache.
+try{ document.querySelector("#wordmark small").textContent = "speak to find · " + BUILD; }catch(_){}
+console.log("[AFD] build", BUILD, "·", location.href);
+
 mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
 mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
 mic.addEventListener("pointercancel", endHold);
