@@ -265,7 +265,18 @@ async function startHold(){
   if(holding) return; holding=true;
   resultsEl.classList.add("hidden");
   try{
-    stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    // Query capture MUST match the corpus protocol (index.html openMic), or the
+    // query embeds into a different acoustic space than the corpus and matching
+    // collapses. Browser defaults turn all three of these ON; the corpus is raw.
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio:{
+        echoCancellation:false,   // smears fricatives
+        noiseSuppression:false,   // eats quiet consonants
+        autoGainControl:false,    // distorts relative amplitude
+        sampleRate:48000,
+        channelCount:1
+      }
+    });
   }catch(e){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
   document.body.classList.add("rec"); setHint("Listening…","");
   meter(stream);
@@ -324,6 +335,7 @@ async function runSearch(blob){
   }
   document.body.classList.remove("busy");
   const results = (data.results||[]);
+  console.log("[AFD] corpus", data.corpus_n, "·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
   showDbg(results, data.corpus_n);
   await render(results);
 }
