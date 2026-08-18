@@ -92,6 +92,15 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .verdict.ok{background:#EAF3ED;border-color:var(--monsoon);color:#1D4633}
 .verdict.bad{background:#F7EAE7;border-color:var(--alert);color:#6E2418}
 .verdict strong{display:block;font-size:15px;margin-bottom:3px}
+/* QC verdict: one big human cue; numbers live in the <details> below it */
+.qc-verdict{display:flex;align-items:center;gap:12px}
+.qc-verdict .big{font-size:26px;line-height:1;flex:0 0 auto}
+.qc-verdict div{min-width:0}
+.qc-more{margin-top:10px}
+.qc-more>summary{cursor:pointer;list-style:none;font:500 12px/1.4 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:4px 0}
+.qc-more>summary::-webkit-details-marker{display:none}
+.qc-more>summary::after{content:" \25BE";opacity:.55}
+.qc-more[open]>summary::after{content:" \25B4"}
 .readout{font-family:var(--mono);font-size:12px;line-height:1.9;margin-top:8px}
 .readout b{font-weight:500;color:var(--ink-soft);display:inline-block;min-width:132px}
 
@@ -301,8 +310,12 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
   <div class="card hidden" id="reviewCard">
     <h2>How did it sound?</h2>
-    <audio id="player" controls style="width:100%;margin-bottom:6px"></audio>
-    <div class="qc" id="qc"></div>
+    <div id="qcVerdict" class="verdict qc-verdict"></div>
+    <audio id="player" controls style="width:100%;margin:6px 0"></audio>
+    <details class="qc-more">
+      <summary>details</summary>
+      <div class="qc" id="qc"></div>
+    </details>
     <div class="row">
       <button class="btn secondary" id="redoBtn">Record again</button>
       <button class="btn" id="keepBtn">Keep it</button>
@@ -649,6 +662,10 @@ let stream=null, actualSettings=null, ctx=null, analyser=null, source=null;
 let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
+
+const BUILD="b0818a";   // bump every publish; shown in the header + console
+try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
+console.log("[AFD] recorder build", BUILD, "·", location.href);
 
 /* ================= step 1 → 2 ================= */
 $("toMic").onclick=()=>{ show("miccheck"); };
@@ -1023,26 +1040,60 @@ async function analyse(blob){
 
 function renderQC(q){
   const rows=[];
-  const sr=q.sampleRate;
-  rows.push(row(sr>=44100,"Sample rate",sr?sr+" Hz":"not reported",
-    sr>=44100?"":"too low — recording can't be used"));
-  rows.push(row(q.durationMs>=500&&q.durationMs<=8000,"Length",
-    (q.durationMs/1000).toFixed(1)+" s",
+  const fails=[];          // hard problems, in the order we'd coach the speaker
+  let softNote="";         // keepable note (shown with a green verdict)
+
+  const sr=q.sampleRate, srOk=sr>=44100;
+  rows.push(row(srOk,"Sample rate",sr?sr+" Hz":"not reported",
+    srOk?"":"too low — recording can't be used"));
+  if(!srOk) fails.push("This device recorded at too low a quality — try another mic");
+
+  const lenOk=q.durationMs>=500&&q.durationMs<=8000;
+  rows.push(row(lenOk,"Length",(q.durationMs/1000).toFixed(1)+" s",
     q.durationMs<500?"too short":q.durationMs>8000?"long for a single word":""));
-  rows.push(row(q.peak<0.99,"Level",q.peak.toFixed(2),
-    q.peak>=0.99?"too loud — hold the phone further away":""));
-  rows.push(row(q.speechRatio>=0.12,"Speech in clip",Math.round(q.speechRatio*100)+"%",
-    q.speechRatio<0.12?"mostly silence":""));
+  if(q.durationMs<500) fails.push("That was very short — hold and say it twice");
+  else if(q.durationMs>8000 && !softNote) softNote="A little long for one word — fine to keep";
+
+  const levelOk=q.peak<0.99;
+  rows.push(row(levelOk,"Level",q.peak.toFixed(2),
+    levelOk?"":"too loud — hold the phone further away"));
+  if(!levelOk) fails.push("A bit too loud — hold the phone a little further away");
+
+  const speechOk=q.speechRatio>=0.12;
+  rows.push(row(speechOk,"Speech in clip",Math.round(q.speechRatio*100)+"%",
+    speechOk?"":"mostly silence"));
+  if(!speechOk) fails.push("Mostly quiet — speak a little louder, closer to the mic");
+
   const twoOk=q.bursts===2;
   rows.push(row(twoOk,"Repetitions heard",String(q.bursts),
     q.bursts<2?"say the word twice, with a pause":q.bursts>2?"extra speech detected":"",
     q.bursts>2?"warn":undefined));
+  if(q.bursts<2) fails.push("Say the word twice, with a small pause between");
+  else if(q.bursts>2 && !softNote) softNote="Heard more than twice — extra speech was detected";
+
   if(q.burstBalance!==null){
     const bal=q.burstBalance<0.5;
     rows.push(row(bal,"Repetitions match",(1-q.burstBalance).toFixed(2),
       bal?"":"the two are very different lengths","warn"));
+    if(!bal && !softNote) softNote="The two takes differ a little — fine to keep";
   }
+
   $("qc").innerHTML=rows.join("");
+
+  // One human-readable verdict on top; the numbers stay tucked in <details>.
+  const v=$("qcVerdict"), hard=fails.length>0;
+  if(hard){
+    v.className="verdict bad qc-verdict";
+    v.innerHTML='<span class="big" aria-hidden="true">\u21BB</span>'+
+      '<div><strong>Let\u2019s try that again</strong><span>'+fails[0]+'</span></div>';
+  }else{
+    v.className="verdict ok qc-verdict";
+    v.innerHTML='<span class="big" aria-hidden="true">\u2713</span>'+
+      '<div><strong>Sounds good</strong>'+(softNote?'<span>'+softNote+'</span>':'')+'</div>';
+  }
+  // Steer the action to match the verdict — but never block keeping.
+  $("redoBtn").className = hard ? "btn" : "btn secondary";
+  $("keepBtn").className = hard ? "btn secondary" : "btn";
 }
 function row(ok,label,val,msg,forceClass){
   const cls=ok?"pass":(forceClass||"fail");

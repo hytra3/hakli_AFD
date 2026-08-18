@@ -93,6 +93,7 @@
 
   .hint{font-family:var(--serif); font-size:22px; color:var(--mountain); text-align:center; line-height:1.35}
   .hint .ar{display:block; font-size:16px; color:var(--mist); font-family:var(--sans); margin-top:4px}
+  .hint .ar.solo{display:block; font-size:inherit; color:var(--mountain); font-family:var(--sans); direction:rtl; margin-top:0}
   .hint.small{font-size:16px; color:var(--mist)}
 
   /* ---------------------------------------------------------------- results */
@@ -118,6 +119,8 @@
   .card.lead .gloss{font-size:28px}
   .gloss .glossar{display:block; font-family:var(--sans); font-size:15px; color:var(--mist);
                   margin-top:3px; direction:rtl; text-align:right}
+  .gloss .glossar.solo{font-size:22px; color:var(--ink); margin-top:0}
+  .card.lead .gloss .glossar.solo{font-size:28px}
 
   .play{flex:0 0 auto; width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
         background:var(--mountain); color:var(--cloud); display:grid; place-items:center;
@@ -187,7 +190,7 @@
           </svg>
         </button>
       </div>
-      <p class="hint" id="hint">Hold and speak<span class="ar">تكلّم</span></p>
+      <p class="hint" id="hint"><span class="ar solo">تكلّم</span></p>
     </div>
 
     <div class="results hidden" id="results"></div>
@@ -220,7 +223,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0817a";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0818b";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -237,7 +240,7 @@ const RECORDER_URL = "index.html";  // where "say it yourself" goes
 /* How the box shows a word. Default is chosen for us so a non-reader does nothing;
    the small header control changes it. Stored locally — no account needed. */
 const MODES = ["auto","sound","script"];   // auto = picture → sound → letter
-let displayMode = "auto";
+let displayMode = "sound";
 try{ const m = localStorage.getItem("afd_display_mode"); if(m && MODES.includes(m)) displayMode = m; }catch(_){}
 let lastResults = null;
 function setDisplayMode(m){ displayMode = m; try{ localStorage.setItem("afd_display_mode", m); }catch(_){} }
@@ -287,7 +290,7 @@ async function startHold(){
       }
     });
   }catch(e){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
-  document.body.classList.add("rec"); setHint("Listening…","");
+  document.body.classList.add("rec"); setHint("Listening…","أستمع…");
   meter(stream);
   chunks=[];
   mediaRec = new MediaRecorder(stream);
@@ -326,7 +329,7 @@ async function onClip(){
 
 /* ================================================================= search */
 async function runSearch(blob){
-  document.body.classList.add("busy"); setHint("Finding…","");
+  document.body.classList.add("busy"); setHint("Finding…","أبحث…");
   if(EMBED_URL.includes("PASTE-")){
     banner("Set EMBED_URL to your Cloud Run address in find.html.");
     document.body.classList.remove("busy"); setHint("Hold and speak","تكلّم"); return;
@@ -360,7 +363,7 @@ async function render(results){
   const margin = second ? (second.distance - best.distance) : Infinity;
   const confident = best.distance <= AUTOPLAY_MAX && margin >= MARGIN_MIN;
   console.log("[AFD] best", best.distance, "margin", (margin===Infinity?"∞":margin.toFixed(3)), "→", confident?"confident":"maybe");
-  setHint(confident ? "Here it is" : "Did you mean…", "");
+  setHint(confident ? "Here it is" : "Did you mean…", confident ? "ها هو" : "هل تقصد…");
 
   // lead card
   const lead = await entryCard(best, true);
@@ -401,7 +404,18 @@ async function entryCard(res, lead){
     `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(meta.image||"")}" ` +
     `data-pic="${escapeHtml(meta.pic||"")}" data-script="${escapeHtml(scriptLabel)}" ` +
     `data-letter="${escapeHtml(letterFallback)}"></div>`;
-  const glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
+  // Gloss text follows the display tier the reader chose with the top-right
+  // toggle: sound = audio-first (no text at all), script = Arabic label only,
+  // auto = full English + Arabic. Re-runs on every mode change (render re-skins).
+  let glossHtml;
+  if(displayMode==="sound"){
+    glossHtml = `<div class="gloss" aria-hidden="true"></div>`;
+  }else if(displayMode==="script"){
+    const ar = glossAr || meta.ref || "";
+    glossHtml = `<div class="gloss">${ar?`<span class="glossar solo">${escapeHtml(ar)}</span>`:""}</div>`;
+  }else{
+    glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
+  }
   const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>`;
 
   const firstPlayable = recs[0]?.url || null;
@@ -580,7 +594,12 @@ function playInto(btn, url){
   audioEl = new Audio(url);
   audioEl.play().catch(()=>{});
 }
-function setHint(en, ar){ hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:""); }
+function setHint(en, ar){
+  // Audio-first tiers (sound / script) speak to non-readers in Arabic; auto keeps
+  // English with Arabic beneath, for you and bilingual helpers.
+  if(displayMode!=="auto" && ar){ hint.innerHTML = `<span class="ar solo">${escapeHtml(ar)}</span>`; return; }
+  hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:"");
+}
 function banner(msg){
   let b=document.querySelector(".banner");
   if(!b){ b=document.createElement("div"); b.className="banner"; document.querySelector("main").prepend(b); }
@@ -614,6 +633,7 @@ $("skin").addEventListener("click", ()=>{
   if(lastResults) render(lastResults);      // re-skin what's already on screen
 });
 updateSkinIcon();
+setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current tier
 
 /* dev distance readout: tap the wordmark three times */
 let taps=0,tt=0;
