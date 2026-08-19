@@ -469,20 +469,34 @@ async function uploadClip(rec, speaker){
   await setDoc(
     doc(db, "afd_entries", rec.entryId, "recordings", rec.recordingId),
     { ...meta, uid,
-      // Denormalised from the speaker's consent so playback permission can be
-      // enforced by rules. A speaker who refuses public playback is never heard.
+      // Three-state per-recording consent label; withdrawal flips this to
+      // "withdrawn"/"deleted". Public at create — the recording isn't withdrawn.
+      consent: "public",
+      // Denormalised "currently public" flag that rules/queries filter on: the
+      // recording's own consent AND the speaker's bulk consent must both allow.
       allowPlayback: speaker.consent.publicPlayback === true,
       uploadedAt: serverTimestamp() }
   );
 
-  // speaker profile: one doc per signed-in user
+  // Speaker profile — consent model (afd-consent-design.md):
+  //   stewardUid = the account managing this speaker's consent
+  //   consent    = the three-state bulk switch (public | withdrawn)
+  //   grant      = the recorded consent flags (archival / ML / attribution)
+  // viaAgent + masked default off until the agent and masking flows exist.
+  // NOTE: still keyed by uid so the current (old) dev rules accept the write.
+  // The re-key to {speakerId} and moving origin into a steward-only /private
+  // subdoc happen together at the rules-deploy cutover.
   await setDoc(doc(db, "afd_speakers", uid), {
     uid,
+    stewardUid: uid,
     speakerId: speaker.speakerId,
+    viaAgent: false,
+    masked: false,
+    consent: speaker.consent.publicPlayback === true ? "public" : "withdrawn",
+    grant: speaker.consent,
     origin: speaker.origin,
     ageBand: speaker.ageBand,
     gender: speaker.gender,
-    consent: speaker.consent,
     updatedAt: serverTimestamp()
   }, { merge: true });
 
@@ -663,7 +677,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0818a";   // bump every publish; shown in the header + console
+const BUILD="b0819a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 

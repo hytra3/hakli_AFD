@@ -1,77 +1,145 @@
 rules_version = '2';
-/*  Audio First Dictionary — Firestore rules
+/*  Audio First Dictionary — Firestore rules  (CONSENT REVISION)
  *  ------------------------------------------------------------------
  *  COMPLETE, STANDALONE FILE for the AFD's own Firebase project.
- *  Deploy as-is. Nothing to merge. This project contains no tawq.in
- *  data, so a mistake here cannot affect tawq.in.
+ *  Implements afd-consent-design.md. Deploy as-is.
  *
- *  Model:
- *    read    — anyone (listening is open, no account needed)
- *    create  — signed-in, NON-anonymous users, writing their own uid
- *    update  — only the author of that recording
- *    delete  — never from the client
+ *  Consent model:
+ *    - Consent is a mutable label over immutable recordings.
+ *    - The ONLY mutable fields on a recording are consent / allowPlayback /
+ *      withdrawal. Audio, capture, envelope, ownership, and the entry link
+ *      are frozen at create.
+ *    - A recording's consent may be changed only by its creator uid OR by the
+ *      speaker's stewardUid (the account managing that speakerId).
+ *    - If the actor is an AGENT (not the speaker themselves), any withdrawal or
+ *      deletion MUST carry the speaker's spoken-Hakli confirmation audio
+ *      (withdrawal.audioPath) — the "never a third-party lever" guarantee.
+ *    - No client hard-delete. "deleted" is a consent state a server purge acts on.
  *
- *  Anonymous sign-in exists ONLY for the UI-prompt recorder, and is
- *  boxed into afd_ui_prompts. It can touch nothing in the corpus.
+ *  NOTE: get()/exists() calls below are billed reads. They fire only on consent
+ *  writes and on private/own reads, which are rare. Unit-test in the emulator
+ *  before trusting (firebase emulators:exec).
  *
  *  Deploy:   firebase deploy --only firestore:rules
  */
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
+
+    function signedIn() { return request.auth != null; }
+
     // A real, named account — not the anonymous key used by the prompt tool.
     function notAnon() {
       return signedIn()
              && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
-    // ---------------- word entries ----------------
+
+    // The speaker card (public). get() is safe only after exists() is checked.
+    function speakerExists(sid) {
+      return exists(/databases/$(database)/documents/afd_speakers/$(sid));
+    }
+    function speaker(sid) {
+      return get(/databases/$(database)/documents/afd_speakers/$(sid)).data;
+    }
+
+    // ------------------------------ word entries ------------------------------
     match /afd_entries/{entryId} {
-      // entry metadata (gloss, domain, prompt image) — public
       allow read: if true;
-      // entries are seeded from the console / a script, not the app
-      allow write: if false;
-      // ---------------- contributed recordings ----------------
+      allow write: if false;   // entries are seeded from a script, never the app
+
+      // -------------------------- contributed recordings --------------------------
       match /recordings/{recordingId} {
-        // Anyone may listen — but ONLY to recordings whose speaker consented
-        // to public playback. Authors can always read their own.
-        // Queries must be constrained with where('allowPlayback','==',true).
+
+        // Whoever may manage this recording's consent: its creator, or the
+        // speaker's current steward.
+        function isManager() {
+          return resource.data.uid == request.auth.uid
+                 || (speakerExists(resource.data.speakerId)
+                     && speaker(resource.data.speakerId).stewardUid == request.auth.uid);
+        }
+        // True when the actor IS the speaker (self-representing), not an agent.
+        function actorIsSpeakerSelf() {
+          return speakerExists(resource.data.speakerId)
+                 && speaker(resource.data.speakerId).stewardUid == request.auth.uid
+                 && speaker(resource.data.speakerId).viaAgent == false;
+        }
+        // Only the consent label may move — the atom is frozen.
+        function onlyConsentChanged() {
+          return request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['consent', 'allowPlayback', 'withdrawal']);
+        }
+        // Re-instating to public needs no artifact. A self-speaker needs none.
+        // An AGENT withdrawing or deleting must attach the spoken confirmation.
+        function withdrawalArtifactOK() {
+          return request.resource.data.consent == 'public'
+                 || actorIsSpeakerSelf()
+                 || (('withdrawal' in request.resource.data)
+                     && request.resource.data.withdrawal.audioPath is string);
+        }
+
+        // Public listening = currently-public only (denormalised flag keeps this
+        // a simple indexed query). A manager can always read their own.
         allow read: if resource.data.allowPlayback == true
-                    || (signedIn() && resource.data.uid == request.auth.uid);
+                    || (notAnon() && isManager());
+
         allow create: if notAnon()
-                      // the author must claim their own uid
                       && request.resource.data.uid == request.auth.uid
-                      // protocol rules, enforced where the client cannot bypass them
+                      && request.resource.data.speakerId is string
                       && request.resource.data.capture.sampleRate >= 44100
                       && request.resource.data.gloss is string
                       && request.resource.data.entryId is string
+                      && request.resource.data.consent == 'public'
                       && request.resource.data.allowPlayback is bool;
-        // an author may fix their own metadata but never reassign ownership
+
+        // The consent label is the only mutable thing.
         allow update: if notAnon()
-                      && resource.data.uid == request.auth.uid
-                      && request.resource.data.uid == resource.data.uid;
+                      && isManager()
+                      && onlyConsentChanged()
+                      && request.resource.data.consent in ['public','withdrawn','deleted']
+                      && withdrawalArtifactOK()
+                      // ownership and speaker link can never be reassigned
+                      && request.resource.data.uid == resource.data.uid
+                      && request.resource.data.speakerId == resource.data.speakerId;
+
+        // Destruction is server-side (purge Function on consent == 'deleted').
         allow delete: if false;
       }
     }
-    // ---------------- speaker profiles ----------------
-    // Holds town and tribe, so this is private to its owner.
-    match /afd_speakers/{uid} {
-      allow read:   if notAnon() && request.auth.uid == uid;
-      allow create: if notAnon() && request.auth.uid == uid;
-      allow update: if notAnon() && request.auth.uid == uid;
+
+    // --------------------------- speaker profiles ---------------------------
+    // Keyed by speakerId, NOT uid — one agent can steward many speakers.
+    // Public card: masking + bulk-consent + withdrawn categories + steward uid.
+    // No town/tribe here; those live in the steward-only private subdoc.
+    match /afd_speakers/{speakerId} {
+      allow read: if true;
+
+      allow create: if notAnon()
+                    && request.resource.data.stewardUid == request.auth.uid
+                    && request.resource.data.consent in ['public','withdrawn'];
+
+      // Only the steward may change consent/masking, and the steward may not be
+      // silently reassigned (claiming an account later is a deliberate flow).
+      allow update: if notAnon()
+                    && resource.data.stewardUid == request.auth.uid
+                    && request.resource.data.stewardUid == resource.data.stewardUid;
+
       allow delete: if false;
+
+      // Steward-only origin (town, tribe, real pseudonym).
+      match /private/{doc} {
+        allow read, write: if notAnon()
+          && get(/databases/$(database)/documents/afd_speakers/$(speakerId)).data.stewardUid == request.auth.uid;
+      }
     }
-    // ---------------- UI voice prompts ----------------
-    // The app's spoken Hakli interface. Recorded remotely by a designated
-    // speaker over anonymous sign-in; played back openly by the finished app.
-    // Separate namespace = the prompt tool can never reach the corpus.
+
+    // --------------------------- UI voice prompts ---------------------------
+    // Spoken Hakli interface, recorded remotely over anonymous sign-in and
+    // boxed into its own namespace — it can never reach the corpus.
     match /afd_ui_prompts/{key} {
       allow read:  if true;
       allow write: if signedIn();
     }
-    // ---------------- everything else ----------------
-    // Explicit deny, so an unplanned collection is never writable.
+
+    // ------------------------------ everything else ------------------------------
     match /{document=**} {
       allow read, write: if false;
     }

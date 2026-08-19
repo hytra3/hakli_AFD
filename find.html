@@ -138,6 +138,29 @@
   .av svg{width:60%;height:60%}
   .av[aria-pressed="true"]{outline:3px solid var(--resin); outline-offset:2px}
 
+  /* collapsed count chip — a language-free "N voices", tap to itemize */
+  .voices-chip{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--mist-2);
+      background:transparent; border-radius:26px; padding:6px 14px 6px 8px; cursor:pointer;
+      box-shadow:0 2px 8px rgba(31,58,52,.10)}
+  .voices-chip .peeks{display:inline-flex}
+  .voices-chip .peek{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+      box-shadow:0 0 0 2px var(--cloud); margin-left:-10px}
+  .voices-chip .peek:first-child{margin-left:0}
+  .voices-chip .peek svg{width:60%;height:60%}
+  .voices-chip .count{font:700 17px/1 var(--sans); color:var(--mountain); margin-left:2px}
+  .voices-chip .chev{color:var(--mist); transition:transform .18s}
+  .voices-chip.open .chev{transform:rotate(180deg)}
+
+  /* itemized voices — one row per utterance; consent controls slot in on the right later */
+  .voices-list{width:100%; display:flex; flex-direction:column; gap:8px; margin-top:4px}
+  .voice-row{display:flex; align-items:center; gap:12px; border:1.5px solid var(--mist-2);
+      background:var(--cloud); border-radius:16px; padding:10px 14px; cursor:pointer}
+  .voice-row .av-sm{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+      box-shadow:0 2px 8px rgba(31,58,52,.14)}
+  .voice-row .av-sm svg{width:60%;height:60%}
+  .voice-row .pl{color:var(--mountain); flex:0 0 auto; margin-left:auto}
+  .voice-row[aria-pressed="true"]{border-color:var(--resin); outline:2px solid var(--resin); outline-offset:0}
+
   .sayit{border:1.5px solid var(--mist-2); background:transparent; color:var(--mountain);
          border-radius:16px; padding:15px; font:600 16px/1 var(--sans); text-decoration:none;
          display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer}
@@ -223,7 +246,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0818b";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0819a";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -438,22 +461,9 @@ async function entryCard(res, lead){
   playBtn.addEventListener("click", ()=> currentUrl && playInto(playBtn, currentUrl));
 
   if(lead){
-    // round fauna avatars, one per voice, tap to hear that speaker
+    // collapse the voices into a count chip that opens an itemized list
     const voices = el.querySelector(".voices");
-    recs.forEach(rec=>{
-      const b=document.createElement("button");
-      b.className="av"; b.style.background=rec.avatar.bg;
-      b.setAttribute("aria-label","Play this speaker");
-      b.innerHTML=rec.avatar.svg;
-      b.addEventListener("click",()=>{
-        voices.querySelectorAll(".av").forEach(x=>x.setAttribute("aria-pressed","false"));
-        b.setAttribute("aria-pressed","true");
-        currentUrl = rec.url;
-        if(thumbEl && thumbEl.querySelector("svg")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
-        playInto(playBtn, rec.url);
-      });
-      voices.appendChild(b);
-    });
+    buildVoices(voices, recs, thumbEl, playBtn, (u)=>{ currentUrl = u; });
     // flywheel: one tap to add your own voice
     const say=document.createElement("a");
     say.className="sayit"; say.href=`${RECORDER_URL}#${encodeURIComponent(res.entryId)}`;
@@ -463,6 +473,61 @@ async function entryCard(res, lead){
   }
 
   return { el, playBtn, firstPlayable };
+}
+
+/* Voices: a language-free count chip that opens an itemized list of utterances.
+   One voice → a single avatar (no chip). Many → chip, tap to expand. Each row
+   plays that utterance and repaints the box, just like the old avatars did.
+   The right edge of each row is where owner-only consent controls land next. */
+function playVoiceInto(rec, thumbEl, playBtn, setUrl){
+  setUrl(rec.url);
+  if(thumbEl && thumbEl.querySelector("svg")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
+  playInto(playBtn, rec.url);
+}
+function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
+  const b=document.createElement("button");
+  b.className="av"; b.style.background=rec.avatar.bg;
+  b.setAttribute("aria-label","Play this voice");
+  b.innerHTML=rec.avatar.svg;
+  b.addEventListener("click",()=>{ b.setAttribute("aria-pressed","true");
+    playVoiceInto(rec, thumbEl, playBtn, setUrl); });
+  return b;
+}
+function buildVoices(container, recs, thumbEl, playBtn, setUrl){
+  container.innerHTML="";
+  if(!recs.length) return;
+  if(recs.length===1){ container.appendChild(voiceAvatarBtn(recs[0], thumbEl, playBtn, setUrl)); return; }
+
+  const chip=document.createElement("button");
+  chip.className="voices-chip"; chip.setAttribute("aria-expanded","false");
+  chip.setAttribute("aria-label", recs.length+" voices");
+  const peeks=recs.slice(0,3).map(r=>`<span class="peek" style="background:${r.avatar.bg}">${r.avatar.svg}</span>`).join("");
+  chip.innerHTML=`<span class="peeks">${peeks}</span><span class="count">${recs.length}</span>`+
+    `<svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+
+  const list=document.createElement("div");
+  list.className="voices-list hidden";
+  recs.forEach(rec=>{
+    const row=document.createElement("button");
+    row.className="voice-row"; row.setAttribute("aria-pressed","false");
+    row.innerHTML=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`+
+      `<svg class="pl" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+    row.addEventListener("click",()=>{
+      list.querySelectorAll(".voice-row").forEach(x=>x.setAttribute("aria-pressed","false"));
+      row.setAttribute("aria-pressed","true");
+      playVoiceInto(rec, thumbEl, playBtn, setUrl);
+    });
+    list.appendChild(row);
+  });
+
+  chip.addEventListener("click",()=>{
+    const open = list.classList.toggle("hidden")===false;
+    chip.setAttribute("aria-expanded", String(open));
+    chip.classList.toggle("open", open);
+  });
+
+  container.appendChild(chip);
+  container.appendChild(list);
 }
 
 async function listPlayable(entryId){
