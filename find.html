@@ -160,6 +160,20 @@
   .voice-row .av-sm svg{width:60%;height:60%}
   .voice-row .pl{color:var(--mountain); flex:0 0 auto; margin-left:auto}
   .voice-row[aria-pressed="true"]{border-color:var(--resin); outline:2px solid var(--resin); outline-offset:0}
+  .voice-row .vr-play{flex:1; display:flex; align-items:center; gap:12px; border:none; background:transparent;
+      cursor:pointer; padding:0; color:inherit; text-align:left; min-width:0}
+  .voice-row .vr-play .pl{margin-left:auto}
+  .voice-ctl{border:1.5px solid var(--mist-2); background:transparent; color:var(--mountain); flex:0 0 auto;
+      border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); cursor:pointer}
+  .voice-ctl.restore{border-color:var(--resin); color:var(--resin)}
+  .voice-ctl:disabled{opacity:.5; cursor:default}
+  .voice-row.withdrawn{opacity:.62}
+  .voice-row.withdrawn .av-sm{filter:grayscale(.7)}
+
+  /* header account button — sign in to manage your own voice */
+  .account{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
+      color:var(--mountain);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+  .account.in{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
 
   .sayit{border:1.5px solid var(--mist-2); background:transparent; color:var(--mountain);
          border-radius:16px; padding:15px; font:600 16px/1 var(--sans); text-decoration:none;
@@ -199,6 +213,7 @@
     </svg>
     <span class="wordmark" id="wordmark">Hakli<small>speak to find</small></span>
     <button class="skin" id="skin" aria-label="Change how words are shown"></button>
+    <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
   </header>
 
   <main>
@@ -223,10 +238,12 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, query, where, limit, getDocs }
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 /* ================================================================= CONFIG */
 /* Same afd-dev project the recorder uses. Web keys identify a project;
@@ -246,7 +263,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0819a";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0819b";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -272,6 +289,8 @@ function setDisplayMode(m){ displayMode = m; try{ localStorage.setItem("afd_disp
 const app   = initializeApp(firebaseConfig);
 const db    = getFirestore(app);
 const store = getStorage(app);
+const auth  = getAuth(app);
+let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
 
 const $ = id => document.getElementById(id);
 const mic = $("mic"), hint = $("hint"), resultsEl = $("results"),
@@ -477,12 +496,21 @@ async function entryCard(res, lead){
 
 /* Voices: a language-free count chip that opens an itemized list of utterances.
    One voice → a single avatar (no chip). Many → chip, tap to expand. Each row
-   plays that utterance and repaints the box, just like the old avatars did.
-   The right edge of each row is where owner-only consent controls land next. */
+   plays that utterance and repaints the box. A row that belongs to the signed-in
+   viewer also carries a Withdraw / Restore control — the speaker managing their
+   own voice, in context. (Agent-mediated withdrawal, which needs the spoken
+   artifact, arrives with the switch-speaker flow.) */
 function playVoiceInto(rec, thumbEl, playBtn, setUrl){
   setUrl(rec.url);
   if(thumbEl && thumbEl.querySelector("svg")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
   playInto(playBtn, rec.url);
+}
+async function setConsent(rec, state){
+  try{
+    await updateDoc(doc(db,"afd_entries",rec.entryId,"recordings",rec.recordingId),
+      { consent: state, allowPlayback: state==="public" });
+    rec.consent = state; return true;
+  }catch(e){ console.warn("[AFD] consent change failed", e); banner("Couldn't change that just now — try again"); return false; }
 }
 function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   const b=document.createElement("button");
@@ -493,10 +521,53 @@ function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
     playVoiceInto(rec, thumbEl, playBtn, setUrl); });
   return b;
 }
+function buildVoiceRow(rec, thumbEl, playBtn, setUrl){
+  const row=document.createElement("div");
+  row.className="voice-row"; row.setAttribute("aria-pressed","false");
+  const play=document.createElement("button");
+  play.className="vr-play"; play.setAttribute("aria-label","Play this voice");
+  play.innerHTML=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`+
+    `<svg class="pl" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+  play.addEventListener("click",()=>{
+    const parent=row.parentElement;
+    if(parent) parent.querySelectorAll(".voice-row").forEach(x=>x.setAttribute("aria-pressed","false"));
+    row.setAttribute("aria-pressed","true");
+    playVoiceInto(rec, thumbEl, playBtn, setUrl);
+  });
+  row.appendChild(play);
+
+  if(rec.mine){
+    const ctl=document.createElement("button");
+    ctl.className="voice-ctl";
+    const paint=()=>{
+      const withdrawn = rec.consent!=="public";
+      row.classList.toggle("withdrawn", withdrawn);
+      ctl.classList.toggle("restore", withdrawn);
+      ctl.textContent = withdrawn ? "Restore" : "Withdraw";
+      ctl.setAttribute("aria-label", withdrawn ? "Restore your voice" : "Withdraw your voice");
+    };
+    paint();
+    ctl.addEventListener("click", async ()=>{
+      ctl.disabled=true;
+      const ok=await setConsent(rec, rec.consent==="public" ? "withdrawn" : "public");
+      ctl.disabled=false;
+      if(ok) paint();
+    });
+    row.appendChild(ctl);
+  }
+  return row;
+}
 function buildVoices(container, recs, thumbEl, playBtn, setUrl){
   container.innerHTML="";
   if(!recs.length) return;
-  if(recs.length===1){ container.appendChild(voiceAvatarBtn(recs[0], thumbEl, playBtn, setUrl)); return; }
+  if(recs.length===1 && !recs[0].mine){
+    container.appendChild(voiceAvatarBtn(recs[0], thumbEl, playBtn, setUrl)); return;
+  }
+  if(recs.length===1){                       // a single voice, but it's yours → show the row to manage it
+    const solo=document.createElement("div"); solo.className="voices-list";
+    solo.appendChild(buildVoiceRow(recs[0], thumbEl, playBtn, setUrl));
+    container.appendChild(solo); return;
+  }
 
   const chip=document.createElement("button");
   chip.className="voices-chip"; chip.setAttribute("aria-expanded","false");
@@ -507,18 +578,7 @@ function buildVoices(container, recs, thumbEl, playBtn, setUrl){
 
   const list=document.createElement("div");
   list.className="voices-list hidden";
-  recs.forEach(rec=>{
-    const row=document.createElement("button");
-    row.className="voice-row"; row.setAttribute("aria-pressed","false");
-    row.innerHTML=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`+
-      `<svg class="pl" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
-    row.addEventListener("click",()=>{
-      list.querySelectorAll(".voice-row").forEach(x=>x.setAttribute("aria-pressed","false"));
-      row.setAttribute("aria-pressed","true");
-      playVoiceInto(rec, thumbEl, playBtn, setUrl);
-    });
-    list.appendChild(row);
-  });
+  recs.forEach(rec=> list.appendChild(buildVoiceRow(rec, thumbEl, playBtn, setUrl)));
 
   chip.addEventListener("click",()=>{
     const open = list.classList.toggle("hidden")===false;
@@ -531,16 +591,27 @@ function buildVoices(container, recs, thumbEl, playBtn, setUrl){
 }
 
 async function listPlayable(entryId){
-  const out=[];
+  const out=[], seen=new Set();
+  const add=async(d)=>{
+    if(seen.has(d.id)) return; const v=d.data(); if(!v.storagePath) return;
+    let url; try{ url=await getDownloadURL(ref(store,v.storagePath)); }catch(_){ return; }
+    seen.add(d.id);
+    out.push({ url, recordingId:d.id, entryId, uid:v.uid,
+               consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
+               mine: !!(currentUser && v.uid===currentUser.uid),
+               envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
+               avatar: faunaAvatar(v.speakerId||v.uid||d.id) });
+  };
   try{
-    const q=query(collection(db,"afd_entries",entryId,"recordings"),
-                  where("allowPlayback","==",true), limit(12));
-    const snap=await getDocs(q);
-    for(const d of snap.docs){
-      const v=d.data(); if(!v.storagePath) continue;
-      let url; try{ url=await getDownloadURL(ref(store,v.storagePath)); }catch(_){ continue; }
-      out.push({ url, envelope: (Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
-                 avatar: faunaAvatar(v.speakerId||v.uid||d.id) });
+    const pub=await getDocs(query(collection(db,"afd_entries",entryId,"recordings"),
+                                  where("allowPlayback","==",true), limit(12)));
+    for(const d of pub.docs) await add(d);
+    // the signed-in viewer's own voices for this word — including withdrawn ones,
+    // so they can restore. Dev + deployed rules both let an author read their own.
+    if(currentUser){
+      const mineQ=await getDocs(query(collection(db,"afd_entries",entryId,"recordings"),
+                                      where("uid","==",currentUser.uid), limit(12)));
+      for(const d of mineQ.docs) await add(d);
     }
   }catch(_){}
   return out;
@@ -699,6 +770,30 @@ $("skin").addEventListener("click", ()=>{
 });
 updateSkinIcon();
 setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current tier
+
+// Account: shared per-origin session drives owner-only voice controls. A small
+// button lets a fresh visitor sign in (Google); a speaker who used the recorder
+// is already recognised. On auth change we re-render so controls appear/vanish.
+const accountBtn = $("account");
+function updateAccountUi(){
+  if(!accountBtn) return;
+  accountBtn.innerHTML = currentUser
+    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`
+    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
+  accountBtn.classList.toggle("in", !!currentUser);
+  accountBtn.setAttribute("aria-label", currentUser ? "Signed in — tap to sign out" : "Sign in to manage your voice");
+}
+if(accountBtn){
+  accountBtn.addEventListener("click", async ()=>{
+    try{ if(currentUser){ await signOut(auth); } else { await signInWithPopup(auth, new GoogleAuthProvider()); } }
+    catch(e){ console.warn("[AFD] auth", e); }
+  });
+}
+onAuthStateChanged(auth, (u)=>{
+  currentUser = u; updateAccountUi();
+  if(lastResults) render(lastResults);   // refresh owner controls on the cards
+});
+updateAccountUi();
 
 /* dev distance readout: tap the wordmark three times */
 let taps=0,tt=0;
