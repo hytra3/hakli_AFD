@@ -263,7 +263,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0819b";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0819d";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -313,15 +313,20 @@ async function tryPlayPrompt(key){
 }
 
 /* ================================================================= capture */
-let mediaRec=null, chunks=[], stream=null, ac=null, holding=false;
+let mediaRec=null, chunks=[], stream=null, ac=null, holding=false, acquiring=false;
 
-async function startHold(){
-  if(holding) return; holding=true;
-  resultsEl.classList.add("hidden");
+// Acquire the mic ONCE and keep it warm for the session. Re-acquiring on every
+// hold races the getUserMedia permission/warm-up delay — a quick press-speak-
+// release can finish before the recorder is even ready, so the clip is empty
+// ("hold a little longer"). Worst in a fresh/incognito session where the mic is
+// cold. The stream is released when the tab is hidden or closed.
+async function ensureStream(){
+  if(stream) return stream;
+  if(acquiring) return null;
+  acquiring=true;
   try{
     // Query capture MUST match the corpus protocol (index.html openMic), or the
-    // query embeds into a different acoustic space than the corpus and matching
-    // collapses. Browser defaults turn all three of these ON; the corpus is raw.
+    // query embeds into a different acoustic space than the corpus.
     stream = await navigator.mediaDevices.getUserMedia({
       audio:{
         echoCancellation:false,   // smears fricatives
@@ -331,11 +336,26 @@ async function startHold(){
         channelCount:1
       }
     });
-  }catch(e){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
+  }catch(e){ acquiring=false; return null; }
+  acquiring=false;
+  return stream;
+}
+function stopStream(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  if(ac){ ac.close().catch(()=>{}); ac=null; }
+}
+
+async function startHold(){
+  if(holding) return; holding=true;
+  resultsEl.classList.add("hidden");
+  const s = await ensureStream();
+  if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
+  if(!holding) return;                 // released during acquisition — stream stays warm for the next hold
   document.body.classList.add("rec"); setHint("Listening…","أستمع…");
-  meter(stream);
+  meter(s);
   chunks=[];
-  mediaRec = new MediaRecorder(stream);
+  try{ mediaRec = new MediaRecorder(s); }
+  catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); return; }
   mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mediaRec.onstop = onClip;
   mediaRec.start();
@@ -363,11 +383,15 @@ function meter(stream){
 }
 
 async function onClip(){
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  // keep the stream warm for the next hold — do NOT stop it here
   const blob = new Blob(chunks, {type: chunks[0]?.type || "audio/webm"});
   if(blob.size < 800){ setHint("Hold a little longer, then speak","تكلّم أطول قليلاً"); return; }
   await runSearch(blob);
 }
+
+// release the mic when the tab is hidden or closed
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) stopStream(); });
+window.addEventListener("pagehide", stopStream);
 
 /* ================================================================= search */
 async function runSearch(blob){

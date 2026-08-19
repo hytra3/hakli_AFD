@@ -249,6 +249,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
           <option value="m">m</option><option value="other">other</option>
         </select></label>
     </div>
+    <label class="check"><input type="checkbox" id="agentMode">
+      <span>I'm recording for someone else — helping them record their own voice</span></label>
     <p class="note">No dialect field by design — locality is recorded, variety derived later.</p>
   </div>
 
@@ -342,6 +344,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
   <div class="card" id="sessionCard">
     <p class="eyebrow">This session</p>
+    <button class="btn secondary" id="switchSpeaker">Switch speaker</button>
     <div id="clips"><p class="note">No recordings kept yet.</p></div>
     <button class="btn" id="syncBtn">Upload to the dictionary</button>
     <button class="btn secondary" id="dlManifest">Export everything (.zip)</button>
@@ -472,6 +475,10 @@ async function uploadClip(rec, speaker){
       // Three-state per-recording consent label; withdrawal flips this to
       // "withdrawn"/"deleted". Public at create — the recording isn't withdrawn.
       consent: "public",
+      // Provenance: recorded on the speaker's behalf by an agent (assistant).
+      // Lets find/rules require the speaker's spoken artifact before an agent
+      // may withdraw — never a silent third-party lever.
+      viaAgent: speaker.viaAgent === true,
       // Denormalised "currently public" flag that rules/queries filter on: the
       // recording's own consent AND the speaker's bulk consent must both allow.
       allowPlayback: speaker.consent.publicPlayback === true,
@@ -490,7 +497,7 @@ async function uploadClip(rec, speaker){
     uid,
     stewardUid: uid,
     speakerId: speaker.speakerId,
-    viaAgent: false,
+    viaAgent: speaker.viaAgent === true,
     masked: false,
     consent: speaker.consent.publicPlayback === true ? "public" : "withdrawn",
     grant: speaker.consent,
@@ -677,12 +684,40 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0819a";   // bump every publish; shown in the header + console
+const BUILD="b0819c";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 
 /* ================= step 1 → 2 ================= */
-$("toMic").onclick=()=>{ show("miccheck"); };
+/* Switch speaker: an agent records a batch for one person, then switches to the
+   next. Returns to the speaker form and jumps straight back to recording — the
+   mic is already checked, so Step 2 is skipped. Every recording after the switch
+   carries the new speakerId (read live from the form at keep time). */
+let switchingSpeaker=false;
+function nextSpeakerCode(cur){
+  const m=/^(.*?)(\d+)$/.exec(cur||"");
+  if(m){ return m[1]+String(+m[2]+1).padStart(m[2].length,"0"); }
+  return "spk_02";
+}
+$("switchSpeaker").onclick=()=>{
+  // fresh person: new code, cleared details, cleared per-speaker permission
+  $("spkId").value = nextSpeakerCode($("spkId").value);
+  $("spkTown").value=""; $("spkTribe").value=""; $("spkAge").value=""; $("spkGender").value="";
+  ["cArchive","cML","cPlay"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
+  switchingSpeaker=true;
+  $("toMic").textContent="Record for this speaker";
+  show("setup");
+};
+$("toMic").onclick=()=>{
+  if(switchingSpeaker){
+    saveSpeaker();                       // the form is the live speaker; persist for reload
+    switchingSpeaker=false;
+    $("toMic").textContent="Continue";
+    show("recorder"); renderPrompt();
+  }else{
+    show("miccheck");
+  }
+};
 
 function show(which){
   ["setup","miccheck","recorder"].forEach(s=>$(s).classList.toggle("hidden",s!==which));
@@ -1264,6 +1299,7 @@ function speakerRecord(){
   return {
     key:"speaker",
     speakerId:$("spkId").value,
+    viaAgent:!!($("agentMode") && $("agentMode").checked),
     origin:{town:$("spkTown").value,tribe:$("spkTribe").value},
     ageBand:$("spkAge").value, gender:$("spkGender").value,
     consent:{
