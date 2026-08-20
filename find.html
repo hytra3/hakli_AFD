@@ -100,13 +100,16 @@
   .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px}
   /* candidate card = one compact row */
   .card{background:var(--cloud); border-radius:var(--r); box-shadow:var(--shadow);
-        padding:14px; display:flex; gap:14px; align-items:center; text-align:left;
+        padding:14px; display:flex; flex-direction:column; align-items:stretch; gap:12px; text-align:left;
         opacity:0; transform:translateY(10px); animation:rise .4s ease forwards}
   @keyframes rise{to{opacity:1;transform:none}}
-  /* lead card = header row, then full-width detail underneath */
-  .card.lead{flex-direction:column; align-items:stretch; padding:18px; gap:16px;
-             border:1px solid var(--resin-soft)}
-  .card.lead .head{display:flex; align-items:center; gap:14px}
+  /* every card: a head row, then a collapsible detail underneath */
+  .card .head{display:flex; align-items:center; gap:14px; cursor:pointer}
+  .card.lead{padding:18px; gap:16px; border:1px solid var(--resin-soft)}
+  .card .detail{display:none; flex-direction:column; gap:16px}
+  .card.open .detail{display:flex}
+  .card-chev{flex:0 0 auto; margin-left:2px; color:var(--mist); transition:transform .18s}
+  .card.open .card-chev{transform:rotate(180deg)}
 
   .thumb{width:64px; height:64px; flex:0 0 auto; border-radius:14px; overflow:hidden;
          display:grid; place-items:center; color:var(--cloud); font-family:var(--serif);
@@ -179,6 +182,17 @@
          border-radius:16px; padding:15px; font:600 16px/1 var(--sans); text-decoration:none;
          display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer}
   .sayit .ar{color:var(--mist); font-weight:400}
+
+  /* labelled sections inside an open card: "the word" (voices), then the empty
+     homes for context & definition audio (the recorder doesn't capture those yet) */
+  .slot .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px}
+  .slot .slot-label{font:600 12px/1.2 var(--sans); color:var(--mountain); letter-spacing:.06em; text-transform:uppercase}
+  .slot .slot-label .ar{color:var(--mist); font-weight:400; letter-spacing:0; text-transform:none; margin-inline-start:6px}
+  .slot .slot-empty{font:400 12px/1 var(--sans); color:var(--mist)}
+  .slot-add{display:inline-flex; align-items:center; gap:6px; color:var(--mist); text-decoration:none;
+      border:1.5px dashed var(--mist-2); border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); margin-top:10px}
+  .slot-body{display:flex; flex-direction:column; gap:8px; align-items:flex-start}
+  .slot-body:empty{display:none}
 
   /* empty / miss — an invitation, not an apology */
   .empty{width:100%; max-width:460px; background:var(--cloud); border-radius:var(--r);
@@ -263,7 +277,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0819d";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0819f";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -448,7 +462,7 @@ async function render(results){
 /* build one entry card: thumbnail, gloss, voice silhouettes, speaker avatars */
 async function entryCard(res, lead){
   const el = document.createElement("div");
-  el.className = "card" + (lead ? " lead" : "");
+  el.className = "card" + (lead ? " lead open" : "");
 
   // entry metadata (public). Fall back gracefully if absent.
   let meta={};
@@ -460,19 +474,12 @@ async function entryCard(res, lead){
   // playable recordings (allowPlayback == true), same query the recorder uses
   const recs = await listPlayable(res.entryId);
 
-  // The box shows the WORD'S VOICE — a waveform of the recording — instead of a
-  // letter. It's painted once the envelope resolves (stored, or computed from the
-  // audio). A real picture still wins if the entry has one; the letter is only a
-  // last resort when there's no audio at all.
   const letterFallback = glossEn ? glossEn.trim()[0].toUpperCase() : "•";
   const scriptLabel = glossAr || meta.ref || "";
   const thumbHtml =
     `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(meta.image||"")}" ` +
     `data-pic="${escapeHtml(meta.pic||"")}" data-script="${escapeHtml(scriptLabel)}" ` +
     `data-letter="${escapeHtml(letterFallback)}"></div>`;
-  // Gloss text follows the display tier the reader chose with the top-right
-  // toggle: sound = audio-first (no text at all), script = Arabic label only,
-  // auto = full English + Arabic. Re-runs on every mode change (render re-skins).
   let glossHtml;
   if(displayMode==="sound"){
     glossHtml = `<div class="gloss" aria-hidden="true"></div>`;
@@ -483,39 +490,67 @@ async function entryCard(res, lead){
     glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
   }
   const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>`;
+  const chevHtml  = lead ? "" : `<span class="card-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>`;
 
-  const firstPlayable = recs[0]?.url || null;
+  const wordRecs    = recs.filter(r => (r.type||"word")==="word");
+  const contextRecs = recs.filter(r => r.type==="context");
+  const defRecs     = recs.filter(r => r.type==="definition");
+  const firstPlayable = (wordRecs[0]||recs[0])?.url || null;
 
-  if(lead){
-    // header row (box-waveform · gloss · play), then speaker voices + CTA
-    el.innerHTML =
-      `<div class="head">${thumbHtml}${glossHtml}${playHtml}</div>` +
-      `<div class="voices"></div>`;
-  }else{
-    // candidate: one compact row
-    el.innerHTML = thumbHtml + glossHtml + playHtml;
-  }
+  // Every card = a head row, then a collapsible detail. The lead starts open;
+  // any candidate opens on tap — so YOU pick the voice you want, not just the
+  // top guess. The detail is three parallel labelled sections.
+  el.innerHTML =
+    `<div class="head">${thumbHtml}${glossHtml}${playHtml}${chevHtml}</div>` +
+    `<div class="detail"></div>`;
 
   const playBtn = el.querySelector(".play");
   const thumbEl = el.querySelector(".thumb");
   let currentUrl = firstPlayable;
-  // fill the box per the chosen display mode (picture / sound / script)
-  applyBox(thumbEl, displayMode, recs);
-  playBtn.addEventListener("click", ()=> currentUrl && playInto(playBtn, currentUrl));
+  const setUrl = (u)=>{ currentUrl = u; };
+  applyBox(thumbEl, displayMode, wordRecs.length?wordRecs:recs);
+  playBtn.addEventListener("click", (e)=>{ e.stopPropagation(); if(currentUrl) playInto(playBtn, currentUrl); });
 
-  if(lead){
-    // collapse the voices into a count chip that opens an itemized list
-    const voices = el.querySelector(".voices");
-    buildVoices(voices, recs, thumbEl, playBtn, (u)=>{ currentUrl = u; });
-    // flywheel: one tap to add your own voice
-    const say=document.createElement("a");
-    say.className="sayit"; say.href=`${RECORDER_URL}#${encodeURIComponent(res.entryId)}`;
-    say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-      Say it yourself <span class="ar">سجّل صوتك</span>`;
-    el.appendChild(say);
-  }
+  const detail = el.querySelector(".detail");
+  // "the word" drives the box + main button. Sentences/meanings play on their own
+  // without hijacking the card's box (thumbEl null) or its main button (noop setUrl).
+  detail.appendChild(slotSection("the word","الكلمة","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
+  detail.appendChild(slotSection("used in a sentence","مثال في جملة","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
+  detail.appendChild(slotSection("what it means","المعنى","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
+
+  // flywheel: one tap to add your own voice of the word
+  const say=document.createElement("a");
+  say.className="sayit"; say.href=`${RECORDER_URL}#${encodeURIComponent(res.entryId)}`;
+  say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+    Say it yourself <span class="ar">سجّل صوتك</span>`;
+  detail.appendChild(say);
+
+  // expand / collapse on head tap (play excluded); opening plays the word so you hear your pick
+  el.querySelector(".head").addEventListener("click", (e)=>{
+    if(e.target.closest(".play")) return;
+    const opening = !el.classList.contains("open");
+    el.classList.toggle("open", opening);
+    if(opening && currentUrl) playInto(playBtn, currentUrl);
+  });
 
   return { el, playBtn, firstPlayable };
+}
+
+function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, setUrl){
+  const s=document.createElement("div");
+  s.className="slot slot-"+type;
+  const has = recs && recs.length;
+  // the word slot's "add" is the detail-level "Say it yourself"; context/meaning
+  // carry their own add links, with the type in the hash for the recorder.
+  const addLink = type==="word" ? "" :
+    `<a class="slot-add" href="${RECORDER_URL}#${encodeURIComponent(entryId)}|${type}">` +
+    `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${type==="context"?"Add a sentence":"Add a meaning"}</a>`;
+  s.innerHTML =
+    `<div class="slot-head"><span class="slot-label">${labelEn} <span class="ar">${escapeHtml(labelAr)}</span></span>` +
+    (has?"":`<span class="slot-empty">none yet</span>`) + `</div>` +
+    `<div class="slot-body"></div>` + addLink;
+  if(has) buildVoices(s.querySelector(".slot-body"), recs, thumbEl, playBtn, setUrl);
+  return s;
 }
 
 /* Voices: a language-free count chip that opens an itemized list of utterances.
@@ -621,6 +656,7 @@ async function listPlayable(entryId){
     let url; try{ url=await getDownloadURL(ref(store,v.storagePath)); }catch(_){ return; }
     seen.add(d.id);
     out.push({ url, recordingId:d.id, entryId, uid:v.uid,
+               type: v.type || v.phase || "word",
                consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
                mine: !!(currentUser && v.uid===currentUser.uid),
                envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
