@@ -109,6 +109,11 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .picto{font-size:80px;line-height:1;margin-bottom:10px;user-select:none}
 .gloss{font-family:var(--serif);font-size:34px;font-weight:500;letter-spacing:-.02em;margin:0;color:var(--ink)}
 .gloss-ar{font-size:23px;font-weight:400;color:var(--ink-soft);margin:3px 0 0;direction:rtl}
+.rectype{display:flex;gap:6px;margin-bottom:14px}
+.rectype .rt{flex:1;padding:10px 8px;border:1.5px solid var(--hairline);background:var(--paper);
+  border-radius:12px;font:600 14px/1.2 var(--sans);color:var(--ink-soft);cursor:pointer;text-align:center}
+.rectype .rt .ar{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.8}
+.rectype .rt.active{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
 .instruction{
   font-size:14px;color:var(--ink-soft);margin-top:16px;
   padding-top:14px;border-top:1px solid var(--hairline)
@@ -295,6 +300,12 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <!-- ============ 3. RECORD ============ -->
 <section id="recorder" class="hidden">
   <p class="stepdots"><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+
+  <div class="rectype" id="rectype">
+    <button class="rt active" data-type="word">Word <span class="ar">كلمة</span></button>
+    <button class="rt" data-type="context">Sentence <span class="ar">جملة</span></button>
+    <button class="rt" data-type="definition">Meaning <span class="ar">معنى</span></button>
+  </div>
 
   <div class="card prompt">
     <div class="picto" id="picto">☀️</div>
@@ -684,7 +695,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0819c";   // bump every publish; shown in the header + console
+const BUILD="b0819f";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 
@@ -837,7 +848,7 @@ function renderPrompt(){
     showCompare(WORDS[idx], null);      // load other speakers straight away
   }else{
     $("progress").textContent="STEP 3 / 3 · WORD "+(idx+1)+" OF "+WORDS.length;
-    $("instruction").innerHTML="Say the Hakli word <b>twice</b>, with a short pause between.";
+    setRecType(recType);
     recBtn.classList.remove("hidden");
     $("skipBtn").classList.remove("hidden");
     $("browseNav").classList.add("hidden");
@@ -856,6 +867,22 @@ function entrySlug(id){
 function entryIdFor(id){ return "ent_" + entrySlug(id); }
 
 // Audio gloss: speech synthesis stands in for pre-recorded gloss audio.
+/* Recording type: word (say twice) · sentence · meaning. The type rides on the
+   recording and tells find which slot it fills. Sentences and meanings are one
+   natural utterance, so their QC skips the two-repetition rule. */
+let recType="word";
+const REC_INSTR={
+  word:"Say the Hakli word <b>twice</b>, with a short pause between.",
+  context:"Say a short <b>sentence</b> using this word — one time.",
+  definition:"Say what this word <b>means</b>, in Hakli — one time."
+};
+function setRecType(t){
+  recType=(t==="context"||t==="definition")?t:"word";
+  document.querySelectorAll("#rectype .rt").forEach(b=>b.classList.toggle("active",b.dataset.type===recType));
+  const instr=$("instruction"); if(instr) instr.innerHTML=REC_INSTR[recType];
+}
+document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>setRecType(b.dataset.type)));
+
 $("playGloss").onclick=()=>{
   const w=WORDS[idx];
   try{
@@ -1091,17 +1118,19 @@ function renderQC(q){
   const rows=[];
   const fails=[];          // hard problems, in the order we'd coach the speaker
   let softNote="";         // keepable note (shown with a green verdict)
+  const isWord = recType==="word";
+  const maxLen = isWord ? 8000 : 20000;
 
   const sr=q.sampleRate, srOk=sr>=44100;
   rows.push(row(srOk,"Sample rate",sr?sr+" Hz":"not reported",
     srOk?"":"too low — recording can't be used"));
   if(!srOk) fails.push("This device recorded at too low a quality — try another mic");
 
-  const lenOk=q.durationMs>=500&&q.durationMs<=8000;
+  const lenOk=q.durationMs>=500&&q.durationMs<=maxLen;
   rows.push(row(lenOk,"Length",(q.durationMs/1000).toFixed(1)+" s",
-    q.durationMs<500?"too short":q.durationMs>8000?"long for a single word":""));
-  if(q.durationMs<500) fails.push("That was very short — hold and say it twice");
-  else if(q.durationMs>8000 && !softNote) softNote="A little long for one word — fine to keep";
+    q.durationMs<500?"too short":q.durationMs>maxLen?"very long":""));
+  if(q.durationMs<500) fails.push(isWord?"That was very short — hold and say it twice":"That was very short — hold a little longer");
+  else if(q.durationMs>maxLen && !softNote) softNote="A little long — fine to keep";
 
   const levelOk=q.peak<0.99;
   rows.push(row(levelOk,"Level",q.peak.toFixed(2),
@@ -1113,18 +1142,22 @@ function renderQC(q){
     speechOk?"":"mostly silence"));
   if(!speechOk) fails.push("Mostly quiet — speak a little louder, closer to the mic");
 
-  const twoOk=q.bursts===2;
-  rows.push(row(twoOk,"Repetitions heard",String(q.bursts),
-    q.bursts<2?"say the word twice, with a pause":q.bursts>2?"extra speech detected":"",
-    q.bursts>2?"warn":undefined));
-  if(q.bursts<2) fails.push("Say the word twice, with a small pause between");
-  else if(q.bursts>2 && !softNote) softNote="Heard more than twice — extra speech was detected";
+  if(isWord){
+    const twoOk=q.bursts===2;
+    rows.push(row(twoOk,"Repetitions heard",String(q.bursts),
+      q.bursts<2?"say the word twice, with a pause":q.bursts>2?"extra speech detected":"",
+      q.bursts>2?"warn":undefined));
+    if(q.bursts<2) fails.push("Say the word twice, with a small pause between");
+    else if(q.bursts>2 && !softNote) softNote="Heard more than twice — extra speech was detected";
 
-  if(q.burstBalance!==null){
-    const bal=q.burstBalance<0.5;
-    rows.push(row(bal,"Repetitions match",(1-q.burstBalance).toFixed(2),
-      bal?"":"the two are very different lengths","warn"));
-    if(!bal && !softNote) softNote="The two takes differ a little — fine to keep";
+    if(q.burstBalance!==null){
+      const bal=q.burstBalance<0.5;
+      rows.push(row(bal,"Repetitions match",(1-q.burstBalance).toFixed(2),
+        bal?"":"the two are very different lengths","warn"));
+      if(!bal && !softNote) softNote="The two takes differ a little — fine to keep";
+    }
+  }else{
+    rows.push(row(true,"Speech segments",String(q.bursts),"",undefined));
   }
 
   $("qc").innerHTML=rows.join("");
@@ -1166,7 +1199,7 @@ $("keepBtn").onclick=async ()=>{
   const rec={
     recordingId:"rec_"+w.id+"_"+$("spkId").value+"_"+Date.now(),
     entryId:entryIdFor(w.id), gloss:w.en, domain:w.dom,
-    speakerId:$("spkId").value, phase:"word", promptTier:"image",
+    speakerId:$("spkId").value, phase:recType, type:recType, promptTier:"image",
     repetitionIndex:"both", skipped:false,
     capture:{
       sampleRate:lastQC.sampleRate,
@@ -1180,7 +1213,9 @@ $("keepBtn").onclick=async ()=>{
       speechRatio:+lastQC.speechRatio.toFixed(3),
       bursts:lastQC.bursts,
       burstBalance:lastQC.burstBalance===null?null:+lastQC.burstBalance.toFixed(3),
-      passed:lastQC.sampleRate>=44100&&lastQC.bursts>=2&&lastQC.peak<0.99
+      passed: recType==="word"
+        ? (lastQC.sampleRate>=44100 && lastQC.bursts>=2 && lastQC.peak<0.99)
+        : (lastQC.sampleRate>=44100 && lastQC.peak<0.99 && lastQC.speechRatio>=0.1)
     },
     envelope:lastQC.envelope||[],
     recordedAt:new Date().toISOString(),
