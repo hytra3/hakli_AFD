@@ -16,6 +16,7 @@
     --mist-2:#C4D2CC;      /* faint sage — strips, dividers    */
     --resin:#C6873F;       /* frankincense amber — LIVE only   */
     --resin-soft:#E7C9A0;
+    --danger:#9E4433;      /* muted clay — erase confirm only  */
     --ink:#17241F;
     --shadow:24px 24px 60px rgba(31,58,52,.10);
     --r:22px;
@@ -172,6 +173,13 @@
   .voice-ctl:disabled{opacity:.5; cursor:default}
   .voice-row.withdrawn{opacity:.62}
   .voice-row.withdrawn .av-sm{filter:grayscale(.7)}
+  /* own-take management, after the recording is saved: Withdraw/Restore · Erase.
+     (Try again lives at recording time in the recorder, not here.) The row wraps
+     so the cluster drops to a second line on narrow screens instead of overflowing. */
+  .voice-row{flex-wrap:wrap}
+  .vr-controls{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-left:auto}
+  .voice-ctl.erase{border-color:var(--mist-2); color:var(--mist)}
+  .voice-ctl.erase.armed{border-color:var(--danger); color:var(--cloud); background:var(--danger)}
 
   /* header account button — sign in to manage your own voice */
   .account{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
@@ -277,7 +285,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0819f";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0820a";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -595,11 +603,19 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl){
   });
   row.appendChild(play);
 
-  if(rec.mine){
+  if(rec.mine && rec.consent!=="deleted"){
+    const controls=document.createElement("div");
+    controls.className="vr-controls";
+
+    /* Withdraw / Restore — the consent lever, AFTER the recording is saved and
+       public. "My brother won't let me publish that" → hide it from the shared
+       pool, kept safe and restorable. Reversible, so no confirm.
+       (Try again — the quality redo — is not here; it lives at recording time in
+       the recorder's review card as "Record again", before anything is saved.) */
     const ctl=document.createElement("button");
     ctl.className="voice-ctl";
     const paint=()=>{
-      const withdrawn = rec.consent!=="public";
+      const withdrawn = rec.consent==="withdrawn";
       row.classList.toggle("withdrawn", withdrawn);
       ctl.classList.toggle("restore", withdrawn);
       ctl.textContent = withdrawn ? "Restore" : "Withdraw";
@@ -612,7 +628,40 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl){
       ctl.disabled=false;
       if(ok) paint();
     });
-    row.appendChild(ctl);
+    controls.appendChild(ctl);
+
+    /* Erase — right to erasure. There is NO client hard-delete: Firestore and
+       Storage both deny it by rule. The atom is destroyed server-side by a purge
+       Function that acts on consent=="deleted"; the client's job is only to set
+       that state (same write path as Withdraw — a self-speaker needs no artifact).
+       Two-tap to arm so a stray touch can't trigger it; irreversible once set,
+       so no undo lever is offered. */
+    const erase=document.createElement("button");
+    erase.className="voice-ctl erase";
+    erase.textContent="Erase";
+    erase.setAttribute("aria-label","Erase this recording");
+    let armed=false, armTimer=null;
+    const disarm=()=>{ armed=false; erase.classList.remove("armed"); erase.textContent="Erase";
+      erase.setAttribute("aria-label","Erase this recording");
+      if(armTimer){ clearTimeout(armTimer); armTimer=null; } };
+    erase.addEventListener("click", async ()=>{
+      if(!armed){
+        armed=true; erase.classList.add("armed"); erase.textContent="Erase for good?";
+        erase.setAttribute("aria-label","Tap again to erase for good");
+        armTimer=setTimeout(disarm, 4000);
+        return;
+      }
+      if(armTimer){ clearTimeout(armTimer); armTimer=null; }
+      erase.disabled=true;
+      const ok=await setConsent(rec,"deleted");
+      if(ok){
+        row.style.transition="opacity .25s ease"; row.style.opacity="0";
+        setTimeout(()=>row.remove(), 250);
+      } else { erase.disabled=false; disarm(); }
+    });
+    controls.appendChild(erase);
+
+    row.appendChild(controls);
   }
   return row;
 }
@@ -653,6 +702,7 @@ async function listPlayable(entryId){
   const out=[], seen=new Set();
   const add=async(d)=>{
     if(seen.has(d.id)) return; const v=d.data(); if(!v.storagePath) return;
+    if(v.consent==="deleted") return;   // erased: awaiting server purge, shown to no one — not even its owner
     let url; try{ url=await getDownloadURL(ref(store,v.storagePath)); }catch(_){ return; }
     seen.add(d.id);
     out.push({ url, recordingId:d.id, entryId, uid:v.uid,
