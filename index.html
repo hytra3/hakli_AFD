@@ -52,6 +52,11 @@ body{
 .dispskin svg{width:20px;height:20px}
 .dispskin .lbl{font-family:var(--serif);font-size:18px;line-height:1}
 .instruction.rtl{direction:rtl}
+.reps-cue{display:inline-flex;gap:9px;align-items:center;justify-content:center;min-height:20px}
+.reps-cue .dot{width:12px;height:12px;border-radius:50%;background:var(--frank);display:inline-block}
+.bicon{font-size:22px;line-height:1}
+.buildstamp{text-align:center;color:#9AB0A8;font-size:11px;letter-spacing:.09em;
+  padding:20px 0 28px;font-family:var(--sans)}
 
 /* ---------- shared bits ---------- */
 .eyebrow{
@@ -374,6 +379,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       Nothing is lost if you go offline — upload again when you have signal.</p>
   </div>
 </section>
+
+<footer class="buildstamp" id="buildStamp"></footer>
 
 </div>
 <script type="module">
@@ -705,8 +712,9 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0820e";   // bump every publish; shown in the header + console
+const BUILD="b0820g";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
+try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 
 /* ================= step 1 → 2 ================= */
@@ -884,6 +892,13 @@ function renderPrompt(){
   const arText = (dispMode==="auto"||dispMode==="script") ? w.ar : "";
   $("glossEn").textContent=enText; $("glossEn").classList.toggle("hidden",!enText);
   $("glossAr").textContent=arText; $("glossAr").classList.toggle("hidden",!arText);
+  // Audio buttons: words for readers (auto / script), friendly icons for non-readers (sound)
+  const wordless = (dispMode==="sound");
+  // English audio is no use to a Hakli-only speaker — hide it in sound mode.
+  $("playGloss").classList.toggle("hidden", wordless);
+  $("playGloss").innerHTML  = '▶ Hear the word in English';
+  $("hearOthers").innerHTML = wordless ? '<span class="bicon" role="img" aria-label="Hear how others said it">🗣️</span>'
+                                       : 'Hear how others said it in Hakli';
   $("reviewCard").classList.add("hidden");
   $("compareCard").classList.add("hidden");
   $("silLabel").textContent="ready";
@@ -957,10 +972,20 @@ function setRecType(t){
   document.querySelectorAll("#rectype .rt").forEach(b=>b.classList.toggle("active",b.dataset.type===recType));
   const instr=$("instruction");
   if(instr){
-    const ar = dispMode!=="auto";
-    instr.innerHTML = ar ? REC_INSTR_AR[recType] : REC_INSTR[recType];
-    instr.classList.toggle("rtl", ar);
+    if(dispMode==="sound"){
+      // wordless: how many times to say it, as amber dots (two = twice, one = once)
+      const twice = recType==="word";
+      instr.classList.remove("rtl");
+      instr.innerHTML = '<span class="reps-cue" role="img" aria-label="'+(twice?'say it twice':'say it once')+'">'+
+                        '<b class="dot"></b>'+(twice?'<b class="dot"></b>':'')+'</span>';
+    }else{
+      const ar = dispMode==="script";
+      instr.classList.toggle("rtl", ar);
+      instr.innerHTML = ar ? REC_INSTR_AR[recType] : REC_INSTR[recType];
+    }
   }
+  // keep the "how others said it" panel in sync with the selected type when it's open
+  if(!$("compareCard").classList.contains("hidden")) showCompare(WORDS[idx], null);
 }
 document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>setRecType(b.dataset.type)));
 
