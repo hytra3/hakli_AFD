@@ -46,6 +46,12 @@ body{
 .brand svg{width:28px;height:28px;flex:0 0 auto}
 .brand b{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.2px}
 .brand small{font-family:var(--sans);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#9AB0A8}
+.rec-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dispskin{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
+  background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;padding:0}
+.dispskin svg{width:20px;height:20px}
+.dispskin .lbl{font-family:var(--serif);font-size:18px;line-height:1}
+.instruction.rtl{direction:rtl}
 
 /* ---------- shared bits ---------- */
 .eyebrow{
@@ -299,7 +305,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
 <!-- ============ 3. RECORD ============ -->
 <section id="recorder" class="hidden">
-  <p class="stepdots"><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+  <div class="rec-topbar">
+    <p class="stepdots"><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+    <button class="dispskin" id="dispSkin" aria-label="Change how words are shown"></button>
+  </div>
 
   <div class="rectype" id="rectype">
     <button class="rt active" data-type="word">Word <span class="ar">كلمة</span></button>
@@ -544,6 +553,7 @@ async function listOthers(entryId, excludeUid){
       url,
       durationMs: (v.capture && v.capture.durationMs) || 0,
       bursts: (v.qc && v.qc.bursts) || null,
+      type: v.type || v.phase || "word",
       town: (v.speakerTown) || null,
       mine: excludeUid ? false : (currentUser && v.uid === currentUser.uid)
     });
@@ -695,7 +705,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0820a";   // bump every publish; shown in the header + console
+const BUILD="b0820e";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 
@@ -735,6 +745,38 @@ function show(which){
   window.scrollTo(0,0);
 }
 
+/* ---- returning-speaker fast path ----------------------------------------
+   When the speaker is already known (saved on this device) AND already signed
+   in, the sign-in → speaker form → mic-check gauntlet shouldn't reappear every
+   visit. We re-establish the mic and drop straight onto the recorder.
+
+   Two coordination points call this — restore() (saved speaker loaded) and the
+   auth hook (sign-in resolved) — because either can finish last; guards make it
+   run exactly once, only while still on the setup screen.
+
+   Mic policy: we re-acquire WITHOUT the manual mic-check only if the browser
+   already holds a microphone grant (so we never fire an out-of-context
+   permission prompt or light the mic up unexpectedly). If it isn't granted yet,
+   or the mic fails the 48 kHz / no-Bluetooth gate, we fall back to the mic-check
+   screen — but the speaker form is still skipped. The recorder is only shown once
+   `stream` is confirmed, so the hold-button is never dead. */
+let hasSavedSpeaker=false, fastPathTried=false;
+async function maybeFastPath(){
+  if(fastPathTried || listenOnly) return;
+  if(!(window.AFD && window.AFD.configured)) return;         // no backend → normal flow
+  if(!(window.AFD.isSignedIn && window.AFD.isSignedIn())) return;  // wait for auth to resolve
+  if(!hasSavedSpeaker) return;                               // wait for / require a saved speaker
+  if($("setup").classList.contains("hidden")) return;        // user already moved past setup
+  fastPathTried=true;
+  let granted=false;
+  try{ const p=await navigator.permissions.query({name:"microphone"}); granted=(p.state==="granted"); }catch(_){}
+  if(granted){
+    const r=await acquireMic();
+    if(r.ok){ show("recorder"); renderPrompt(); sizeCanvas(); return; }
+  }
+  show("miccheck");   // needs a tap to grant, or the mic failed the quality gate
+}
+
 /* ---- listen-only mode: no microphone, no account needed ---- */
 let listenOnly=false;
 function enterListenMode(){
@@ -753,7 +795,11 @@ $("prevWord").onclick=()=>{ idx=(idx-1+WORDS.length)%WORDS.length; renderPrompt(
 $("startMic").onclick=openMic;
 $("retryMic").onclick=openMic;
 
-async function openMic(){
+/* Acquire the mic with the capture-critical constraints and run the quality gate.
+   Sets module stream/actualSettings/analyser on success. No UI — returns a verdict
+   the caller renders (mic-check screen) or acts on silently (the returning-speaker
+   fast path). */
+async function acquireMic(){
   try{
     if(stream) stream.getTracks().forEach(t=>t.stop());
     stream=await navigator.mediaDevices.getUserMedia({
@@ -765,24 +811,30 @@ async function openMic(){
         channelCount:1
       }
     });
-  }catch(err){
-    $("micResult").classList.remove("hidden");
-    $("verdict").className="verdict bad";
-    $("verdict").innerHTML="<strong>The microphone didn't open</strong>"+
-      "Allow microphone access in your browser, then check again.";
-    $("readout").textContent=String(err&&err.message||err);
-    $("toRecord").classList.add("hidden");
-    return;
-  }
-
+  }catch(err){ return {ok:false, err}; }
   const track=stream.getAudioTracks()[0];
   actualSettings=track.getSettings ? track.getSettings() : {};
   const label=(track.label||"").toLowerCase();
-
   // Bluetooth hands-free profile runs at 8-16 kHz and is invisible to the user.
   const bt=/bluetooth|headset|airpod|hands-free|hfp|sco/.test(label);
   const sr=actualSettings.sampleRate||(ctxRate());
   const ok=sr>=44100 && !bt;
+  if(ok) setupAnalyser();
+  return {ok, bt, sr, track};
+}
+
+async function openMic(){
+  const r=await acquireMic();
+  if(r.err){
+    $("micResult").classList.remove("hidden");
+    $("verdict").className="verdict bad";
+    $("verdict").innerHTML="<strong>The microphone didn't open</strong>"+
+      "Allow microphone access in your browser, then check again.";
+    $("readout").textContent=String(r.err&&r.err.message||r.err);
+    $("toRecord").classList.add("hidden");
+    return;
+  }
+  const {ok, bt, sr, track}=r;
 
   $("micResult").classList.remove("hidden");
   $("toRecord").classList.toggle("hidden",!ok);
@@ -806,9 +858,7 @@ async function openMic(){
     "<b>noise suppression</b>"+fmt(actualSettings.noiseSuppression)+"<br>"+
     "<b>auto gain</b>"+fmt(actualSettings.autoGainControl)+"<br>"+
     "<b>bluetooth</b>"+(bt?"detected":"not detected")+"<br>"+
-    "<b>device</b>"+(track.label||"unnamed");
-
-  if(ok) setupAnalyser();
+    "<b>device</b>"+((track&&track.label)||"unnamed");
 }
 function fmt(v){return v===undefined?"not reported":(v?"ON — should be off":"off");}
 function ctxRate(){try{return new (window.AudioContext||window.webkitAudioContext)().sampleRate;}catch(e){return 0;}}
@@ -828,8 +878,12 @@ $("toRecord").onclick=()=>{ show("recorder"); renderPrompt(); sizeCanvas(); };
 function renderPrompt(){
   const w=WORDS[idx];
   $("picto").textContent=w.pic;
-  $("glossEn").textContent=showRef&&w.ref ? w.en+"  ·  "+w.ref : w.en;
-  $("glossAr").textContent=w.ar;
+  // Display tier: auto = English + Arabic · script = Arabic only · sound = neither
+  // (the picture + audio carry it). Empty lines get hidden so they leave no gap.
+  const enText = (dispMode==="auto") ? (showRef&&w.ref ? w.en+"  ·  "+w.ref : w.en) : "";
+  const arText = (dispMode==="auto"||dispMode==="script") ? w.ar : "";
+  $("glossEn").textContent=enText; $("glossEn").classList.toggle("hidden",!enText);
+  $("glossAr").textContent=arText; $("glossAr").classList.toggle("hidden",!arText);
   $("reviewCard").classList.add("hidden");
   $("compareCard").classList.add("hidden");
   $("silLabel").textContent="ready";
@@ -876,12 +930,49 @@ const REC_INSTR={
   context:"Say a short <b>sentence</b> using this word — one time.",
   definition:"Say what this word <b>means</b>, in Hakli — one time."
 };
+const REC_INSTR_AR={
+  word:"قل الكلمة الحكلية <b>مرّتين</b>، مع وقفة قصيرة بينهما.",
+  context:"قل <b>جملة</b> قصيرة تستخدم هذه الكلمة — مرّة واحدة.",
+  definition:"قل ما <b>تعنيه</b> هذه الكلمة، بالحكلية — مرّة واحدة."
+};
+
+/* Display tier — shared with find.html through the same localStorage key, so a
+   Hakli-only speaker sets it once and both screens obey. Mirrors find's three
+   tiers: auto = picture + English + Arabic · sound = picture only (no text) ·
+   script = picture + Arabic. The functional instruction stays visible in the two
+   non-English tiers, rendered in Arabic (Marty: "Arabic or visual hint"). The
+   emoji picture is the constant visual anchor across all tiers. */
+const DISP_MODES=["auto","sound","script"];
+let dispMode="auto";
+try{ const m=localStorage.getItem("afd_display_mode"); if(m&&DISP_MODES.includes(m)) dispMode=m; }catch(_){}
+function setDispMode(m){ dispMode=m; try{ localStorage.setItem("afd_display_mode",m); }catch(_){} }
+const DISP_ICON={
+  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  script:`<span class="lbl">أ</span>`
+};
+function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.auto; }
 function setRecType(t){
   recType=(t==="context"||t==="definition")?t:"word";
   document.querySelectorAll("#rectype .rt").forEach(b=>b.classList.toggle("active",b.dataset.type===recType));
-  const instr=$("instruction"); if(instr) instr.innerHTML=REC_INSTR[recType];
+  const instr=$("instruction");
+  if(instr){
+    const ar = dispMode!=="auto";
+    instr.innerHTML = ar ? REC_INSTR_AR[recType] : REC_INSTR[recType];
+    instr.classList.toggle("rtl", ar);
+  }
 }
 document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>setRecType(b.dataset.type)));
+
+/* Wordless tier toggle: cycles auto → sound → script and repaints the prompt. */
+const dispSkin=$("dispSkin");
+if(dispSkin){
+  dispSkin.addEventListener("click", ()=>{
+    dispMode=DISP_MODES[(DISP_MODES.indexOf(dispMode)+1)%DISP_MODES.length];
+    setDispMode(dispMode); updateDispSkin(); renderPrompt();
+  });
+  updateDispSkin();
+}
 
 /* Deep link from find.html — "Say it yourself" / "Add a sentence" / "Add a meaning".
    The hash is #<entryId> or #<entryId>|<type>. entryId targets a word in this
@@ -1000,6 +1091,11 @@ function stopRec(){
   try{ recorder.stop(); }catch(e){}
 }
 
+/* "N reps" / "repetitions heard" only make sense in word mode (the say-it-twice
+   protocol). Sentence and meaning are single utterances, so a rep count there is
+   meaningless — show duration alone. */
+const isRepType = t => (t||"word")==="word";
+
 async function onRecStop(){
   lastBlob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});
   $("player").src=URL.createObjectURL(lastBlob);
@@ -1008,7 +1104,9 @@ async function onRecStop(){
   $("reviewCard").classList.remove("hidden");
   recBtn.classList.add("hidden");        // nothing to collide with while reviewing
   $("skipBtn").classList.add("hidden");
-  $("silLabel").textContent=lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard";
+  $("silLabel").textContent = isRepType(recType)
+    ? lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard"
+    : "recorded";
 }
 
 /* Wake the audio graph before drawing. Browsers suspend the AudioContext under
@@ -1280,11 +1378,16 @@ async function showCompare(word, mine){
     if(window.AFD && window.AFD.configured)
       others = await window.AFD.listOthers(entryIdFor(word.id), window.AFD.user()?window.AFD.user().uid:null);
   }catch(e){ console.warn("compare failed",e); }
+  // Only compare like with like: on the Meaning tab show meanings, not word/sentence
+  // takes. listOthers returns the type; once meanings accumulate this stops the
+  // "how others said it" list from mixing all three. (Client-side for now — a
+  // server-side where(type==) would need a composite index; fine while data is thin.)
+  others = others.filter(o => (o.type || "word") === recType);
 
   let html="";
   if(mine && mine.blob){
-    html += clipRow("Your recording", (mine.capture.durationMs/1000).toFixed(1)+"s · "+
-                    mine.qc.bursts+" reps", "mine", true);
+    html += clipRow("Your recording", (mine.capture.durationMs/1000).toFixed(1)+"s"+
+                    (isRepType(mine.type)?" · "+mine.qc.bursts+" reps":""), "mine", true);
   }
   if(!others.length){
     html += '<p class="note">No one else has recorded this word yet. '+
@@ -1292,7 +1395,7 @@ async function showCompare(word, mine){
   }else{
     others.forEach((o,i)=>{
       html += clipRow("Speaker "+(i+1),
-                      (o.durationMs/1000).toFixed(1)+"s"+(o.bursts?" · "+o.bursts+" reps":""),
+                      (o.durationMs/1000).toFixed(1)+"s"+(isRepType(o.type)&&o.bursts?" · "+o.bursts+" reps":""),
                       "other"+i, false);
     });
   }
@@ -1420,8 +1523,8 @@ function renderClips(){
     const badge=k.synced?'<span class="sync up">UPLOADED</span>'
                         :'<span class="sync pend">ON PHONE</span>';
     return '<div class="clip"><div class="name"><b>'+k.gloss+'</b><span>'+
-      (k.capture.durationMs/1000).toFixed(1)+'s · '+k.capture.sampleRate+' Hz · '+
-      k.qc.bursts+' reps</span></div>'+badge+
+      (k.capture.durationMs/1000).toFixed(1)+'s · '+k.capture.sampleRate+' Hz'+
+      (isRepType(k.type)?' · '+k.qc.bursts+' reps':'')+'</span></div>'+badge+
       '<button data-play="'+n+'">Play</button></div>';
   }).join("")+'<p class="note">'+real.length+' recording'+(real.length===1?'':'s')+
     ' kept · '+mine.filter(k=>!k.skipped&&k.synced).length+' uploaded.'+
@@ -1493,6 +1596,7 @@ window.afdOnAuth=(u)=>{
   if(!u) return;
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(pend.length) console.log(pend.length+" recording(s) pending upload");
+  maybeFastPath();                     // signed in → take the returning-speaker fast path if a speaker is saved
 };
 
 function dl(blob,name){
@@ -1514,6 +1618,7 @@ function dl(blob,name){
     }
     const spk=await idbGet(META,"speaker");
     if(spk){
+      hasSavedSpeaker=true;
       $("spkId").value=spk.speakerId||"spk_01";
       $("spkTown").value=(spk.origin&&spk.origin.town)||"";
       $("spkTribe").value=(spk.origin&&spk.origin.tribe)||"";
@@ -1535,6 +1640,7 @@ function dl(blob,name){
       $("setup").insertBefore(bar,$("setup").children[3]);
     }
   }catch(e){ console.warn("restore failed",e); }
+  maybeFastPath();   // saved speaker now loaded — take the fast path if signed in too
 })();
 </script>
 </body>
