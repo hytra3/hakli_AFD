@@ -695,7 +695,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0819f";   // bump every publish; shown in the header + console
+const BUILD="b0820a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 
@@ -882,6 +882,41 @@ function setRecType(t){
   const instr=$("instruction"); if(instr) instr.innerHTML=REC_INSTR[recType];
 }
 document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>setRecType(b.dataset.type)));
+
+/* Deep link from find.html — "Say it yourself" / "Add a sentence" / "Add a meaning".
+   The hash is #<entryId> or #<entryId>|<type>. entryId targets a word in this
+   recorder's list, matched through the SAME entryIdFor() the entries were seeded
+   with, so there's no identity drift. An optional type ("context" | "definition")
+   preselects the Sentence / Meaning tab.
+
+   We only honour the entry and the type TOGETHER: if the entryId isn't in this
+   wordlist we jump nowhere and stay on Word, rather than quietly record a sentence
+   against whatever word happens to be at idx 0 and poison that slot. Corpus
+   integrity beats being helpfully-wrong. */
+function applyDeepLink(){
+  const raw=(location.hash||"").replace(/^#/,"");
+  if(!raw) return;
+  const bar=raw.indexOf("|");
+  const rawId=bar<0?raw:raw.slice(0,bar);
+  const rawType=bar<0?"":raw.slice(bar+1);
+  let entryId="", type="";
+  try{ entryId=decodeURIComponent(rawId).trim(); }catch(_){ entryId=rawId.trim(); }
+  try{ type=decodeURIComponent(rawType).trim(); }catch(_){ type=rawType.trim(); }
+  if(!entryId) return;
+  const target=WORDS.findIndex(w=>entryIdFor(w.id)===entryId);
+  if(target<0){
+    console.warn("[AFD] deep-link entry not in wordlist:",entryId,"— ignoring (type not applied)");
+    return;
+  }
+  idx=target;
+  setRecType(type==="context"||type==="definition"?type:"word");
+  // If the recorder is already on screen (hash changed in place), repaint it.
+  // On first load the recorder is hidden behind setup/mic; the existing
+  // show("recorder") paths will renderPrompt() once the user gets there.
+  if(!$("recorder").classList.contains("hidden")) renderPrompt();
+}
+applyDeepLink();
+window.addEventListener("hashchange",applyDeepLink);
 
 $("playGloss").onclick=()=>{
   const w=WORDS[idx];
