@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli — speak to find</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0821a"></script>
+<script src="afd-core.js?v=b0821i"></script>
 <style>
   /* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
@@ -292,7 +292,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821h";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821i";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -567,7 +567,7 @@ async function entryCard(res, lead){
   const say=document.createElement("a");
   say.className="sayit"; say.href=`${RECORDER_URL}#${encodeURIComponent(res.entryId)}`;
   say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-    Say it yourself <span class="ar">سجّل صوتك</span>`;
+    ${displayMode==="auto" ? 'Say it yourself <span class="ar">سجّل صوتك</span>' : escapeHtml(AFDCore.t("result.sayityourself", displayMode))}`;
   detail.appendChild(say);
 
   // expand / collapse on head tap (play excluded); opening plays the word so you hear your pick
@@ -589,10 +589,10 @@ function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, se
   // carry their own add links, with the type in the hash for the recorder.
   const addLink = type==="word" ? "" :
     `<a class="slot-add" href="${RECORDER_URL}#${encodeURIComponent(entryId)}|${type}">` +
-    `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${type==="context"?"Add a sentence":"Add a meaning"}</a>`;
+    `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${escapeHtml(AFDCore.t(type==="context"?"slot.add.sentence":"slot.add.meaning", displayMode))}</a>`;
   s.innerHTML =
-    `<div class="slot-head"><span class="slot-label">${labelEn} <span class="ar">${escapeHtml(labelAr)}</span></span>` +
-    `<span class="slot-empty"${has?" hidden":""}>none yet</span></div>` +
+    `<div class="slot-head"><span class="slot-label">${displayMode==="auto" ? labelEn+' <span class="ar">'+escapeHtml(labelAr)+'</span>' : '<span class="ar solo">'+escapeHtml(labelAr)+'</span>'}</span>` +
+    `<span class="slot-empty"${has?" hidden":""}>${escapeHtml(AFDCore.t("slot.none", displayMode))}</span></div>` +
     `<div class="slot-body"></div>` + addLink;
   if(has) buildVoices(s.querySelector(".slot-body"), recs, thumbEl, playBtn, setUrl);
   return s;
@@ -655,7 +655,7 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
       const withdrawn = rec.consent==="withdrawn";
       row.classList.toggle("withdrawn", withdrawn);
       ctl.classList.toggle("restore", withdrawn);
-      ctl.textContent = withdrawn ? "Restore" : "Withdraw";
+      ctl.textContent = withdrawn ? AFDCore.t("voice.shareagain", displayMode) : AFDCore.t("voice.takeback", displayMode);
       ctl.setAttribute("aria-label", withdrawn ? "Restore your voice" : "Withdraw your voice");
     };
     paint();
@@ -675,15 +675,15 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
        so no undo lever is offered. */
     const erase=document.createElement("button");
     erase.className="voice-ctl erase";
-    erase.textContent="Erase";
+    erase.textContent=AFDCore.t("voice.erase", displayMode);
     erase.setAttribute("aria-label","Erase this recording");
     let armed=false, armTimer=null;
-    const disarm=()=>{ armed=false; erase.classList.remove("armed"); erase.textContent="Erase";
+    const disarm=()=>{ armed=false; erase.classList.remove("armed"); erase.textContent=AFDCore.t("voice.erase", displayMode);
       erase.setAttribute("aria-label","Erase this recording");
       if(armTimer){ clearTimeout(armTimer); armTimer=null; } };
     erase.addEventListener("click", async ()=>{
       if(!armed){
-        armed=true; erase.classList.add("armed"); erase.textContent="Erase for good?";
+        armed=true; erase.classList.add("armed"); erase.textContent=AFDCore.t("voice.erase.confirm", displayMode);
         erase.setAttribute("aria-label","Tap again to erase for good");
         armTimer=setTimeout(disarm, 4000);
         return;
@@ -792,7 +792,7 @@ function renderEmpty(best){
     <p>Be the first voice for this word.<span class="ar">لم يقلها أحد بعد — كن أول صوت</span></p>
     <a class="cta" href="${RECORDER_URL}">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-      Say it yourself
+      ${escapeHtml(AFDCore.t("result.sayityourself", displayMode))}
     </a>`;
   resultsEl.innerHTML=""; resultsEl.appendChild(div);
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");

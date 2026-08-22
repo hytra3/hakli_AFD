@@ -72,9 +72,46 @@ window.AFDCore = (function(){
     return { stream, track, settings, bluetooth, sampleRate, ok: sampleRate >= 44100 && !bluetooth };
   }
 
+  /* ---- i18n chrome strings -------------------------------------------------
+     One keyed table drives every non-gloss UI string. t(key, mode) returns:
+       auto   → English
+       script → Arabic (falls back to English if a string is missing)
+       sound  → the icon if one is defined, else Arabic (Marty's call: fall back
+                to Arabic text until a good wordless icon exists)
+     Keys use the dotted convention of the spoken-prompt list so the two can be
+     reconciled into a single inventory later.
+
+     ⚠ ARABIC NEEDS A NATIVE/DHOFARI REVIEW. These are reasonable MSA defaults so
+     the mechanism works end to end; treat the wording as a draft, not authority. */
+  const STRINGS = {
+    "slot.word":            { en:"THE WORD",           ar:"الكلمة" },
+    "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة" },
+    "slot.meaning":         { en:"WHAT IT MEANS",      ar:"المعنى" },
+    "slot.none":            { en:"none yet",           ar:"لا شيء بعد" },
+    "slot.add.sentence":    { en:"Add a sentence",     ar:"أضف جملة" },
+    "slot.add.meaning":     { en:"Add a meaning",      ar:"أضف معنى" },
+    "voice.takeback":       { en:"Withdraw",           ar:"اسحب" },
+    "voice.shareagain":     { en:"Restore",            ar:"استرجع" },
+    "voice.erase":          { en:"Erase",              ar:"احذف" },
+    "voice.erase.confirm":  { en:"Erase for good?",    ar:"حذف نهائي؟" },
+    "result.here":          { en:"Here it is",         ar:"ها هو" },
+    "result.pick":          { en:"Did you mean…",      ar:"هل تقصد…" },
+    "result.sayityourself": { en:"Say it yourself",    ar:"سجّل صوتك" },
+    "action.hear.word":     { en:"Hear the word in English",       ar:"استمع بالإنجليزية" },
+    "action.hear.others":   { en:"Hear how others said it in Hakli", ar:"استمع بالحكلية" }
+  };
+  function t(key, mode){
+    const s = STRINGS[key];
+    if(!s) return key;                       // missing key shows itself → easy to spot
+    if(mode === "sound"  && s.icon) return s.icon;
+    if(mode === "script" || mode === "sound") return s.ar || s.en;
+    return s.en;                             // auto
+  }
+
   return {
     entrySlug, entryIdFor,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
-    MIC_CONSTRAINTS, openStream
+    MIC_CONSTRAINTS, openStream,
+    STRINGS, t
   };
 })();
