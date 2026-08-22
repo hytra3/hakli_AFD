@@ -40,6 +40,10 @@
   .name{font-family:var(--serif); font-size:22px; color:var(--ink); line-height:1.15}
   .name .ar{display:block; font-family:var(--sans); font-size:15px; color:var(--mist); margin-top:2px}
   .name.rtl{direction:rtl}
+  .open{text-decoration:none; color:inherit; display:block}
+  .open.thumb-link{flex:0 0 auto}
+  .open:active .thumb{transform:scale(.96)}
+  .thumb{transition:transform .1s ease}
 
   .adds{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
   .grp{display:inline-flex; align-items:baseline; gap:6px; border:1.5px solid var(--mist-2);
@@ -76,7 +80,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const BUILD = "b0821e";
+const BUILD = "b0821f";
 const $  = id => document.getElementById(id);
 const RECORDER_URL = "index.html";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -118,6 +122,7 @@ const GROUPS = [
 
 function entryRow(w){
   const id = AFDCore.entryIdFor(w.id);
+  const open = `find.html#${encodeURIComponent(id)}`;   // picture + name open the entry (browse + hear)
   const el = document.createElement("div");
   el.className = "entry"; el.dataset.entry = id;
   const nm = nameHTML(w);
@@ -126,9 +131,10 @@ function entryRow(w){
       `${g.label} <span class="n" data-n="${g.key}">&middot;</span></a>`
   ).join("");
   el.innerHTML =
-    `<div class="thumb" aria-hidden="true">${esc(w.pic)}</div>` +
+    `<a class="open thumb-link" href="${open}" aria-label="Open ${esc(w.en)}">` +
+      `<div class="thumb" aria-hidden="true">${esc(w.pic)}</div></a>` +
     `<div class="meta">` +
-      (nm ? `<div class="name${mode==="script"?" rtl":""}">${nm}</div>` : ``) +
+      (nm ? `<a class="open" href="${open}"><div class="name${mode==="script"?" rtl":""}">${nm}</div></a>` : ``) +
       `<div class="adds">${chips}</div>` +
     `</div>`;
   return el;

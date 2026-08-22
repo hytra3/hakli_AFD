@@ -287,7 +287,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821d";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821e";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -479,6 +479,24 @@ async function render(results){
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 
   if(confident && lead.firstPlayable){ playInto(lead.playBtn, lead.firstPlayable); }
+}
+
+/* Open a specific entry directly — the dictionary links here as find.html#ent_xxx.
+   Same card render as a confident search hit, but chosen rather than spoken. No
+   autoplay: the user navigated deliberately, so let them pick a voice. */
+async function openEntry(entryId){
+  lastResults = [{entryId, distance:0}];
+  resultsEl.innerHTML=""; hint.classList.add("small");
+  setHint("Here it is","ها هو");
+  const lead = await entryCard({entryId, distance:0}, true);
+  resultsEl.appendChild(lead.el);
+  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
+}
+function applyEntryDeepLink(){
+  const raw = (location.hash||"").replace(/^#/,"");
+  if(!raw) return;
+  let id=""; try{ id=decodeURIComponent(raw).trim(); }catch(_){ id=raw.trim(); }
+  if(id) openEntry(id);
 }
 
 /* build one entry card: thumbnail, gloss, voice silhouettes, speaker avatars */
@@ -871,6 +889,10 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 // Visible build stamp — compare laptop vs phone to catch a stale cache.
 try{ document.querySelector("#wordmark small").textContent = "speak to find · " + BUILD; }catch(_){}
 console.log("[AFD] build", BUILD, "·", location.href);
+
+// open a specific entry if arrived via find.html#ent_xxx (from the dictionary)
+applyEntryDeepLink();
+window.addEventListener("hashchange", applyEntryDeepLink);
 
 mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
 mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
