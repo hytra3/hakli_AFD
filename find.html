@@ -108,7 +108,12 @@
   @keyframes rise{to{opacity:1;transform:none}}
   /* every card: a head row, then a collapsible detail underneath */
   .card .head{display:flex; align-items:center; gap:14px; cursor:pointer}
-  .card.lead{padding:18px; gap:16px; border:1px solid var(--resin-soft)}
+  .card.lead{padding:18px; gap:16px; border:1.5px solid var(--resin)}
+  .card.lead .thumb{position:relative}
+  /* wordless "closest match" pin on the top result's picture */
+  .card.lead .thumb::after{content:""; position:absolute; top:-5px; right:-5px;
+    width:15px; height:15px; border-radius:50%; background:var(--resin);
+    border:2.5px solid var(--cloud); box-shadow:0 1px 3px rgba(0,0,0,.2)}
   .card .detail{display:none; flex-direction:column; gap:16px}
   .card.open .detail{display:flex}
   .card-chev{flex:0 0 auto; margin-left:2px; color:var(--mist); transition:transform .18s}
@@ -287,7 +292,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821g";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821h";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes

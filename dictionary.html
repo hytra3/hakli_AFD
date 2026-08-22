@@ -52,6 +52,7 @@
   .grp .n{font:700 12px/1 var(--sans); color:var(--mist); min-width:8px; text-align:center}
   .grp.has{border-color:var(--resin-soft)}
   .grp.has .n{color:var(--resin)}
+  .grp .gi{font-size:15px; line-height:1}
 
   .buildstamp{text-align:center; color:var(--mist); font-size:11px; letter-spacing:.09em; padding:22px 0 8px}
 </style>
@@ -80,7 +81,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const BUILD = "b0821f";
+const BUILD = "b0821g";
 const $  = id => document.getElementById(id);
 const RECORDER_URL = "index.html";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -115,9 +116,9 @@ function nameHTML(w){
 }
 
 const GROUPS = [
-  {label:"word",     key:"word",       suffix:""},
-  {label:"sentence", key:"context",    suffix:"|context"},
-  {label:"meaning",  key:"definition", suffix:"|definition"}
+  {label:"word",     key:"word",       suffix:"",            icon:"🔊"},
+  {label:"sentence", key:"context",    suffix:"|context",    icon:"💬"},
+  {label:"meaning",  key:"definition", suffix:"|definition", icon:"📖"}
 ];
 
 function entryRow(w){
@@ -128,7 +129,8 @@ function entryRow(w){
   const nm = nameHTML(w);
   const chips = GROUPS.map(g =>
     `<a class="grp" href="${RECORDER_URL}#${encodeURIComponent(id)}${g.suffix}">` +
-      `${g.label} <span class="n" data-n="${g.key}">&middot;</span></a>`
+      `${mode==="sound" ? `<span class="gi" role="img" aria-label="${g.label}">${g.icon}</span>` : g.label} ` +
+      `<span class="n" data-n="${g.key}">&middot;</span></a>`
   ).join("");
   el.innerHTML =
     `<a class="open thumb-link" href="${open}" aria-label="Open ${esc(w.en)}">` +
