@@ -47,8 +47,10 @@ body{
 .brand b{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.2px}
 .brand small{font-family:var(--sans);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#9AB0A8}
 .rec-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.topbtns{display:flex;gap:8px;align-items:center}
 .dispskin{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
-  background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;padding:0}
+  background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;padding:0;
+  text-decoration:none}
 .dispskin svg{width:20px;height:20px}
 .dispskin .lbl{font-family:var(--serif);font-size:18px;line-height:1}
 .instruction.rtl{direction:rtl}
@@ -312,7 +314,12 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <section id="recorder" class="hidden">
   <div class="rec-topbar">
     <p class="stepdots"><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
-    <button class="dispskin" id="dispSkin" aria-label="Change how words are shown"></button>
+    <div class="topbtns">
+      <a class="dispskin" id="findLink" href="find.html" aria-label="Look up a word">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
+      </a>
+      <button class="dispskin" id="dispSkin" aria-label="Change how words are shown"></button>
+    </div>
   </div>
 
   <div class="rectype" id="rectype">
@@ -712,7 +719,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0820g";   // bump every publish; shown in the header + console
+const BUILD="b0820h";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -984,10 +991,14 @@ function setRecType(t){
       instr.innerHTML = ar ? REC_INSTR_AR[recType] : REC_INSTR[recType];
     }
   }
-  // keep the "how others said it" panel in sync with the selected type when it's open
-  if(!$("compareCard").classList.contains("hidden")) showCompare(WORDS[idx], null);
 }
-document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>setRecType(b.dataset.type)));
+document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>{
+  // switching type = "I'll record this now" → clean record-ready state for the new
+  // type. The type-filtered "how others said it" reappears after you record, or via
+  // the Hear-how-others button — always matching the selected tab, never stale.
+  setRecType(b.dataset.type);
+  renderPrompt();
+}));
 
 /* Wordless tier toggle: cycles auto → sound → script and repaints the prompt. */
 const dispSkin=$("dispSkin");
