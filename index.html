@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
+<script src="afd-core.js?v=b0821a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -719,7 +720,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0820h";   // bump every publish; shown in the header + console
+const BUILD="b0821a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -815,27 +816,18 @@ $("retryMic").onclick=openMic;
    the caller renders (mic-check screen) or acts on silently (the returning-speaker
    fast path). */
 async function acquireMic(){
+  let r;
   try{
     if(stream) stream.getTracks().forEach(t=>t.stop());
-    stream=await navigator.mediaDevices.getUserMedia({
-      audio:{
-        echoCancellation:false,   // smears fricatives
-        noiseSuppression:false,   // eats quiet consonants
-        autoGainControl:false,    // distorts relative amplitude
-        sampleRate:48000,
-        channelCount:1
-      }
-    });
+    r = await AFDCore.openStream();          // single recording protocol (processing off, 48k mono)
   }catch(err){ return {ok:false, err}; }
-  const track=stream.getAudioTracks()[0];
-  actualSettings=track.getSettings ? track.getSettings() : {};
-  const label=(track.label||"").toLowerCase();
-  // Bluetooth hands-free profile runs at 8-16 kHz and is invisible to the user.
-  const bt=/bluetooth|headset|airpod|hands-free|hfp|sco/.test(label);
-  const sr=actualSettings.sampleRate||(ctxRate());
-  const ok=sr>=44100 && !bt;
+  stream = r.stream;
+  actualSettings = r.settings;
+  const bt = r.bluetooth;
+  const sr = r.sampleRate || ctxRate();      // fall back to the AudioContext rate if the track omits it
+  const ok = sr>=44100 && !bt;
   if(ok) setupAnalyser();
-  return {ok, bt, sr, track};
+  return {ok, bt, sr, track:r.track};
 }
 
 async function openMic(){
@@ -933,14 +925,8 @@ function renderPrompt(){
 }
 
 // the ONE place an id is derived
-function entrySlug(id){
-  return String(id)
-    .normalize("NFKD").replace(/[\u0300-\u036f]/g,"")  // strip diacritics
-    .toLowerCase().trim()
-    .replace(/[^a-z0-9]+/g,"_")                          // non-alnum → _
-    .replace(/^_+|_+$/g,"");                             // trim underscores
-}
-function entryIdFor(id){ return "ent_" + entrySlug(id); }
+const entrySlug  = AFDCore.entrySlug;      // canonical slug/id — shared with find + seed-entries
+const entryIdFor = AFDCore.entryIdFor;
 
 // Audio gloss: speech synthesis stands in for pre-recorded gloss audio.
 /* Recording type: word (say twice) · sentence · meaning. The type rides on the
@@ -964,10 +950,9 @@ const REC_INSTR_AR={
    script = picture + Arabic. The functional instruction stays visible in the two
    non-English tiers, rendered in Arabic (Marty: "Arabic or visual hint"). The
    emoji picture is the constant visual anchor across all tiers. */
-const DISP_MODES=["auto","sound","script"];
-let dispMode="auto";
-try{ const m=localStorage.getItem("afd_display_mode"); if(m&&DISP_MODES.includes(m)) dispMode=m; }catch(_){}
-function setDispMode(m){ dispMode=m; try{ localStorage.setItem("afd_display_mode",m); }catch(_){} }
+const DISP_MODES=AFDCore.DISP_MODES;
+let dispMode=AFDCore.getDisplayMode("auto");   // shared setting; recorder defaults to auto (show everything)
+function setDispMode(m){ dispMode=m; AFDCore.setDisplayMode(m); }
 const DISP_ICON={
   auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
   sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,

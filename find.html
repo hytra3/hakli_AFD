@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli — speak to find</title>
+<script src="afd-core.js?v=b0821a"></script>
 <style>
   /* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
@@ -285,7 +286,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0820a";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821a";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -301,11 +302,10 @@ const RECORDER_URL = "index.html";  // where "say it yourself" goes
 
 /* How the box shows a word. Default is chosen for us so a non-reader does nothing;
    the small header control changes it. Stored locally — no account needed. */
-const MODES = ["auto","sound","script"];   // auto = picture → sound → letter
-let displayMode = "sound";
-try{ const m = localStorage.getItem("afd_display_mode"); if(m && MODES.includes(m)) displayMode = m; }catch(_){}
+const MODES = AFDCore.DISP_MODES;          // shared with the recorder via afd-core
+let displayMode = AFDCore.getDisplayMode("sound");   // find defaults to sound (non-reader-first)
 let lastResults = null;
-function setDisplayMode(m){ displayMode = m; try{ localStorage.setItem("afd_display_mode", m); }catch(_){} }
+function setDisplayMode(m){ displayMode = m; AFDCore.setDisplayMode(m); }
 
 /* ================================================================= setup */
 const app   = initializeApp(firebaseConfig);
@@ -347,17 +347,10 @@ async function ensureStream(){
   if(acquiring) return null;
   acquiring=true;
   try{
-    // Query capture MUST match the corpus protocol (index.html openMic), or the
-    // query embeds into a different acoustic space than the corpus.
-    stream = await navigator.mediaDevices.getUserMedia({
-      audio:{
-        echoCancellation:false,   // smears fricatives
-        noiseSuppression:false,   // eats quiet consonants
-        autoGainControl:false,    // distorts relative amplitude
-        sampleRate:48000,
-        channelCount:1
-      }
-    });
+    // Query capture and corpus capture now share one protocol (afd-core openStream),
+    // so the query can't drift into a different acoustic space than the corpus.
+    const r = await AFDCore.openStream();
+    stream = r.stream;
   }catch(e){ acquiring=false; return null; }
   acquiring=false;
   return stream;
