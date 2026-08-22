@@ -286,7 +286,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821a";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821b";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -363,7 +363,11 @@ function stopStream(){
 async function startHold(){
   if(holding) return; holding=true;
   resultsEl.classList.add("hidden");
-  const s = await ensureStream();
+  let s = await ensureStream();
+  // A warm stream can go stale — the browser/OS ends the track between holds —
+  // and reusing a dead track makes MediaRecorder.start() throw NotSupportedError.
+  // Drop a stream with no live track and re-acquire a fresh one.
+  if(s && !s.getAudioTracks().some(t=>t.readyState==="live")){ stopStream(); s = await ensureStream(); }
   if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
   if(!holding) return;                 // released during acquisition — stream stays warm for the next hold
   document.body.classList.add("rec"); setHint("Listening…","أستمع…");
@@ -373,7 +377,13 @@ async function startHold(){
   catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); return; }
   mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mediaRec.onstop = onClip;
-  mediaRec.start();
+  try{ mediaRec.start(); }
+  catch(e){
+    // Stream became unrecordable — force a fresh one on the next hold rather than
+    // leaving an uncaught rejection and a dead-feeling button.
+    holding=false; document.body.classList.remove("rec"); stopStream();
+    setHint("Hold and speak","تكلّم");
+  }
 }
 function endHold(){
   if(!holding) return; holding=false;

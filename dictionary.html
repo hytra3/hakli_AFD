@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hakli — dictionary</title>
+<script src="afd-core.js?v=b0821a"></script>
+<script src="afd-words.js?v=b0821a"></script>
+<style>
+  :root{
+    --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --mist:#8CA39B;
+    --mist-2:#C4D2CC; --resin:#C6873F; --ink:#17241F;
+    --r:22px;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  html,body{margin:0}
+  body{background:var(--fog); color:var(--ink); font-family:var(--sans);
+       -webkit-font-smoothing:antialiased; padding-bottom:40px}
+  .wrap{max-width:720px; margin:0 auto; padding:16px}
+
+  .bar{display:flex; align-items:center; gap:10px; padding:6px 2px 16px}
+  .wordmark{font-family:var(--serif); font-size:20px; color:var(--mountain)}
+  .wordmark small{color:var(--mist); font-family:var(--sans); font-size:12px;
+       letter-spacing:.12em; text-transform:uppercase; margin-inline-start:8px}
+  .barbtns{margin-inline-start:auto; display:flex; gap:8px}
+  .rbtn{width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1.5px solid var(--mist-2);
+        background:var(--cloud); color:var(--mountain); display:grid; place-items:center;
+        cursor:pointer; padding:0; text-decoration:none}
+  .rbtn svg{width:20px;height:20px} .rbtn .lbl{font-family:var(--serif); font-size:18px; line-height:1}
+
+  .count-line{font:600 12px/1 var(--sans); color:var(--mist); letter-spacing:.08em;
+        text-transform:uppercase; padding:0 4px 10px}
+
+  .entry{display:flex; align-items:center; gap:14px; background:var(--cloud);
+         border:1px solid var(--mist-2); border-radius:16px; padding:12px 14px; margin-bottom:10px}
+  .thumb{width:60px; height:60px; flex:0 0 auto; border-radius:14px; display:grid; place-items:center;
+         font-size:30px; background:var(--fog)}
+  .meta{flex:1; min-width:0}
+  .name{font-family:var(--serif); font-size:22px; color:var(--ink); line-height:1.15}
+  .name .ar{display:block; font-family:var(--sans); font-size:15px; color:var(--mist); margin-top:2px}
+  .name.rtl{direction:rtl}
+  .adds{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  .add{border:1.5px dashed var(--mist-2); border-radius:11px; padding:6px 10px;
+       font:600 12px/1 var(--sans); color:var(--mountain); text-decoration:none; white-space:nowrap}
+  .add .plus{color:var(--mist); margin-inline-end:4px}
+
+  .buildstamp{text-align:center; color:var(--mist); font-size:11px; letter-spacing:.09em; padding:22px 0 8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="bar">
+    <span class="wordmark">Hakli <small id="wm">dictionary</small></span>
+    <div class="barbtns">
+      <a class="rbtn" id="findLink" href="find.html" aria-label="Speak to find a word">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
+      </a>
+      <button class="rbtn" id="skin" aria-label="Change how words are shown"></button>
+    </div>
+  </div>
+
+  <p class="count-line" id="countLine"></p>
+  <div id="list"></div>
+
+  <footer class="buildstamp" id="buildStamp"></footer>
+</div>
+
+<script>
+const BUILD = "b0821b";
+const $ = id => document.getElementById(id);
+const RECORDER_URL = "index.html";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let mode = AFDCore.getDisplayMode("auto");   // dictionary shows everything by default
+
+const SKIN_ICON = {
+  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  script:`<span class="lbl">أ</span>`
+};
+function paintSkin(){ $("skin").innerHTML = SKIN_ICON[mode] || SKIN_ICON.auto; }
+
+function nameHTML(w){
+  // tier-aware: auto = English + Arabic · script = Arabic only · sound = nothing (picture carries it)
+  if(mode === "sound") return "";
+  if(mode === "script") return `<span class="ar solo">${esc(w.ar)}</span>`;
+  return `${esc(w.en)}<span class="ar">${esc(w.ar)}</span>`;
+}
+
+function entryRow(w){
+  const id = AFDCore.entryIdFor(w.id);
+  const el = document.createElement("div");
+  el.className = "entry";
+  const nm = nameHTML(w);
+  el.innerHTML =
+    `<div class="thumb" aria-hidden="true">${esc(w.pic)}</div>` +
+    `<div class="meta">` +
+      (nm ? `<div class="name${mode==="script"?" rtl":""}">${nm}</div>` : ``) +
+      `<div class="adds">` +
+        `<a class="add" href="${RECORDER_URL}#${encodeURIComponent(id)}"><span class="plus">+</span>word</a>` +
+        `<a class="add" href="${RECORDER_URL}#${encodeURIComponent(id)}|context"><span class="plus">+</span>sentence</a>` +
+        `<a class="add" href="${RECORDER_URL}#${encodeURIComponent(id)}|definition"><span class="plus">+</span>meaning</a>` +
+      `</div>` +
+    `</div>`;
+  return el;
+}
+
+function render(){
+  paintSkin();
+  const list = $("list");
+  list.innerHTML = "";
+  const words = window.AFDWords || [];
+  words.forEach(w => list.appendChild(entryRow(w)));
+  $("countLine").textContent = words.length + " entries";
+}
+
+$("skin").addEventListener("click", () => {
+  const M = AFDCore.DISP_MODES;
+  mode = M[(M.indexOf(mode) + 1) % M.length];
+  AFDCore.setDisplayMode(mode);
+  render();
+});
+
+$("buildStamp").textContent = "build " + BUILD;
+console.log("[AFD] dictionary build", BUILD, "·", location.href);
+render();
+</script>
+</body>
+</html>
