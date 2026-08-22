@@ -287,7 +287,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821f";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821g";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -587,7 +587,7 @@ function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, se
     `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${type==="context"?"Add a sentence":"Add a meaning"}</a>`;
   s.innerHTML =
     `<div class="slot-head"><span class="slot-label">${labelEn} <span class="ar">${escapeHtml(labelAr)}</span></span>` +
-    (has?"":`<span class="slot-empty">none yet</span>`) + `</div>` +
+    `<span class="slot-empty"${has?" hidden":""}>none yet</span></div>` +
     `<div class="slot-body"></div>` + addLink;
   if(has) buildVoices(s.querySelector(".slot-body"), recs, thumbEl, playBtn, setUrl);
   return s;
@@ -701,32 +701,43 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
 function buildVoices(container, recs, thumbEl, playBtn, setUrl){
   container.innerHTML="";
   if(!recs.length) return;
+
+  // reveal the slot's "none yet" once the last take in this slot is erased
+  const showEmpty = ()=>{ const e=container.closest(".slot")?.querySelector(".slot-empty"); if(e) e.removeAttribute("hidden"); };
+
   if(recs.length===1 && !recs[0].mine){
     container.appendChild(voiceAvatarBtn(recs[0], thumbEl, playBtn, setUrl)); return;
   }
   if(recs.length===1){                       // a single voice, but it's yours → show the row to manage it
     const solo=document.createElement("div"); solo.className="voices-list";
-    solo.appendChild(buildVoiceRow(recs[0], thumbEl, playBtn, setUrl, null));
+    solo.appendChild(buildVoiceRow(recs[0], thumbEl, playBtn, setUrl, showEmpty));
     container.appendChild(solo); return;
   }
 
+  const live = recs.slice();                 // mutable working copy → chip stays truthful after erases
   const chip=document.createElement("button");
   chip.className="voices-chip"; chip.setAttribute("aria-expanded","false");
-  chip.setAttribute("aria-label", recs.length+" voices");
-  const peeks=recs.slice(0,3).map(r=>`<span class="peek" style="background:${r.avatar.bg}">${r.avatar.svg}</span>`).join("");
-  chip.innerHTML=`<span class="peeks">${peeks}</span><span class="count">${recs.length}</span>`+
+  chip.innerHTML=`<span class="peeks"></span><span class="count"></span>`+
     `<svg class="chev" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
-
-  // erasing a take removes it for everyone, so drop the live count with it
-  const countEl=chip.querySelector(".count");
-  const onErased=()=>{
-    const n=Math.max(0, (parseInt(countEl.textContent,10)||1) - 1);
-    countEl.textContent=n; chip.setAttribute("aria-label", n+" voices");
-  };
+  const peeksEl=chip.querySelector(".peeks"), countEl=chip.querySelector(".count");
 
   const list=document.createElement("div");
   list.className="voices-list hidden";
-  recs.forEach(rec=> list.appendChild(buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased)));
+
+  const paintChip = ()=>{
+    countEl.textContent = live.length;
+    chip.setAttribute("aria-label", live.length+" voices");
+    // peeks follow the live set, so erasing one of the first three refreshes the faces
+    peeksEl.innerHTML = live.slice(0,3).map(r=>`<span class="peek" style="background:${r.avatar.bg}">${r.avatar.svg}</span>`).join("");
+  };
+  const eraseRec = (rec)=>{
+    const i=live.indexOf(rec); if(i>=0) live.splice(i,1);
+    if(live.length===0){ chip.remove(); list.remove(); showEmpty(); return; }
+    paintChip();
+  };
+
+  recs.forEach(rec=> list.appendChild(buildVoiceRow(rec, thumbEl, playBtn, setUrl, ()=>eraseRec(rec))));
+  paintChip();
 
   chip.addEventListener("click",()=>{
     const open = list.classList.toggle("hidden")===false;
