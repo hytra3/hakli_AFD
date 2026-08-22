@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0821a"></script>
+<script src="afd-core.js?v=b0821j"></script>
 <script src="afd-words.js?v=b0821a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -346,7 +346,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   </div>
 
   <div class="card hidden" id="reviewCard">
-    <h2>How did it sound?</h2>
+    <h2 id="howSound">How did it sound?</h2>
     <div id="qcVerdict" class="verdict qc-verdict"></div>
     <audio id="player" controls style="width:100%;margin:6px 0"></audio>
     <details class="qc-more">
@@ -378,7 +378,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   </div>
 
   <div class="card" id="sessionCard">
-    <p class="eyebrow">This session</p>
+    <p class="eyebrow" id="sessionTitle">This session</p>
     <button class="btn secondary" id="switchSpeaker">Switch speaker</button>
     <div id="clips"><p class="note">No recordings kept yet.</p></div>
     <button class="btn" id="syncBtn">Upload to the dictionary</button>
@@ -681,7 +681,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0821c";   // bump every publish; shown in the header + console
+const BUILD="b0821j";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -946,15 +946,36 @@ document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",
   renderPrompt();
 }));
 
+/* Localize every static chrome string for the current tier (auto=en, script=ar,
+   sound=icon||ar). Re-run on load and whenever the tier changes. */
+function setRecIdle(){
+  const rb=$("recBtn"); if(!rb) return;
+  rb.innerHTML='<span class="dot"></span>'+(dispMode==="sound"?"":AFDCore.t("record.hold",dispMode));
+}
+function paintChrome(){
+  const set=(id,key)=>{ const el=$(id); if(el) el.textContent=AFDCore.t(key,dispMode); };
+  set("hearOthers","action.hear.others");
+  set("redoBtn","review.redo"); set("keepBtn","review.keep");
+  set("compareNext","nav.next"); set("nextWord","nav.next");
+  set("skipBtn","record.skip"); set("switchSpeaker","speaker.switch");
+  set("syncBtn","session.upload"); set("dlManifest","session.export");
+  set("clearBtn","session.clear"); set("sessionTitle","session.title");
+  set("howSound","review.howsound");
+  const pg=$("playGloss"); if(pg) pg.textContent="▶ "+AFDCore.t("action.hear.word",dispMode);
+  const rr=$("revealRef"); if(rr) rr.textContent=AFDCore.t(showRef?"session.fieldnotes.hide":"session.fieldnotes",dispMode);
+  setRecIdle();
+}
+
 /* Wordless tier toggle: cycles auto → sound → script and repaints the prompt. */
 const dispSkin=$("dispSkin");
 if(dispSkin){
   dispSkin.addEventListener("click", ()=>{
     dispMode=DISP_MODES[(DISP_MODES.indexOf(dispMode)+1)%DISP_MODES.length];
-    setDispMode(dispMode); updateDispSkin(); renderPrompt();
+    setDispMode(dispMode); updateDispSkin(); renderPrompt(); paintChrome();
   });
   updateDispSkin();
 }
+paintChrome();
 
 /* Deep link from find.html — "Say it yourself" / "Add a sentence" / "Add a meaning".
    The hash is #<entryId> or #<entryId>|<type>. entryId targets a word in this
@@ -1042,7 +1063,7 @@ function startRec(){
   recording=true; chunks=[]; liveBars=[];
   recStart=Date.now(); mode=null;
   recBtn.classList.add("recording");
-  recBtn.innerHTML='<span class="dot"></span>Release when finished<span class="timer">0.0s</span>';
+  recBtn.innerHTML='<span class="dot"></span>'+(dispMode==="sound"?"":AFDCore.t("record.holding",dispMode))+'<span class="timer">0.0s</span>';
   timerId=setInterval(()=>{
     const el=recBtn.querySelector(".timer");
     const ms=Date.now()-recStart;
@@ -1067,7 +1088,7 @@ function stopRec(){
   recording=false; mode=null;
   if(timerId){ clearInterval(timerId); timerId=null; }
   recBtn.classList.remove("recording");
-  recBtn.innerHTML='<span class="dot"></span>Hold to record';
+  setRecIdle();
   $("silLabel").textContent="checking";
   if(rafId) cancelAnimationFrame(rafId);
   try{ recorder.stop(); }catch(e){}
@@ -1566,7 +1587,7 @@ $("clearBtn").onclick=async ()=>{
 
 $("revealRef").onclick=()=>{
   showRef=!showRef;
-  $("revealRef").textContent=showRef?"Hide my field notes":"Show my field notes";
+  $("revealRef").textContent=AFDCore.t(showRef?"session.fieldnotes.hide":"session.fieldnotes",dispMode);
   renderPrompt();
 };
 

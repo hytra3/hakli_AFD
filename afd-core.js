@@ -87,6 +87,9 @@ window.AFDCore = (function(){
     "slot.word":            { en:"THE WORD",           ar:"الكلمة" },
     "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة" },
     "slot.meaning":         { en:"WHAT IT MEANS",      ar:"المعنى" },
+    "group.word":           { en:"word",               ar:"كلمة" },
+    "group.sentence":       { en:"sentence",           ar:"جملة" },
+    "group.meaning":        { en:"meaning",            ar:"معنى" },
     "slot.none":            { en:"none yet",           ar:"لا شيء بعد" },
     "slot.add.sentence":    { en:"Add a sentence",     ar:"أضف جملة" },
     "slot.add.meaning":     { en:"Add a meaning",      ar:"أضف معنى" },
@@ -98,7 +101,21 @@ window.AFDCore = (function(){
     "result.pick":          { en:"Did you mean…",      ar:"هل تقصد…" },
     "result.sayityourself": { en:"Say it yourself",    ar:"سجّل صوتك" },
     "action.hear.word":     { en:"Hear the word in English",       ar:"استمع بالإنجليزية" },
-    "action.hear.others":   { en:"Hear how others said it in Hakli", ar:"استمع بالحكلية" }
+    "action.hear.others":   { en:"Hear how others said it in Hakli", ar:"استمع بالحكلية" },
+    "record.hold":          { en:"Hold to record",     ar:"اضغط باستمرار للتسجيل" },
+    "record.holding":       { en:"Release when finished", ar:"أفلت عند الانتهاء" },
+    "record.skip":          { en:"Speaker doesn't know this word", ar:"المتحدّث لا يعرف هذه الكلمة" },
+    "review.howsound":      { en:"How did it sound?",   ar:"كيف كان الصوت؟" },
+    "review.redo":          { en:"Record again",        ar:"سجّل مرّة أخرى" },
+    "review.keep":          { en:"Keep it",             ar:"احتفظ به" },
+    "nav.next":             { en:"Next word",           ar:"الكلمة التالية" },
+    "speaker.switch":       { en:"Switch speaker",      ar:"بدّل المتحدّث" },
+    "session.title":        { en:"THIS SESSION",        ar:"هذه الجلسة" },
+    "session.upload":       { en:"Upload to the dictionary",  ar:"ارفع إلى القاموس" },
+    "session.export":       { en:"Export everything (.zip)",  ar:"صدّر كل شيء (‎.zip‎)" },
+    "session.fieldnotes":   { en:"Show my field notes", ar:"أظهر ملاحظاتي الميدانية" },
+    "session.fieldnotes.hide":{ en:"Hide my field notes", ar:"أخفِ ملاحظاتي الميدانية" },
+    "session.clear":        { en:"Clear this device",   ar:"امسح هذا الجهاز" }
   };
   function t(key, mode){
     const s = STRINGS[key];

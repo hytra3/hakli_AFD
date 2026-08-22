@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli — dictionary</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0821i"></script>
+<script src="afd-core.js?v=b0821j"></script>
 <script src="afd-words.js?v=b0821a"></script>
 <style>
   :root{
@@ -81,7 +81,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const BUILD = "b0821h";
+const BUILD = "b0821i";
 const $  = id => document.getElementById(id);
 const RECORDER_URL = "index.html";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -116,9 +116,9 @@ function nameHTML(w){
 }
 
 const GROUPS = [
-  {label:"word",     key:"word",       suffix:"",            icon:"🔊"},
-  {label:"sentence", key:"context",    suffix:"|context",    icon:"💬"},
-  {label:"meaning",  key:"definition", suffix:"|definition", icon:"📖"}
+  {label:"word",     key:"word",       suffix:"",            icon:"🔊", tkey:"group.word"},
+  {label:"sentence", key:"context",    suffix:"|context",    icon:"💬", tkey:"group.sentence"},
+  {label:"meaning",  key:"definition", suffix:"|definition", icon:"📖", tkey:"group.meaning"}
 ];
 
 function entryRow(w){
@@ -130,7 +130,7 @@ function entryRow(w){
   const chips = GROUPS.map(g =>
     `<a class="grp" href="${RECORDER_URL}#${encodeURIComponent(id)}${g.suffix}">` +
       `<span class="gi" role="img" aria-label="${g.label}">${g.icon}</span>` +
-      `${mode==="sound" ? "" : ` ${g.label}`} ` +
+      `${mode==="sound" ? "" : ` ${AFDCore.t(g.tkey, mode)}`} ` +
       `<span class="n" data-n="${g.key}">&middot;</span></a>`
   ).join("");
   el.innerHTML =

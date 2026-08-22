@@ -152,6 +152,49 @@ over what's canonical, and IP that belongs to them. The consent-as-living-contro
 model is the right foundation but must be re-grounded per community, not assumed to
 transfer. The years of fieldwork behind Hakli are the part that doesn't copy-paste.
 
+## i18n chrome + spoken prompts (reconcile into one inventory)
+
+The display tier switches the *word gloss* but NOT the *chrome* — in script mode you
+get the Arabic word wrapped in English scaffolding ("Hold to record", "THE WORD",
+"Say it yourself", "Withdraw/Erase", "Speaker doesn't know this word", tab labels,
+session controls, find's slot labels). Don't fix these piecemeal — half-localized
+chrome reads worse than all-English. Do it as one pass, in this order:
+
+1. **Build the i18n mechanism in `afd-core`** — a keyed string table `{ en, ar, … }`
+   the display tier reads, so chrome renders in the tier's language (Arabic in
+   script; icon/wordless where possible in sound; English in auto). The *mechanism*
+   is shared code; the *strings* are per-language config (ties into Multi-language
+   above).
+2. **That table IS the canonical current chrome inventory** — every user-facing
+   string, keyed.
+3. **Reconcile with the existing prompt list** (`prompts/index.html` — spoken-Hakli
+   narration for `afd_ui/`). It already uses dotted keys (`voice.takeback`,
+   `record.hold`, `consent.truth.*`…), so it's nearly the same artifact. But it has
+   drifted: it's ahead in places (`voice.bulk.*`, `voice.mask` — not built) and
+   behind in others — **missing keys for what shipped**: Erase / "Erase for good?"
+   (only takeback/shareagain exist), the dictionary browse, the tier toggle
+   ("change how words are shown"), the find-loop nav. Merge to the union, prune to
+   what actually exists.
+4. **Regenerate the Hakli prompt list from the reconciled keys**, so friends record
+   narration for exactly what the app now shows — nothing stale, nothing missing —
+   and wire the sound tier to prefer those recorded prompts where present.
+
+5. **Mute / quiet mode (bake into the prompt-audio system).** Distinguish INTERFACE
+   audio (spoken prompts, cue chimes, English TTS, auto-play — scaffolding, noise
+   once the pattern is learned) from CONTENT audio (the Hakli recordings — always
+   wanted). A "mute" toggle silences interface audio only; content playback ignores
+   it. It's a SEPARATE axis from the display tier (display = how words are shown;
+   mute = whether the app speaks to you), so it's its own small speaker/mute control,
+   not a fourth tier. Every interface sound must check the flag from day one. Optional
+   later: narration that auto-fades after a speaker completes the pattern a few times.
+   Persist the setting shared (afd-core), like the display mode.
+   UI (Marty): long-press the sound/Hakli mode on the display toggle to arm
+   mute; show a small mute bubble attached to the soundwave (sound-tier) circle
+   when it's active — discoverable, wordless, and tied to the tier it belongs to.
+
+Net: one keyed inventory drives (a) English chrome, (b) Arabic chrome, (c) the
+spoken-Hakli prompts, and (d) the next language's chrome — all from the same source.
+
 ## External (non-AFD)
 
 - **Scott's `tawq.in` `server.js`** — the expired-token string-mismatch auth bypass
