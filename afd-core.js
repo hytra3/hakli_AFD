@@ -115,7 +115,21 @@ window.AFDCore = (function(){
     "session.export":       { en:"Export everything (.zip)",  ar:"صدّر كل شيء (‎.zip‎)" },
     "session.fieldnotes":   { en:"Show my field notes", ar:"أظهر ملاحظاتي الميدانية" },
     "session.fieldnotes.hide":{ en:"Hide my field notes", ar:"أخفِ ملاحظاتي الميدانية" },
-    "session.clear":        { en:"Clear this device",   ar:"امسح هذا الجهاز" }
+    "session.clear":        { en:"Clear this device",   ar:"امسح هذا الجهاز" },
+    "qc.good":              { en:"Sounds good",         ar:"الصوت جيّد" },
+    "qc.retry":             { en:"Let\u2019s try that again", ar:"لنجرّب مرّة أخرى" },
+    "qc.saytwice":          { en:"Say the word twice, with a small pause between", ar:"قل الكلمة مرّتين، مع وقفة قصيرة بينهما" },
+    "qc.reps.heard":        { en:"Repetitions heard",   ar:"التكرارات المسموعة" },
+    "qc.reps.match":        { en:"Repetitions match",   ar:"تطابق التكرارات" },
+    "qc.segments":          { en:"Speech segments",     ar:"مقاطع الكلام" },
+    "status.ready":         { en:"ready",               ar:"جاهز" },
+    "status.listening":     { en:"listening",           ar:"يستمع" },
+    "status.checking":      { en:"checking",            ar:"يتحقّق" },
+    "status.recorded":      { en:"recorded",            ar:"تم التسجيل" },
+    "clip.yours":           { en:"Your recording",      ar:"تسجيلك" },
+    "clip.speaker":         { en:"Speaker",             ar:"متحدّث" },
+    "clip.none":            { en:"No one else has recorded this word yet. Yours is the first — check back as more speakers contribute.", ar:"لا أحد غيرك سجّل هذه الكلمة بعد. أنت الأول — عُد لاحقًا مع مساهمة متحدّثين آخرين." },
+    "unit.reps":            { en:"reps",                ar:"تكرار" }
   };
   function t(key, mode){
     const s = STRINGS[key];

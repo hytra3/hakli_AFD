@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0821j"></script>
+<script src="afd-core.js?v=b0822a"></script>
 <script src="afd-words.js?v=b0821a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -681,7 +681,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0821j";   // bump every publish; shown in the header + console
+const BUILD="b0822a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -856,12 +856,12 @@ function renderPrompt(){
   const wordless = (dispMode==="sound");
   // English audio is no use to a Hakli-only speaker — hide it in sound mode.
   $("playGloss").classList.toggle("hidden", wordless);
-  $("playGloss").innerHTML  = '▶ Hear the word in English';
+  $("playGloss").innerHTML  = '▶ '+AFDCore.t("action.hear.word",dispMode);
   $("hearOthers").innerHTML = wordless ? '<span class="bicon" role="img" aria-label="Hear how others said it">🗣️</span>'
-                                       : 'Hear how others said it in Hakli';
+                                       : AFDCore.t("action.hear.others",dispMode);
   $("reviewCard").classList.add("hidden");
   $("compareCard").classList.add("hidden");
-  $("silLabel").textContent="ready";
+  $("silLabel").textContent=AFDCore.t("status.ready",dispMode);
   liveBars=[]; drawBars([],false);
 
   const sil=document.querySelector(".silhouette");
@@ -1070,7 +1070,7 @@ function startRec(){
     if(el) el.textContent=(ms/1000).toFixed(1)+"s";
     if(ms>=MAX_MS) stopRec();
   },100);
-  $("silLabel").textContent="listening";
+  $("silLabel").textContent=AFDCore.t("status.listening",dispMode);
 
   let mime="";
   ["audio/webm;codecs=opus","audio/webm","audio/mp4"].forEach(m=>{
@@ -1089,7 +1089,7 @@ function stopRec(){
   if(timerId){ clearInterval(timerId); timerId=null; }
   recBtn.classList.remove("recording");
   setRecIdle();
-  $("silLabel").textContent="checking";
+  $("silLabel").textContent=AFDCore.t("status.checking",dispMode);
   if(rafId) cancelAnimationFrame(rafId);
   try{ recorder.stop(); }catch(e){}
 }
@@ -1108,8 +1108,9 @@ async function onRecStop(){
   recBtn.classList.add("hidden");        // nothing to collide with while reviewing
   $("skipBtn").classList.add("hidden");
   $("silLabel").textContent = isRepType(recType)
-    ? lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard"
-    : "recorded";
+    ? (dispMode==="auto" ? lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard"
+                         : lastQC.bursts+" "+AFDCore.t("unit.reps",dispMode))
+    : AFDCore.t("status.recorded",dispMode);
 }
 
 /* Wake the audio graph before drawing. Browsers suspend the AudioContext under
@@ -1280,20 +1281,20 @@ function renderQC(q){
 
   if(isWord){
     const twoOk=q.bursts===2;
-    rows.push(row(twoOk,"Repetitions heard",String(q.bursts),
+    rows.push(row(twoOk,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
       q.bursts<2?"say the word twice, with a pause":q.bursts>2?"extra speech detected":"",
       q.bursts>2?"warn":undefined));
-    if(q.bursts<2) fails.push("Say the word twice, with a small pause between");
+    if(q.bursts<2) fails.push(AFDCore.t("qc.saytwice",dispMode));
     else if(q.bursts>2 && !softNote) softNote="Heard more than twice — extra speech was detected";
 
     if(q.burstBalance!==null){
       const bal=q.burstBalance<0.5;
-      rows.push(row(bal,"Repetitions match",(1-q.burstBalance).toFixed(2),
+      rows.push(row(bal,AFDCore.t("qc.reps.match",dispMode),(1-q.burstBalance).toFixed(2),
         bal?"":"the two are very different lengths","warn"));
       if(!bal && !softNote) softNote="The two takes differ a little — fine to keep";
     }
   }else{
-    rows.push(row(true,"Speech segments",String(q.bursts),"",undefined));
+    rows.push(row(true,AFDCore.t("qc.segments",dispMode),String(q.bursts),"",undefined));
   }
 
   $("qc").innerHTML=rows.join("");
@@ -1303,11 +1304,11 @@ function renderQC(q){
   if(hard){
     v.className="verdict bad qc-verdict";
     v.innerHTML='<span class="big" aria-hidden="true">\u21BB</span>'+
-      '<div><strong>Let\u2019s try that again</strong><span>'+fails[0]+'</span></div>';
+      '<div><strong>'+AFDCore.t("qc.retry",dispMode)+'</strong><span>'+fails[0]+'</span></div>';
   }else{
     v.className="verdict ok qc-verdict";
     v.innerHTML='<span class="big" aria-hidden="true">\u2713</span>'+
-      '<div><strong>Sounds good</strong>'+(softNote?'<span>'+softNote+'</span>':'')+'</div>';
+      '<div><strong>'+AFDCore.t("qc.good",dispMode)+'</strong>'+(softNote?'<span>'+softNote+'</span>':'')+'</div>';
   }
   // Steer the action to match the verdict — but never block keeping.
   $("redoBtn").className = hard ? "btn" : "btn secondary";
@@ -1326,7 +1327,7 @@ $("redoBtn").onclick=()=>{
   $("reviewCard").classList.add("hidden");
   recBtn.classList.remove("hidden");
   $("skipBtn").classList.remove("hidden");
-  $("silLabel").textContent="ready";
+  $("silLabel").textContent=AFDCore.t("status.ready",dispMode);
   liveBars=[]; drawBars([],false);
 };
 
@@ -1389,16 +1390,15 @@ async function showCompare(word, mine){
 
   let html="";
   if(mine && mine.blob){
-    html += clipRow("Your recording", (mine.capture.durationMs/1000).toFixed(1)+"s"+
-                    (isRepType(mine.type)?" · "+mine.qc.bursts+" reps":""), "mine", true);
+    html += clipRow(AFDCore.t("clip.yours",dispMode), (mine.capture.durationMs/1000).toFixed(1)+"s"+
+                    (isRepType(mine.type)?" · "+mine.qc.bursts+" "+AFDCore.t("unit.reps",dispMode):""), "mine", true);
   }
   if(!others.length){
-    html += '<p class="note">No one else has recorded this word yet. '+
-            'Yours is the first — check back as more speakers contribute.</p>';
+    html += '<p class="note">'+AFDCore.t("clip.none",dispMode)+'</p>';
   }else{
     others.forEach((o,i)=>{
-      html += clipRow("Speaker "+(i+1),
-                      (o.durationMs/1000).toFixed(1)+"s"+(isRepType(o.type)&&o.bursts?" · "+o.bursts+" reps":""),
+      html += clipRow(AFDCore.t("clip.speaker",dispMode)+" "+(i+1),
+                      (o.durationMs/1000).toFixed(1)+"s"+(isRepType(o.type)&&o.bursts?" · "+o.bursts+" "+AFDCore.t("unit.reps",dispMode):""),
                       "other"+i, false);
     });
   }
