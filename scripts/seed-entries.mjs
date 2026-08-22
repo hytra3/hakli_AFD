@@ -25,16 +25,16 @@ import { dirname, join } from "node:path";
 const DRY = process.argv.includes("--dry");
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 const here = dirname(fileURLToPath(import.meta.url));
-const indexPath = join(here, "..", "index.html");
+const wordsPath = join(here, "..", "afd-words.js");
 
-// ---- pull the WORDS array out of index.html (one source of truth) ----
+// ---- pull the wordlist out of afd-words.js (one source of truth) ----
 function loadWords(){
-  const html = readFileSync(indexPath, "utf8");
-  const m = html.match(/const\s+WORDS\s*=\s*(\[[\s\S]*?\])\s*;/);
-  if(!m) throw new Error("Could not find `const WORDS = [...]` in index.html");
+  const js = readFileSync(wordsPath, "utf8");
+  const m = js.match(/window\.AFDWords\s*=\s*(\[[\s\S]*?\])\s*;/);
+  if(!m) throw new Error("Could not find `window.AFDWords = [...]` in afd-words.js");
   // our own file; the literal is a plain array of objects
   const words = Function("return " + m[1])();
-  if(!Array.isArray(words) || !words.length) throw new Error("WORDS parsed empty");
+  if(!Array.isArray(words) || !words.length) throw new Error("AFDWords parsed empty");
   return words;
 }
 
