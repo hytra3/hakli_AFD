@@ -287,7 +287,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821c";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821d";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -378,7 +378,7 @@ async function startHold(){
   catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); return; }
   mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mediaRec.onstop = onClip;
-  try{ mediaRec.start(); }
+  try{ mediaRec.start(100); }   // 100ms timeslice: flush data during the hold, not only on stop
   catch(e){
     // Stream became unrecordable — force a fresh one on the next hold rather than
     // leaving an uncaught rejection and a dead-feeling button.
@@ -418,6 +418,16 @@ async function onClip(){
 // release the mic when the tab is hidden or closed
 document.addEventListener("visibilitychange", ()=>{ if(document.hidden) stopStream(); });
 window.addEventListener("pagehide", stopStream);
+
+// Pre-warm the mic on load IF permission is already granted, so the first hold
+// records immediately instead of losing a cold getUserMedia race (empty clip →
+// "hold a little longer"). No prompt when permission isn't granted yet.
+(async ()=>{
+  try{
+    const p = await navigator.permissions.query({name:"microphone"});
+    if(p.state === "granted" && !document.hidden) ensureStream();
+  }catch(_){}
+})();
 
 /* ================================================================= search */
 async function runSearch(blob){
