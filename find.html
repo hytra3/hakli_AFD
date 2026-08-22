@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli — speak to find</title>
+<link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
 <script src="afd-core.js?v=b0821a"></script>
 <style>
   /* ---------------------------------------------------------------- tokens
@@ -286,7 +287,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821b";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0821c";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes

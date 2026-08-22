@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
+<link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
 <script src="afd-core.js?v=b0821a"></script>
 <script src="afd-words.js?v=b0821a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -680,7 +681,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0821b";   // bump every publish; shown in the header + console
+const BUILD="b0821c";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
