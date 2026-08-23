@@ -6,6 +6,7 @@
 <title>Hakli — speak to find</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
 <script src="afd-core.js?v=b0822b"></script>
+<script src="afd-words.js?v=b0822b"></script>
 <style>
   /* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
@@ -292,7 +293,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0822c";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0822d";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -507,9 +508,10 @@ async function openEntry(entryId){
 }
 function applyEntryDeepLink(){
   const raw = (location.hash||"").replace(/^#/,"");
-  if(!raw) return;
+  if(!raw) return false;
   let id=""; try{ id=decodeURIComponent(raw).trim(); }catch(_){ id=raw.trim(); }
-  if(id) openEntry(id);
+  if(!id) return false;
+  openEntry(id); return true;
 }
 
 /* build one entry card: thumbnail, gloss, voice silhouettes, speaker avatars */
@@ -519,16 +521,13 @@ async function entryCard(res, lead){
 
   // entry metadata (public). Fall back gracefully if absent.
   let meta={};
-  try{ const s = await getDoc(doc(db,"afd_entries",res.entryId)); if(s.exists()) meta=s.data(); }catch(_){}
+  try{ const sn = await getDoc(doc(db,"afd_entries",res.entryId)); if(sn.exists()) meta=sn.data(); }catch(_){}
   const glossEn = meta.gloss || res.gloss || "";
   const glossAr = meta.glossAr || meta.ar || "";
   const tile = domainColor(meta.domain || res.entryId);
-
-  // playable recordings (allowPlayback == true), same query the recorder uses
-  const recs = await listPlayable(res.entryId);
-
-  const letterFallback = glossEn ? glossEn.trim()[0].toUpperCase() : "•";
+  const letterFallback = glossEn ? glossEn.trim()[0].toUpperCase() : "\u2022";
   const scriptLabel = glossAr || meta.ref || "";
+
   const thumbHtml =
     `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(meta.image||"")}" ` +
     `data-pic="${escapeHtml(meta.pic||"")}" data-script="${escapeHtml(scriptLabel)}" ` +
@@ -545,48 +544,79 @@ async function entryCard(res, lead){
   const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>`;
   const chevHtml  = lead ? "" : `<span class="card-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>`;
 
-  const wordRecs    = recs.filter(r => (r.type||"word")==="word");
-  const contextRecs = recs.filter(r => r.type==="context");
-  const defRecs     = recs.filter(r => r.type==="definition");
-  const firstPlayable = (wordRecs[0]||recs[0])?.url || null;
-
-  // Every card = a head row, then a collapsible detail. The lead starts open;
-  // any candidate opens on tap — so YOU pick the voice you want, not just the
-  // top guess. The detail is three parallel labelled sections.
   el.innerHTML =
     `<div class="head">${thumbHtml}${glossHtml}${playHtml}${chevHtml}</div>` +
     `<div class="detail"></div>`;
 
   const playBtn = el.querySelector(".play");
   const thumbEl = el.querySelector(".thumb");
-  let currentUrl = firstPlayable;
+  const detail  = el.querySelector(".detail");
+
+  // Collapsed header shows the entry's IDENTITY (emoji / identicon / script word).
+  // The sound-shape (waveform, in sound tier) is painted when the detail loads.
+  if(meta.pic) thumbEl.textContent = meta.pic;
+  else if(displayMode==="script" && scriptLabel) thumbEl.textContent = scriptLabel;
+  else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
+
+  let currentUrl=null, firstPlayable=null, loaded=false;
   const setUrl = (u)=>{ currentUrl = u; };
-  applyBox(thumbEl, displayMode, wordRecs.length?wordRecs:recs);
-  playBtn.addEventListener("click", (e)=>{ e.stopPropagation(); if(currentUrl) playInto(playBtn, currentUrl); });
 
-  const detail = el.querySelector(".detail");
-  // "the word" drives the box + main button. Sentences/meanings play on their own
-  // without hijacking the card's box (thumbEl null) or its main button (noop setUrl).
-  detail.appendChild(slotSection("the word","الكلمة","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
-  detail.appendChild(slotSection("used in a sentence","مثال في جملة","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
-  detail.appendChild(slotSection("what it means","المعنى","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
+  // Detail (voices, slots, playback) is EXPENSIVE — listPlayable resolves a Storage
+  // URL per recording — so it loads lazily, only when the card opens. This is what
+  // lets the dictionary render 40 cards without hundreds of Storage calls up front.
+  async function loadDetail(){
+    if(loaded) return firstPlayable; loaded=true;
+    const recs = await listPlayable(res.entryId);
+    const wordRecs    = recs.filter(r => (r.type||"word")==="word");
+    const contextRecs = recs.filter(r => r.type==="context");
+    const defRecs     = recs.filter(r => r.type==="definition");
+    firstPlayable = (wordRecs[0]||recs[0])?.url || null;
+    if(currentUrl==null) currentUrl = firstPlayable;
+    applyBox(thumbEl, displayMode, wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
+    detail.appendChild(slotSection("the word","\u0627\u0644\u0643\u0644\u0645\u0629","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
+    detail.appendChild(slotSection("used in a sentence","\u0645\u062b\u0627\u0644 \u0641\u064a \u062c\u0645\u0644\u0629","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
+    detail.appendChild(slotSection("what it means","\u0627\u0644\u0645\u0639\u0646\u0649","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
+    const say=document.createElement("a");
+    say.className="sayit"; say.href=`${RECORDER_URL}#${encodeURIComponent(res.entryId)}`;
+    say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+    ${displayMode==="auto" ? 'Say it yourself <span class="ar">\u0633\u062c\u0651\u0644 \u0635\u0648\u062a\u0643</span>' : escapeHtml(AFDCore.t("result.sayityourself", displayMode))}`;
+    detail.appendChild(say);
+    return firstPlayable;
+  }
 
-  // flywheel: one tap to add your own voice of the word
-  const say=document.createElement("a");
-  say.className="sayit"; say.href=`${RECORDER_URL}#${encodeURIComponent(res.entryId)}`;
-  say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-    ${displayMode==="auto" ? 'Say it yourself <span class="ar">سجّل صوتك</span>' : escapeHtml(AFDCore.t("result.sayityourself", displayMode))}`;
-  detail.appendChild(say);
-
-  // expand / collapse on head tap (play excluded); opening plays the word so you hear your pick
+  playBtn.addEventListener("click", (e)=>{ e.stopPropagation();
+    if(currentUrl){ playInto(playBtn, currentUrl); }
+    else loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl); });
+  });
   el.querySelector(".head").addEventListener("click", (e)=>{
     if(e.target.closest(".play")) return;
     const opening = !el.classList.contains("open");
     el.classList.toggle("open", opening);
-    if(opening && currentUrl) playInto(playBtn, currentUrl);
+    if(opening) loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl); });
   });
 
-  return { el, playBtn, firstPlayable };
+  if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
+  return { el, playBtn, get firstPlayable(){ return firstPlayable; } };
+}
+
+/* ---- browse: the dictionary as a scrolling list of the SAME entry cards --------
+   Idle state lists every entry as a collapsed card; tapping expands it in place
+   (detail loads lazily for that one entry). Same card whether reached by speaking
+   or scrolling — one renderer, one behaviour. */
+async function renderBrowse(){
+  const my = ++renderToken; deepEntry = null; lastResults = null;
+  resultsEl.innerHTML=""; hint.classList.remove("small");
+  const words = window.AFDWords || [];
+  const frag = document.createDocumentFragment();
+  // headers are cheap (one getDoc each); detail stays lazy
+  for(const w of words){
+    const c = await entryCard({entryId: AFDCore.entryIdFor(w.id)}, false);
+    if(my!==renderToken) return;
+    frag.appendChild(c.el);
+  }
+  if(my!==renderToken) return;
+  resultsEl.appendChild(frag);
+  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 }
 
 function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, setUrl){
@@ -923,9 +953,9 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 try{ document.querySelector("#wordmark small").textContent = "speak to find · " + BUILD; }catch(_){}
 console.log("[AFD] build", BUILD, "·", location.href);
 
-// open a specific entry if arrived via find.html#ent_xxx (from the dictionary)
-applyEntryDeepLink();
-window.addEventListener("hashchange", applyEntryDeepLink);
+// deep-link opens one entry; otherwise show the whole dictionary as browsable cards
+if(!applyEntryDeepLink()) renderBrowse();
+window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) renderBrowse(); });
 
 mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
 mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
