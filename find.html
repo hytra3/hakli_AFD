@@ -233,6 +233,11 @@
     *{animation:none !important; transition:none !important}
   }
   :focus-visible{outline:3px solid var(--resin); outline-offset:3px}
+.head-counts{display:flex;gap:10px;margin-top:5px;font:600 11px/1 var(--sans);color:var(--mist)}
+.card.open .head-counts{display:none}
+.allbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:40px;height:40px;
+  border:1.5px solid var(--mist-2);border-radius:50%;background:var(--cloud);color:var(--mountain);
+  cursor:pointer;padding:0;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -293,7 +298,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0822d";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0822e";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -466,6 +471,7 @@ async function render(results){
   const my = ++renderToken; deepEntry = null;
   lastResults = results;
   resultsEl.innerHTML=""; hint.classList.add("small");
+  resultsEl.appendChild(backToAll());
   const best = results[0];
 
   if(!best || best.distance > MAYBE_MAX){ renderEmpty(best); return; }
@@ -503,6 +509,7 @@ async function openEntry(entryId){
   const lead = await entryCard({entryId, distance:0}, true);
   if(my!==renderToken) return;                 // superseded by a newer render/open
   resultsEl.innerHTML="";                       // clear again in case of a race
+  resultsEl.appendChild(backToAll());
   resultsEl.appendChild(lead.el);
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 }
@@ -557,6 +564,10 @@ async function entryCard(res, lead){
   if(meta.pic) thumbEl.textContent = meta.pic;
   else if(displayMode==="script" && scriptLabel) thumbEl.textContent = scriptLabel;
   else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
+  // compact voice counts on the collapsed header (wordless icons, tier-safe)
+  const gc=el.querySelector(".gloss");
+  if(gc){ const hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
+    entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`; }); }
 
   let currentUrl=null, firstPlayable=null, loaded=false;
   const setUrl = (u)=>{ currentUrl = u; };
@@ -603,6 +614,13 @@ async function entryCard(res, lead){
    Idle state lists every entry as a collapsed card; tapping expands it in place
    (detail loads lazily for that one entry). Same card whether reached by speaking
    or scrolling — one renderer, one behaviour. */
+function backToAll(){
+  const b=document.createElement("button");
+  b.className="allbtn"; b.setAttribute("aria-label","Show all words");
+  b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+  b.addEventListener("click", renderBrowse);
+  return b;
+}
 async function renderBrowse(){
   const my = ++renderToken; deepEntry = null; lastResults = null;
   resultsEl.innerHTML=""; hint.classList.remove("small");
@@ -792,6 +810,15 @@ function buildVoices(container, recs, thumbEl, playBtn, setUrl){
   container.appendChild(list);
 }
 
+async function entryCounts(entryId){
+  const c={word:0,context:0,definition:0};
+  try{
+    const snap=await getDocs(query(collection(db,"afd_entries",entryId,"recordings"),
+                                   where("allowPlayback","==",true), limit(50)));
+    snap.forEach(d=>{ const v=d.data(); const t=v.type||v.phase||"word"; if(t in c) c[t]++; });
+  }catch(_){}
+  return c;
+}
 async function listPlayable(entryId){
   const out=[], seen=new Set();
   const add=async(d)=>{
