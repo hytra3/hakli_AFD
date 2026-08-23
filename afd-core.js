@@ -139,10 +139,36 @@ window.AFDCore = (function(){
     return s.en;                             // auto
   }
 
+  /* ---- identicon — a stable, unique, abstract mark for an entry -------------
+     Deterministic from the entryId: the same entry always gets the same "face"
+     no matter who records it or how many times. This is the DEFAULT thumbnail so
+     a brand-new recorded word has a visual identity with no human assigning a
+     picture — essential for words with no emoji, and for any unwritten language.
+     (Speaker identity uses the separate fauna avatars; this is WORD identity.)
+     Left-right symmetric 5×5 blocks, one colour from a muted khareef palette. */
+  const IDENTICON_PAL = ["#3E6B57","#2F5D63","#6B4A7A","#8B3A52","#9A5B33","#47568A","#6E7A3E","#A05A3C"];
+  function identicon(seed){
+    const s = String(seed || "");
+    let h = 2166136261 >>> 0;                       // FNV-1a
+    for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    const fg = IDENTICON_PAL[(h >>> 28) % IDENTICON_PAL.length];
+    let cells = "";
+    for(let r=0;r<5;r++){
+      for(let c=0;c<3;c++){
+        if(!((h >> (r*3 + c)) & 1)) continue;
+        cells += `<rect x="${c}" y="${r}" width="1" height="1"/>`;
+        if(c < 2) cells += `<rect x="${4-c}" y="${r}" width="1" height="1"/>`;   // mirror
+      }
+    }
+    return `<svg viewBox="0 0 5 5" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" `+
+           `shape-rendering="crispEdges" style="background:#EFEAE3"><g fill="${fg}">${cells}</g></svg>`;
+  }
+
   return {
     entrySlug, entryIdFor,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     MIC_CONSTRAINTS, openStream,
-    STRINGS, t
+    STRINGS, t,
+    identicon
   };
 })();

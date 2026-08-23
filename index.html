@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0822a"></script>
+<script src="afd-core.js?v=b0822b"></script>
 <script src="afd-words.js?v=b0821a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -681,7 +681,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0822a";   // bump every publish; shown in the header + console
+const BUILD="b0822b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -845,7 +845,7 @@ $("toRecord").onclick=()=>{ show("recorder"); renderPrompt(); sizeCanvas(); };
 /* ================= prompt ================= */
 function renderPrompt(){
   const w=WORDS[idx];
-  $("picto").textContent=w.pic;
+  if(w.pic){ $("picto").textContent=w.pic; } else { $("picto").innerHTML=AFDCore.identicon(entryIdFor(w.id)); }
   // Display tier: auto = English + Arabic · script = Arabic only · sound = neither
   // (the picture + audio carry it). Empty lines get hidden so they leave no gap.
   const enText = (dispMode==="auto") ? (showRef&&w.ref ? w.en+"  ·  "+w.ref : w.en) : "";

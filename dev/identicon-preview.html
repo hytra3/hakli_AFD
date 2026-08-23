@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AFD — identicon preview (dev)</title>
+<script src="afd-core.js?v=b0822b"></script>
+<script src="afd-words.js?v=b0822b"></script>
+<style>
+ body{background:#EAF0EE;font-family:system-ui,sans-serif;color:#1F3A34;margin:0;padding:24px}
+ h1{font-size:18px;font-weight:600}p{color:#6b7d75;max-width:640px}
+ .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;margin-top:20px}
+ .cell{background:#fff;border:1px solid #C4D2CC;border-radius:14px;padding:12px;text-align:center}
+ .ic{width:72px;height:72px;border-radius:14px;overflow:hidden;margin:0 auto 8px;display:block}
+ .nm{font-size:13px;font-weight:600}.id{font-size:11px;color:#8CA39B;font-family:monospace}
+ .sec{margin-top:28px;font-size:14px;font-weight:600;color:#3E6B57}
+</style></head><body>
+<h1>Identicon preview — one stable mark per entry, from its id</h1>
+<p>These are the DEFAULT thumbnails an entry gets when it has no assigned picture — auto-generated from <code>entryId</code>, so a brand-new recorded word (or any unwritten-language entry) has a unique identity with no human assigning a picture. In the live app the emoji wins when present; this shows what fills the slot when it doesn't.</p>
+<div class="sec">The 40 seeded entries (their ids)</div>
+<div class="grid" id="real"></div>
+<div class="sec">Made-up new/unwritten words (no emoji, no Arabic) — what a fresh entry looks like</div>
+<div class="grid" id="fake"></div>
+<script>
+const C=window.AFDCore;
+function cell(name,id){return `<div class="cell"><span class="ic">${C.identicon(id)}</span><div class="nm">${name}</div><div class="id">${id}</div></div>`;}
+document.getElementById("real").innerHTML =
+  (window.AFDWords||[]).map(w=>cell(w.en, C.entryIdFor(w.id))).join("");
+document.getElementById("fake").innerHTML =
+  ["grandmother","riverbend","frankincense","the-monsoon-wind","clan-name-1","clan-name-2","a-word-with-no-picture","dawn-prayer"]
+    .map(x=>cell(x, C.entryIdFor(x))).join("");
+</script></body></html>

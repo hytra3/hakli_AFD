@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli — dictionary</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0821j"></script>
+<script src="afd-core.js?v=b0822b"></script>
 <script src="afd-words.js?v=b0821a"></script>
 <style>
   :root{
@@ -81,7 +81,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const BUILD = "b0821i";
+const BUILD = "b0822b";
 const $  = id => document.getElementById(id);
 const RECORDER_URL = "index.html";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -135,7 +135,7 @@ function entryRow(w){
   ).join("");
   el.innerHTML =
     `<a class="open thumb-link" href="${open}" aria-label="Open ${esc(w.en)}">` +
-      `<div class="thumb" aria-hidden="true">${esc(w.pic)}</div></a>` +
+      `<div class="thumb" aria-hidden="true">${w.pic ? esc(w.pic) : AFDCore.identicon(id)}</div></a>` +
     `<div class="meta">` +
       (nm ? `<a class="open" href="${open}"><div class="name${mode==="script"?" rtl":""}">${nm}</div></a>` : ``) +
       `<div class="adds">${chips}</div>` +

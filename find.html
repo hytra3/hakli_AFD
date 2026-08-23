@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli — speak to find</title>
 <link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0821j"></script>
+<script src="afd-core.js?v=b0822b"></script>
 <style>
   /* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
@@ -292,7 +292,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0821i";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0822b";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -524,7 +524,7 @@ async function entryCard(res, lead){
   const thumbHtml =
     `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(meta.image||"")}" ` +
     `data-pic="${escapeHtml(meta.pic||"")}" data-script="${escapeHtml(scriptLabel)}" ` +
-    `data-letter="${escapeHtml(letterFallback)}"></div>`;
+    `data-letter="${escapeHtml(letterFallback)}" data-entry="${escapeHtml(res.entryId)}"></div>`;
   let glossHtml;
   if(displayMode==="sound"){
     glossHtml = `<div class="gloss" aria-hidden="true"></div>`;
@@ -862,12 +862,13 @@ async function applyBox(thumbEl, mode, recs){
   const d = thumbEl.dataset;
   const asText = t => { thumbEl.textContent = t || (d.letter || "•"); };
   const asWave = async () => paintBox(thumbEl, recs && recs[0] ? await envelopeFor(recs[0]) : null);
+  const asIcon = () => { thumbEl.innerHTML = AFDCore.identicon(d.entry || d.script || d.letter); };
   if(mode==="sound")  return asWave();
-  if(mode==="script") return asText(d.script || d.pic);
+  if(mode==="script") return d.script ? asText(d.script) : (d.pic ? asText(d.pic) : asIcon());
   // auto
   if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
   if(d.pic){ return asText(d.pic); }
-  return asWave();
+  return asIcon();
 }
 
 /* deterministic round fauna avatar — pseudonymous, no profile read needed */
