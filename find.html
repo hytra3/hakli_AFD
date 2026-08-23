@@ -292,7 +292,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0822b";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0822c";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -311,6 +311,8 @@ const RECORDER_URL = "index.html";  // where "say it yourself" goes
 const MODES = AFDCore.DISP_MODES;          // shared with the recorder via afd-core
 let displayMode = AFDCore.getDisplayMode("sound");   // find defaults to sound (non-reader-first)
 let lastResults = null;
+let renderToken = 0;   // guards against two async renders racing to append
+let deepEntry  = null; // set when the view is a chosen entry (find.html#ent_xxx)
 function setDisplayMode(m){ displayMode = m; AFDCore.setDisplayMode(m); }
 
 /* ================================================================= setup */
@@ -460,6 +462,7 @@ async function runSearch(blob){
 }
 
 async function render(results){
+  const my = ++renderToken; deepEntry = null;
   lastResults = results;
   resultsEl.innerHTML=""; hint.classList.add("small");
   const best = results[0];
@@ -474,11 +477,13 @@ async function render(results){
 
   // lead card
   const lead = await entryCard(best, true);
+  if(my!==renderToken) return;                 // a newer render/open superseded us
   resultsEl.appendChild(lead.el);
   // the rest
   for(const res of results.slice(1)){
     if(res.distance > MAYBE_MAX) break;
     const c = await entryCard(res, false);
+    if(my!==renderToken) return;
     resultsEl.appendChild(c.el);
   }
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
@@ -490,10 +495,13 @@ async function render(results){
    Same card render as a confident search hit, but chosen rather than spoken. No
    autoplay: the user navigated deliberately, so let them pick a voice. */
 async function openEntry(entryId){
+  const my = ++renderToken; deepEntry = entryId;
   lastResults = [{entryId, distance:0}];
   resultsEl.innerHTML=""; hint.classList.add("small");
   setHint("Here it is","ها هو");
   const lead = await entryCard({entryId, distance:0}, true);
+  if(my!==renderToken) return;                 // superseded by a newer render/open
+  resultsEl.innerHTML="";                       // clear again in case of a race
   resultsEl.appendChild(lead.el);
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 }
@@ -937,7 +945,7 @@ function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[disp
 $("skin").addEventListener("click", ()=>{
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
   setDisplayMode(next); updateSkinIcon();
-  if(lastResults) render(lastResults);      // re-skin what's already on screen
+  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults);  // re-skin what's on screen
 });
 updateSkinIcon();
 setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current tier
@@ -962,7 +970,7 @@ if(accountBtn){
 }
 onAuthStateChanged(auth, (u)=>{
   currentUser = u; updateAccountUi();
-  if(lastResults) render(lastResults);   // refresh owner controls on the cards
+  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults);  // refresh owner controls
 });
 updateAccountUi();
 
