@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# firebase emulator / debug logs
+*-debug.log
+firestore-debug.log
+firebase-debug.log
+
+# pre-refactor backups (safe to delete)
+*.bak
+
+# python build artifacts (from local function syntax checks)
+__pycache__/
+*.pyc
+
+# gcloud function source bundles
+**/function-source.zip

@@ -83,6 +83,19 @@ within each group.
   speaker diversity. Leaning coverage-need or completeness. Search stays acoustic.
 - Pairs with the lead-card marker above — both are "make the order legible without
   labeling it."
+- **Allosaurus phonetic order (candidate approach)** — Allosaurus is a universal
+  (language-independent) phone recognizer; run it over each entry's recordings and
+  it yields an IPA-ish phone string with no orthography required. Sorting entries by
+  that phone sequence gives a *phonetic* order — the unwritten-language equivalent of
+  alphabetical: stable, neutral, and, crucially, it ranks **sounds, not people**, so
+  it sidesteps the "whose words matter" problem that engagement metrics carry. Fits
+  the audio-first ethos (order emerges from the audio itself) and doubles as a
+  browsing spine an elder can learn by ear. Open questions: which phone gets the sort
+  key when voices differ (pick the lead/nearest recording, consistent with the
+  matching policy), how to collapse phones into a coarse sort order that feels natural
+  rather than IPA-pedantic, and whether it's the primary order or a tiebreaker under
+  coverage-need. Note: we already ran Allosaurus on the legacy corpus during the
+  matching study, so the toolchain is known.
 
 ## Architecture / consolidation
 
@@ -99,9 +112,14 @@ within each group.
 
 ## Housekeeping / refactor notes
 
-- **Cache-bust the shared files** — `afd-core.js` and `afd-words.js` load with
-  `?v=b0821a`. Bump that query whenever either file changes, or browsers serve a
-  stale copy. (Worth tying to BUILD so it can't be forgotten.)
+- **✅ Cache-bust drift fixed + made drift-proof (08-25)** — the audit found pages at
+  `BUILD=b0825a` still loading `afd-core.js?v=b0822b`, with index/find disagreeing on
+  the `afd-words` version (b0821a vs b0822b) — they could run different cached
+  wordlists. All `?v=` unified to b0825a, and a new `scripts/sync-stamp.sh` now
+  propagates the canonical BUILD (read from `find.html`) to every `?v=` and to
+  `index.html`'s BUILD; `publish-site.sh` runs it automatically. Workflow unchanged
+  (bump BUILD in find.html, publish). Trade: shared files re-fetch every publish even
+  if unchanged — tiny files, and "always fresh" is the right call.
 - **`entrySlug` lives twice on purpose** — `afd-core.js` (browser) and
   `seed-entries.mjs` (Node, can't read the browser global). They MUST stay
   byte-identical: a drift silently orphans recordings under mismatched entryIds.
@@ -109,8 +127,14 @@ within each group.
 - **`prompts/` recorder is intentionally independent** — it records UI narration
   (`afd_ui/`) with mic processing ON, which is correct for playback. Do NOT migrate
   it to the corpus's processing-off protocol.
-- **`.bak` files** (`index.html.bak`, `find.html.bak`) are pre-refactor backups —
-  safe to `rm`; now gitignored so they won't be committed.
+- **✅ `.gitignore` added + cruft untracked (08-25)** — the audit found last session's
+  `.gitignore` was never pushed, so `node_modules/` (~5,600 files), both `.bak` files,
+  and three debug logs were all tracked (a clone pulled ~15k files). `.gitignore` is
+  back, and the one-time untrack command was verified (removes from index, keeps files
+  on disk). Since `publish-site.sh` uses `git add -A`, the `.gitignore` now stops any
+  of it creeping back. **Manual step (run once in local repo):**
+  `git rm -r --cached node_modules && git rm --cached index.html.bak find.html.bak firestore-debug.log test/firebase-debug.log test/firestore-debug.log`,
+  then commit alongside the `.gitignore`.
 
 ## Multi-language / adding a new language
 
