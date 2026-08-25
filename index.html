@@ -681,7 +681,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0822b";   // bump every publish; shown in the header + console
+const BUILD="b0825a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1527,7 +1527,7 @@ function renderClips(){
                         :'<span class="sync pend">ON PHONE</span>';
     return '<div class="clip"><div class="name"><b>'+k.gloss+'</b><span>'+
       (k.capture.durationMs/1000).toFixed(1)+'s · '+k.capture.sampleRate+' Hz'+
-      (isRepType(k.type)?' · '+k.qc.bursts+' reps':'')+'</span></div>'+badge+
+      (isRepType(k.type)?' · '+k.qc.bursts+' '+AFDCore.t("unit.reps",dispMode):'')+'</span></div>'+badge+
       '<button data-play="'+n+'">Play</button></div>';
   }).join("")+'<p class="note">'+real.length+' recording'+(real.length===1?'':'s')+
     ' kept · '+mine.filter(k=>!k.skipped&&k.synced).length+' uploaded.'+

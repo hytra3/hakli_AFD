@@ -2,197 +2,23 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hakli — dictionary</title>
-<link rel="icon" href="favicon.svg?v=b0821c" type="image/svg+xml">
-<script src="afd-core.js?v=b0822b"></script>
-<script src="afd-words.js?v=b0821a"></script>
+<link rel="icon" href="favicon.svg?v=b0822b" type="image/svg+xml">
+<script>
+  /* The dictionary is now find.html — one surface: browse every entry, speak to
+     find, and open any entry in place. This page just forwards, preserving any
+     #ent_xxx deep-link, and uses replace() so Back doesn't bounce here. */
+  location.replace("find.html" + (location.hash || ""));
+</script>
+<noscript><meta http-equiv="refresh" content="0; url=find.html"></noscript>
 <style>
-  :root{
-    --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --mist:#8CA39B;
-    --mist-2:#C4D2CC; --resin:#C6873F; --resin-soft:#E7C9A0; --ink:#17241F;
-    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  }
-  html,body{margin:0}
-  body{background:var(--fog); color:var(--ink); font-family:var(--sans);
-       -webkit-font-smoothing:antialiased; padding-bottom:40px}
-  .wrap{max-width:720px; margin:0 auto; padding:16px}
-
-  .bar{display:flex; align-items:center; gap:10px; padding:6px 2px 16px}
-  .wordmark{font-family:var(--serif); font-size:20px; color:var(--mountain)}
-  .wordmark small{color:var(--mist); font-family:var(--sans); font-size:12px;
-       letter-spacing:.12em; text-transform:uppercase; margin-inline-start:8px}
-  .barbtns{margin-inline-start:auto; display:flex; gap:8px}
-  .rbtn{width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1.5px solid var(--mist-2);
-        background:var(--cloud); color:var(--mountain); display:grid; place-items:center;
-        cursor:pointer; padding:0; text-decoration:none}
-  .rbtn svg{width:20px;height:20px} .rbtn .lbl{font-family:var(--serif); font-size:18px; line-height:1}
-
-  .count-line{font:600 12px/1 var(--sans); color:var(--mist); letter-spacing:.08em;
-        text-transform:uppercase; padding:0 4px 10px}
-
-  .entry{display:flex; align-items:center; gap:14px; background:var(--cloud);
-         border:1px solid var(--mist-2); border-radius:16px; padding:12px 14px; margin-bottom:10px}
-  .thumb{width:60px; height:60px; flex:0 0 auto; border-radius:14px; display:grid; place-items:center;
-         font-size:30px; background:var(--fog)}
-  .meta{flex:1; min-width:0}
-  .name{font-family:var(--serif); font-size:22px; color:var(--ink); line-height:1.15}
-  .name .ar{display:block; font-family:var(--sans); font-size:15px; color:var(--mist); margin-top:2px}
-  .name.rtl{direction:rtl}
-  .open{text-decoration:none; color:inherit; display:block}
-  .open.thumb-link{flex:0 0 auto}
-  .open:active .thumb{transform:scale(.96)}
-  .thumb{transition:transform .1s ease}
-
-  .adds{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
-  .grp{display:inline-flex; align-items:baseline; gap:6px; border:1.5px solid var(--mist-2);
-       border-radius:11px; padding:6px 10px; font:600 12px/1 var(--sans); color:var(--mountain);
-       text-decoration:none; white-space:nowrap}
-  .grp .n{font:700 12px/1 var(--sans); color:var(--mist); min-width:8px; text-align:center}
-  .grp.has{border-color:var(--resin-soft)}
-  .grp.has .n{color:var(--resin)}
-  .grp .gi{font-size:15px; line-height:1}
-
-  .buildstamp{text-align:center; color:var(--mist); font-size:11px; letter-spacing:.09em; padding:22px 0 8px}
+  body{background:#EAF0EE;font-family:system-ui,-apple-system,sans-serif;color:#1F3A34;
+       display:grid;place-items:center;height:100vh;margin:0}
+  a{color:#3E6B57}
 </style>
 </head>
 <body>
-<div class="wrap">
-
-  <div class="bar">
-    <span class="wordmark">Hakli <small>dictionary</small></span>
-    <div class="barbtns">
-      <a class="rbtn" id="findLink" href="find.html" aria-label="Speak to find a word">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
-      </a>
-      <button class="rbtn" id="skin" aria-label="Change how words are shown"></button>
-    </div>
-  </div>
-
-  <p class="count-line" id="countLine"></p>
-  <div id="list"></div>
-
-  <footer class="buildstamp" id="buildStamp"></footer>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, query, where, limit, getDocs }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const BUILD = "b0822b";
-const $  = id => document.getElementById(id);
-const RECORDER_URL = "index.html";
-const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-
-/* Read-only Firestore. The public recordings query (allowPlayback == true) needs
-   no sign-in per the rules, so counts load for anyone. Same afd-dev project and
-   query the recorder and find use. */
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
-const db = getFirestore(initializeApp(firebaseConfig));
-
-let mode = AFDCore.getDisplayMode("auto");   // dictionary shows everything by default
-const countsCache = new Map();               // entryId -> {word, context, definition}
-
-const SKIN_ICON = {
-  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
-  script:`<span class="lbl">أ</span>`
-};
-function paintSkin(){ $("skin").innerHTML = SKIN_ICON[mode] || SKIN_ICON.auto; }
-
-function nameHTML(w){
-  if(mode === "sound") return "";
-  if(mode === "script") return `<span class="ar solo">${esc(w.ar)}</span>`;
-  return `${esc(w.en)}<span class="ar">${esc(w.ar)}</span>`;
-}
-
-const GROUPS = [
-  {label:"word",     key:"word",       suffix:"",            icon:"🔊", tkey:"group.word"},
-  {label:"sentence", key:"context",    suffix:"|context",    icon:"💬", tkey:"group.sentence"},
-  {label:"meaning",  key:"definition", suffix:"|definition", icon:"📖", tkey:"group.meaning"}
-];
-
-function entryRow(w){
-  const id = AFDCore.entryIdFor(w.id);
-  const open = `find.html#${encodeURIComponent(id)}`;   // picture + name open the entry (browse + hear)
-  const el = document.createElement("div");
-  el.className = "entry"; el.dataset.entry = id;
-  const nm = nameHTML(w);
-  const chips = GROUPS.map(g =>
-    `<a class="grp" href="${RECORDER_URL}#${encodeURIComponent(id)}${g.suffix}">` +
-      `<span class="gi" role="img" aria-label="${g.label}">${g.icon}</span>` +
-      `${mode==="sound" ? "" : ` ${AFDCore.t(g.tkey, mode)}`} ` +
-      `<span class="n" data-n="${g.key}">&middot;</span></a>`
-  ).join("");
-  el.innerHTML =
-    `<a class="open thumb-link" href="${open}" aria-label="Open ${esc(w.en)}">` +
-      `<div class="thumb" aria-hidden="true">${w.pic ? esc(w.pic) : AFDCore.identicon(id)}</div></a>` +
-    `<div class="meta">` +
-      (nm ? `<a class="open" href="${open}"><div class="name${mode==="script"?" rtl":""}">${nm}</div></a>` : ``) +
-      `<div class="adds">${chips}</div>` +
-    `</div>`;
-  return el;
-}
-
-function applyCounts(row){
-  const c = countsCache.get(row.dataset.entry);
-  if(!c) return;
-  row.querySelectorAll("[data-n]").forEach(sp => {
-    const n = c[sp.dataset.n] || 0;
-    sp.textContent = n;
-    sp.closest(".grp").classList.toggle("has", n > 0);
-  });
-}
-
-async function countByType(entryId){
-  const c = { word:0, context:0, definition:0 };
-  try{
-    const snap = await getDocs(query(
-      collection(db, "afd_entries", entryId, "recordings"),
-      where("allowPlayback","==",true), limit(50)
-    ));
-    snap.forEach(d => { const v=d.data(); const t=v.type||v.phase||"word"; if(t in c) c[t]++; });
-  }catch(e){ console.warn("[AFD] count failed", entryId, e); }
-  return c;
-}
-
-async function loadCounts(){
-  const rows = Array.from(document.querySelectorAll(".entry"));
-  await Promise.all(rows.map(async row => {
-    const id = row.dataset.entry;
-    if(!countsCache.has(id)) countsCache.set(id, await countByType(id));
-    applyCounts(row);
-  }));
-}
-
-function render(){
-  paintSkin();
-  const list = $("list"); list.innerHTML = "";
-  const words = window.AFDWords || [];
-  words.forEach(w => { const row = entryRow(w); list.appendChild(row); applyCounts(row); });
-  $("countLine").textContent = words.length + " entries";
-}
-
-$("skin").addEventListener("click", () => {
-  const M = AFDCore.DISP_MODES;
-  mode = M[(M.indexOf(mode) + 1) % M.length];
-  AFDCore.setDisplayMode(mode);
-  render();
-});
-
-$("buildStamp").textContent = "build " + BUILD;
-console.log("[AFD] dictionary build", BUILD, "·", location.href);
-render();
-loadCounts();
-</script>
+  <p>The dictionary now lives in <a href="find.html">Hakli — find</a>…</p>
 </body>
 </html>

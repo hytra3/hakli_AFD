@@ -29,18 +29,18 @@ within each group.
 
 ## Polish / small fixes
 
-- **Lead-card "closest match" marker** — in the wordless sound/script tiers nothing
+- **✅ Lead-card "closest match" marker** — in the wordless sound/script tiers nothing
   shows *which* result is the top acoustic match, and an expanded mid-list card can
   read as if it were singled out as "best." Add a subtle, unlabeled cue on the lead
   card only (a faint ring or amber dot), and make sure only the lead auto-expands.
   No visible ranking or number — a felt order, not a stated one.
-- **Sound-mode chips still read in English** — the dictionary's `word / sentence /
+- **✅ Sound-mode chips → icons (dictionary)** — the dictionary's `word / sentence /
   meaning` chips show English text even in the wordless "sound" tier. Should be
   icon-only there, like the recorder's audio buttons.
-- **Recorder "reps/repetitions" wording** — already type-gated in most places; sweep
+- **✅ Recorder "reps" wording** — word-gated everywhere; session row now localized. — already type-gated in most places; sweep
   once more to be sure sentence/meaning never show a rep count anywhere.
-- **Favicon on `prompts/`** and any other stray pages (main three are done).
-- **Soundwave on find, like create** — the recorder draws a real amplitude sparkline
+- **✅ Favicon on `prompts/`** and any other stray pages (main three are done).
+- **✅ Soundwave on find** — per-take envelope sparkline on voice rows (amber while playing). — the recorder draws a real amplitude sparkline
   after capture; find shows waveform *tiles* but not the per-take envelope. The
   `envelope` array is already stored on each recording and returned by
   `listPlayable`, so render it as a sparkline on find's voice rows / tiles to match
@@ -86,9 +86,16 @@ within each group.
 
 ## Architecture / consolidation
 
-- **Front door + naming** — make the dictionary the index/landing surface and demote
-  the recorder to the "add" module, completing the one-surface-two-verbs vision.
-  A deliberate routing/renaming move.
+- **✅ Entry-card unified / find IS the dictionary** — `entryCard` is now lazy (cheap
+  header, detail on expand); `find.html` lists every entry as a collapsed card that
+  expands in place, carries voice counts collapsed, and has a back-to-all control.
+  One card renderer, reached by speaking or scrolling. `dictionary.html` retired into
+  a redirect to `find.html`.
+- **Front door + naming (remaining)** — `find.html` is now the main surface and the
+  recorder (`index.html`) is the "add" module, but the *filenames* still say
+  otherwise (index = recorder). Completing the vision means renaming so the landing
+  page is `index` and the recorder becomes e.g. `add`/`record` — a routing/rename
+  move (deep-links use `index.html#ent` for add, so do it deliberately). Not urgent.
 
 ## Housekeeping / refactor notes
 
