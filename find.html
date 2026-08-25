@@ -142,6 +142,10 @@
 
   /* the word's own voice, drawn inside its box in place of a letter */
   .thumb-wave{width:78%; height:56%; fill:rgba(255,255,255,.92); display:block}
+  .voice-row .vr-wave{flex:1; height:26px; min-width:0; margin:0 6px; display:block}
+  .voice-row .vr-wave svg{width:100%; height:100%; display:block; fill:var(--mist-2)}
+  .voice-row[aria-pressed="true"] .vr-wave svg{fill:var(--resin)}
+  .voice-row.withdrawn .vr-wave svg{fill:var(--mist-2); opacity:.5}
 
   /* speaker avatars — big enough for an elder to tap confidently */
   .voices{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
@@ -298,7 +302,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0822e";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0825a";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -686,7 +690,11 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
   row.className="voice-row"; row.setAttribute("aria-pressed","false");
   const play=document.createElement("button");
   play.className="vr-play"; play.setAttribute("aria-label","Play this voice");
+  const vrWave = (rec.envelope && rec.envelope.length)
+    ? `<span class="vr-wave"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${boxBars(rec.envelope, 40)}</svg></span>`
+    : `<span class="vr-wave"></span>`;
   play.innerHTML=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`+
+    vrWave+
     `<svg class="pl" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
   play.addEventListener("click",()=>{
     const parent=row.parentElement;
