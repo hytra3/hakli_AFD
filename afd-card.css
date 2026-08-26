@@ -109,3 +109,4 @@
 .afdcard .slot-body:empty{display:none}
 .afdcard .head-counts{display:flex;gap:10px;margin-top:5px;font:600 11px/1 var(--sans);color:var(--mist)}
 .afdcard .card.open .head-counts{display:none}
+.afdcard .voices-list.hidden{ display:none; }
