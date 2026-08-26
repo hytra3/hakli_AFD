@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0828a" type="image/svg+xml">
-<script src="afd-core.js?v=b0828a"></script>
-<script src="afd-words.js?v=b0828a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0828a">
+<link rel="icon" href="favicon.svg?v=b0828b" type="image/svg+xml">
+<script src="afd-core.js?v=b0828b"></script>
+<script src="afd-words.js?v=b0828b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0828b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -209,6 +209,14 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   #picto, #glossEn, #glossAr, #hearOthers{ display:none !important; }
   #entryCardHost{ width:100%; max-width:560px; margin:0 auto 14px; }
   #entryCardHost .card.lead .thumb::after{ display:none; }   /* no "closest match" pin here */
+  /* 2c — the card's slots now choose the record type, so the Word/Sentence/Meaning
+     tabs are redundant: hide them. The slot you're contributing to is ringed in
+     amber so it's clear what the next recording will be filed under. */
+  #rectype{ display:none; }
+  #entryCardHost[data-rectype="word"] .slot-word,
+  #entryCardHost[data-rectype="context"] .slot-context,
+  #entryCardHost[data-rectype="definition"] .slot-definition{
+    box-shadow:0 0 0 2px var(--frank); border-radius:14px; padding:6px; margin:-6px; }
 </style>
 </head>
 <body>
@@ -427,7 +435,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard } from "./afd-card.js?v=b0828a";
+import { initCard, entryCard } from "./afd-card.js?v=b0828b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -705,7 +713,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0828a";   // bump every publish; shown in the header + console
+const BUILD="b0828b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -948,6 +956,8 @@ function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[di
 function setRecType(t){
   recType=(t==="context"||t==="definition")?t:"word";
   document.querySelectorAll("#rectype .rt").forEach(b=>b.classList.toggle("active",b.dataset.type===recType));
+  const _host=document.getElementById("entryCardHost");   // 2c: ring the slot being filled
+  if(_host) _host.setAttribute("data-rectype", recType);
   const instr=$("instruction");
   if(instr){
     if(dispMode==="sound"){
@@ -1052,7 +1062,12 @@ async function applyDeepLink(){
   // If the recorder is already on screen (hash changed in place), repaint it.
   // On first load the recorder is hidden behind setup/mic; the existing
   // show("recorder") paths will renderPrompt() once the user gets there.
-  if(!$("recorder").classList.contains("hidden")) renderPrompt();
+  if(!$("recorder").classList.contains("hidden")){
+    renderPrompt();
+    // 2c: choosing a slot lands you at the record button, not far below the card.
+    const _rb=document.getElementById("recBtn");
+    if(_rb) _rb.scrollIntoView({behavior:"smooth", block:"center"});
+  }
 }
 applyDeepLink();
 window.addEventListener("hashchange",applyDeepLink);
