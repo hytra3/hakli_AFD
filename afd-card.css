@@ -1,0 +1,111 @@
+/* afd-card.css — the shared entry card's styles, with its OWN token block
+   scoped to .card so the card carries its colours wherever it renders and can
+   neither bleed into nor be broken by a host page's palette (find and the
+   recorder disagree on --mist and --r, so this scoping is load-bearing). */
+.afdcard .card{
+  --cloud:#FFFFFF; --ink:#17241F; --mountain:#1F3A34;
+  --mist:#8CA39B; --mist-2:#C4D2CC; --resin:#C6873F; --danger:#9E4433;
+  --shadow:24px 24px 60px rgba(31,58,52,.10); --r:22px;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+
+/* candidate card = one compact row */
+  .afdcard .card{background:var(--cloud); border-radius:var(--r); box-shadow:var(--shadow);
+        padding:14px; display:flex; flex-direction:column; align-items:stretch; gap:12px; text-align:left;
+        opacity:0; transform:translateY(10px); animation:rise .4s ease forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+/* every card: a head row, then a collapsible detail underneath */
+  .afdcard .card .head{display:flex; align-items:center; gap:14px; cursor:pointer}
+.afdcard .card.lead{padding:18px; gap:16px; border:1.5px solid var(--resin)}
+.afdcard .card.lead .thumb{position:relative}
+/* wordless "closest match" pin on the top result's picture */
+  .afdcard .card.lead .thumb::after{content:""; position:absolute; top:-5px; right:-5px;
+    width:15px; height:15px; border-radius:50%; background:var(--resin);
+    border:2.5px solid var(--cloud); box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.afdcard .card .detail{display:none; flex-direction:column; gap:16px}
+.afdcard .card.open .detail{display:flex}
+.afdcard .card-chev{flex:0 0 auto; margin-left:2px; color:var(--mist); transition:transform .18s}
+.afdcard .card.open .card-chev{transform:rotate(180deg)}
+.afdcard .thumb{width:64px; height:64px; flex:0 0 auto; border-radius:14px; overflow:hidden;
+         display:grid; place-items:center; color:var(--cloud); font-family:var(--serif);
+         font-size:26px; background:var(--tile,#3A5C52)}
+.afdcard .card.lead .thumb{width:84px;height:84px;font-size:34px;border-radius:18px}
+.afdcard .thumb img{width:100%;height:100%;object-fit:cover}
+.afdcard .gloss{flex:1; min-width:0; font-family:var(--serif); font-size:22px; color:var(--ink);
+         line-height:1.15; word-break:break-word; text-align:left}
+.afdcard .card.lead .gloss{font-size:28px}
+.afdcard .gloss .glossar{display:block; font-family:var(--sans); font-size:15px; color:var(--mist);
+                  margin-top:3px; direction:rtl; text-align:right}
+.afdcard .gloss .glossar.solo{font-size:22px; color:var(--ink); margin-top:0}
+.afdcard .card.lead .gloss .glossar.solo{font-size:28px}
+.afdcard .play{flex:0 0 auto; width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
+        background:var(--mountain); color:var(--cloud); display:grid; place-items:center;
+        box-shadow:0 6px 16px rgba(31,58,52,.22)}
+.afdcard .card.lead .play{width:60px; height:60px; background:var(--resin)}
+.afdcard .play svg{width:42%;height:42%}
+/* the word's own voice, drawn inside its box in place of a letter */
+  .afdcard .thumb-wave{width:78%; height:56%; fill:rgba(255,255,255,.92); display:block}
+.afdcard .voice-row .vr-wave{flex:1; height:26px; min-width:0; margin:0 6px; display:block}
+.afdcard .voice-row .vr-wave svg{width:100%; height:100%; display:block; fill:var(--mist-2)}
+.afdcard .voice-row[aria-pressed="true"] .vr-wave svg{fill:var(--resin)}
+.afdcard .voice-row.withdrawn .vr-wave svg{fill:var(--mist-2); opacity:.5}
+/* speaker avatars — big enough for an elder to tap confidently */
+  .afdcard .voices{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.afdcard .av{width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;position:relative;
+      display:grid;place-items:center;box-shadow:0 2px 8px rgba(31,58,52,.16)}
+.afdcard .av svg{width:60%;height:60%}
+.afdcard .av[aria-pressed="true"]{outline:3px solid var(--resin); outline-offset:2px}
+/* collapsed count chip — a language-free "N voices", tap to itemize */
+  .afdcard .voices-chip{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--mist-2);
+      background:transparent; border-radius:26px; padding:6px 14px 6px 8px; cursor:pointer;
+      box-shadow:0 2px 8px rgba(31,58,52,.10)}
+.afdcard .voices-chip .peeks{display:inline-flex}
+.afdcard .voices-chip .peek{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+      box-shadow:0 0 0 2px var(--cloud); margin-left:-10px}
+.afdcard .voices-chip .peek:first-child{margin-left:0}
+.afdcard .voices-chip .peek svg{width:60%;height:60%}
+.afdcard .voices-chip .count{font:700 17px/1 var(--sans); color:var(--mountain); margin-left:2px}
+.afdcard .voices-chip .chev{color:var(--mist); transition:transform .18s}
+.afdcard .voices-chip.open .chev{transform:rotate(180deg)}
+/* itemized voices — one row per utterance; consent controls slot in on the right later */
+  .afdcard .voices-list{width:100%; display:flex; flex-direction:column; gap:8px; margin-top:4px}
+.afdcard .voice-row{display:flex; align-items:center; gap:12px; border:1.5px solid var(--mist-2);
+      background:var(--cloud); border-radius:16px; padding:10px 14px; cursor:pointer}
+.afdcard .voice-row .av-sm{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;
+      box-shadow:0 2px 8px rgba(31,58,52,.14)}
+.afdcard .voice-row .av-sm svg{width:60%;height:60%}
+.afdcard .voice-row .pl{color:var(--mountain); flex:0 0 auto; margin-left:auto}
+.afdcard .voice-row[aria-pressed="true"]{border-color:var(--resin); outline:2px solid var(--resin); outline-offset:0}
+.afdcard .voice-row .vr-play{flex:1; display:flex; align-items:center; gap:12px; border:none; background:transparent;
+      cursor:pointer; padding:0; color:inherit; text-align:left; min-width:0}
+.afdcard .voice-row .vr-play .pl{margin-left:auto}
+.afdcard .voice-ctl{border:1.5px solid var(--mist-2); background:transparent; color:var(--mountain); flex:0 0 auto;
+      border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); cursor:pointer}
+.afdcard .voice-ctl.restore{border-color:var(--resin); color:var(--resin)}
+.afdcard .voice-ctl:disabled{opacity:.5; cursor:default}
+.afdcard .voice-row.withdrawn{opacity:.62}
+.afdcard .voice-row.withdrawn .av-sm{filter:grayscale(.7)}
+/* own-take management, after the recording is saved: Withdraw/Restore · Erase.
+     (Try again lives at recording time in the recorder, not here.) The row wraps
+     so the cluster drops to a second line on narrow screens instead of overflowing. */
+  .afdcard .voice-row{flex-wrap:wrap}
+.afdcard .vr-controls{display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-left:auto}
+.afdcard .voice-ctl.erase{border-color:var(--mist-2); color:var(--mist)}
+.afdcard .voice-ctl.erase.armed{border-color:var(--danger); color:var(--cloud); background:var(--danger)}
+.afdcard .sayit{border:1.5px solid var(--mist-2); background:transparent; color:var(--mountain);
+         border-radius:16px; padding:15px; font:600 16px/1 var(--sans); text-decoration:none;
+         display:flex; align-items:center; justify-content:center; gap:10px; cursor:pointer}
+.afdcard .sayit .ar{color:var(--mist); font-weight:400}
+/* labelled sections inside an open card: "the word" (voices), then the empty
+     homes for context & definition audio (the recorder doesn't capture those yet) */
+  .afdcard .slot .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px}
+.afdcard .slot .slot-label{font:600 12px/1.2 var(--sans); color:var(--mountain); letter-spacing:.06em; text-transform:uppercase}
+.afdcard .slot .slot-label .ar{color:var(--mist); font-weight:400; letter-spacing:0; text-transform:none; margin-inline-start:6px}
+.afdcard .slot .slot-empty{font:400 12px/1 var(--sans); color:var(--mist)}
+.afdcard .slot-add{display:inline-flex; align-items:center; gap:6px; color:var(--mist); text-decoration:none;
+      border:1.5px dashed var(--mist-2); border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); margin-top:10px}
+.afdcard .slot-body{display:flex; flex-direction:column; gap:8px; align-items:flex-start}
+.afdcard .slot-body:empty{display:none}
+.afdcard .head-counts{display:flex;gap:10px;margin-top:5px;font:600 11px/1 var(--sans);color:var(--mist)}
+.afdcard .card.open .head-counts{display:none}
