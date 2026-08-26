@@ -6,12 +6,12 @@
 <title>Hakli — dictionary</title>
 <link rel="icon" href="favicon.svg?v=b0822b" type="image/svg+xml">
 <script>
-  /* The dictionary is now find.html — one surface: browse every entry, speak to
+  /* The dictionary is now index.html — one surface: browse every entry, speak to
      find, and open any entry in place. This page just forwards, preserving any
      #ent_xxx deep-link, and uses replace() so Back doesn't bounce here. */
-  location.replace("find.html" + (location.hash || ""));
+  location.replace("index.html" + (location.hash || ""));
 </script>
-<noscript><meta http-equiv="refresh" content="0; url=find.html"></noscript>
+<noscript><meta http-equiv="refresh" content="0; url=index.html"></noscript>
 <style>
   body{background:#EAF0EE;font-family:system-ui,-apple-system,sans-serif;color:#1F3A34;
        display:grid;place-items:center;height:100vh;margin:0}
@@ -19,6 +19,6 @@
 </style>
 </head>
 <body>
-  <p>The dictionary now lives in <a href="find.html">Hakli — find</a>…</p>
+  <p>The dictionary now lives in <a href="index.html">Hakli — find</a>…</p>
 </body>
 </html>
