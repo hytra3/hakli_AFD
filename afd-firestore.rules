@@ -44,7 +44,29 @@ service cloud.firestore {
     // ------------------------------ word entries ------------------------------
     match /afd_entries/{entryId} {
       allow read: if true;
-      allow write: if false;   // entries are seeded from a script, never the app
+
+      // Seeded entries are written by the admin script (the Admin SDK bypasses
+      // rules, so those aren't constrained here). A signed-in contributor may
+      // CREATE a new entry from the app — audio-first, so gloss text is optional
+      // and there is no client-set picture (identicon carries the visual). They
+      // may never edit or delete an entry: relabel / merge / split is a future
+      // reviewer tool with its own authorisation model, so update+delete stay
+      // closed. This is what turns the fixed seed corpus into a growable one
+      // without opening it to vandalism.
+      allow create: if notAnon()
+                    && request.resource.data.source == 'user'
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.keys().hasOnly(
+                         ['source','createdBy','createdAt','gloss','glossAr','domain'])
+                    && (!('gloss'   in request.resource.data) ||
+                        (request.resource.data.gloss   is string && request.resource.data.gloss.size()   <= 80))
+                    && (!('glossAr' in request.resource.data) ||
+                        (request.resource.data.glossAr is string && request.resource.data.glossAr.size() <= 80))
+                    && (!('domain'  in request.resource.data) ||
+                        (request.resource.data.domain  is string && request.resource.data.domain.size()  <= 40));
+      allow update: if false;
+      allow delete: if false;
 
       // -------------------------- contributed recordings --------------------------
       match /recordings/{recordingId} {

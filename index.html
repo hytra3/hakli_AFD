@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0825a" type="image/svg+xml">
-<script src="afd-core.js?v=b0825a"></script>
-<script src="afd-words.js?v=b0825a"></script>
+<link rel="icon" href="favicon.svg?v=b0826a" type="image/svg+xml">
+<script src="afd-core.js?v=b0826a"></script>
+<script src="afd-words.js?v=b0826a"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -413,7 +413,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
          signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, serverTimestamp,
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
@@ -681,7 +681,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0825a";   // bump every publish; shown in the header + console
+const BUILD="b0826a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -987,7 +987,7 @@ paintChrome();
    wordlist we jump nowhere and stay on Word, rather than quietly record a sentence
    against whatever word happens to be at idx 0 and poison that slot. Corpus
    integrity beats being helpfully-wrong. */
-function applyDeepLink(){
+async function applyDeepLink(){
   const raw=(location.hash||"").replace(/^#/,"");
   if(!raw) return;
   const bar=raw.indexOf("|");
@@ -997,10 +997,30 @@ function applyDeepLink(){
   try{ entryId=decodeURIComponent(rawId).trim(); }catch(_){ entryId=rawId.trim(); }
   try{ type=decodeURIComponent(rawType).trim(); }catch(_){ type=rawType.trim(); }
   if(!entryId) return;
-  const target=WORDS.findIndex(w=>entryIdFor(w.id)===entryId);
+  let target=WORDS.findIndex(w=>entryIdFor(w.id)===entryId);
   if(target<0){
-    console.warn("[AFD] deep-link entry not in wordlist:",entryId,"— ignoring (type not applied)");
-    return;
+    // Not a seed word. It's a legitimate target ONLY if the entry actually exists
+    // in Firestore (find.html just created it before sending us here). A stale or
+    // typo'd id resolves to nothing, so we still bail and the integrity guard
+    // holds. A confirmed entry becomes a synthetic prompt: identicon face,
+    // optional label, recorded against its own entryId — which round-trips through
+    // entryIdFor(), so the save path writes to exactly the right place.
+    let meta=null;
+    try{ const sn=await getDoc(doc(db,"afd_entries",entryId)); if(sn.exists()) meta=sn.data(); }catch(_){}
+    if(!meta){
+      console.warn("[AFD] deep-link entry not found:",entryId,"— ignoring");
+      return;
+    }
+    const synth={ id: entryId.replace(/^ent_/,""), en: meta.gloss||"", ar: meta.glossAr||"",
+                  ref:"", pic: meta.pic||"", dom: meta.domain||"", _user:true };
+    if(entryIdFor(synth.id)!==entryId){
+      // id didn't round-trip (unexpected characters) — refuse rather than risk
+      // writing a recording under the wrong id. Corpus integrity beats guessing.
+      console.warn("[AFD] deep-link id round-trip mismatch:",entryId);
+      return;
+    }
+    WORDS.push(synth);
+    target=WORDS.length-1;
   }
   idx=target;
   setRecType(type==="context"||type==="definition"?type:"word");

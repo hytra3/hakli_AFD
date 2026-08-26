@@ -26,6 +26,19 @@ window.AFDCore = (function(){
   }
   function entryIdFor(id){ return "ent_" + entrySlug(id); }
 
+  /* A brand-new, contributor-created entry. Audio-first: no text is required, so
+     the id can't be slugged from a gloss — we mint a random, collision-free id in
+     the SAME "ent_" space as seeded words. The "u_" segment marks it as user-made
+     at a glance in logs / Firestore; the authoritative provenance is the doc's
+     source:"user" field. identicon(seed) keys off this id, so the entry has a
+     stable visual identity the instant it exists, with no picture assigned. */
+  function mintEntryId(){
+    let rand;
+    try{ rand = crypto.randomUUID().replace(/-/g,""); }
+    catch(_){ rand = Date.now().toString(36) + Math.random().toString(36).slice(2); }
+    return "ent_u_" + rand.slice(0,12);
+  }
+
   /* ---- display tier ---------------------------------------------------------
      One setting shared by every surface, persisted under a single key so a
      speaker sets it once and the whole app obeys.
@@ -100,6 +113,8 @@ window.AFDCore = (function(){
     "result.here":          { en:"Here it is",         ar:"ها هو" },
     "result.pick":          { en:"Did you mean…",      ar:"هل تقصد…" },
     "result.sayityourself": { en:"Say it yourself",    ar:"سجّل صوتك" },
+    "entry.addnew":         { en:"Add it to the dictionary", ar:"أضِفها إلى القاموس" },
+    "entry.notthese":       { en:"None of these — add a new word", ar:"غير موجودة؟ أضف كلمة جديدة" },
     "action.hear.word":     { en:"Hear the word in English",       ar:"استمع بالإنجليزية" },
     "action.hear.others":   { en:"Hear how others said it in Hakli", ar:"استمع بالحكلية" },
     "record.hold":          { en:"Hold to record",     ar:"اضغط باستمرار للتسجيل" },
@@ -165,7 +180,7 @@ window.AFDCore = (function(){
   }
 
   return {
-    entrySlug, entryIdFor,
+    entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t,
