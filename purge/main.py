@@ -72,12 +72,24 @@ def purge(cloud_event):
     cutoff = now - datetime.timedelta(hours=GRACE_HOURS)
 
     swept = purged = within_grace = errors = 0
+    e_swept = e_purged = e_within_grace = 0
 
     # No collection-group index needed: walk entries, then each entry's
     # "deleted" recordings (a single-field where on a subcollection is
     # auto-indexed, so this deploys with nothing extra to configure).
     for entry in _db.collection("afd_entries").stream():
-        recs = entry.reference.collection("recordings").where(
+        entry_ref = entry.reference
+        edata = entry.to_dict() or {}
+        is_user_entry = edata.get("source") == "user"
+        # Snapshot whether this entry has ANY recording BEFORE we purge the
+        # deleted ones below, so an all-erased contributor entry keeps its doc
+        # this pass and is only reaped on a later sweep, once the recordings are
+        # actually gone — never both in the same run.
+        had_recording = (any(True for _ in
+            entry_ref.collection("recordings").limit(1).stream())
+            if is_user_entry else True)
+
+        recs = entry_ref.collection("recordings").where(
             filter=FieldFilter("consent", "==", "deleted")
         )
         for snap in recs.stream():
@@ -110,6 +122,29 @@ def purge(cloud_event):
                 errors += 1
                 print(f"doc delete failed {ref.path}: {e}")
 
+        # (2) reap an abandoned contributor entry: source=="user", zero
+        #     recordings, created longer ago than the grace window. Seed entries
+        #     are never touched; a just-created entry still mid-recording is
+        #     inside grace and safe. Grace is measured from createdAt (the field
+        #     set on creation), falling back to the doc's own create_time.
+        if is_user_entry and not had_recording:
+            e_swept += 1
+            created = edata.get("createdAt") or entry.create_time
+            if created is None or created > cutoff:
+                e_within_grace += 1
+            elif DRY_RUN:
+                print(f"DRY-RUN would purge empty entry {entry_ref.path}  created={created}")
+                e_purged += 1
+            else:
+                try:
+                    entry_ref.delete()
+                    e_purged += 1
+                    print(f"purged empty entry {entry_ref.path}")
+                except Exception as ex:
+                    errors += 1
+                    print(f"entry delete failed {entry_ref.path}: {ex}")
+
     tag = "(dry-run) " if DRY_RUN else ""
-    print(f"PURGE {tag}done: swept={swept} purged={purged} "
-          f"within-grace={within_grace} errors={errors}")
+    print(f"PURGE {tag}done: recordings swept={swept} purged={purged} "
+          f"within-grace={within_grace} errors={errors} | "
+          f"empty-entries swept={e_swept} purged={e_purged} within-grace={e_within_grace}")
