@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0826j" type="image/svg+xml">
-<script src="afd-core.js?v=b0826j"></script>
-<script src="afd-words.js?v=b0826j"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0826j">
+<link rel="icon" href="favicon.svg?v=b0826k" type="image/svg+xml">
+<script src="afd-core.js?v=b0826k"></script>
+<script src="afd-words.js?v=b0826k"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0826k">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -436,7 +436,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826j";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826k";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -732,7 +732,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0826j";   // bump every publish; shown in the header + console
+const BUILD="b0826k";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -922,7 +922,7 @@ function renderPrompt(){
   // Audio buttons: words for readers (auto / script), friendly icons for non-readers (sound)
   const wordless = (dispMode==="sound");
   // English audio is no use to a Hakli-only speaker — hide it in sound mode.
-  $("playGloss").classList.toggle("hidden", wordless);
+  $("playGloss").classList.toggle("hidden", wordless || !w.en);   // nothing to speak on a user-created entry (no English gloss yet)
   $("playGloss").innerHTML  = '▶ '+AFDCore.t("action.hear.word",dispMode);
   $("hearOthers").innerHTML = wordless ? '<span class="bicon" role="img" aria-label="Hear how others said it">🗣️</span>'
                                        : AFDCore.t("action.hear.others",dispMode);
