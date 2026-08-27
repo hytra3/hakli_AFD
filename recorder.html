@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0826i" type="image/svg+xml">
-<script src="afd-core.js?v=b0826i"></script>
-<script src="afd-words.js?v=b0826i"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0826i">
+<link rel="icon" href="favicon.svg?v=b0826j" type="image/svg+xml">
+<script src="afd-core.js?v=b0826j"></script>
+<script src="afd-words.js?v=b0826j"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0826j">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -436,7 +436,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826i";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826j";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -625,10 +625,16 @@ window.AFD.getEntry = async (entryId)=>{
 // yet. Re-run it now that getEntry is available; it's idempotent (an already-added
 // synthetic word is found by findIndex and not re-added).
 try{ if(window.__applyDeepLink) window.__applyDeepLink(); }catch(e){ console.warn("[AFD] re-applyDeepLink", e); }
+let _cardSeq = 0;
 window.AFD.renderCard = async (entryId, mount)=>{
   if(!mount) return null;
-  try{ const c = await entryCard({ entryId }, true); mount.replaceChildren(c.el); return c; }
-  catch(e){ console.warn("[AFD] renderCard", e); return null; }
+  const my = ++_cardSeq;
+  try{
+    const c = await entryCard({ entryId }, true);
+    if(my !== _cardSeq) return null;   // a newer render started while we awaited — drop this stale one
+    mount.replaceChildren(c.el);
+    return c;
+  }catch(e){ console.warn("[AFD] renderCard", e); return null; }
 };
 </script>
 
@@ -726,7 +732,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0826i";   // bump every publish; shown in the header + console
+const BUILD="b0826j";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1071,7 +1077,10 @@ async function applyDeepLink(){
     let meta=null;
     try{ meta = (window.AFD && window.AFD.getEntry) ? await window.AFD.getEntry(entryId) : null; }catch(_){}
     if(!meta){
-      console.warn("[AFD] deep-link entry not found:",entryId,"— ignoring");
+      // Only a genuine miss warrants a warning. The first pass runs before the
+      // module's getEntry bridge exists (null just means "too early"); the module
+      // re-runs applyDeepLink once the bridge is ready.
+      if(window.AFD && window.AFD.getEntry) console.warn("[AFD] deep-link entry not found:",entryId,"— ignoring");
       return;
     }
     const synth={ id: entryId.replace(/^ent_/,""), en: meta.gloss||"", ar: meta.glossAr||"",
