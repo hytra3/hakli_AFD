@@ -66,6 +66,8 @@
   .sync.pending{color:var(--warm);} .sync.ok{color:var(--go);}
   audio{width:100%; margin-top:12px;}
   .hidden{display:none;}
+  #recdone{display:none; gap:8px; justify-content:center; margin-top:10px}
+  #recdone:not(.hidden){display:flex}
 </style>
 </head>
 <body>
@@ -93,6 +95,10 @@
           <button class="btn keep" id="keep">✓ Keep it</button>
         </div>
         <div class="sync" id="sync"></div>
+        <div class="recdone hidden" id="recdone">
+          <button class="btn" id="playactive">▶ Play</button>
+          <button class="btn" id="delactive">🗑 Delete</button>
+        </div>
       </div>
 
       <div class="nav">
@@ -115,8 +121,8 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 /* ---- 1. PASTE the afd-dev web config here (same six values as the main recorder) ---- */
 const firebaseConfig = {
@@ -304,6 +310,7 @@ function render(){
   $("sync").className = "sync " + (state.pending.has(it.key) ? "pending" : (done?"ok":""));
   $("sync").textContent = state.pending.has(it.key) ? "saved here — will send when online" : (done ? "✓ recorded" : "");
   $("recbtn").textContent = done ? "Record again" : "Record";
+  $("recdone").classList.toggle("hidden", !(done || state.pending.has(it.key)));
 
   renderList();
   updateProgress();
@@ -361,6 +368,34 @@ $("recbtn").onclick = async ()=>{
 };
 
 $("redo").onclick = ()=>{ resetRecUI(); $("recbtn").textContent = state.recorded.has(ITEMS[state.i].key)?"Record again":"Record"; };
+
+/* Play the active prompt's saved recording — before it's uploaded the blob is
+   local (state.pending); after upload the local copy is gone, so fetch Storage. */
+$("playactive").onclick = async ()=>{
+  const it = ITEMS[state.i], player = $("player");
+  const local = state.pending.get(it.key);
+  try{
+    player.src = local ? URL.createObjectURL(local)
+                       : await getDownloadURL(ref(state.store, "afd_ui/"+it.key+".webm"));
+  }catch(e){ alert("Couldn't load that recording to play — is it uploaded yet?"); return; }
+  player.classList.remove("hidden");
+  player.play().catch(()=>{});
+};
+
+/* Delete the active prompt's recording (local + Storage + Firestore), so it
+   drops back to "not recorded" and can be redone. Each remote step is best-effort
+   — a not-yet-uploaded take simply has no Storage/Firestore copy to remove. */
+$("delactive").onclick = async ()=>{
+  const it = ITEMS[state.i], key = it.key;
+  if(!(state.recorded.has(key) || state.pending.has(key))) return;
+  if(!confirm("Delete this recording? You can record it again afterward.")) return;
+  state.pending.delete(key);
+  state.recorded.delete(key);
+  try{ await IDB.del(key); }catch(_){}
+  try{ await deleteObject(ref(state.store, "afd_ui/"+key+".webm")); }catch(_){}
+  try{ await deleteDoc(doc(state.db, "afd_ui_prompts", key)); }catch(_){}
+  render();
+};
 
 $("keep").onclick = async ()=>{
   const it = ITEMS[state.i];
