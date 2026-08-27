@@ -135,7 +135,7 @@ async function listPlayable(entryId){
                consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
                mine: !!(CFG.user() && v.uid===CFG.user().uid),
                envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
-               avatar: faunaAvatar(v.speakerId||v.uid||d.id) });
+               avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) });
   };
   try{
     const pub=await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),
@@ -156,6 +156,37 @@ function playVoiceInto(rec, thumbEl, playBtn, setUrl){
   setUrl(rec.url);
   if(thumbEl && thumbEl.querySelector("svg")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
   playInto(playBtn, rec.url);
+}
+
+/* Withdraw (or restore) every recording made by ONE speaker — the (uid,
+   speakerId) pair, since a single steward account may record several speakers.
+   Scoped tight: it never touches another speaker's takes, and never an already-
+   erased one. Recoverable — "withdrawn" only hides from public listening; the
+   bytes stay until a separate Erase. Index-free: two equality filters per entry
+   subcollection ride Firestore's auto single-field indexes, so there's nothing
+   extra to configure. */
+async function withdrawSpeaker(uid, speakerId, state){
+  state = state==="public" ? "public" : "withdrawn";
+  if(!uid || !speakerId) return 0;
+  const entryIds = new Set((window.AFDWords||[]).map(w=>AFDCore.entryIdFor(w.id)));
+  try{
+    const snap = await getDocs(query(collection(CFG.db,"afd_entries"), where("source","==","user")));
+    snap.docs.forEach(d=>entryIds.add(d.id));
+  }catch(e){ console.warn("[AFD] withdrawSpeaker: user entries", e); }
+  let n=0;
+  for(const eid of entryIds){
+    try{
+      const rs = await getDocs(query(collection(CFG.db,"afd_entries",eid,"recordings"),
+                    where("uid","==",uid), where("speakerId","==",speakerId)));
+      for(const r of rs.docs){
+        if((r.data()||{}).consent === "deleted") continue;   // never touch an erased take
+        await updateDoc(r.ref, { consent: state, allowPlayback: state==="public" });
+        n++;
+      }
+    }catch(e){ console.warn("[AFD] withdrawSpeaker", eid, e); }
+  }
+  console.log("[AFD] withdrawSpeaker", speakerId, "\u2192", state, "count", n);
+  return n;
 }
 
 async function setConsent(rec, state){
@@ -415,4 +446,4 @@ async function entryCard(res, lead){
   return { el, playBtn, get firstPlayable(){ return firstPlayable; } };
 }
 
-export { entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { entryCard, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0828b" type="image/svg+xml">
-<script src="afd-core.js?v=b0828b"></script>
-<script src="afd-words.js?v=b0828b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0828b">
+<link rel="icon" href="favicon.svg?v=b0826h" type="image/svg+xml">
+<script src="afd-core.js?v=b0826h"></script>
+<script src="afd-words.js?v=b0826h"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0826h">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -397,6 +397,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   <div class="card" id="sessionCard">
     <p class="eyebrow" id="sessionTitle">This session</p>
     <button class="btn secondary" id="switchSpeaker">Switch speaker</button>
+    <button class="btn secondary" id="withdrawSpeaker">Withdraw this speaker's recordings</button>
     <div id="clips"><p class="note">No recordings kept yet.</p></div>
     <button class="btn" id="syncBtn">Upload to the dictionary</button>
     <button class="btn secondary" id="dlManifest">Export everything (.zip)</button>
@@ -435,7 +436,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard } from "./afd-card.js?v=b0828b";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826h";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -612,6 +613,7 @@ initCard({ db, store, recorderUrl:"recorder.html",
            mode:()=>AFDCore.getDisplayMode("auto"),
            user:()=>currentUser,
            banner:(m)=>{ try{ alert(m); }catch(_){ console.warn("[AFD]", m); } } });
+window.AFD.withdrawSpeaker = withdrawSpeaker;
 window.AFD.renderCard = async (entryId, mount)=>{
   if(!mount) return null;
   try{ const c = await entryCard({ entryId }, true); mount.replaceChildren(c.el); return c; }
@@ -713,7 +715,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0828b";   // bump every publish; shown in the header + console
+const BUILD="b0826h";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -737,6 +739,21 @@ $("switchSpeaker").onclick=()=>{
   switchingSpeaker=true;
   $("toMic").textContent="Record for this speaker";
   show("setup");
+};
+$("withdrawSpeaker").onclick=async ()=>{
+  const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
+  const spk=($("spkId").value||"").trim();
+  if(!uid){ alert("Sign in first to manage recordings."); return; }
+  if(!spk){ alert("Enter the speaker id you want to withdraw."); return; }
+  if(!confirm("Withdraw ALL of "+spk+"'s recordings from public listening?\n\nOnly "+spk+" is affected — every other speaker is untouched. This is recoverable: the recordings can be restored.")) return;
+  const btn=$("withdrawSpeaker"); const label=btn.textContent;
+  btn.disabled=true; btn.textContent="Withdrawing\u2026";
+  try{
+    const n=await window.AFD.withdrawSpeaker(uid, spk, "withdrawn");
+    alert(n ? ("Withdrew "+n+" recording"+(n===1?"":"s")+" from "+spk+". Individual takes can be restored from the dictionary.")
+            : ("No public recordings found for "+spk+"."));
+  }catch(e){ alert("Couldn't withdraw just now — please try again."); }
+  finally{ btn.disabled=false; btn.textContent=label; }
 };
 $("toMic").onclick=()=>{
   if(switchingSpeaker){
@@ -1395,7 +1412,7 @@ $("redoBtn").onclick=()=>{
 $("keepBtn").onclick=async ()=>{
   const w=WORDS[idx];
   const rec={
-    recordingId:"rec_"+w.id+"_"+$("spkId").value+"_"+Date.now(),
+    recordingId:"rec_"+w.id+"_"+(((window.AFD&&window.AFD.user())?window.AFD.user().uid:"anon").slice(0,6))+"_"+$("spkId").value+"_"+Date.now(),
     entryId:entryIdFor(w.id), gloss:w.en, domain:w.dom,
     speakerId:$("spkId").value, phase:recType, type:recType, promptTier:"image",
     repetitionIndex:"both", skipped:false,
