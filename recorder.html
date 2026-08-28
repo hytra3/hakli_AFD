@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0826k" type="image/svg+xml">
-<script src="afd-core.js?v=b0826k"></script>
-<script src="afd-words.js?v=b0826k"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0826k">
+<link rel="icon" href="favicon.svg?v=b0826l" type="image/svg+xml">
+<script src="afd-core.js?v=b0826l"></script>
+<script src="afd-words.js?v=b0826l"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0826l">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -230,7 +230,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <b>Hakli</b><small>Audio First Dictionary</small>
   </div>
   <h1>Hakli Word Recorder</h1>
-  <p class="note">Part of the Audio First Dictionary. Recordings are saved on this
+  <p class="note" id="aboutNote">Part of the Audio First Dictionary. Recordings are saved on this
     phone and uploaded when you're signed in.</p>
 
   <div class="card" id="authCard">
@@ -403,7 +403,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn secondary" id="dlManifest">Export everything (.zip)</button>
     <button class="btn ghost" id="revealRef">Show my field notes</button>
     <button class="btn ghost" id="clearBtn">Clear this device</button>
-    <p class="note">Recordings are saved on this phone first, then uploaded.
+    <p class="note" id="savedNote">Recordings are saved on this phone first, then uploaded.
       Nothing is lost if you go offline — upload again when you have signal.</p>
   </div>
 </section>
@@ -436,7 +436,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826k";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0826l";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -473,7 +473,7 @@ if(CONFIGURED) onAuthStateChanged(auth, u=>{
   $("signedIn").classList.toggle("hidden", !u);
   if(u) $("whoami").textContent = u.email || u.displayName || u.uid;
   $("toMic").disabled = !u;
-  $("toMic").textContent = u ? "Continue" : "Sign in first";
+  $("toMic").textContent = u ? AFDCore.t("auth.continue",dispMode) : AFDCore.t("auth.signinfirst",dispMode);
   if(window.afdOnAuth) window.afdOnAuth(u);
 });
 
@@ -732,7 +732,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0826k";   // bump every publish; shown in the header + console
+const BUILD="b0826l";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -760,16 +760,15 @@ $("switchSpeaker").onclick=()=>{
 $("withdrawSpeaker").onclick=async ()=>{
   const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
   const spk=($("spkId").value||"").trim();
-  if(!uid){ alert("Sign in first to manage recordings."); return; }
-  if(!spk){ alert("Enter the speaker id you want to withdraw."); return; }
-  if(!confirm("Withdraw ALL of "+spk+"'s recordings from public listening?\n\nOnly "+spk+" is affected — every other speaker is untouched. This is recoverable: the recordings can be restored.")) return;
+  if(!uid){ alert(AFDCore.t("speaker.signin",dispMode)); return; }
+  if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
+  if(!confirm(AFDCore.t("speaker.withdraw.confirm",dispMode).split("{spk}").join(spk))) return;
   const btn=$("withdrawSpeaker"); const label=btn.textContent;
-  btn.disabled=true; btn.textContent="Withdrawing\u2026";
+  btn.disabled=true; btn.textContent=AFDCore.t("speaker.withdrawing",dispMode);
   try{
     const n=await window.AFD.withdrawSpeaker(uid, spk, "withdrawn");
-    alert(n ? ("Withdrew "+n+" recording"+(n===1?"":"s")+" from "+spk+". Individual takes can be restored from the dictionary.")
-            : ("No public recordings found for "+spk+"."));
-  }catch(e){ alert("Couldn't withdraw just now — please try again."); }
+    alert((n ? AFDCore.t("speaker.withdraw.done",dispMode) : AFDCore.t("speaker.withdraw.none",dispMode)).split("{n}").join(n).split("{spk}").join(spk));
+  }catch(e){ alert(AFDCore.t("speaker.withdraw.err",dispMode)); }
   finally{ btn.disabled=false; btn.textContent=label; }
 };
 $("toMic").onclick=()=>{
@@ -1029,6 +1028,7 @@ function paintChrome(){
   set("skipBtn","record.skip"); set("switchSpeaker","speaker.switch");
   set("syncBtn","session.upload"); set("dlManifest","session.export");
   set("clearBtn","session.clear"); set("sessionTitle","session.title");
+  set("withdrawSpeaker","speaker.withdraw"); set("savedNote","session.savednote"); set("aboutNote","session.about");
   set("howSound","review.howsound");
   const pg=$("playGloss"); if(pg) pg.textContent="▶ "+AFDCore.t("action.hear.word",dispMode);
   const rr=$("revealRef"); if(rr) rr.textContent=AFDCore.t(showRef?"session.fieldnotes.hide":"session.fieldnotes",dispMode);
@@ -1516,7 +1516,7 @@ async function showCompare(word, mine){
 function clipRow(name, meta, key, isMine){
   return '<div class="clip"><div class="name"><b>'+name+'</b><span>'+meta+'</span></div>'+
          (isMine?'<span class="sync up">YOURS</span>':'')+
-         '<button data-clip="'+key+'">Play</button></div>';
+         '<button data-clip="'+key+'">'+AFDCore.t("clip.play",dispMode)+'</button></div>';
 }
 
 $("compareNext").onclick=()=>{
@@ -1547,7 +1547,7 @@ async function syncOne(rec){
 async function syncPending(){
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(!pend.length){ alert("Everything is already uploaded."); return; }
-  if(!(window.AFD&&window.AFD.isSignedIn())){ alert("Sign in first to upload."); return; }
+  if(!(window.AFD&&window.AFD.isSignedIn())){ alert(AFDCore.t("session.signinupload",dispMode)); return; }
   const btn=$("syncBtn"), label=btn.textContent;
   btn.disabled=true;
   let ok=0;
@@ -1613,24 +1613,24 @@ function renderClips(){
   const mine=myClips();
   const real=mine.filter(k=>!k.skipped);
   const otherAcct=kept.length-mine.length;
+  const T=(k)=>AFDCore.t(k,dispMode);
   if(!mine.length){
-    $("clips").innerHTML='<p class="note">No recordings kept yet.'+
-      (otherAcct?' ('+otherAcct+' on this device belong to another account.)':'')+'</p>';
+    $("clips").innerHTML='<p class="note">'+T("session.norecordings")+
+      (otherAcct?' '+T("session.otheracct").split("{n}").join(otherAcct):'')+'</p>';
     return;
   }
   $("clips").innerHTML=mine.slice().reverse().map((k,i)=>{
     const n=mine.length-1-i;
     if(k.skipped) return '<div class="clip"><div class="name"><b>'+k.gloss+
-      '</b><span>skipped</span></div></div>';
-    const badge=k.synced?'<span class="sync up">UPLOADED</span>'
-                        :'<span class="sync pend">ON PHONE</span>';
+      '</b><span>'+T("clip.skipped")+'</span></div></div>';
+    const badge=k.synced?'<span class="sync up">'+T("clip.uploaded")+'</span>'
+                        :'<span class="sync pend">'+T("clip.onphone")+'</span>';
     return '<div class="clip"><div class="name"><b>'+k.gloss+'</b><span>'+
       (k.capture.durationMs/1000).toFixed(1)+'s · '+k.capture.sampleRate+' Hz'+
-      (isRepType(k.type)?' · '+k.qc.bursts+' '+AFDCore.t("unit.reps",dispMode):'')+'</span></div>'+badge+
-      '<button data-play="'+n+'">Play</button></div>';
-  }).join("")+'<p class="note">'+real.length+' recording'+(real.length===1?'':'s')+
-    ' kept · '+mine.filter(k=>!k.skipped&&k.synced).length+' uploaded.'+
-    (otherAcct?' '+otherAcct+' more belong to another account on this device.':'')+'</p>';
+      (isRepType(k.type)?' · '+k.qc.bursts+' '+T("unit.reps"):'')+'</span></div>'+badge+
+      '<button data-play="'+n+'">'+T("clip.play")+'</button></div>';
+  }).join("")+'<p class="note">'+T("session.summary").split("{n}").join(real.length).split("{up}").join(mine.filter(k=>!k.skipped&&k.synced).length)+
+    (otherAcct?' '+T("session.othermore").split("{n}").join(otherAcct):'')+'</p>';
 
   $("clips").querySelectorAll("[data-play]").forEach(b=>{
     b.onclick=()=>{ new Audio(URL.createObjectURL(mine[+b.dataset.play].blob)).play(); };
