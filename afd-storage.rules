@@ -19,10 +19,14 @@ service firebase.storage {
     match /afd/{uid}/{fileName} {
       // anyone may listen to contributed audio
       allow read: if true;
-      // only the signed-in, NON-anonymous owner may upload, audio only, 10 MB cap
+      // only the signed-in, NON-anonymous owner may upload, audio only, 10 MB cap.
+      // resource == null makes recordings write-once: a content overwrite is
+      // evaluated as create (not update) in Storage rules, so immutability is
+      // enforced here rather than via `allow update`.
       allow create: if request.auth != null
                     && request.auth.token.firebase.sign_in_provider != 'anonymous'
                     && request.auth.uid == uid
+                    && resource == null
                     && request.resource.size < 10 * 1024 * 1024
                     && request.resource.contentType.matches('audio/.*');
       // recordings are immutable once uploaded
@@ -41,9 +45,13 @@ service firebase.storage {
       allow read:   if request.auth != null
                     && request.auth.token.firebase.sign_in_provider != 'anonymous'
                     && request.auth.uid == uid;
+      // resource == null makes this truly write-once: in Storage rules a content
+      // overwrite is evaluated as create (not update), so immutability must be
+      // enforced here, not via `allow update`.
       allow create: if request.auth != null
                     && request.auth.token.firebase.sign_in_provider != 'anonymous'
                     && request.auth.uid == uid
+                    && resource == null
                     && request.resource.size < 10 * 1024 * 1024
                     && request.resource.contentType.matches('audio/.*');
       allow update, delete: if false;

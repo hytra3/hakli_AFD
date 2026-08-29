@@ -7,6 +7,11 @@ cd "$HERE/.."
 
 MSG="${1:-Update AFD}"
 
+# Keep the cache-bust stamp (?v=) in lockstep with index.html BUILD so shared
+# files can never be served stale. Safe to run every publish.
+echo "==> Syncing cache-bust stamp"
+bash "$HERE/sync-stamp.sh"
+
 if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
   echo "Nothing to publish — no changes since the last push."
   exit 0
