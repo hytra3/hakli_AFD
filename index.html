@@ -17,10 +17,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0828b" type="image/svg+xml">
-<script src="afd-core.js?v=b0828b"></script>
-<script src="afd-words.js?v=b0828b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0828b">
+<link rel="icon" href="favicon.svg?v=b0828c" type="image/svg+xml">
+<script src="afd-core.js?v=b0828c"></script>
+<script src="afd-words.js?v=b0828c"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0828c">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -199,7 +199,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0828b";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0828c";
 
 
 /* ================================================================= CONFIG */
@@ -220,7 +220,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0828b";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0828c";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -636,7 +636,7 @@ function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[disp
 $("skin").addEventListener("click", ()=>{
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
   setDisplayMode(next); updateSkinIcon();
-  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults);  // re-skin what's on screen
+  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults); else renderBrowse();  // re-skin what's on screen — incl. the browse list
 });
 updateSkinIcon();
 setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current tier
