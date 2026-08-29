@@ -217,6 +217,39 @@ const firebaseConfig = {
 /* >>> PASTE YOUR CLOUD RUN URL (no trailing slash) <<< */
 const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 
+/* ---- pre-warm the matcher -------------------------------------------------
+   afd-embed runs at min-instances=0, so it costs nothing while idle but pays a
+   cold start on the first search after it scales to zero: container boot + MMS
+   model load + corpus load, several seconds. We hide that by firing ONE
+   throwaway /search the moment the find page loads — the instance boots and
+   fully warms (this endpoint loads the corpus AND the model on the way through)
+   while the person is still getting oriented, so their real search is fast.
+
+   The clip is a ~0.25s 16 kHz mono WAV synthesised in-browser: valid for the
+   container's ffmpeg decode, non-silent so it survives the empty-audio guard,
+   and tiny. Fire-and-forget: the result is discarded and any failure is
+   swallowed — a warm-up that fails must never surface to the user. Runs once
+   per page load. (Note: /healthz can't be used to warm — Cloud Run intercepts
+   it before the container; only a real endpoint like /search boots the app.) */
+(function prewarmMatcher(){
+  if(!EMBED_URL || EMBED_URL.includes("PASTE-")) return;
+  try{
+    const sr=16000, n=Math.floor(sr*0.25), bytes=44+n*2;
+    const view=new DataView(new ArrayBuffer(bytes));
+    const put=(o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
+    put(0,"RIFF"); view.setUint32(4,bytes-8,true); put(8,"WAVE"); put(12,"fmt ");
+    view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,1,true);
+    view.setUint32(24,sr,true); view.setUint32(28,sr*2,true);
+    view.setUint16(32,2,true); view.setUint16(34,16,true); put(36,"data"); view.setUint32(40,n*2,true);
+    for(let i=0;i<n;i++) view.setInt16(44+i*2, Math.round(Math.sin(i/8)*200), true); // faint, non-zero
+    const fd=new FormData();
+    fd.append("file", new Blob([view.buffer],{type:"audio/wav"}), "warm.wav");
+    fetch(`${EMBED_URL}/search?top_k=1`, {method:"POST", body:fd})
+      .then(()=>console.log("[AFD] matcher pre-warmed"))
+      .catch(()=>{});   // silent — a failed warm-up is not the user's problem
+  }catch(_){}
+})();
+
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
