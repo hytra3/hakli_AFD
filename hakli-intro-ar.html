@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<!--
+  الهَكلي — قاموس الصوت أولًا · نسخة عربية
+  ملاحظة: النص بالفصحى (MSA) مسوّدة — بانتظار مراجعة ظفارية، كما في نصوص التطبيق.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الهَكلي · قاموس الصوت أولًا</title>
+<!-- social preview (WhatsApp / Open Graph) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hakli — Audio First Dictionary">
+<meta property="og:url" content="https://hakli.app/welcome-ar.html">
+<meta property="og:title" content="الهَكلي · Hakli — Audio First Dictionary">
+<meta property="og:description" content="قاموسٌ صوتيّ للغة الهَكلي — تُسمَع وتُحفَظ بأصوات أهلها. · An audio-first dictionary for the Hakli language, heard and kept in its own voices.">
+<meta property="og:image" content="https://hakli.app/og-hakli.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ar_OM">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://hakli.app/og-hakli.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --ink:#17241F;
+    --mist:#6E8078; --frank:#C6873F; --frank-soft:#E7C9A0; --line:#D8E2DC;
+    --ar:"Amiri", serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--fog); color:var(--mountain);
+    font-family:var(--ar); line-height:1.85;
+    background-image:radial-gradient(120% 60% at 50% -10%, #F1F5F3 0%, var(--fog) 60%);
+  }
+  .wrap{max-width:680px; margin:0 auto; padding:clamp(28px,6vw,72px) clamp(20px,5vw,40px) 80px}
+
+  /* hero */
+  .hero{text-align:center; padding-bottom:14px}
+  .mark{font-size:15px; letter-spacing:.04em; color:var(--mist); margin-bottom:20px}
+  .name{font-family:var(--ar); font-weight:700; font-size:clamp(48px,13vw,84px);
+        line-height:1; color:var(--ink); margin:0}
+  .thesis{font-family:var(--ar); font-size:clamp(21px,5.2vw,27px); color:var(--mountain);
+        max-width:30ch; margin:30px auto 6px}
+
+  .wave{display:flex; align-items:center; justify-content:center; gap:4px; height:70px;
+        margin:34px auto 8px; max-width:340px}
+  .wave i{flex:1; background:var(--frank); border-radius:3px; opacity:.9;
+          transform-origin:center; animation:breathe 3.4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.55)}}
+  @media (prefers-reduced-motion:reduce){ .wave i{animation:none} }
+
+  .rule{height:1px; background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);
+        border:0; margin:44px 0}
+
+  /* one-minute core */
+  .core{background:var(--cloud); border:1px solid var(--line); border-radius:22px;
+        padding:clamp(24px,5vw,36px); box-shadow:24px 24px 60px rgba(31,58,52,.07)}
+  .eyebrow{font-size:14px; letter-spacing:.03em; color:var(--frank); margin-bottom:4px}
+  .core h2{font-family:var(--ar); font-weight:700; font-size:clamp(28px,6.5vw,38px);
+           color:var(--ink); margin:0 0 6px}
+  .steps{list-style:none; margin:24px 0 0; padding:0; counter-reset:s}
+  .steps li{position:relative; padding:0 48px 22px 0; counter-increment:s}
+  .steps li:last-child{padding-bottom:0}
+  .steps li::before{content:counter(s,arabic-indic); position:absolute; right:0; top:-4px;
+           width:36px; height:36px; border-radius:50%; background:var(--fog);
+           color:var(--frank); font-family:var(--ar); font-weight:700; font-size:19px;
+           display:flex; align-items:center; justify-content:center}
+  .steps .t{font-family:var(--ar); font-size:21px; color:var(--mountain)}
+  .core .after{margin:24px 0 0; font-family:var(--ar); font-size:19px; color:var(--mountain)}
+
+  /* tour */
+  .tour{margin-top:52px}
+  .section-lead{font-size:15px; letter-spacing:.02em; color:var(--mist);
+           text-align:center; margin:0 0 10px}
+  .step{padding:32px 0; border-bottom:1px solid var(--line)}
+  .step:last-of-type{border-bottom:0}
+  .step .num{font-family:var(--ar); font-weight:700; font-size:17px; color:var(--frank);
+           background:var(--frank-soft); width:34px; height:34px; border-radius:50%;
+           display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px}
+  .step h4{font-family:var(--ar); font-weight:700; font-size:clamp(24px,5.5vw,30px);
+           color:var(--ink); margin:0; line-height:1.3}
+  .step .body{font-family:var(--ar); font-size:21px; color:var(--mountain); margin:14px 0 0}
+  .step.keep{background:var(--cloud); border:1px solid var(--frank-soft); border-radius:20px;
+           padding:28px clamp(22px,5vw,32px); margin:32px 0}
+  .step.keep h4{color:var(--mountain)}
+
+  /* close */
+  .close{text-align:center; margin-top:56px}
+  .close .body{font-family:var(--ar); font-size:clamp(22px,5.5vw,28px); color:var(--ink);
+           max-width:34ch; margin:0 auto}
+  .seal{margin:42px auto 0; width:44px; height:2px; background:var(--frank); border:0}
+
+  @media print{
+    body{background:#fff; background-image:none}
+    .wave i{animation:none}
+    .core, .step.keep{box-shadow:none}
+    .wrap{padding:0}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="hero">
+    <div class="mark">قاموس الصوت أولًا</div>
+    <h1 class="name">الهَكلي</h1>
+
+    <div class="wave" aria-hidden="true">
+      <i style="height:26%"></i><i style="height:44%"></i><i style="height:70%"></i>
+      <i style="height:52%"></i><i style="height:88%"></i><i style="height:100%"></i>
+      <i style="height:64%"></i><i style="height:38%"></i><i style="height:58%"></i>
+      <i style="height:82%"></i><i style="height:46%"></i><i style="height:24%"></i>
+      <i style="height:40%"></i><i style="height:72%"></i><i style="height:94%"></i>
+      <i style="height:60%"></i><i style="height:34%"></i><i style="height:50%"></i>
+      <i style="height:78%"></i><i style="height:42%"></i><i style="height:22%"></i>
+    </div>
+
+    <p class="thesis">مكانٌ لسماع لغة الهَكلي — ولحفظها بأصوات أهلها.</p>
+  </header>
+
+  <hr class="rule">
+
+  <section class="core">
+    <div class="eyebrow">ابدأ هنا</div>
+    <h2>في دقيقة واحدة</h2>
+    <ol class="steps">
+      <li><div class="t">افتح التطبيق. سترى كلمات، لكلٍّ منها صورة.</div></li>
+      <li><div class="t">اضغط زرّ التشغيل لتسمع كلمة. أو اضغط الميكروفون وانطق كلمة لتجدها.</div></li>
+      <li><div class="t">لتضيف صوتك، اضغط «سجّل صوتك» وانطق الكلمة مرّتين.</div></li>
+    </ol>
+    <p class="after">هذا هو جوهر الأمر. وكل ما يلي ليس إلا إضافةً إليه.</p>
+  </section>
+
+  <section class="tour">
+    <h3 class="section-lead">والمزيد، حين تكون مستعدًّا</h3>
+
+    <div class="step">
+      <div class="num">١</div>
+      <h4>لتسمع كلمة</h4>
+      <p class="body">يمكنك أن تتنقّل بالسمع في القاموس كلّه — اضغط زرّ التشغيل لأي كلمة لتسمع كيف تُنطَق. وللعثور على كلمة بسرعة، اضغط الميكروفون وانطقها بصوتٍ عالٍ؛ فيسمعها التطبيق ويأتيك بالكلمة المطابقة. لا حاجة إلى قراءة.</p>
+    </div>
+
+    <div class="step">
+      <div class="num">٢</div>
+      <h4>لتضيف صوتك</h4>
+      <p class="body">عند أي كلمة، اضغط «سجّل صوتك». اضغط الزرّ مطوّلًا وانطق الكلمة مرّتين، مع وقفةٍ قصيرة بينهما. ثم ارفع إصبعك لتسمع تسجيلك — احفظه إن كان جيّدًا، أو سجّل من جديد. وهكذا يصبح صوتك جزءًا من القاموس.</p>
+    </div>
+
+    <div class="step">
+      <div class="num">٣</div>
+      <h4>إن لم تكن الكلمة موجودة</h4>
+      <p class="body">لا يضمّ القاموس كل كلمة — بل ينمو بكم. فإن بحثت عن كلمة ولم تجدها، اضغط «أضِفها إلى القاموس» وانطقها. فتكون أنت أوّل صوتٍ لتلك الكلمة.</p>
+    </div>
+
+    <div class="step">
+      <div class="num">٤</div>
+      <h4>أن تقول أكثر من كلمة</h4>
+      <p class="body">الكلمة المفردة بداية. وعند أي كلمة يمكنك أيضًا أن تستعملها في جملة، أو أن تقول معناها — بالهَكلي. وهذا يعين الآخرين على فهم الكلمة حقًّا، لا على سماع صوتها وحده.</p>
+    </div>
+
+    <div class="step keep">
+      <div class="num">٥</div>
+      <h4>صوتك ملكك</h4>
+      <p class="body">وهذا أمرٌ مهم: كل تسجيلٍ تصنعه هو ملكك. فإن غيّرت رأيك — اليوم أو بعد حين — فبإمكانك سحبه. فيتوقّف عن الإسماع للآخرين، لكنه لا يضيع أبدًا، ولك أن تشاركه مجددًا متى شئت. ولا يستطيع أحدٌ غيرك أن يسحب صوتك. أنت وحدك.</p>
+    </div>
+
+    <div class="step">
+      <div class="num">٦</div>
+      <h4>ينتظرك</h4>
+      <p class="body">تُحفَظ تسجيلاتك على هاتفك أوّلًا، ثم تُرسَل عند توفّر الإنترنت. وإن انقطع الاتصال فلا يضيع شيء — تُرسِل نفسها لاحقًا. لا عجلة في الأمر. أغلق التطبيق ثم عُد؛ فعملك ينتظرك.</p>
+    </div>
+  </section>
+
+  <section class="close">
+    <p class="body">كل صوتٍ يُضاف هنا يعين لغة الهَكلي على أن تُسمَع — من أي أحد، في أي مكان، اليوم وبعد اليوم بزمنٍ طويل. إنها لغتكم، محفوظةً بأصواتكم، لمن يأتي بعدكم.</p>
+    <hr class="seal">
+  </section>
+
+</main>
+</body>
+</html>

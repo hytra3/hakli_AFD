@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # One-time installer: writes the VS Code tasks, helper scripts, and
 # DEPLOY.md into this AFD repo. Run it from the repo root:
-#     cd ~/tawq.in/afd && bash afd-setup.sh
+#     cd ~/afd && bash afd-setup.sh
 set -euo pipefail
 
 if [ ! -f index.html ] || [ ! -d embed_service ]; then
   echo "!! Run this from the AFD repo root. Try:"
-  echo "     cd ~/tawq.in/afd && bash afd-setup.sh"
+  echo "     cd ~/afd && bash afd-setup.sh"
   exit 1
 fi
 
