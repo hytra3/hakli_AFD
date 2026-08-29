@@ -60,7 +60,7 @@
   .toggle button{font-family:var(--ar); font-size:17px; color:var(--mist); background:transparent;
     border:0; border-radius:999px; padding:8px 18px; cursor:pointer; transition:all .15s}
   .toggle button.en{font-family:var(--en); font-style:italic}
-  .toggle button[aria-pressed="true"]{background:var(--mountain); color:#fff}
+  .toggle button[aria-pressed="true"], .toggle button.active{background:var(--mountain); color:#fff}
 
   .note{font-family:var(--ar); font-size:16px; color:var(--mist); text-align:center;
     max-width:40ch; margin:24px auto 0; line-height:1.7}
@@ -117,11 +117,7 @@
       <i style="height:56%"></i><i style="height:80%"></i><i style="height:96%"></i><i style="height:58%"></i>
     </div>
 
-    <div class="toggle" role="group" aria-label="language">
-      <button id="mHakli" aria-pressed="true">الهَكلي</button>
-      <button id="mAr" aria-pressed="false">عربي</button>
-      <button id="mEn" class="en" aria-pressed="false">English</button>
-    </div>
+    <div class="toggle" id="toggle" role="group" aria-label="language"></div>
 
     <p class="note" id="hint"></p>
     <button class="playall" id="playAll"><span class="tri">▶</span> <span id="playAllLbl">استمع إلى المقدمة</span></button>
@@ -241,20 +237,26 @@ function lineHTML(l, n){
   const hasClip = mode==="hakli" && urls[l.k];
   const text = (mode==="en") ? l.en : l.ar;
   const cls  = (mode==="en") ? "line en" : "line";
+  const numStr = (mode==="en") ? String(n) : toArabicNum(n);
   if(hasClip){
-    return '<div class="'+cls+'"><span class="num">'+toArabicNum(n)+'</span>'+
+    return '<div class="'+cls+'"><span class="num">'+numStr+'</span>'+
            '<button class="play" data-k="'+l.k+'" aria-label="listen">▶</button>'+
            '<span class="txt">'+l.ar+'</span></div>';
   }
-  return '<div class="'+cls+'"><span class="num">'+toArabicNum(n)+'</span><span class="txt">'+text+'</span></div>';
+  return '<div class="'+cls+'"><span class="num">'+numStr+'</span><span class="txt">'+text+'</span></div>';
 }
 function toArabicNum(n){ return String(n).replace(/[0-9]/g, d=>"٠١٢٣٤٥٦٧٨٩"[+d]); }
 
 function render(){
   // toggle state
-  document.getElementById("mHakli").setAttribute("aria-pressed", mode==="hakli");
-  document.getElementById("mAr").setAttribute("aria-pressed", mode==="ar");
-  document.getElementById("mEn").setAttribute("aria-pressed", mode==="en");
+  // Rebuild the toggle each render so the active state is baked into fresh
+  // elements. The browser always repaints replaced innerHTML; mutating an
+  // existing button's class/attribute can leave the highlight visually stale.
+  const TABS = [["hakli","الهَكلي",""],["ar","عربي",""],["en","English","en"]];
+  document.getElementById("toggle").innerHTML = TABS.map(([m,label,cls])=>
+    '<button data-m="'+m+'" class="'+cls+(mode===m?" active":"")+'" aria-pressed="'+(mode===m)+'">'+label+'</button>'
+  ).join("");
+  document.querySelectorAll("#toggle button").forEach(b=> b.onclick = ()=> setMode(b.dataset.m));
   document.documentElement.setAttribute("dir", mode==="en" ? "ltr" : "rtl");
 
   // hint + play-all
@@ -283,9 +285,6 @@ function render(){
 }
 
 function setMode(m){ stop(); mode = m; render(); }
-document.getElementById("mHakli").onclick = ()=> setMode("hakli");
-document.getElementById("mAr").onclick    = ()=> setMode("ar");
-document.getElementById("mEn").onclick     = ()=> setMode("en");
 
 render();      // text renders immediately — no Firebase needed …
 loadClips();   // … then Hakli audio lights up if the CDN is reachable
