@@ -98,10 +98,17 @@
   .close.en .txt{font-family:var(--en); font-style:italic; direction:ltr}
   .seal{margin:38px auto 0; width:44px; height:2px; background:var(--frank); border:0}
 
+  .enter-wrap{text-align:center; margin-top:30px}
+  .enter{display:inline-flex; align-items:center; gap:8px; font-family:var(--ar); font-size:21px;
+    color:#fff; background:var(--mountain); border-radius:999px; padding:15px 36px;
+    text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18); transition:transform .12s, background .12s}
+  .enter.en{font-family:var(--en); font-style:italic; letter-spacing:.01em}
+  .enter:hover{background:var(--ink); transform:translateY(-1px)}
+
   @media print{
     body{background:#fff; background-image:none}
     .wave i,.play.playing{animation:none}
-    .toggle,.playall,.play{display:none !important}
+    .toggle,.playall,.play,.enter-wrap{display:none !important}
     .wrap{padding:0}
   }
 </style>
@@ -127,6 +134,10 @@
   <section class="lines" id="lines"></section>
 
   <section class="close" id="close"><hr class="seal"></section>
+
+  <nav class="enter-wrap">
+    <a class="enter" id="enter" href="index.html">ادخل القاموس ←</a>
+  </nav>
 </main>
 
 <audio id="player" preload="none"></audio>
@@ -282,6 +293,13 @@ function render(){
       ? '<button class="play" data-k="'+CLOSE.k+'" aria-label="listen" style="margin:0 auto 18px">▶</button><p class="txt">'+CLOSE.ar+'</p>'
       : '<p class="txt">'+cText+'</p>') + '<hr class="seal">';
   const cb = document.querySelector('#close .play'); if(cb) cb.onclick = ()=> playOne(CLOSE.k, cb);
+
+  // enter-the-dictionary button — label follows the toggle
+  const enter = document.getElementById("enter");
+  if(enter){
+    enter.textContent = (mode==="en") ? "Enter the dictionary →" : "ادخل القاموس ←";
+    enter.className = "enter" + (mode==="en" ? " en" : "");
+  }
 }
 
 function setMode(m){ stop(); mode = m; render(); }

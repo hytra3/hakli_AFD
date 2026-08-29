@@ -56,7 +56,8 @@ app = FastAPI(title="AFD embed & match")
 # The consumer page (speak-to-find) calls /search straight from the browser,
 # which is cross-origin to run.app. Allow the hosting origins. Search takes
 # audio and returns matches — no secrets — so this is safe to open.
-_default_origins = ("https://hytra3.github.io,https://afd-dev.web.app,"
+_default_origins = ("https://hakli.app,https://www.hakli.app,"
+                    "https://hytra3.github.io,https://afd-dev.web.app,"
                     "https://afd-dev.firebaseapp.com,http://localhost:5000,"
                     "http://localhost:8000")
 ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", _default_origins).split(",")
