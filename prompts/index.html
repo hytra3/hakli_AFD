@@ -249,6 +249,43 @@ if(!CONFIGURED){
   start();
 }
 
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Distinguish a referrer-restriction block (fix lives on the Browser API key
+// in Cloud Console) from a genuinely-disabled Anonymous provider (fix lives in
+// Firebase Auth). Firebase surfaces the referrer case as an error code shaped
+// auth/requests-from-referer-<url>-are-blocked and/or a message that mentions
+// the referer being blocked, so we prefix/keyword match rather than compare
+// against one static string.
+function classifySignInError(e){
+  const code = (e && e.code) || "";
+  const hay  = ((e && e.code) + " " + (e && e.message)).toLowerCase();
+  if (code.startsWith("auth/requests-from-referer") ||
+      hay.includes("referer") || hay.includes("referrer")) {
+    return {
+      status: "sign-in blocked (referrer)",
+      html: "Sign-in was blocked because this site's address isn't on the API key's referrer allowlist (<code>"+
+            escHtml(code || "referrer restriction")+"</code>). Ask Marty to add this domain in "+
+            "Google Cloud Console → APIs &amp; Services → Credentials → the <b>Browser API key</b> → "+
+            "<b>Website restrictions</b>."
+    };
+  }
+  if (code === "auth/operation-not-allowed") {
+    return {
+      status: "sign-in blocked",
+      html: "Sign-in was refused because Anonymous sign-in is turned off (<code>"+escHtml(code)+"</code>). "+
+            "Ask Marty to enable <b>Anonymous</b> in Firebase → Authentication → Sign-in method."
+    };
+  }
+  return {
+    status: "sign-in blocked",
+    html: "Sign-in was refused (<code>"+escHtml(code || "unknown error")+"</code>). "+
+          "Ask Marty to check the Firebase Authentication setup."
+  };
+}
+
 async function start(){
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -268,9 +305,10 @@ async function start(){
   try{
     await signInAnonymously(auth);
   }catch(e){
-    $("status").textContent = "sign-in blocked";
+    const info = classifySignInError(e);
+    $("status").textContent = info.status;
     $("setup").classList.remove("hidden");
-    $("setup").innerHTML = "Sign-in was refused ("+e.code+"). Ask Marty to enable <b>Anonymous</b> sign-in in Firebase → Authentication → Sign-in method.";
+    $("setup").innerHTML = info.html;
   }
   window.addEventListener("online", ()=>{ $("status").textContent="ready"; syncPending(); });
   window.addEventListener("offline", ()=>{ $("status").textContent="offline (saving here)"; });
