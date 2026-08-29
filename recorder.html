@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0828a" type="image/svg+xml">
-<script src="afd-core.js?v=b0828a"></script>
-<script src="afd-words.js?v=b0828a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0828a">
+<link rel="icon" href="favicon.svg?v=b0828b" type="image/svg+xml">
+<script src="afd-core.js?v=b0828b"></script>
+<script src="afd-words.js?v=b0828b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0828b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -436,7 +436,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0828a";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0828b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -732,7 +732,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0828a";   // bump every publish; shown in the header + console
+const BUILD="b0828b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -978,7 +978,7 @@ const REC_INSTR_AR={
    non-English tiers, rendered in Arabic (Marty: "Arabic or visual hint"). The
    emoji picture is the constant visual anchor across all tiers. */
 const DISP_MODES=AFDCore.DISP_MODES;
-let dispMode=AFDCore.getDisplayMode("auto");   // shared setting; recorder defaults to auto (show everything)
+let dispMode=AFDCore.getDisplayMode("sound");   // shared setting; recorder now defaults to sound (audio-first), matching find — English only if a user picks "auto"
 function setDispMode(m){ dispMode=m; AFDCore.setDisplayMode(m); }
 const DISP_ICON={
   auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,

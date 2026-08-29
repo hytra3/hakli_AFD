@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--
+  الهَكلي — Audio First Dictionary · welcome / introduction
+  Hakli-first: opens in audio mode. Each line plays its recorded Hakli clip
+  (afd_ui/intro.tour.*.webm) and falls back to Arabic text until that clip exists,
+  so the page lights up on its own as your speaker records the intro.tour.* prompts.
+  Arabic text is MSA draft — pending Dhofari review, like the app strings.
+  afd_ui/ is public-read, so no sign-in is needed.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>الهَكلي · قاموس الصوت أولًا</title>
+<!-- social preview (WhatsApp / Open Graph) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hakli — Audio First Dictionary">
+<meta property="og:url" content="https://hakli.app/welcome.html">
+<meta property="og:title" content="الهَكلي · Hakli — Audio First Dictionary">
+<meta property="og:description" content="قاموسٌ صوتيّ للغة الهَكلي — تُسمَع وتُحفَظ بأصوات أهلها. · An audio-first dictionary for the Hakli language, heard and kept in its own voices.">
+<meta property="og:image" content="https://hakli.app/og-hakli.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ar_OM">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://hakli.app/og-hakli.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --ink:#17241F;
+    --mist:#6E8078; --frank:#C6873F; --frank-soft:#E7C9A0; --line:#D8E2DC;
+    --ar:"Amiri", serif;
+    --en:"EB Garamond","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; background:var(--fog); color:var(--mountain); font-family:var(--ar);
+    line-height:1.8; background-image:radial-gradient(120% 60% at 50% -10%, #F1F5F3 0%, var(--fog) 60%)}
+  .wrap{max-width:680px; margin:0 auto; padding:clamp(26px,6vw,64px) clamp(20px,5vw,40px) 80px}
+
+  /* hero */
+  .hero{text-align:center}
+  .name{font-family:var(--ar); font-weight:700; font-size:clamp(46px,12vw,80px); line-height:1;
+    color:var(--ink); margin:0}
+  .name .latin{display:block; font-family:var(--en); font-style:italic; font-weight:500;
+    font-size:clamp(18px,4.2vw,24px); color:var(--frank); letter-spacing:.05em; margin-top:12px; direction:ltr}
+  .wave{display:flex; align-items:center; justify-content:center; gap:4px; height:56px;
+    margin:28px auto 6px; max-width:300px}
+  .wave i{flex:1; background:var(--frank); border-radius:3px; opacity:.9; transform-origin:center;
+    animation:breathe 3.4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.55)}}
+  @media (prefers-reduced-motion:reduce){ .wave i{animation:none} }
+
+  /* language toggle */
+  .toggle{display:inline-flex; background:var(--cloud); border:1px solid var(--line);
+    border-radius:999px; padding:5px; margin:22px auto 0; gap:4px}
+  .toggle button{font-family:var(--ar); font-size:17px; color:var(--mist); background:transparent;
+    border:0; border-radius:999px; padding:8px 18px; cursor:pointer; transition:all .15s}
+  .toggle button.en{font-family:var(--en); font-style:italic}
+  .toggle button[aria-pressed="true"]{background:var(--mountain); color:#fff}
+
+  .note{font-family:var(--ar); font-size:16px; color:var(--mist); text-align:center;
+    max-width:40ch; margin:24px auto 0; line-height:1.7}
+  .note.en{font-family:var(--en); font-style:italic; direction:ltr}
+
+  .playall{display:none; margin:22px auto 0; font-family:var(--ar); font-size:18px;
+    color:var(--frank); background:var(--cloud); border:1px solid var(--frank-soft);
+    border-radius:999px; padding:12px 26px; cursor:pointer; align-items:center; gap:10px}
+  .playall.show{display:inline-flex}
+  .playall .tri{color:var(--frank)}
+
+  .rule{height:1px; background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);
+    border:0; margin:36px 0}
+
+  /* the lines */
+  .lines{margin-top:6px}
+  .line{display:flex; align-items:center; gap:16px; padding:20px 4px; border-bottom:1px solid var(--line)}
+  .line:last-child{border-bottom:0}
+  .num{flex:none; font-family:var(--ar); font-weight:700; font-size:15px; color:var(--frank);
+    background:var(--frank-soft); width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center}
+  .line .txt{flex:1; font-family:var(--ar); font-size:20px; color:var(--mountain)}
+  .line.en .txt{font-family:var(--en); font-style:italic; font-size:18px; direction:ltr; text-align:left}
+  .play{flex:none; width:52px; height:52px; border-radius:50%; border:0; cursor:pointer;
+    background:var(--frank); color:#fff; font-size:20px; display:flex; align-items:center;
+    justify-content:center; transition:transform .12s, background .12s}
+  .play:hover{transform:scale(1.05)}
+  .play.playing{background:var(--mountain); animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(198,135,63,.4)} 50%{box-shadow:0 0 0 10px rgba(198,135,63,0)}}
+  @media (prefers-reduced-motion:reduce){ .play.playing{animation:none} }
+
+  /* close */
+  .close{text-align:center; margin-top:44px}
+  .close .txt{font-family:var(--ar); font-size:clamp(20px,5vw,25px); color:var(--ink); max-width:34ch; margin:0 auto}
+  .close.en .txt{font-family:var(--en); font-style:italic; direction:ltr}
+  .seal{margin:38px auto 0; width:44px; height:2px; background:var(--frank); border:0}
+
+  @media print{
+    body{background:#fff; background-image:none}
+    .wave i,.play.playing{animation:none}
+    .toggle,.playall,.play{display:none !important}
+    .wrap{padding:0}
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero">
+    <h1 class="name">الهَكلي<span class="latin">Hakli</span></h1>
+    <div class="wave" aria-hidden="true">
+      <i style="height:30%"></i><i style="height:52%"></i><i style="height:78%"></i><i style="height:44%"></i>
+      <i style="height:92%"></i><i style="height:100%"></i><i style="height:60%"></i><i style="height:36%"></i>
+      <i style="height:66%"></i><i style="height:84%"></i><i style="height:48%"></i><i style="height:26%"></i>
+      <i style="height:56%"></i><i style="height:80%"></i><i style="height:96%"></i><i style="height:58%"></i>
+    </div>
+
+    <div class="toggle" role="group" aria-label="language">
+      <button id="mHakli" aria-pressed="true">الهَكلي</button>
+      <button id="mAr" aria-pressed="false">عربي</button>
+      <button id="mEn" class="en" aria-pressed="false">English</button>
+    </div>
+
+    <p class="note" id="hint"></p>
+    <button class="playall" id="playAll"><span class="tri">▶</span> <span id="playAllLbl">استمع إلى المقدمة</span></button>
+  </header>
+
+  <hr class="rule">
+  <section class="lines" id="lines"></section>
+
+  <section class="close" id="close"><hr class="seal"></section>
+</main>
+
+<audio id="player" preload="none"></audio>
+
+<script type="module">
+/* Firebase is loaded LAZILY (dynamic import below) so the introduction TEXT always
+   renders — even offline or if the CDN is unreachable. The Hakli audio is a
+   progressive enhancement layered on afterward. */
+const firebaseConfig = {
+  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
+  authDomain:        "afd-dev.firebaseapp.com",
+  projectId:         "afd-dev",
+  storageBucket:     "afd-dev.firebasestorage.app",
+  messagingSenderId: "454829954488",
+  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
+};
+
+/* The introduction, line by line. Keys match the intro.tour.* prompts in the
+   recorder's prompt tool, so each line's Hakli audio appears the moment it's
+   recorded. Arabic/English are the text alternatives. */
+const LINES = [
+  { k:"intro.tour.what",  ar:"هذا مكانٌ لسماع لغة الهَكلي، ولحفظها بأصوات أهلها.",                    en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people." },
+  { k:"intro.tour.min1",  ar:"افتح التطبيق، فترى كلمات، لكلٍّ منها صورة.",                             en:"Open it, and you'll see words — each with a picture." },
+  { k:"intro.tour.min2",  ar:"اضغط زرّ التشغيل لتسمع كلمة، أو انطق كلمة لتجدها.",                        en:"Tap play to hear a word, or say a word to find it." },
+  { k:"intro.tour.min3",  ar:"لتضيف صوتك، انطق الكلمة بنفسك — مرّتين.",                                 en:"To add your voice, say a word yourself — twice." },
+  { k:"intro.tour.new",   ar:"إن لم تكن الكلمة هنا بعد، فيمكنك أن تكون أوّل من ينطقها.",                 en:"If a word isn't here yet, you can be the first to say it." },
+  { k:"intro.tour.more",  ar:"ويمكنك أيضًا أن تنطق الكلمة في جملة، أو أن تقول معناها.",                  en:"You can also say a word in a sentence, or say what it means." },
+  { k:"intro.tour.yours", ar:"كل تسجيلٍ هو ملكك — ويمكنك سحبه في أي وقت.",                              en:"Every recording is yours — you can take it back anytime." },
+  { k:"intro.tour.waits", ar:"لا يضيع شيء إن انقطع الاتصال — لا عجلة في الأمر.",                        en:"Nothing is lost if you go offline — there is no rush." },
+];
+const CLOSE = { k:"intro.tour.why",
+  ar:"لغتكم، محفوظةً بأصواتكم، لمن يأتي بعدكم.",
+  en:"Your language, kept in your own voices, for those who come after you." };
+
+const HINTS = {
+  hakli_none: { txt:"ستُروى هذه المقدمة بالهَكلي حين يسجّلها أهلها — وحتى ذلك الحين، إليك النصّ بالعربية.", en:false },
+  hakli_some: { txt:"اضغط زرّ التشغيل لتسمع كل سطرٍ بالهَكلي.", en:false },
+  ar:         { txt:"", en:false },
+  en:         { txt:"", en:true }
+};
+
+const urls = {};                 // key -> download URL (recorded clips only)
+let mode = "hakli";              // hakli | ar | en
+const player = document.getElementById("player");
+
+/* Which intro.tour.* clips have been recorded? afd_ui_prompts + afd_ui/ are public-read. */
+async function loadClips(){
+  try{
+    const [{ initializeApp }, { getFirestore, collection, getDocs }, { getStorage, ref, getDownloadURL }] =
+      await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"),
+      ]);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app), store = getStorage(app);
+    const snap = await getDocs(collection(db, "afd_ui_prompts"));
+    const wanted = new Set([...LINES, CLOSE].map(l=>l.k));
+    const jobs = [];
+    snap.forEach(d=>{
+      const data = d.data() || {};
+      if(wanted.has(d.id) && data.status === "recorded"){
+        const path = data.storagePath || ("afd_ui/"+d.id+".webm");
+        jobs.push(getDownloadURL(ref(store, path)).then(u=>{ urls[d.id]=u; }).catch(()=>{}));
+      }
+    });
+    await Promise.all(jobs);
+    render();   // re-render to light up the recorded Hakli audio
+  }catch(e){ console.warn("[AFD] welcome: audio unavailable — showing text only", e); }
+}
+
+let playing = null;
+function stop(){ try{ player.pause(); }catch(_){}
+  document.querySelectorAll(".play.playing").forEach(b=>b.classList.remove("playing"));
+  document.getElementById("playAllLbl").textContent = "استمع إلى المقدمة";
+  playing = null; }
+
+function playOne(key, btn){
+  if(!urls[key]) return;
+  if(playing==="one" && btn && btn.classList.contains("playing")){ stop(); return; }
+  stop();
+  player.src = urls[key]; player.play().catch(()=>{});
+  if(btn){ btn.classList.add("playing"); }
+  playing = "one";
+  player.onended = ()=>{ if(btn) btn.classList.remove("playing"); playing=null; };
+}
+
+function playAll(){
+  if(playing){ stop(); return; }
+  const order = [...LINES, CLOSE].map(l=>l.k).filter(k=>urls[k]);
+  if(!order.length) return;
+  document.getElementById("playAllLbl").textContent = "إيقاف";
+  playing = "all";
+  let i = 0;
+  const step = ()=>{
+    if(playing!=="all" || i>=order.length){ stop(); return; }
+    const k = order[i++];
+    document.querySelectorAll(".play.playing").forEach(b=>b.classList.remove("playing"));
+    const btn = document.querySelector('.play[data-k="'+k+'"]'); if(btn) btn.classList.add("playing");
+    player.src = urls[k]; player.play().catch(()=>{});
+    player.onended = step;
+  };
+  step();
+}
+document.getElementById("playAll").onclick = playAll;
+
+function lineHTML(l, n){
+  const hasClip = mode==="hakli" && urls[l.k];
+  const text = (mode==="en") ? l.en : l.ar;
+  const cls  = (mode==="en") ? "line en" : "line";
+  if(hasClip){
+    return '<div class="'+cls+'"><span class="num">'+toArabicNum(n)+'</span>'+
+           '<button class="play" data-k="'+l.k+'" aria-label="listen">▶</button>'+
+           '<span class="txt">'+l.ar+'</span></div>';
+  }
+  return '<div class="'+cls+'"><span class="num">'+toArabicNum(n)+'</span><span class="txt">'+text+'</span></div>';
+}
+function toArabicNum(n){ return String(n).replace(/[0-9]/g, d=>"٠١٢٣٤٥٦٧٨٩"[+d]); }
+
+function render(){
+  // toggle state
+  document.getElementById("mHakli").setAttribute("aria-pressed", mode==="hakli");
+  document.getElementById("mAr").setAttribute("aria-pressed", mode==="ar");
+  document.getElementById("mEn").setAttribute("aria-pressed", mode==="en");
+  document.documentElement.setAttribute("dir", mode==="en" ? "ltr" : "rtl");
+
+  // hint + play-all
+  const recorded = [...LINES, CLOSE].filter(l=>urls[l.k]).length;
+  const hint = document.getElementById("hint");
+  let h = {txt:"",en:false};
+  if(mode==="hakli") h = recorded ? HINTS.hakli_some : HINTS.hakli_none;
+  hint.textContent = h.txt; hint.className = "note" + (h.en ? " en" : "");
+  document.getElementById("playAll").classList.toggle("show", mode==="hakli" && recorded>0);
+
+  // lines
+  document.getElementById("lines").innerHTML = LINES.map((l,i)=>lineHTML(l,i+1)).join("");
+  document.querySelectorAll(".play").forEach(b=>{
+    b.onclick = ()=> playOne(b.dataset.k, b);
+  });
+
+  // close line
+  const cText = (mode==="en") ? CLOSE.en : CLOSE.ar;
+  const cCls  = (mode==="en") ? "close en" : "close";
+  document.getElementById("close").className = cCls;
+  document.getElementById("close").innerHTML =
+    (mode==="hakli" && urls[CLOSE.k]
+      ? '<button class="play" data-k="'+CLOSE.k+'" aria-label="listen" style="margin:0 auto 18px">▶</button><p class="txt">'+CLOSE.ar+'</p>'
+      : '<p class="txt">'+cText+'</p>') + '<hr class="seal">';
+  const cb = document.querySelector('#close .play'); if(cb) cb.onclick = ()=> playOne(CLOSE.k, cb);
+}
+
+function setMode(m){ stop(); mode = m; render(); }
+document.getElementById("mHakli").onclick = ()=> setMode("hakli");
+document.getElementById("mAr").onclick    = ()=> setMode("ar");
+document.getElementById("mEn").onclick     = ()=> setMode("en");
+
+render();      // text renders immediately — no Firebase needed …
+loadClips();   // … then Hakli audio lights up if the CDN is reachable
+</script>
+</body>
+</html>
