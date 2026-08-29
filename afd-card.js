@@ -165,9 +165,21 @@ function playVoiceInto(rec, thumbEl, playBtn, setUrl){
    bytes stay until a separate Erase. Index-free: two equality filters per entry
    subcollection ride Firestore's auto single-field indexes, so there's nothing
    extra to configure. */
-async function withdrawSpeaker(uid, speakerId, state){
-  state = state==="public" ? "public" : "withdrawn";
+async function withdrawSpeaker(uid, speakerId, state, withdrawal){
+  // "deleted" is honoured only when passed explicitly (agent-erase); any other
+  // non-public value safe-defaults to "withdrawn" so a bulk erase can never
+  // happen by accident. Both hidden states need the spoken proof for an agent.
+  state = (state==="public" || state==="deleted") ? state : "withdrawn";
   if(!uid || !speakerId) return 0;
+  // One spoken act of withdrawal authorises the whole bulk: the SAME proof is
+  // stamped on every affected take. The Firestore rule (withdrawalArtifactOK)
+  // demands withdrawal.audioPath for an agent's withdrawal; a restore to public
+  // needs none, and never over-writes the historical proof already on a take.
+  const proof = (state!=="public" && withdrawal && typeof withdrawal.audioPath==="string")
+    ? withdrawal : null;
+  const patch = proof
+    ? { consent: state, allowPlayback: false, withdrawal: proof }
+    : { consent: state, allowPlayback: state==="public" };
   const entryIds = new Set((window.AFDWords||[]).map(w=>AFDCore.entryIdFor(w.id)));
   try{
     const snap = await getDocs(query(collection(CFG.db,"afd_entries"), where("source","==","user")));
@@ -180,12 +192,12 @@ async function withdrawSpeaker(uid, speakerId, state){
                     where("uid","==",uid), where("speakerId","==",speakerId)));
       for(const r of rs.docs){
         if((r.data()||{}).consent === "deleted") continue;   // never touch an erased take
-        await updateDoc(r.ref, { consent: state, allowPlayback: state==="public" });
+        await updateDoc(r.ref, patch);
         n++;
       }
     }catch(e){ console.warn("[AFD] withdrawSpeaker", eid, e); }
   }
-  console.log("[AFD] withdrawSpeaker", speakerId, "\u2192", state, "count", n);
+  console.log("[AFD] withdrawSpeaker", speakerId, "\u2192", state, "count", n, proof?"(with proof)":"");
   return n;
 }
 

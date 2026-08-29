@@ -152,6 +152,23 @@ window.AFDCore = (function(){
     "speaker.withdraw.done": { en:"Withdrew {n} from {spk}. Individual takes can be restored from the dictionary.", ar:"تم سحب {n} من تسجيلات {spk}. يمكن استعادة كل تسجيل من القاموس." },
     "speaker.withdraw.none": { en:"No public recordings found for {spk}.", ar:"لا توجد تسجيلات عامة لـ {spk}." },
     "speaker.withdraw.err":  { en:"Couldn't withdraw just now — please try again.", ar:"تعذّر السحب الآن — يرجى المحاولة مجددًا." },
+    // -- spoken-withdrawal capture (agent acting for a speaker) --------------
+    // The steward can't silently pull a speaker's voice; the speaker themselves
+    // must say, in Hakli, that they want it removed. That utterance is the proof.
+    "withdraw.proof.title":  { en:"{spk} asks to withdraw", ar:"يطلب {spk} السحب" },
+    "withdraw.proof.ask":    { en:"Hand the phone to the speaker. Ask them to say, in their own words, that they want their voice removed.", ar:"سلّم الهاتف إلى المتحدّث. اطلب منه أن يقول بكلماته أنه يريد إزالة صوته." },
+    "withdraw.proof.hold":   { en:"Hold to record their words", ar:"اضغط باستمرار لتسجيل كلماته" },
+    "withdraw.proof.again":  { en:"Record again", ar:"سجّل مرّة أخرى" },
+    "withdraw.proof.play":   { en:"Listen back", ar:"استمع" },
+    "withdraw.proof.confirm":{ en:"That's what they said — withdraw", ar:"هذا ما قاله — اسحب" },
+    "withdraw.proof.erase":  { en:"Erase permanently instead", ar:"احذف نهائيًا بدلاً من ذلك" },
+    "withdraw.proof.erase.confirm":{ en:"Tap again to erase for good", ar:"اضغط مرّة أخرى للحذف نهائيًا" },
+    "withdraw.proof.cancel": { en:"Cancel", ar:"إلغاء" },
+    "withdraw.proof.saving": { en:"Saving their words…", ar:"جارٍ حفظ كلماته…" },
+    "withdraw.proof.err":    { en:"Couldn't save that recording — please try again.", ar:"تعذّر حفظ التسجيل — يرجى المحاولة مجددًا." },
+    "withdraw.proof.mic":    { en:"Microphone permission is needed to record the withdrawal.", ar:"إذن الميكروفون مطلوب لتسجيل السحب." },
+    "speaker.erase.done":    { en:"Erased {n} of {spk}'s recordings for good. This cannot be undone.", ar:"تم حذف {n} من تسجيلات {spk} نهائيًا. لا يمكن التراجع عن ذلك." },
+    "speaker.erase.none":    { en:"No recordings found for {spk} to erase.", ar:"لا توجد تسجيلات لحذفها لـ {spk}." },
     "qc.good":              { en:"Sounds good",         ar:"الصوت جيّد" },
     "qc.retry":             { en:"Let\u2019s try that again", ar:"لنجرّب مرّة أخرى" },
     "qc.saytwice":          { en:"Say the word twice, with a small pause between", ar:"قل الكلمة مرّتين، مع وقفة قصيرة بينهما" },

@@ -217,6 +217,35 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   #entryCardHost[data-rectype="context"] .slot-context,
   #entryCardHost[data-rectype="definition"] .slot-definition{
     box-shadow:0 0 0 2px var(--frank); border-radius:14px; padding:6px; margin:-6px; }
+/* ---------- spoken-withdrawal capture overlay ---------- */
+#wdProof{position:fixed;inset:0;z-index:60;display:none;
+  background:rgba(23,36,31,.55);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;padding:20px}
+#wdProof.open{display:flex}
+#wdProof .sheet{
+  width:100%;max-width:440px;background:var(--paper);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:22px 20px 18px;max-height:92vh;overflow:auto}
+#wdProof h2{font-size:19px;margin:0 0 4px}
+#wdProof .ask{font-size:15px;color:var(--ink-soft);line-height:1.5;margin:0 0 16px}
+#wdProof .wd-rec{width:100%;padding:20px;font-size:17px;font-weight:600;
+  background:var(--frank);color:#fff;border:none;border-radius:16px;
+  box-shadow:0 10px 26px rgba(198,135,63,.30);
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+#wdProof .wd-rec.recording{background:var(--alert);box-shadow:0 10px 26px rgba(163,59,42,.30)}
+#wdProof .wd-rec .dot{display:inline-block;width:11px;height:11px;border-radius:50%;
+  background:#fff;margin-right:9px;vertical-align:middle}
+#wdProof .wd-rec.recording .dot{animation:pulse 1.1s ease-in-out infinite}
+#wdProof .wd-rec .timer{display:block;font-family:var(--mono);font-size:13px;font-weight:400;opacity:.85;margin-top:3px}
+#wdProof .wd-review{margin-top:14px;display:none}
+#wdProof.reviewing .wd-review{display:block}
+#wdProof.reviewing .wd-rec{display:none}
+#wdProof .wd-row{display:flex;gap:10px;margin-top:12px}
+#wdProof .wd-row .btn{margin-top:0}
+#wdProof .wd-confirm{background:var(--mountain);color:#fff;border:none}
+#wdProof .wd-erase{margin-top:10px;color:var(--alert);border-color:transparent;font-weight:500}
+#wdProof .wd-erase.armed{background:var(--alert);color:#fff;border-color:transparent;font-weight:600}
+#wdProof .wd-cancel{margin-top:12px}
+#wdProof .wd-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
 </style>
 </head>
 <body>
@@ -410,6 +439,29 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
 <footer class="buildstamp" id="buildStamp"></footer>
 
+</div>
+
+<!-- Spoken-withdrawal capture: the speaker's own voice is the proof that lets a
+     steward pull their recordings. Launched from "Withdraw this speaker's
+     recordings"; on confirm it uploads the utterance and stamps its path onto
+     every affected take (afd-firestore.rules withdrawalArtifactOK). -->
+<div id="wdProof" role="dialog" aria-modal="true" aria-labelledby="wdTitle">
+  <div class="sheet">
+    <h2 id="wdTitle">Withdraw a speaker</h2>
+    <p class="ask" id="wdAsk"></p>
+    <button class="wd-rec" id="wdRecBtn"></button>
+    <div class="wd-review">
+      <audio id="wdPlayer" preload="auto"></audio>
+      <button class="btn secondary" id="wdPlayBtn"></button>
+      <div class="wd-row">
+        <button class="btn ghost" id="wdAgainBtn"></button>
+        <button class="btn wd-confirm" id="wdConfirmBtn"></button>
+      </div>
+      <button class="btn ghost wd-erase" id="wdEraseBtn"></button>
+    </div>
+    <p class="wd-status" id="wdStatus"></p>
+    <button class="btn ghost wd-cancel" id="wdCancelBtn"></button>
+  </div>
 </div>
 <script type="module">
 /* ===============================================================
@@ -614,6 +666,27 @@ initCard({ db, store, recorderUrl:"recorder.html",
            user:()=>currentUser,
            banner:(m)=>{ try{ alert(m); }catch(_){ console.warn("[AFD]", m); } } });
 window.AFD.withdrawSpeaker = withdrawSpeaker;
+// Upload the speaker's spoken-Hakli withdrawal utterance, then apply the chosen
+// consent state to every take of theirs with that proof stamped on it. One
+// utterance authorises the whole bulk (afd-firestore.rules withdrawalArtifactOK).
+// mode "withdrawn" (default) hides recoverably; "deleted" hands the takes to the
+// server purge — irreversible. Lives in the module because Storage +
+// serverTimestamp are module-scoped; the plain-script overlay only captures the
+// blob and hands it here. Returns the number of takes affected.
+window.AFD.withdrawWithProof = async (uid, speakerId, blob, mode)=>{
+  if(!uid || !speakerId || !blob) return 0;
+  const state = mode==="deleted" ? "deleted" : "withdrawn";
+  const safe = String(speakerId).replace(/[^A-Za-z0-9_-]/g,"_").slice(0,40);
+  const id   = "wd_"+safe+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+  const ext  = /mp4/.test(blob.type||"") ? "m4a" : "webm";
+  const audioPath = "afd_withdrawals/"+uid+"/"+id+"."+ext;
+  await uploadBytes(ref(store, audioPath), blob, {
+    contentType: blob.type || "audio/webm",
+    customMetadata: { speakerId: String(speakerId), kind: state }
+  });
+  return await withdrawSpeaker(uid, speakerId, state,
+    { at: serverTimestamp(), byUid: uid, audioPath });
+};
 window.AFD.getEntry = async (entryId)=>{
   // Firestore lookup for a deep-linked entry. Lives here in the module because
   // the plain script (where applyDeepLink runs) has no Firestore access at all.
@@ -732,7 +805,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0828d";   // bump every publish; shown in the header + console
+const BUILD="b0828e";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -762,14 +835,132 @@ $("withdrawSpeaker").onclick=async ()=>{
   const spk=($("spkId").value||"").trim();
   if(!uid){ alert(AFDCore.t("speaker.signin",dispMode)); return; }
   if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
-  if(!confirm(AFDCore.t("speaker.withdraw.confirm",dispMode).split("{spk}").join(spk))) return;
-  const btn=$("withdrawSpeaker"); const label=btn.textContent;
-  btn.disabled=true; btn.textContent=AFDCore.t("speaker.withdrawing",dispMode);
+  // A steward can't silently pull a speaker's voice: the speaker themselves must
+  // say, in Hakli, that they want it removed. Capture that utterance first — it
+  // is the proof the Firestore rule requires — then apply the withdrawal.
+  openWithdrawProof(uid, spk);
+};
+
+/* ---- spoken-withdrawal capture overlay ----------------------------------
+   Self-contained: opens the mic through the ONE protocol (AFDCore.openStream —
+   processing off, 48k mono, same acoustic space as the corpus), records the
+   speaker's own words, lets the steward hear them back, and on confirm hands
+   the blob to window.AFD.withdrawWithProof to upload + withdraw. Kept apart
+   from the corpus recorder: a consent utterance is not a corpus atom — no QC
+   gate, no rep count, no dedup. */
+const wd = {
+  el:$("wdProof"), uid:null, spk:null, stream:null, rec:null, chunks:[],
+  blob:null, recording:false, t0:0, timer:null, busy:false, armed:false, armTimer:null
+};
+function wdText(){
+  $("wdTitle").textContent   = AFDCore.t("withdraw.proof.title",dispMode).split("{spk}").join(wd.spk||"");
+  $("wdAsk").textContent     = AFDCore.t("withdraw.proof.ask",dispMode);
+  $("wdPlayBtn").textContent = AFDCore.t("withdraw.proof.play",dispMode);
+  $("wdAgainBtn").textContent= AFDCore.t("withdraw.proof.again",dispMode);
+  $("wdConfirmBtn").textContent=AFDCore.t("withdraw.proof.confirm",dispMode);
+  $("wdCancelBtn").textContent = AFDCore.t("withdraw.proof.cancel",dispMode);
+  wdDisarmErase();
+  wdIdleBtn();
+}
+function wdIdleBtn(){
+  $("wdRecBtn").innerHTML = '<span class="dot"></span>'+AFDCore.t("withdraw.proof.hold",dispMode);
+}
+async function openWithdrawProof(uid, spk){
+  wd.uid=uid; wd.spk=spk; wd.blob=null; wd.chunks=[]; wd.busy=false;
+  wd.el.classList.remove("reviewing"); $("wdStatus").textContent="";
+  wdText();
+  wd.el.classList.add("open");
   try{
-    const n=await window.AFD.withdrawSpeaker(uid, spk, "withdrawn");
-    alert((n ? AFDCore.t("speaker.withdraw.done",dispMode) : AFDCore.t("speaker.withdraw.none",dispMode)).split("{n}").join(n).split("{spk}").join(spk));
-  }catch(e){ alert(AFDCore.t("speaker.withdraw.err",dispMode)); }
-  finally{ btn.disabled=false; btn.textContent=label; }
+    const s = await AFDCore.openStream();     // single recording protocol
+    wd.stream = s.stream;
+  }catch(e){ $("wdStatus").textContent=AFDCore.t("withdraw.proof.mic",dispMode); }
+}
+function closeWithdrawProof(){
+  wd.el.classList.remove("open","reviewing");
+  if(wd.timer){ clearInterval(wd.timer); wd.timer=null; }
+  if(wd.armTimer){ clearTimeout(wd.armTimer); wd.armTimer=null; }
+  wd.armed=false;
+  try{ if(wd.rec && wd.recording) wd.rec.stop(); }catch(_){}
+  if(wd.stream){ wd.stream.getTracks().forEach(t=>{ try{ t.stop(); }catch(_){} }); wd.stream=null; }
+  wd.recording=false; wd.blob=null; wd.chunks=[];
+}
+function wdStartRec(){
+  if(wd.recording || !wd.stream || wd.busy) return;
+  wd.recording=true; wd.chunks=[]; wd.t0=Date.now();
+  $("wdRecBtn").classList.add("recording");
+  $("wdRecBtn").innerHTML='<span class="dot"></span>'+AFDCore.t("record.holding",dispMode)+'<span class="timer">0.0s</span>';
+  wd.timer=setInterval(()=>{ const el=$("wdRecBtn").querySelector(".timer");
+    if(el) el.textContent=((Date.now()-wd.t0)/1000).toFixed(1)+"s";
+    if(Date.now()-wd.t0>=30000) wdStopRec();     // 30s hard cap; a statement is short
+  },100);
+  let mime="";
+  ["audio/webm;codecs=opus","audio/webm","audio/mp4"].forEach(m=>{
+    if(!mime&&window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) mime=m; });
+  wd.rec = mime?new MediaRecorder(wd.stream,{mimeType:mime}):new MediaRecorder(wd.stream);
+  wd.rec.ondataavailable=e=>{ if(e.data.size) wd.chunks.push(e.data); };
+  wd.rec.onstop=()=>{
+    wd.blob=new Blob(wd.chunks,{type:(wd.rec&&wd.rec.mimeType)||"audio/webm"});
+    $("wdPlayer").src=URL.createObjectURL(wd.blob);
+    wd.el.classList.add("reviewing");
+  };
+  try{ wd.rec.start(); }catch(e){ wd.recording=false; }
+}
+function wdStopRec(){
+  if(!wd.recording) return;
+  wd.recording=false;
+  if(wd.timer){ clearInterval(wd.timer); wd.timer=null; }
+  $("wdRecBtn").classList.remove("recording"); wdIdleBtn();
+  try{ wd.rec.stop(); }catch(_){}
+}
+$("wdRecBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); wdStartRec(); });
+$("wdRecBtn").addEventListener("pointerup",  e=>{ e.preventDefault(); wdStopRec();  });
+$("wdRecBtn").addEventListener("pointercancel",()=>{ wdStopRec(); });
+$("wdPlayBtn").onclick=()=>{ try{ $("wdPlayer").currentTime=0; $("wdPlayer").play(); }catch(_){} };
+$("wdAgainBtn").onclick=()=>{ wd.blob=null; wd.el.classList.remove("reviewing"); $("wdStatus").textContent=""; wdDisarmErase(); wdIdleBtn(); };
+$("wdCancelBtn").onclick=()=>{ if(!wd.busy) closeWithdrawProof(); };
+
+// Withdraw (recoverable) and Erase (permanent) both apply the SAME captured
+// proof — they differ only in the consent state written. Erase is two-tap armed
+// and never the default, mirroring the per-recording Erase in the card.
+function wdDisarmErase(){
+  wd.armed=false;
+  const b=$("wdEraseBtn");
+  b.classList.remove("armed");
+  b.textContent=AFDCore.t("withdraw.proof.erase",dispMode);
+  if(wd.armTimer){ clearTimeout(wd.armTimer); wd.armTimer=null; }
+}
+async function wdApply(mode){
+  if(wd.busy || !wd.blob) return;
+  wd.busy=true;
+  const spk=wd.spk, uid=wd.uid, erasing=(mode==="deleted");
+  ["wdConfirmBtn","wdAgainBtn","wdCancelBtn","wdEraseBtn"].forEach(id=>{ $(id).disabled=true; });
+  $("wdStatus").textContent=AFDCore.t("withdraw.proof.saving",dispMode);
+  try{
+    const n=await window.AFD.withdrawWithProof(uid, spk, wd.blob, mode);
+    closeWithdrawProof();
+    const key = erasing ? (n?"speaker.erase.done":"speaker.erase.none")
+                        : (n?"speaker.withdraw.done":"speaker.withdraw.none");
+    alert(AFDCore.t(key,dispMode).split("{n}").join(n).split("{spk}").join(spk));
+  }catch(e){
+    console.warn("[AFD] withdrawWithProof", mode, e);
+    $("wdStatus").textContent=AFDCore.t("withdraw.proof.err",dispMode);
+  }finally{
+    wd.busy=false;
+    ["wdConfirmBtn","wdAgainBtn","wdCancelBtn","wdEraseBtn"].forEach(id=>{ $(id).disabled=false; });
+  }
+}
+$("wdConfirmBtn").onclick=()=>{ wdDisarmErase(); wdApply("withdrawn"); };
+$("wdEraseBtn").onclick=()=>{
+  if(wd.busy || !wd.blob) return;
+  if(!wd.armed){                      // first tap arms; a stray touch can't erase
+    wd.armed=true;
+    const b=$("wdEraseBtn");
+    b.classList.add("armed");
+    b.textContent=AFDCore.t("withdraw.proof.erase.confirm",dispMode);
+    wd.armTimer=setTimeout(wdDisarmErase, 4000);
+    return;
+  }
+  wdApply("deleted");
 };
 $("toMic").onclick=()=>{
   if(switchingSpeaker){

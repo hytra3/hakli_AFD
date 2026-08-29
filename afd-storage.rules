@@ -5,8 +5,9 @@ rules_version = '2';
  *  Deploy as-is. Nothing to merge.
  *
  *  Paths:
- *    afd/{uid}/{recordingId}.webm   — contributed corpus audio
- *    afd_ui/{fileName}              — the app's spoken Hakli interface
+ *    afd/{uid}/{recordingId}.webm      — contributed corpus audio
+ *    afd_withdrawals/{uid}/{fileName}  — spoken-Hakli consent-withdrawal proof
+ *    afd_ui/{fileName}                 — the app's spoken Hakli interface
  *
  *  Anonymous sign-in exists ONLY for the UI-prompt recorder and is
  *  boxed into afd_ui/. It cannot write corpus audio.
@@ -27,6 +28,25 @@ service firebase.storage {
       // recordings are immutable once uploaded
       allow update: if false;
       allow delete: if false;
+    }
+    // ---------------- consent-withdrawal proof ----------------
+    // The spoken-Hakli artifact that lets an AGENT (a steward acting for a
+    // speaker who cannot tap a toggle themselves) withdraw or erase that
+    // speaker's takes — the Firestore rule requires withdrawal.audioPath, and
+    // this is where those bytes live. It is EVIDENCE, not corpus and not public:
+    //   • only the signed-in, non-anonymous owner may write it,
+    //   • only that owner may read it back (to replay/confirm before applying),
+    //   • it is immutable once written — a withdrawal proof can't be edited away.
+    match /afd_withdrawals/{uid}/{fileName} {
+      allow read:   if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
     }
     // ---------------- UI voice prompts ----------------
     // Recorded remotely over anonymous sign-in; played openly by the app.
