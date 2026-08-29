@@ -1,210 +1,130 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Hakli — speak to find</title>
-<!-- social preview (WhatsApp / Open Graph) -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Hakli — Audio First Dictionary">
-<meta property="og:url" content="https://hakli.app/">
-<meta property="og:title" content="الهَكلي · Hakli — Audio First Dictionary">
-<meta property="og:description" content="قاموسٌ صوتيّ للغة الهَكلي — تُسمَع وتُحفَظ بأصوات أهلها. · An audio-first dictionary for the Hakli language, heard and kept in its own voices.">
-<meta property="og:image" content="https://hakli.app/og-hakli.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:locale" content="ar_OM">
-<meta property="og:locale:alternate" content="en_US">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0828d" type="image/svg+xml">
-<script src="afd-core.js?v=b0828d"></script>
-<script src="afd-words.js?v=b0828d"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0828d">
-<style>/* ---------------------------------------------------------------- tokens
-     Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
-     Deliberately NOT cream + terracotta. */
+<title>Hakli voice prompts</title>
+<link rel="icon" href="../favicon.svg?v=b0822b" type="image/svg+xml" />
+<style>
   :root{
-    --fog:#EAF0EE;         /* cool misty background            */
-    --cloud:#FFFFFF;       /* raised surfaces                  */
-    --mountain:#1F3A34;    /* deep juniper — primary ink       */
-    --mist:#8CA39B;        /* muted sage — secondary           */
-    --mist-2:#C4D2CC;      /* faint sage — strips, dividers    */
-    --resin:#C6873F;       /* frankincense amber — LIVE only   */
-    --resin-soft:#E7C9A0;
-    --danger:#9E4433;      /* muted clay — erase confirm only  */
-    --ink:#17241F;
-    --shadow:24px 24px 60px rgba(31,58,52,.10);
-    --r:22px;
-    --tap:96px;            /* minimum comfortable touch target */
-    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
-    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
+    --line:#e7e0d5; --warm:#b06a2c; --warm-bg:#f6ead9;
+    --go:#2f7d5b; --go-bg:#e3f2ea; --stop:#b23b3b;
+    --accent:#3a6ea5; --accent-bg:#e7f0f8;
   }
-*{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{
-    background:
-      radial-gradient(120% 80% at 50% -10%, #F3F7F5 0%, var(--fog) 55%, #DFE8E4 100%) fixed;
-    color:var(--ink); font-family:var(--sans);
-    -webkit-tap-highlight-color:transparent;
-    display:flex; flex-direction:column; min-height:100dvh;
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1a1713; --card:#241f19; --ink:#efe8dd; --muted:#a49a8c;
+      --line:#3a332a; --warm:#e0a163; --warm-bg:#33281c;
+      --go:#5bbd8e; --go-bg:#1d3329; --stop:#e2726f;
+      --accent:#7fb0e0; --accent-bg:#1e2b3a;
+    }
   }
-/* ---------------------------------------------------------------- header */
-  header{
-    display:flex; align-items:center; gap:10px;
-    padding:18px 20px calc(6px + env(safe-area-inset-top));
-    color:var(--mountain);
-  }
-.mark{width:30px;height:30px;flex:0 0 auto}
-.wordmark{font-family:var(--serif); font-size:20px; letter-spacing:.2px}
-.wordmark small{color:var(--mist); font-family:var(--sans); font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin-inline-start:8px}
-.skin{margin-inline-start:auto; width:42px; height:42px; flex:0 0 auto; border-radius:50%;
-        border:1px solid var(--hairline); background:var(--cloud); color:var(--mountain);
-        display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
-.skin svg{width:20px;height:20px}
-.skin .lbl{font-family:var(--serif); font-size:18px; line-height:1}
-/* ---------------------------------------------------------------- hero */
-  main{flex:1; display:flex; flex-direction:column; align-items:center; padding:0 20px 32px}
-/* idle: the mic is a centered hero */
-  body:not(.has-results) main{justify-content:center}
-/* results: everything rides up to the top, mic stays put and shrinks */
-  body.has-results main{justify-content:flex-start}
-/* the mic + hint live together in a zone that sticks to the top while
-     results scroll underneath — so the mic never wanders off-screen and a
-     re-tap is always in the same place */
-  .control{width:100%; max-width:560px; display:flex; flex-direction:column;
-           align-items:center; gap:16px; padding:14px 0 12px;
-           position:sticky; top:0; z-index:5;
-           background:linear-gradient(var(--fog) 74%, rgba(234,240,238,0))}
-.stage{position:relative; width:min(66vw,248px); aspect-ratio:1;
-         transition:width .35s ease}
-body.has-results .stage{width:104px}
-.ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--mist-2);
-        opacity:0; transform:scale(.6)}
-body.rec .ring{animation:ripple 1.8s ease-out infinite}
-.ring:nth-child(2){animation-delay:.6s}
-.ring:nth-child(3){animation-delay:1.2s}
-@keyframes ripple{0%{opacity:.6;transform:scale(.62)}100%{opacity:0;transform:scale(1.25)}}
-.mic{
-    position:absolute; inset:0; margin:auto; width:100%; height:100%;
-    border:none; border-radius:50%; cursor:pointer; color:var(--cloud);
-    background:radial-gradient(120% 120% at 30% 25%, #2C5349 0%, var(--mountain) 70%);
-    box-shadow:var(--shadow), inset 0 2px 0 rgba(255,255,255,.14);
-    display:grid; place-items:center; transition:transform .18s ease, background .2s ease;
-    touch-action:none; user-select:none;
-  }
-.mic:active{transform:scale(.97)}
-body:not(.rec):not(.busy) .mic{animation:breathe 4.5s ease-in-out infinite}
-@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-body.rec .mic{background:radial-gradient(120% 120% at 30% 25%, #D89A54 0%, var(--resin) 75%)}
-body.busy .mic{background:radial-gradient(120% 120% at 30% 25%, #8CA39B 0%, #6E877E 75%)}
-.mic svg{width:38%; height:38%}
-/* searching: an amber "sonar ping" so thinking is unmistakably active. The idle
-     mic already breathes, so the busy state needs its OWN, louder motion — and
-     amber is the app's reserved "live" colour — or "Finding…" reads as frozen.
-     The ring pulses while the matcher works and stops the moment results land. */
-  .mic::after{ content:""; position:absolute; inset:0; border-radius:50%;
-    border:2px solid var(--resin); pointer-events:none; opacity:0; }
-body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
-@keyframes sonar{ 0%{opacity:.6; transform:scale(1)} 100%{opacity:0; transform:scale(1.9)} }
-/* live level bloom */
-  .bloom{position:absolute; inset:0; margin:auto; border-radius:50%;
-         background:radial-gradient(circle, rgba(198,135,63,.32), transparent 62%);
-         transform:scale(var(--lvl,0)); transition:transform .08s linear; pointer-events:none}
-.hint{font-family:var(--serif); font-size:22px; color:var(--mountain); text-align:center; line-height:1.35}
-.hint .ar{display:block; font-size:16px; color:var(--mist); font-family:var(--sans); margin-top:4px}
-.hint .ar.solo{display:block; font-size:inherit; color:var(--mountain); font-family:var(--sans); direction:rtl; margin-top:0}
-.hint.small{font-size:16px; color:var(--mist)}
-/* ---------------------------------------------------------------- results */
-  .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px}
-/* header account button — sign in to manage your own voice */
-  .account{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
-      color:var(--mountain);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
-.account.in{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
-/* empty / miss — an invitation, not an apology */
-  .empty{width:100%; max-width:460px; background:var(--cloud); border-radius:var(--r);
-         box-shadow:var(--shadow); padding:26px 22px; text-align:center}
-.empty h2{font-family:var(--serif); font-weight:500; font-size:24px; color:var(--mountain); margin:0 0 6px}
-.empty p{color:var(--mist); margin:0 0 18px; font-size:15px}
-.empty .ar{display:block; direction:rtl; color:var(--mist); font-size:14px; margin-top:4px}
-.cta{display:inline-flex; align-items:center; gap:10px; background:var(--resin); color:var(--cloud);
-       border:none; border-radius:16px; padding:16px 22px; font:600 16px/1 var(--sans); cursor:pointer; text-decoration:none}
-.again{align-self:center; background:transparent; border:none; color:var(--mist);
-         font:600 14px/1 var(--sans); padding:12px; cursor:pointer; display:inline-flex; gap:8px; align-items:center}
-.banner{max-width:560px; margin:0 auto; background:#FBEFE0; color:#7A5320; border:1px solid var(--resin-soft);
-          border-radius:14px; padding:12px 14px; font-size:14px; text-align:center}
-.hidden{display:none !important}
-/* dev distance readout — off by default, tap the wordmark 3× to reveal */
-  .dbg{position:fixed; bottom:8px; left:8px; font:11px/1.4 ui-monospace,monospace; color:var(--mist);
-       background:rgba(255,255,255,.7); padding:6px 8px; border-radius:8px; pointer-events:none}
-@media (prefers-reduced-motion:reduce){
-    *{animation:none !important; transition:none !important}
-  }
-:focus-visible{outline:3px solid var(--resin); outline-offset:3px}
-.allbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:40px;height:40px;
-  border:1.5px solid var(--mist-2);border-radius:50%;background:var(--cloud);color:var(--mountain);
-  cursor:pointer;padding:0;margin-bottom:12px}
-/* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
-     escape hatch under search candidates for a real new word that looked near one */
-  .addword{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:460px;
-    margin:0 auto 12px;border:1.5px dashed var(--resin);border-radius:16px;background:transparent;
-    color:var(--resin);font:600 15px/1 var(--sans);padding:14px 18px;cursor:pointer}
-.addword:hover{background:var(--resin-soft)}
-.notthese{display:block;margin:14px auto 4px;background:transparent;border:none;color:var(--mist);
-    font:600 14px/1.3 var(--sans);padding:10px 12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-
-  .loadingdots{display:flex;gap:9px;justify-content:center;padding:48px 0}
-  .loadingdots span{width:11px;height:11px;border-radius:50%;background:var(--resin);animation:ld 1s ease-in-out infinite}
-  .loadingdots span:nth-child(2){animation-delay:.15s}
-  .loadingdots span:nth-child(3){animation-delay:.3s}
-  @keyframes ld{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-7px)}}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px; margin:0 auto; padding:16px 16px 48px;}
+  header{position:sticky; top:0; background:var(--bg); padding:10px 0 12px; border-bottom:1px solid var(--line); z-index:5;}
+  .title{font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px;}
+  .bar{height:8px; background:var(--line); border-radius:6px; margin-top:10px; overflow:hidden;}
+  .bar > i{display:block; height:100%; width:0; background:var(--go); border-radius:6px; transition:width .25s;}
+  .barlabel{font-size:12px; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between;}
+  .status{font-size:12px; color:var(--muted);}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:16px;}
+  .sec{font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
+  .badge{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:2px;}
+  .b-narr{background:var(--warm-bg); color:var(--warm);}
+  .b-label{background:var(--accent-bg); color:var(--accent);}
+  .b-tag{background:var(--line); color:var(--muted);}
+  .gloss{font-size:24px; font-weight:600; margin:12px 0 4px;}
+  .gloss-ar{font-size:22px; color:var(--muted); direction:rtl; text-align:right; min-height:0;}
+  .hint{font-size:13px; color:var(--muted); margin-top:8px;}
+  .key{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace; margin-top:10px;}
+  .controls{display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px;}
+  .recbtn{width:96px; height:96px; border-radius:50%; border:none; background:var(--go); color:#fff; font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; user-select:none;}
+  .recbtn.rec{background:var(--stop);}
+  .recbtn:disabled{opacity:.4;}
+  .timer{font-variant-numeric:tabular-nums; font-size:15px; color:var(--muted); min-height:20px;}
+  .review{display:flex; gap:10px; margin-top:14px; width:100%; justify-content:center;}
+  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:12px 16px; font-size:15px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;}
+  .btn.keep{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
+  .btn.wide{width:100%; justify-content:center;}
+  .nav{display:flex; gap:10px; margin-top:14px;}
+  .nav .btn{flex:1; justify-content:center;}
+  .list{margin-top:22px;}
+  .list h2{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 8px;}
+  .row{display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; background:var(--card); cursor:pointer;}
+  .row.active{border-color:var(--warm);}
+  .dot{width:22px; height:22px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-size:14px; border:1px solid var(--line); color:var(--muted);}
+  .dot.done{background:var(--go); border-color:var(--go); color:#fff;}
+  .dot.pend{background:var(--warm-bg); border-color:var(--warm); color:var(--warm);}
+  .rowtext{flex:1; min-width:0;}
+  .rowtext .g{font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rowtext .k{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace;}
+  .note{background:var(--warm-bg); color:var(--warm); border-radius:12px; padding:12px 14px; font-size:13px; margin-top:14px;}
+  .sync{font-size:12px;}
+  .sync.pending{color:var(--warm);} .sync.ok{color:var(--go);}
+  audio{width:100%; margin-top:12px;}
+  .hidden{display:none;}
+  #recdone{display:none; gap:8px; justify-content:center; margin-top:10px}
+  #recdone:not(.hidden){display:flex}
 </style>
 </head>
 <body>
+<div class="wrap">
   <header>
-    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M2 26 L11 9 L17 20 L21 13 L30 26 Z" fill="#1F3A34"/>
-      <circle cx="24" cy="7" r="3.2" fill="#C6873F"/>
-    </svg>
-    <span class="wordmark" id="wordmark">Hakli<small>speak to find</small></span>
-    <button class="skin" id="skin" aria-label="Change how words are shown"></button>
-    <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
+    <div class="title">🎙️ Hakli voice prompts <span id="status" class="status">connecting…</span></div>
+    <div class="bar"><i id="barfill"></i></div>
+    <div class="barlabel"><span id="count">0 recorded</span><span id="remaining"></span></div>
   </header>
 
-  <main>
-    <div class="control">
-      <div class="stage" id="stage">
-        <span class="ring"></span><span class="ring"></span><span class="ring"></span>
-        <span class="bloom" id="bloom"></span>
-        <button class="mic" id="mic" aria-label="Hold and speak a word">
-          <!-- mic glyph -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
-          </svg>
-        </button>
+  <div id="app" class="hidden">
+    <div class="card">
+      <div class="sec" id="cur-sec">—</div>
+      <div class="gloss" id="cur-gloss">—</div>
+      <div class="gloss-ar" id="cur-ar"></div>
+      <div class="hint" id="cur-hint"></div>
+      <div class="key" id="cur-key"></div>
+
+      <div class="controls">
+        <button id="recbtn" class="recbtn">Record</button>
+        <div class="timer" id="timer"></div>
+        <audio id="player" class="hidden" controls></audio>
+        <div class="review hidden" id="review">
+          <button class="btn" id="redo">↻ Redo</button>
+          <button class="btn keep" id="keep">✓ Keep it</button>
+        </div>
+        <div class="sync" id="sync"></div>
+        <div class="recdone hidden" id="recdone">
+          <button class="btn" id="playactive">▶ Play</button>
+          <button class="btn" id="delactive">🗑 Delete</button>
+        </div>
       </div>
-      <p class="hint" id="hint"><span class="ar solo">تكلّم</span></p>
+
+      <div class="nav">
+        <button class="btn" id="prev">← Back</button>
+        <button class="btn" id="next">Next →</button>
+      </div>
+      <button class="btn wide" id="nextpending" style="margin-top:10px;">Go to next unrecorded</button>
     </div>
 
-    <div class="results afdcard hidden" id="results"></div>
-  </main>
+    <div class="note" id="offlinenote">
+      Recordings are kept safely on this phone first, then sent on their own. You can close this and come back — your progress waits for you.
+    </div>
 
-  <div class="dbg hidden" id="dbg"></div>
+    <div class="list" id="list"></div>
+  </div>
+
+  <div id="setup" class="note hidden"></div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, getDownloadURL }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0828d";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-
-/* ================================================================= CONFIG */
-/* Same afd-dev project the recorder uses. Web keys identify a project;
-   they authorise nothing — security lives in the rules. */
+/* ---- 1. PASTE the afd-dev web config here (same six values as the main recorder) ---- */
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
   authDomain:        "afd-dev.firebaseapp.com",
@@ -213,476 +133,363 @@ const firebaseConfig = {
   messagingSenderId: "454829954488",
   appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
 };
+const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE_");
 
-/* >>> PASTE YOUR CLOUD RUN URL (no trailing slash) <<< */
-const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
+/* ---- 2. The prompts. Add an `ar` (Arabic gloss) to any item and it will show. ---- */
+/* NOTE: `ar` values below are MSA drafts (added 08-27) — PENDING DHOFARI REVIEW.
+   Items whose gloss starts with [توجيه] are recorder DIRECTIVES (esp. the "count"
+   framings), not literal UI copy — set their real phrasing before recording. */
+const SECTIONS = [
+  { name:"Walkthrough (spoken tour)", items:[
+    { key:"intro.welcome", en:"What this is — a place to hear and add Hakli", ar:"ما هذا — مكان لسماع الهَكلي وإضافته", kind:"narration" },
+    { key:"intro.longpress", en:"Hold any button to hear what it does", ar:"اضغط مطوّلًا على أي زر لتسمع ما يفعله", kind:"narration" },
+    { key:"intro.hold_to_speak", en:"To add your voice, hold and speak", ar:"لإضافة صوتك، اضغط مطوّلًا وتكلّم", kind:"narration" },
+    { key:"intro.find", en:"To find a word, speak it or look by picture", ar:"للعثور على كلمة، انطقها أو ابحث بالصورة", kind:"narration" },
+  ]},
+  { name:"Consent grant (most important)", items:[
+    { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", ar:"ماذا يعني أن تدع العالم يسمعك — بوضوحٍ، قبل أي موافقة", kind:"narration" },
+    { key:"consent.blessing", en:"Your elders welcomed this", ar:"رحّب بهذا كبارُكم", kind:"label" },
+    { key:"consent.truth.world", en:"Anyone, anywhere can hear you", ar:"يمكن لأي شخص، في أي مكان، أن يسمعك", kind:"label" },
+    { key:"consent.truth.permanent", en:"It stays — even after today", ar:"يبقى — حتى بعد اليوم", kind:"label" },
+    { key:"consent.truth.revocable", en:"You can take it back, anytime", ar:"يمكنك سحبه في أي وقت", kind:"label" },
+    { key:"consent.give", en:"Hold, and say yes in your own voice", ar:"اضغط مطوّلًا، وقل «نعم» بصوتك", kind:"label" },
+    { key:"consent.give.sub", en:"Your word, in your language", ar:"كلمتك، بلغتك", kind:"label" },
+    { key:"consent.notnow", en:"Not now", ar:"ليس الآن", kind:"label" },
+  ]},
+  { name:"Your voice (consent control)", items:[
+    { key:"voice.title", en:"Your voice", ar:"صوتك", kind:"label" },
+    { key:"voice.reassure", en:"These are yours — take any back anytime", ar:"هذه لك — يمكنك سحب أيٍّ منها في أي وقت", kind:"label" },
+    { key:"voice.state.shared", en:"Shared", ar:"مُشارَك", kind:"label" },
+    { key:"voice.state.takenback", en:"Taken back, kept safe", ar:"مسحوب، ومحفوظ بأمان", kind:"label" },
+    { key:"voice.takeback", en:"Take back", ar:"اسحب", kind:"label" },
+    { key:"voice.shareagain", en:"Share again", ar:"شارك مجددًا", kind:"label" },
+    { key:"voice.bulk.words", en:"All my words", ar:"كل كلماتي", kind:"label" },
+    { key:"voice.bulk.definitions", en:"All my definitions", ar:"كل تعريفاتي", kind:"label" },
+    { key:"voice.bulk.everything", en:"Everything", ar:"كل شيء", kind:"label" },
+    { key:"voice.mask", en:"Mask my avatar — be heard, not traceable", ar:"أخفِ رمزي — أن تُسمَع دون أن تُعرَف", kind:"label" },
+    { key:"voice.bulk.confirm", en:"Take back all your words? You can share them again later", ar:"أتسحب كل كلماتك؟ يمكنك مشاركتها مجددًا لاحقًا", kind:"narration", tag:"may change" },
+  ]},
+  { name:"Home", items:[
+    { key:"home.speak", en:"Speak to find", ar:"تكلّم لتجد", kind:"label" },
+    { key:"home.speak.hint", en:"Tap and say a word", ar:"انقر وانطق كلمة", kind:"label" },
+    { key:"home.picture", en:"Look by picture", ar:"ابحث بالصورة", kind:"label" },
+    { key:"home.addvoice", en:"Add your voice", ar:"أضِف صوتك", kind:"label" },
+    { key:"home.recent", en:"Recently heard", ar:"سُمِع مؤخرًا", kind:"label" },
+    { key:"home.momentum", en:"Frame words only: “words in the dictionary”, “voices sharing” (no numbers)", ar:"[توجيه] بصياغة كلماتية فقط: «كلمات في القاموس»، «أصوات تُشارك» (بلا أرقام)", kind:"label", tag:"count" },
+  ]},
+  { name:"Record", items:[
+    { key:"record.prompt.image", en:"Say what you see, in Hakli", ar:"قل ما تراه، بالهَكلي", kind:"label" },
+    { key:"record.hold", en:"Hold to speak", ar:"اضغط مطوّلًا لتتكلّم", kind:"label" },
+    { key:"record.holding", en:"Keep holding", ar:"استمر بالضغط", kind:"label" },
+    { key:"record.release", en:"Let go when you finish", ar:"اترك عند الانتهاء", kind:"label" },
+  ]},
+  { name:"Review & keep", items:[
+    { key:"review.yourtake", en:"Your take", ar:"تسجيلك", kind:"label" },
+    { key:"review.clear", en:"Clear, good to keep", ar:"واضح، جيّد للحفظ", kind:"label" },
+    { key:"review.check.loud", en:"Loud enough", ar:"بمستوى صوت كافٍ", kind:"label" },
+    { key:"review.check.long", en:"Long enough", ar:"بطول كافٍ", kind:"label" },
+    { key:"review.check.clip", en:"No clipping", ar:"بلا تشويه", kind:"label" },
+    { key:"review.fail.quiet", en:"A bit quiet, try again", ar:"منخفض قليلًا، حاول مجددًا", kind:"label", tag:"may change" },
+    { key:"review.fail.short", en:"A bit short, try again", ar:"قصير قليلًا، حاول مجددًا", kind:"label", tag:"may change" },
+    { key:"review.redo", en:"Redo", ar:"أعِد", kind:"label" },
+    { key:"review.keep", en:"Keep it", ar:"احفظه", kind:"label" },
+    { key:"review.savedonphone", en:"Saved on your phone first", ar:"حُفِظ على هاتفك أولًا", kind:"label" },
+  ]},
+  { name:"Find a word (result)", items:[
+    { key:"result.whatyousaid", en:"Hear what you said", ar:"اسمع ما قلته", kind:"label" },
+    { key:"result.playing", en:"Playing", ar:"يُشغَّل", kind:"label" },
+    { key:"result.pure_hakli", en:"Pure Hakli", ar:"هَكلي خالص", kind:"label" },
+    { key:"result.voices", en:"“How many said this” — frame words only (no number)", ar:"[توجيه] «كم شخصًا قال هذا» — بصياغة كلماتية فقط (بلا رقم)", kind:"label", tag:"count" },
+    { key:"result.meaning", en:"What it means", ar:"ما معناها", kind:"label" },
+    { key:"result.notthis", en:"Not this one?", ar:"ليست هذه؟", kind:"label" },
+    { key:"result.sayityourself", en:"Say it yourself", ar:"قُلها بنفسك", kind:"label" },
+    { key:"result.pick", en:"I heard a few — pick the one you said", ar:"سمعتُ عدّة — اختر ما قلته", kind:"narration", tag:"may change" },
+  ]},
+  { name:"Hear how others say it", items:[
+    { key:"others.title", en:"How others say it", ar:"كيف يقولها الآخرون", kind:"label" },
+    { key:"others.playall", en:"Play all", ar:"شغّل الكل", kind:"label" },
+    { key:"others.cluster", en:"“How many voices, around one shape” — frame words only (no number)", ar:"[توجيه] «كم صوتًا حول شكلٍ واحد» — بصياغة كلماتية فقط (بلا رقم)", kind:"label", tag:"count" },
+    { key:"others.more", en:"And more", ar:"والمزيد", kind:"label" },
+  ]},
+  { name:"Everywhere (shared)", items:[
+    { key:"nav.back", en:"Go back", ar:"ارجع", kind:"label" },
+    { key:"action.play", en:"Play / listen", ar:"شغّل / استمع", kind:"label" },
+    { key:"action.hear_prompt", en:"Hear the prompt", ar:"اسمع التوجيه", kind:"label" },
+  ]},
+];
+const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.name})));
 
-/* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
-   real cross-speaker data exists. Within-speaker self-repeats sat at
-   0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0828d";      // bump every publish; shown in the wordmark + console
-
-/* Confidence gates. Recalibrated from real measured distances (the old
-   0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
-   are first estimates off a tiny corpus — tune as the corpus grows. The MARGIN
-   gate is the robust part: it's scale-independent, so a near-tie never autoplays
-   as certainty even when the absolute distance looks small (e.g. deer 0.148 vs
-   camel 0.149 — a 0.001 gap — should be "did you mean", not "here it is"). */
-const AUTOPLAY_MAX = 0.15;   // top hit must be at least this close…
-const MAYBE_MAX    = 0.25;   // …and anything past this isn't shown as a candidate
-const MARGIN_MIN   = 0.03;   // …AND must beat the runner-up by this much to autoplay
-                             // >  this OR no results: nobody has said it → be first
-const RECORDER_URL = "recorder.html";  // where "say it yourself" goes
-
-/* How the box shows a word. Default is chosen for us so a non-reader does nothing;
-   the small header control changes it. Stored locally — no account needed. */
-const MODES = AFDCore.DISP_MODES;          // shared with the recorder via afd-core
-let displayMode = AFDCore.getDisplayMode("sound");   // find defaults to sound (non-reader-first)
-let lastResults = null;
-let renderToken = 0;   // guards against two async renders racing to append
-let deepEntry  = null; // set when the view is a chosen entry (index.html#ent_xxx)
-function setDisplayMode(m){ displayMode = m; AFDCore.setDisplayMode(m); }
-
-/* ================================================================= setup */
-const app   = initializeApp(firebaseConfig);
-const db    = getFirestore(app);
-const store = getStorage(app);
-const auth  = getAuth(app);
-let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
-initCard({ db, store, recorderUrl: RECORDER_URL, mode:()=>displayMode, user:()=>currentUser, banner });
-
-const $ = id => document.getElementById(id);
-const mic = $("mic"), hint = $("hint"), resultsEl = $("results"),
-      bloom = $("bloom"), dbg = $("dbg");
-
-/* --------- optional spoken hint (plays a recorded Hakli UI prompt if one
-   has been captured; silently skipped if not). */
-tryPlayPrompt("find_hint");
-async function tryPlayPrompt(key){
-  try{
-    const s = await getDoc(doc(db, "afd_ui_prompts", key));
-    if(!s.exists()) return;
-    const d = s.data();
-    const path = d.storagePath || d.path;
-    if(!path) return;
-    const url = await getDownloadURL(ref(store, path));
-    const a = new Audio(url); a.play().catch(()=>{});   // autoplay may be blocked; that's fine
-  }catch(_){/* no prompt yet */}
-}
-
-/* ================================================================= capture */
-let mediaRec=null, chunks=[], stream=null, ac=null, holding=false, acquiring=false;
-
-// Acquire the mic ONCE and keep it warm for the session. Re-acquiring on every
-// hold races the getUserMedia permission/warm-up delay — a quick press-speak-
-// release can finish before the recorder is even ready, so the clip is empty
-// ("hold a little longer"). Worst in a fresh/incognito session where the mic is
-// cold. The stream is released when the tab is hidden or closed.
-async function ensureStream(){
-  if(stream) return stream;
-  if(acquiring) return null;
-  acquiring=true;
-  try{
-    // Query capture and corpus capture now share one protocol (afd-core openStream),
-    // so the query can't drift into a different acoustic space than the corpus.
-    const r = await AFDCore.openStream();
-    stream = r.stream;
-  }catch(e){ acquiring=false; return null; }
-  acquiring=false;
-  return stream;
-}
-function stopStream(){
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-  if(ac){ ac.close().catch(()=>{}); ac=null; }
-}
-
-async function startHold(){
-  if(holding) return; holding=true;
-  resultsEl.classList.add("hidden");
-  let s = await ensureStream();
-  // A warm stream can go stale — the browser/OS ends the track between holds —
-  // and reusing a dead track makes MediaRecorder.start() throw NotSupportedError.
-  // Drop a stream with no live track and re-acquire a fresh one.
-  if(s && !s.getAudioTracks().some(t=>t.readyState==="live")){ stopStream(); s = await ensureStream(); }
-  if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
-  if(!holding) return;                 // released during acquisition — stream stays warm for the next hold
-  document.body.classList.add("rec"); setHint("Listening…","أستمع…");
-  meter(s);
-  chunks=[];
-  try{ mediaRec = new MediaRecorder(s); }
-  catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); return; }
-  mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
-  mediaRec.onstop = onClip;
-  try{ mediaRec.start(100); }   // 100ms timeslice: flush data during the hold, not only on stop
-  catch(e){
-    // Stream became unrecordable — force a fresh one on the next hold rather than
-    // leaving an uncaught rejection and a dead-feeling button.
-    holding=false; document.body.classList.remove("rec"); stopStream();
-    setHint("Hold and speak","تكلّم");
-  }
-}
-function endHold(){
-  if(!holding) return; holding=false;
-  document.body.classList.remove("rec");
-  bloom.style.setProperty("--lvl",0);
-  if(mediaRec && mediaRec.state!=="inactive") mediaRec.stop();
-  if(ac){ ac.close().catch(()=>{}); ac=null; }
-}
-function meter(stream){
-  try{
-    ac = new (window.AudioContext||window.webkitAudioContext)();
-    const src=ac.createMediaStreamSource(stream), an=ac.createAnalyser();
-    an.fftSize=256; src.connect(an); const buf=new Uint8Array(an.frequencyBinCount);
-    (function loop(){
-      if(!holding) return;
-      an.getByteTimeDomainData(buf);
-      let peak=0; for(const v of buf){ const d=Math.abs(v-128)/128; if(d>peak)peak=d; }
-      bloom.style.setProperty("--lvl", (0.4+peak*2.2).toFixed(2));
-      requestAnimationFrame(loop);
-    })();
-  }catch(_){}
-}
-
-async function onClip(){
-  // keep the stream warm for the next hold — do NOT stop it here
-  const blob = new Blob(chunks, {type: chunks[0]?.type || "audio/webm"});
-  if(blob.size < 800){ setHint("Hold a little longer, then speak","تكلّم أطول قليلاً"); return; }
-  await runSearch(blob);
-}
-
-// release the mic when the tab is hidden or closed
-document.addEventListener("visibilitychange", ()=>{ if(document.hidden) stopStream(); });
-window.addEventListener("pagehide", stopStream);
-
-// Pre-warm the mic on load IF permission is already granted, so the first hold
-// records immediately instead of losing a cold getUserMedia race (empty clip →
-// "hold a little longer"). No prompt when permission isn't granted yet.
-(async ()=>{
-  try{
-    const p = await navigator.permissions.query({name:"microphone"});
-    if(p.state === "granted" && !document.hidden) ensureStream();
-  }catch(_){}
+/* ---- tiny IndexedDB for pending clips (survives reload / bad signal) ---- */
+const IDB = (()=>{
+  let dbp;
+  function open(){ if(dbp) return dbp; dbp = new Promise((res,rej)=>{
+    const r = indexedDB.open("afd_ui_prompts",1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore("clips",{keyPath:"key"});
+    r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error);
+  }); return dbp; }
+  const tx = async (mode,fn)=>{ const db=await open(); return new Promise((res,rej)=>{
+    const t=db.transaction("clips",mode); const s=t.objectStore("clips"); const out=fn(s);
+    t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out); t.onerror=()=>rej(t.error);
+  });};
+  return {
+    put:(rec)=>tx("readwrite",s=>s.put(rec)),
+    del:(key)=>tx("readwrite",s=>s.delete(key)),
+    all:()=>tx("readonly",s=>s.getAll()),
+  };
 })();
 
-/* ================================================================= search */
-async function runSearch(blob){
-  document.body.classList.add("busy"); setHint("Finding…","أبحث…");
-  if(EMBED_URL.includes("PASTE-")){
-    banner("Set EMBED_URL to your Cloud Run address in index.html.");
-    document.body.classList.remove("busy"); setHint("Hold and speak","تكلّم"); return;
+const $ = id => document.getElementById(id);
+const state = { i:0, recorded:new Set(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null };
+
+if(!CONFIGURED){
+  $("status").textContent = "not set up";
+  $("setup").classList.remove("hidden");
+  $("setup").innerHTML = "This recorder needs its Firebase config pasted in once (the six PASTE_ values at the top of the file), Anonymous sign-in enabled in the console, and the afd_ui rules deployed. Ask Marty.";
+} else {
+  start();
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+// Distinguish a referrer-restriction block (fix lives on the Browser API key
+// in Cloud Console) from a genuinely-disabled Anonymous provider (fix lives in
+// Firebase Auth). Firebase surfaces the referrer case as an error code shaped
+// auth/requests-from-referer-<url>-are-blocked and/or a message that mentions
+// the referer being blocked, so we prefix/keyword match rather than compare
+// against one static string.
+function classifySignInError(e){
+  const code = (e && e.code) || "";
+  const hay  = ((e && e.code) + " " + (e && e.message)).toLowerCase();
+  if (code.startsWith("auth/requests-from-referer") ||
+      hay.includes("referer") || hay.includes("referrer")) {
+    return {
+      status: "sign-in blocked (referrer)",
+      html: "Sign-in was blocked because this site's address isn't on the API key's referrer allowlist (<code>"+
+            escHtml(code || "referrer restriction")+"</code>). Ask Marty to add this domain in "+
+            "Google Cloud Console → APIs &amp; Services → Credentials → the <b>Browser API key</b> → "+
+            "<b>Website restrictions</b>."
+    };
   }
-  let data;
+  if (code === "auth/operation-not-allowed") {
+    return {
+      status: "sign-in blocked",
+      html: "Sign-in was refused because Anonymous sign-in is turned off (<code>"+escHtml(code)+"</code>). "+
+            "Ask Marty to enable <b>Anonymous</b> in Firebase → Authentication → Sign-in method."
+    };
+  }
+  return {
+    status: "sign-in blocked",
+    html: "Sign-in was refused (<code>"+escHtml(code || "unknown error")+"</code>). "+
+          "Ask Marty to check the Firebase Authentication setup."
+  };
+}
+
+async function start(){
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const store = getStorage(app);
+  state.db = db; state.store = store;
+
+  onAuthStateChanged(auth, async (u)=>{
+    if(!u) return;
+    $("status").textContent = navigator.onLine ? "ready" : "offline (saving here)";
+    await loadProgress(db);
+    await loadPending();
+    $("app").classList.remove("hidden");
+    render();
+    syncPending();
+  });
   try{
-    const fd = new FormData(); fd.append("file", blob, "query.webm");
-    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd});
-    if(!r.ok) throw new Error("search "+r.status);
-    data = await r.json();
+    await signInAnonymously(auth);
   }catch(e){
-    document.body.classList.remove("busy");
-    setHint("Couldn't reach the matcher — try again","حاول مرة أخرى");
-    document.body.classList.add("has-results"); return;
+    const info = classifySignInError(e);
+    $("status").textContent = info.status;
+    $("setup").classList.remove("hidden");
+    $("setup").innerHTML = info.html;
   }
-  document.body.classList.remove("busy");
-  const results = (data.results||[]);
-  console.log("[AFD] corpus", data.corpus_n, "·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
-  showDbg(results, data.corpus_n);
-  await render(results);
+  window.addEventListener("online", ()=>{ $("status").textContent="ready"; syncPending(); });
+  window.addEventListener("offline", ()=>{ $("status").textContent="offline (saving here)"; });
 }
 
-async function render(results){
-  const my = ++renderToken; deepEntry = null;
-  lastResults = results;
-  resultsEl.innerHTML=""; hint.classList.add("small");
-  resultsEl.appendChild(backToAll());
-  const best = results[0];
-
-  if(!best || best.distance > MAYBE_MAX){ renderEmpty(best); return; }
-
-  const second = results[1];
-  const margin = second ? (second.distance - best.distance) : Infinity;
-  const confident = best.distance <= AUTOPLAY_MAX && margin >= MARGIN_MIN;
-  console.log("[AFD] best", best.distance, "margin", (margin===Infinity?"∞":margin.toFixed(3)), "→", confident?"confident":"maybe");
-  setHint(confident ? "Here it is" : "Did you mean…", confident ? "ها هو" : "هل تقصد…");
-
-  // lead card
-  const lead = await entryCard(best, true);
-  if(my!==renderToken) return;                 // a newer render/open superseded us
-  resultsEl.appendChild(lead.el);
-  // the rest
-  for(const res of results.slice(1)){
-    if(res.distance > MAYBE_MAX) break;
-    const c = await entryCard(res, false);
-    if(my!==renderToken) return;
-    resultsEl.appendChild(c.el);
-  }
-  // A genuinely new word can look acoustically near an existing entry (e.g. two
-  // Hakli words sharing one English gloss), so never force it into a candidate —
-  // always offer the way out to mint a new entry instead.
-  const alt=document.createElement("button");
-  alt.className="notthese";
-  alt.textContent=AFDCore.t("entry.notthese", displayMode);
-  alt.addEventListener("click", startNewEntry);
-  resultsEl.appendChild(alt);
-  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
-
-  if(confident && lead.firstPlayable){ playInto(lead.playBtn, lead.firstPlayable); }
-}
-
-/* Open a specific entry directly — the dictionary links here as index.html#ent_xxx.
-   Same card render as a confident search hit, but chosen rather than spoken. No
-   autoplay: the user navigated deliberately, so let them pick a voice. */
-async function openEntry(entryId){
-  const my = ++renderToken; deepEntry = entryId;
-  lastResults = [{entryId, distance:0}];
-  resultsEl.innerHTML=""; hint.classList.add("small");
-  setHint("Here it is","ها هو");
-  const lead = await entryCard({entryId, distance:0}, true);
-  if(my!==renderToken) return;                 // superseded by a newer render/open
-  resultsEl.innerHTML="";                       // clear again in case of a race
-  resultsEl.appendChild(backToAll());
-  resultsEl.appendChild(lead.el);
-  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
-}
-function applyEntryDeepLink(){
-  const raw = (location.hash||"").replace(/^#/,"");
-  if(!raw) return false;
-  let id=""; try{ id=decodeURIComponent(raw).trim(); }catch(_){ id=raw.trim(); }
-  if(!id) return false;
-  openEntry(id); return true;
-}
-
-/* build one entry card: thumbnail, gloss, voice silhouettes, speaker avatars */
-
-
-/* ---- browse: the dictionary as a scrolling list of the SAME entry cards --------
-   Idle state lists every entry as a collapsed card; tapping expands it in place
-   (detail loads lazily for that one entry). Same card whether reached by speaking
-   or scrolling — one renderer, one behaviour. */
-function backToAll(){
-  const b=document.createElement("button");
-  b.className="allbtn"; b.setAttribute("aria-label","Show all words");
-  b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-  b.addEventListener("click", renderBrowse);
-  return b;
-}
-async function renderBrowse(){
-  const my = ++renderToken; deepEntry = null; lastResults = null;
-  hint.classList.remove("small");
-  // A cold Firestore connection makes the 40 header reads slow, so show a loading
-  // pulse immediately (a blank landing reads as broken) and fetch the headers in
-  // PARALLEL — this was a sequential await-loop, ~20s cold; firing them together
-  // turns 40 round-trips into roughly one.
-  resultsEl.innerHTML = '<div class="loadingdots" role="status" aria-label="Loading the dictionary"><span></span><span></span><span></span></div>';
-  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
-
-  const words = window.AFDWords || [];
-  const seen = new Set(words.map(w=>AFDCore.entryIdFor(w.id)));
-  const seedCards = await Promise.all(words.map(w =>
-    entryCard({entryId: AFDCore.entryIdFor(w.id)}, false).catch(()=>null)));
-  if(my!==renderToken) return;
-
-  let userCards = [];
+async function loadProgress(db){
   try{
-    const snap = await getDocs(query(collection(db,"afd_entries"), where("source","==","user")));
-    if(my!==renderToken) return;
-    userCards = await Promise.all(snap.docs.filter(d=>!seen.has(d.id))
-      .map(d => entryCard({entryId: d.id}, false).catch(()=>null)));
-    if(my!==renderToken) return;
-  }catch(e){ console.warn("[AFD] browse: user entries", e); }
-
-  const frag = document.createDocumentFragment();
-  frag.appendChild(addWordButton());
-  for(const c of seedCards) if(c) frag.appendChild(c.el);
-  for(const c of userCards) if(c) frag.appendChild(c.el);
-  if(my!==renderToken) return;
-  resultsEl.replaceChildren(frag);
+    const snap = await getDocs(collection(db,"afd_ui_prompts"));
+    snap.forEach(d => { if(d.data().status === "recorded") state.recorded.add(d.id); });
+  }catch(e){ /* offline: rely on local */ }
+}
+async function loadPending(){
+  const all = await IDB.all().catch(()=>[]);
+  (all||[]).forEach(r => { state.pending.set(r.key, r.blob); state.recorded.add(r.key); });
 }
 
-/* ---- new entry: the dictionary is growable ------------------------------------
-   Create-or-add is decided by the search that just ran (the dedup gate): if
-   nothing matched, or the contributor rejects the candidates, they mint a NEW
-   entry. Audio-first, so no text is required — the identicon is the entry's face,
-   and the first spoken form is captured in the recorder (the one place the mic
-   opens, so the seed recording lands in the same acoustic space as the corpus).
-   Writing needs a real, non-anonymous sign-in, matching the Firestore rules. */
-async function startNewEntry(){
-  if(!currentUser){
-    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
-    catch(e){ console.warn("[AFD] sign-in for new entry", e); return; }
-  }
-  const uid = auth.currentUser && auth.currentUser.uid;
-  if(!uid) return;
-  const entryId = AFDCore.mintEntryId();
-  try{
-    await setDoc(doc(db,"afd_entries",entryId), {
-      source:"user", createdBy:uid, createdAt: serverTimestamp()
+function updateProgress(){
+  const done = state.recorded.size, total = ITEMS.length;
+  $("barfill").style.width = Math.round(done/total*100)+"%";
+  $("count").textContent = done+" of "+total+" recorded";
+  $("remaining").textContent = (total-done)+" to go";
+}
+
+function render(){
+  const it = ITEMS[state.i];
+  $("cur-sec").textContent = it.section;
+  $("cur-gloss").textContent = it.en;
+  $("cur-ar").textContent = it.ar || "";
+  const bits = [];
+  bits.push(it.kind==="narration" ? '<span class="badge b-narr">longer phrase</span>' : '<span class="badge b-label">short label</span>');
+  if(it.tag) bits.push('<span class="badge b-tag">'+it.tag+'</span>');
+  $("cur-hint").innerHTML = bits.join("") + (it.kind==="narration" ? '<div style="margin-top:8px">Take your time — a quiet room helps.</div>' : "");
+  $("cur-key").textContent = it.key;
+
+  resetRecUI();
+  const done = state.recorded.has(it.key);
+  $("sync").className = "sync " + (state.pending.has(it.key) ? "pending" : (done?"ok":""));
+  $("sync").textContent = state.pending.has(it.key) ? "saved here — will send when online" : (done ? "✓ recorded" : "");
+  $("recbtn").textContent = done ? "Record again" : "Record";
+  $("recdone").classList.toggle("hidden", !(done || state.pending.has(it.key)));
+
+  renderList();
+  updateProgress();
+}
+
+function resetRecUI(){
+  stopTimer();
+  state.blob = null; state.chunks = [];
+  $("recbtn").classList.remove("rec"); $("recbtn").disabled=false;
+  $("timer").textContent="";
+  $("player").classList.add("hidden"); $("player").removeAttribute("src");
+  $("review").classList.add("hidden");
+}
+
+function renderList(){
+  const el = $("list"); el.innerHTML="";
+  SECTIONS.forEach(sec=>{
+    const h = document.createElement("h2"); h.textContent = sec.name; el.appendChild(h);
+    sec.items.forEach(it=>{
+      const gi = ITEMS.findIndex(x=>x.key===it.key);
+      const done = state.recorded.has(it.key), pend = state.pending.has(it.key);
+      const row = document.createElement("div");
+      row.className = "row" + (gi===state.i?" active":"");
+      row.innerHTML =
+        '<div class="dot '+(pend?"pend":(done?"done":""))+'">'+(pend?"…":(done?"✓":""))+'</div>'+
+        '<div class="rowtext"><div class="g">'+it.en+'</div><div class="k">'+it.key+'</div></div>';
+      row.onclick = ()=>{ state.i = gi; render(); window.scrollTo({top:0,behavior:"smooth"}); };
+      el.appendChild(row);
     });
-  }catch(e){
-    console.warn("[AFD] create entry", e);
-    banner("Couldn't create the entry — please try again.");
-    return;
-  }
-  console.log("[AFD] new entry", entryId, "→ recorder");
-  location.href = `${RECORDER_URL}#${encodeURIComponent(entryId)}|word`;
-}
-
-function addWordButton(){
-  const b=document.createElement("button");
-  b.className="addword";
-  b.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`+
-    `<span>${escapeHtml(AFDCore.t("entry.addnew", displayMode))}</span>`;
-  b.addEventListener("click", startNewEntry);
-  return b;
-}
-
-
-
-/* Voices: a language-free count chip that opens an itemized list of utterances.
-   One voice → a single avatar (no chip). Many → chip, tap to expand. Each row
-   plays that utterance and repaints the box. A row that belongs to the signed-in
-   viewer also carries a Withdraw / Restore control — the speaker managing their
-   own voice, in context. (Agent-mediated withdrawal, which needs the spoken
-   artifact, arrives with the switch-speaker flow.) */
-
-
-
-
-
-
-
-
-
-function renderEmpty(best){
-  hint.classList.add("small"); setHint("", "");
-  const div=document.createElement("div");
-  div.className="empty";
-  div.innerHTML=`
-    <h2>Not in the dictionary yet</h2>
-    <p>Be the first — add this word.<span class="ar">ليست في القاموس بعد — أضِفها</span></p>
-    <button class="cta" id="newEntryBtn">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-      ${escapeHtml(AFDCore.t("entry.addnew", displayMode))}
-    </button>`;
-  resultsEl.innerHTML=""; resultsEl.appendChild(div);
-  const nb=div.querySelector("#newEntryBtn"); if(nb) nb.addEventListener("click", startNewEntry);
-  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
-}
-
-/* ================================================================= visuals */
-/* =============================================== the word's voice, in its box */
-
-
-
-/* stored envelope if the recording has one, else compute it once from the audio
-   (so legacy clips get a shape too) and cache by url. */
-
-
-/* resample an envelope to n bars and return centered SVG rects for the square box */
-
-
-/* paint a box: the waveform if we have an envelope, else the letter as last resort */
-
-
-/* fill a box according to the chosen mode:
-   auto   → picture (image, else pictograph) → sound-shape → letter
-   sound  → the waveform, always
-   script → Arabic / transliteration text */
-
-
-/* deterministic round fauna avatar — pseudonymous, no profile read needed */
-
-
-
-
-/* ================================================================= plumbing */
-
-function setHint(en, ar){
-  // Audio-first tiers (sound / script) speak to non-readers in Arabic; auto keeps
-  // English with Arabic beneath, for you and bilingual helpers.
-  if(displayMode!=="auto" && ar){ hint.innerHTML = `<span class="ar solo">${escapeHtml(ar)}</span>`; return; }
-  hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:"");
-}
-function banner(msg){
-  let b=document.querySelector(".banner");
-  if(!b){ b=document.createElement("div"); b.className="banner"; document.querySelector("main").prepend(b); }
-  b.textContent=msg;
-}
-
-
-/* press-and-hold on the mic (pointer covers touch + mouse) */
-// Visible build stamp — compare laptop vs phone to catch a stale cache.
-try{ document.querySelector("#wordmark small").textContent = "speak to find · " + BUILD; }catch(_){}
-console.log("[AFD] build", BUILD, "·", location.href);
-
-// deep-link opens one entry; otherwise show the whole dictionary as browsable cards
-if(!applyEntryDeepLink()) renderBrowse();
-window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) renderBrowse(); });
-
-mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
-mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
-mic.addEventListener("pointercancel", endHold);
-mic.addEventListener("pointerleave", ()=>{ if(holding) endHold(); });
-/* keyboard: space/enter to hold */
-mic.addEventListener("keydown", e=>{ if((e.key===" "||e.key==="Enter")&&!e.repeat){ e.preventDefault(); startHold(); }});
-mic.addEventListener("keyup",   e=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); endHold(); }});
-
-/* the wordless view-changer: cycles picture → sound → script and re-skins */
-const SKIN_ICON = {
-  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
-  script:`<span class="lbl">أ</span>`,
-};
-function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto; }
-$("skin").addEventListener("click", ()=>{
-  const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
-  setDisplayMode(next); updateSkinIcon();
-  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults); else renderBrowse();  // re-skin what's on screen — incl. the browse list
-});
-updateSkinIcon();
-setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current tier
-
-// Account: shared per-origin session drives owner-only voice controls. A small
-// button lets a fresh visitor sign in (Google); a speaker who used the recorder
-// is already recognised. On auth change we re-render so controls appear/vanish.
-const accountBtn = $("account");
-function updateAccountUi(){
-  if(!accountBtn) return;
-  accountBtn.innerHTML = currentUser
-    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`
-    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
-  accountBtn.classList.toggle("in", !!currentUser);
-  accountBtn.setAttribute("aria-label", currentUser ? "Signed in — tap to sign out" : "Sign in to manage your voice");
-}
-if(accountBtn){
-  accountBtn.addEventListener("click", async ()=>{
-    try{
-      if(currentUser){
-        const msg = (displayMode==="auto")
-          ? "Sign out? You can sign back in anytime."
-          : "تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت.";
-        if(!confirm(msg)) return;
-        await signOut(auth);
-      } else {
-        await signInWithPopup(auth, new GoogleAuthProvider());
-      }
-    }
-    catch(e){ console.warn("[AFD] auth", e); }
   });
 }
-onAuthStateChanged(auth, (u)=>{
-  currentUser = u; updateAccountUi();
-  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults);  // refresh owner controls
-});
-updateAccountUi();
 
-/* dev distance readout: tap the wordmark three times */
-let taps=0,tt=0;
-$("wordmark").addEventListener("click",()=>{ taps++; clearTimeout(tt); tt=setTimeout(()=>taps=0,600);
-  if(taps>=3){ dbg.classList.toggle("hidden"); taps=0; } });
-function showDbg(results, n){
-  if(dbg.classList.contains("hidden")) return;
-  dbg.textContent = `corpus ${n??"?"} · ` + results.map(r=>`${r.entryId}:${r.distance}`).join("  ");
+/* ---- recording ---- */
+$("recbtn").onclick = async ()=>{
+  if(state.rec && state.rec.state==="recording"){ state.rec.stop(); return; }
+  try{
+    if(!state.stream) state.stream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, noiseSuppression:true, echoCancellation:true } });
+  }catch(e){ alert("Microphone permission is needed to record."); return; }
+  state.chunks=[];
+  const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
+  state.rec = new MediaRecorder(state.stream, mime?{mimeType:mime}:undefined);
+  state.rec.ondataavailable = e=>{ if(e.data.size) state.chunks.push(e.data); };
+  state.rec.onstop = ()=>{
+    state.blob = new Blob(state.chunks, {type: state.rec.mimeType || "audio/webm"});
+    const url = URL.createObjectURL(state.blob);
+    $("player").src = url; $("player").classList.remove("hidden");
+    $("review").classList.remove("hidden");
+    $("recbtn").classList.remove("rec"); $("recbtn").textContent="Record again"; $("recbtn").disabled=false;
+    stopTimer();
+  };
+  state.rec.start();
+  $("recbtn").classList.add("rec"); $("recbtn").textContent="Stop";
+  $("review").classList.add("hidden"); $("player").classList.add("hidden");
+  startTimer();
+};
+
+$("redo").onclick = ()=>{ resetRecUI(); $("recbtn").textContent = state.recorded.has(ITEMS[state.i].key)?"Record again":"Record"; };
+
+/* Play the active prompt's saved recording — before it's uploaded the blob is
+   local (state.pending); after upload the local copy is gone, so fetch Storage. */
+$("playactive").onclick = async ()=>{
+  const it = ITEMS[state.i], player = $("player");
+  const local = state.pending.get(it.key);
+  try{
+    player.src = local ? URL.createObjectURL(local)
+                       : await getDownloadURL(ref(state.store, "afd_ui/"+it.key+".webm"));
+  }catch(e){ alert("Couldn't load that recording to play — is it uploaded yet?"); return; }
+  player.classList.remove("hidden");
+  player.play().catch(()=>{});
+};
+
+/* Delete the active prompt's recording (local + Storage + Firestore), so it
+   drops back to "not recorded" and can be redone. Each remote step is best-effort
+   — a not-yet-uploaded take simply has no Storage/Firestore copy to remove. */
+$("delactive").onclick = async ()=>{
+  const it = ITEMS[state.i], key = it.key;
+  if(!(state.recorded.has(key) || state.pending.has(key))) return;
+  if(!confirm("Delete this recording? You can record it again afterward.")) return;
+  state.pending.delete(key);
+  state.recorded.delete(key);
+  try{ await IDB.del(key); }catch(_){}
+  try{ await deleteObject(ref(state.store, "afd_ui/"+key+".webm")); }catch(_){}
+  try{ await deleteDoc(doc(state.db, "afd_ui_prompts", key)); }catch(_){}
+  render();
+};
+
+$("keep").onclick = async ()=>{
+  const it = ITEMS[state.i];
+  if(!state.blob) return;
+  const blob = state.blob;
+  await IDB.put({ key:it.key, blob });          // survives reload immediately
+  state.pending.set(it.key, blob);
+  state.recorded.add(it.key);
+  $("keep").disabled = true;
+  render();
+  $("keep").disabled = false;
+  syncPending();
+  goNextPending();
+};
+
+/* ---- upload pending to Firebase ---- */
+let syncing = false;
+async function syncPending(){
+  if(syncing || !navigator.onLine || !state.store) return;
+  syncing = true;
+  for(const [key, blob] of Array.from(state.pending.entries())){
+    try{
+      const it = ITEMS.find(x=>x.key===key) || {};
+      await uploadBytes(ref(state.store, "afd_ui/"+key+".webm"), blob, { contentType: blob.type || "audio/webm" });
+      await setDoc(doc(state.db,"afd_ui_prompts",key), {
+        key, intent: it.en||"", kind: it.kind||"label", section: it.section||"",
+        status:"recorded", storagePath:"afd_ui/"+key+".webm",
+        contentType: blob.type||"audio/webm", recordedAt: serverTimestamp()
+      }, { merge:true });
+      state.pending.delete(key);
+      await IDB.del(key);
+      if(ITEMS[state.i].key===key){
+        $("sync").className="sync ok"; $("sync").textContent="✓ recorded";
+      }
+      renderList();
+    }catch(e){ /* leave pending, retry next time */ }
+  }
+  syncing = false;
 }
+
+function goNextPending(){ if(!nextUnrecorded()) return; }
+function nextUnrecorded(){
+  for(let n=1;n<=ITEMS.length;n++){
+    const j=(state.i+n)%ITEMS.length;
+    if(!state.recorded.has(ITEMS[j].key)){ state.i=j; render(); window.scrollTo({top:0,behavior:"smooth"}); return true; }
+  }
+  return false;
+}
+
+$("prev").onclick = ()=>{ state.i=(state.i-1+ITEMS.length)%ITEMS.length; render(); };
+$("next").onclick = ()=>{ state.i=(state.i+1)%ITEMS.length; render(); };
+$("nextpending").onclick = ()=>{ if(!nextUnrecorded()) alert("Every prompt is recorded. Thank you!"); };
+
+/* ---- timer ---- */
+function startTimer(){ state.t0=Date.now(); state.timer=setInterval(()=>{ const s=(Date.now()-state.t0)/1000; $("timer").textContent="● "+s.toFixed(1)+"s"; },100); }
+function stopTimer(){ if(state.timer){ clearInterval(state.timer); state.timer=null; } }
 </script>
 </body>
 </html>

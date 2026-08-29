@@ -46,6 +46,33 @@ Health-check task uses those, not `/healthz`.
 
 ---
 
+## Making a backup (a "cairn")
+
+A quick way to snapshot the whole project into one dated file you can stash in
+Google Drive. Open a terminal and run:
+
+```bash
+cd ~
+tar --exclude='afd/node_modules' -czf "afd-$(date +%Y%m%d-%H%M).tar.gz" afd
+```
+
+That drops a file like `afd-20260829-1349.tar.gz` in your home folder
+(`/home/m-heaton/`), right next to the `afd` folder. It keeps `.git` (so the
+full history travels with the snapshot) and skips `node_modules` (regenerable
+from `package.json`).
+
+To park it in Drive: drag that `.tar.gz` onto **drive.google.com**, or drop it
+in your synced Drive folder. One file, syncs cleanly.
+
+Notes:
+- This snapshots your **local** working copy — including anything not yet
+  committed or pushed. That's usually what you want for a checkpoint.
+- To un-tar it later: `tar -xzf afd-YYYYMMDD-HHMM.tar.gz`
+- Want a plain browsable folder copy instead of a tarball?
+  `cp -a ~/afd ~/afd-snapshot-$(date +%Y%m%d)`
+
+---
+
 ## Open notes (things to pick up next)
 
 1. **One query returns two utterances.** Playback plays both reps of the
