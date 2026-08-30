@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  الهَكلي — Audio First Dictionary · welcome / introduction
+  الحَكلي — Audio First Dictionary · welcome / introduction
   Hakli-first: opens in audio mode. Each line plays its recorded Hakli clip
   (afd_ui/intro.tour.*.webm) and falls back to Arabic text until that clip exists,
   so the page lights up on its own as your speaker records the intro.tour.* prompts.
@@ -11,13 +11,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>الهَكلي · قاموس الصوت أولًا</title>
+<title>الحَكلي · قاموس الصوت أولًا</title>
 <!-- social preview (WhatsApp / Open Graph) -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Hakli — Audio First Dictionary">
 <meta property="og:url" content="https://hakli.app/welcome.html">
-<meta property="og:title" content="الهَكلي · Hakli — Audio First Dictionary">
-<meta property="og:description" content="قاموسٌ صوتيّ للغة الهَكلي — تُسمَع وتُحفَظ بأصوات أهلها. · An audio-first dictionary for the Hakli language, heard and kept in its own voices.">
+<meta property="og:title" content="الحَكلي · Hakli — Audio First Dictionary">
+<meta property="og:description" content="قاموسٌ صوتيّ للغة الحَكلي — تُسمَع وتُحفَظ بأصوات أهلها. · An audio-first dictionary for the Hakli language, heard and kept in its own voices.">
 <meta property="og:image" content="https://hakli.app/og-hakli.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -116,7 +116,7 @@
 <body>
 <main class="wrap">
   <header class="hero">
-    <h1 class="name">الهَكلي<span class="latin">Hakli</span></h1>
+    <h1 class="name">الحَكلي<span class="latin">Hakli</span></h1>
     <div class="wave" aria-hidden="true">
       <i style="height:30%"></i><i style="height:52%"></i><i style="height:78%"></i><i style="height:44%"></i>
       <i style="height:92%"></i><i style="height:100%"></i><i style="height:60%"></i><i style="height:36%"></i>
@@ -159,7 +159,7 @@ const firebaseConfig = {
    recorder's prompt tool, so each line's Hakli audio appears the moment it's
    recorded. Arabic/English are the text alternatives. */
 const LINES = [
-  { k:"intro.tour.what",  ar:"هذا مكانٌ لسماع لغة الهَكلي، ولحفظها بأصوات أهلها.",                    en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people." },
+  { k:"intro.tour.what",  ar:"هذا مكانٌ لسماع لغة الحَكلي، ولحفظها بأصوات أهلها.",                    en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people." },
   { k:"intro.tour.min1",  ar:"افتح التطبيق، فترى كلمات، لكلٍّ منها صورة.",                             en:"Open it, and you'll see words — each with a picture." },
   { k:"intro.tour.min2",  ar:"اضغط زرّ التشغيل لتسمع كلمة، أو انطق كلمة لتجدها.",                        en:"Tap play to hear a word, or say a word to find it." },
   { k:"intro.tour.min3",  ar:"لتضيف صوتك، انطق الكلمة بنفسك — مرّتين.",                                 en:"To add your voice, say a word yourself — twice." },
@@ -173,8 +173,8 @@ const CLOSE = { k:"intro.tour.why",
   en:"Your language, kept in your own voices, for those who come after you." };
 
 const HINTS = {
-  hakli_none: { txt:"ستُروى هذه المقدمة بالهَكلي حين يسجّلها أهلها — وحتى ذلك الحين، إليك النصّ بالعربية.", en:false },
-  hakli_some: { txt:"اضغط زرّ التشغيل لتسمع كل سطرٍ بالهَكلي.", en:false },
+  hakli_none: { txt:"ستُروى هذه المقدمة بالحَكلي حين يسجّلها أهلها — وحتى ذلك الحين، إليك النصّ بالعربية.", en:false },
+  hakli_some: { txt:"اضغط زرّ التشغيل لتسمع كل سطرٍ بالحَكلي.", en:false },
   ar:         { txt:"", en:false },
   en:         { txt:"", en:true }
 };
@@ -263,7 +263,7 @@ function render(){
   // Rebuild the toggle each render so the active state is baked into fresh
   // elements. The browser always repaints replaced innerHTML; mutating an
   // existing button's class/attribute can leave the highlight visually stale.
-  const TABS = [["hakli","الهَكلي",""],["ar","عربي",""],["en","English","en"]];
+  const TABS = [["hakli","الحَكلي",""],["ar","عربي",""],["en","English","en"]];
   document.getElementById("toggle").innerHTML = TABS.map(([m,label,cls])=>
     '<button data-m="'+m+'" class="'+cls+(mode===m?" active":"")+'" aria-pressed="'+(mode===m)+'">'+label+'</button>'
   ).join("");
