@@ -113,7 +113,7 @@
   .instruction{font-size:15px;color:var(--ink);margin:12px 0 0;padding-top:11px;border-top:1px solid var(--hairline);direction:rtl;font-family:var(--amiri)}
   .silhouette{height:66px;background:var(--well);border-radius:16px;margin-top:10px;position:relative;overflow:hidden;
     box-shadow:inset 0 1px 3px rgba(31,58,52,.07);display:flex;align-items:center;justify-content:center;gap:3px;padding:0 14px}
-  .sil-label{position:absolute;left:12px;top:8px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+  .sil-label{position:absolute;left:12px;top:8px;font-family:var(--sans);font-size:11px;color:var(--ink-soft);direction:rtl}
   .bar{width:3px;height:6px;border-radius:2px;background:var(--mist-2);transition:height .09s linear}
   .recs.rec .bar{background:var(--amber)}
   .recbtn{width:100%;padding:17px;margin-top:11px;font-size:18px;font-weight:600;color:#fff;background:var(--amber);direction:rtl;
@@ -185,7 +185,7 @@
       <section class="surface find idle on" id="find">
         <div class="top">
           <svg class="logo" viewBox="0 0 48 48"><circle cx="24" cy="7" r="3.2" fill="#C6873F"/><circle cx="24" cy="24" r="15" fill="none" stroke="#1F3A34" stroke-width="2.4"/></svg>
-          <span class="wordmark">Hakli<small>انطق لتجد</small></span>
+          <span class="wordmark">الحَكلي<small>انطق لتجد</small></span>
           <span class="account"></span>
         </div>
         <div class="body">
@@ -228,7 +228,7 @@
           <p class="instruction" id="instruction">انطق الكلمة <b>مرّتين</b>، مع وقفةٍ قصيرة.</p>
         </div>
         <div class="silhouette">
-          <span class="sil-label" id="silLabel">ready</span>
+          <span class="sil-label" id="silLabel" dir="rtl">جاهز</span>
           <span id="bars"></span>
         </div>
         <button class="recbtn" id="rbtn" dir="rtl"><span class="dot"></span>اضغط مطوّلًا للتسجيل</button>
@@ -302,7 +302,7 @@
   const LOOP=37800;
   const P=[
     // SCENE 1 · FIND
-    {t:0,fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent='ready';
+    {t:0,fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent='جاهز';
       fhint.textContent='تكلّم';recIdle();setTab('word');setRecs('idle');
       setCap('للعثور على كلمة، اضغط الدائرة الخضراء وتكلّم.','To find a word, hold the green circle and speak.');}},
     {t:1400,fn(){moveTouch(fmic,1);}},
@@ -313,12 +313,12 @@
     {t:6100,fn(){setFind('results');fhint.textContent='تكلّم';
       setCap('الكلمة التي قلتها، جاهزةٌ لتُسمَع.','The word you said, ready to hear.');}},
     // SCENE 2 · WORD
-    {t:8300,fn(){setRibbon(1);showRecs();setRecs('idle');setTab('word');recIdle();silLabel.textContent='ready';park();
+    {t:8300,fn(){setRibbon(1);showRecs();setRecs('idle');setTab('word');recIdle();silLabel.textContent='جاهز';park();
       stepdots.textContent='الخطوة ٣ / ٣ · كلمة ١ من ٤٠';
       setCap('لتضيف صوتك، اضغط الزرّ الكهرماني.','To add your voice, hold the amber button.');}},
     {t:9700,fn(){moveTouch(rbtn,1);setCap('انطق الكلمة مرّتين.','Say the word twice.');}},
-    {t:10500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='recording';waveRun(2400);}},
-    {t:13000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='ready';
+    {t:10500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2400);}},
+    {t:13000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';
       setCap('استمع إليه — احفظه، أو أعد.','Hear it back — keep it, or record again.');}},
     {t:14600,fn(){moveTouch(keep,1);setCap('واضح؟ احفظه.','Clear? Keep it.');}},
     {t:15400,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('احفظه — فينضمّ صوتك إلى الكلمة.','Keep it — your voice joins the word.');}},
@@ -327,8 +327,8 @@
     {t:17400,fn(){setRibbon(2);setCap('ويمكنك أن تنطقها داخل جملة.','You can also say it inside a sentence.');moveTouch(tabSent,1);}},
     {t:18200,fn(){moveTouch(tabSent,.9);contact();setTab('context');}},
     {t:19100,fn(){moveTouch(rbtn,1);setCap('انطق جملةً تستعمل فيها الكلمة.','Say a sentence using the word.');}},
-    {t:19900,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='recording';waveRun(2800);}},
-    {t:22800,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='ready';setCap('استمع — احفظه.','Hear it — keep it.');}},
+    {t:19900,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2800);}},
+    {t:22800,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';setCap('استمع — احفظه.','Hear it — keep it.');}},
     {t:24200,fn(){moveTouch(keep,1);}},
     {t:24900,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظت الجملة.','Sentence kept.');}},
     {t:25900,fn(){keep.classList.remove('press');park();setRecs('idle');}},
@@ -336,8 +336,8 @@
     {t:26800,fn(){setRibbon(3);setCap('وأن تقول معناها — بالحَكلي.','And say what it means — in Hakli.');moveTouch(tabMean,1);}},
     {t:27600,fn(){moveTouch(tabMean,.9);contact();setTab('definition');}},
     {t:28500,fn(){moveTouch(rbtn,1);setCap('قل ما تعنيه الكلمة.','Say what the word means.');}},
-    {t:29300,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='recording';waveRun(2600);}},
-    {t:32000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='ready';setCap('استمع — احفظه.','Hear it — keep it.');}},
+    {t:29300,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2600);}},
+    {t:32000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';setCap('استمع — احفظه.','Hear it — keep it.');}},
     {t:33400,fn(){moveTouch(keep,1);}},
     {t:34100,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظ المعنى.','Meaning kept.');}},
     {t:35100,fn(){keep.classList.remove('press');park();setRecs('idle');}},
