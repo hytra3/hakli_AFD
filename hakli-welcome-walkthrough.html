@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<!--
+  Hakli · Welcome walkthrough — four scenes stitched into one loop
+  Scene 1 FIND (green circle) → Scene 2 WORD → Scene 3 SENTENCE → Scene 4 MEANING.
+  Faithful to the live speak-to-find (index.html) and recorder (recorder.html) tokens.
+  Captions FEATURE ARABIC (large); English is a small reviewer aid — toggle it off,
+  or captions off entirely, for the audience cut. Lay the Hakli voiceover on top.
+  Record JUST the phone frame; captions + controls sit OUTSIDE it. Arabic = MSA draft.
+-->
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hakli · welcome walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fog:#EAF0EE; --paper:#FFFFFF; --cloud:#FFFFFF; --ink:#17241F; --ink-soft:#5B6E66;
+    --hairline:#D7E1DB; --well:#E9EEE7; --mist:#8CA39B; --mist-2:#C4D2CC;
+    --amber:#C6873F; --amber-soft:#E7C9A0; --monsoon:#2F6B4F; --mountain:#1F3A34; --alert:#A33B2A;
+    --shadow:0 18px 44px rgba(31,58,52,.10); --shadow-sm:0 6px 16px rgba(31,58,52,.10); --r:18px;
+    --sans:"IBM Plex Sans Arabic",system-ui,-apple-system,sans-serif;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --amiri:"Amiri",serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--sans); color:var(--ink); background:#E4EAE7; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:22px 14px}
+
+  .phone{position:relative; width:330px; height:668px; border-radius:44px; background:#0f1a17; padding:11px;
+    box-shadow:0 30px 70px rgba(20,36,31,.38), 0 3px 0 rgba(255,255,255,.06) inset; flex:0 0 auto}
+  .notch{position:absolute; top:11px; left:50%; transform:translateX(-50%); width:128px; height:26px;
+    background:#0f1a17; border-radius:0 0 16px 16px; z-index:9}
+  .screen{position:relative; width:100%; height:100%; border-radius:34px; overflow:hidden;
+    background:radial-gradient(120% 80% at 50% -10%, #F3F7F5 0%, var(--fog) 55%, #DFE8E4 100%)}
+
+  /* scene ribbon */
+  .ribbon{position:absolute; top:0; left:0; right:0; z-index:7; display:flex; gap:5px;
+    padding:14px 16px 0; justify-content:center}
+  .ribbon i{height:3px; flex:1; max-width:52px; border-radius:2px; background:var(--mist-2); opacity:.6;
+    transition:background .3s, opacity .3s}
+  .ribbon i.on{background:var(--amber); opacity:1}
+
+  .surface{position:absolute; inset:0; opacity:0; pointer-events:none;
+    transition:opacity .5s ease; display:flex; flex-direction:column}
+  .surface.on{opacity:1}
+
+  /* ---------- FIND surface ---------- */
+  .find{padding:34px 20px 30px}
+  .find .top{display:flex; align-items:center; gap:9px}
+  .find .logo{width:24px;height:24px}
+  .find .wordmark{font-family:var(--serif); font-size:18px; color:var(--mountain); line-height:1}
+  .find .wordmark small{display:block; font-family:var(--sans); font-size:10px; color:var(--mist); margin-top:2px}
+  .find .account{margin-inline-start:auto; width:32px;height:32px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud)}
+  .find .body{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px}
+  .find.results .body{justify-content:flex-start; padding-top:22px}
+  .stage{position:relative; width:176px; height:176px; transition:width .38s, height .38s}
+  .find.results .stage{width:92px; height:92px}
+  .ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--mist-2); opacity:0; transform:scale(.6)}
+  .find.rec .ring{animation:ripple 1.8s ease-out infinite}
+  .ring:nth-child(2){animation-delay:.6s}.ring:nth-child(3){animation-delay:1.2s}
+  @keyframes ripple{0%{opacity:.6;transform:scale(.62)}100%{opacity:0;transform:scale(1.26)}}
+  .bloom{position:absolute; inset:0; margin:auto; border-radius:50%; transform:scale(0);
+    background:radial-gradient(circle, rgba(198,135,63,.34), transparent 62%); transition:transform .12s linear}
+  .mic{position:absolute; inset:0; margin:auto; width:100%; height:100%; border:none; border-radius:50%; color:#fff;
+    background:radial-gradient(120% 120% at 30% 25%, #2C5349 0%, var(--mountain) 70%);
+    box-shadow:var(--shadow), inset 0 2px 0 rgba(255,255,255,.14); display:grid; place-items:center;
+    transition:transform .18s, background .25s}
+  .mic svg{width:38%;height:38%}
+  .find.idle .mic{animation:breathe 4.5s ease-in-out infinite}
+  @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  .mic.press{transform:scale(.94)}
+  .find.rec .mic{background:radial-gradient(120% 120% at 30% 25%, #D89A54 0%, var(--amber) 75%)}
+  .find.busy .mic{background:radial-gradient(120% 120% at 30% 25%, #8CA39B 0%, #6E877E 75%)}
+  .mic::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--amber);opacity:0}
+  .find.busy .mic::after{animation:sonar 1.15s ease-out infinite}
+  @keyframes sonar{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.85)}}
+  .fhint{font-family:var(--amiri); font-size:26px; color:var(--mountain); text-align:center; min-height:38px; direction:rtl}
+  .find.results .fhint{font-size:16px; color:var(--mist)}
+  .rescard{width:100%; max-width:270px; background:var(--cloud); border:1px solid var(--mist-2); border-radius:22px;
+    box-shadow:var(--shadow); padding:16px; display:flex; align-items:center; gap:14px; position:relative;
+    opacity:0; transform:translateY(14px); transition:opacity .45s, transform .45s}
+  .find.results .rescard{opacity:1; transform:none}
+  .rc-picto{width:52px;height:52px;border-radius:15px;background:#F3F7F5;display:grid;place-items:center;font-size:28px;flex:0 0 auto}
+  .rc-wave{display:block;width:110px;height:20px}
+  .rc-sub{font-size:12px;color:var(--mist);margin-top:5px;direction:rtl}
+  .rc-play{width:42px;height:42px;border-radius:50%;flex:0 0 auto;border:none;background:var(--mountain);color:#fff;
+    display:grid;place-items:center;font-size:14px;padding-left:3px}
+  .find.results .rc-play{animation:playpulse 1.4s ease-in-out infinite}
+  @keyframes playpulse{0%,100%{box-shadow:0 0 0 0 rgba(31,58,52,.28)}50%{box-shadow:0 0 0 9px rgba(31,58,52,0)}}
+
+  /* ---------- RECORDER surface ---------- */
+  .recs{padding:34px 18px 20px}
+  .recs .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .stepdots{font-family:var(--sans);font-size:12px;color:var(--ink-soft);letter-spacing:.02em}
+  .dispskin{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--hairline);background:var(--paper);
+    color:var(--mountain);display:inline-grid;place-items:center}
+  .dispskin svg{width:15px;height:15px}
+  .rectype{display:flex;gap:6px;margin-bottom:12px}
+  .rt{flex:1;padding:11px 6px;border:1.5px solid var(--hairline);background:var(--paper);border-radius:12px;
+    font:600 16px/1.15 var(--sans);color:var(--ink-soft);text-align:center;direction:rtl;transition:background .2s,color .2s,border-color .2s}
+  .rt .ar{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.85;direction:rtl}
+  .rt.active{background:var(--mountain);color:#fff;border-color:var(--mountain)}
+  .card{background:var(--cloud);border-radius:var(--r);box-shadow:var(--shadow)}
+  .prompt{text-align:center;padding:18px 16px}
+  .picto{font-size:56px;line-height:1;margin-bottom:4px}
+  .gloss{font-family:var(--serif);font-size:27px;font-weight:500;letter-spacing:-.02em;margin:0;color:var(--ink)}
+  .gloss-ar{font-size:19px;color:var(--ink-soft);margin:2px 0 0;direction:rtl}
+  .instruction{font-size:15px;color:var(--ink);margin:12px 0 0;padding-top:11px;border-top:1px solid var(--hairline);direction:rtl;font-family:var(--amiri)}
+  .silhouette{height:66px;background:var(--well);border-radius:16px;margin-top:10px;position:relative;overflow:hidden;
+    box-shadow:inset 0 1px 3px rgba(31,58,52,.07);display:flex;align-items:center;justify-content:center;gap:3px;padding:0 14px}
+  .sil-label{position:absolute;left:12px;top:8px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+  .bar{width:3px;height:6px;border-radius:2px;background:var(--mist-2);transition:height .09s linear}
+  .recs.rec .bar{background:var(--amber)}
+  .recbtn{width:100%;padding:17px;margin-top:11px;font-size:18px;font-weight:600;color:#fff;background:var(--amber);direction:rtl;
+    border:none;border-radius:16px;box-shadow:0 10px 26px rgba(198,135,63,.30);user-select:none;position:relative;
+    transition:transform .16s,background .2s}
+  .recbtn.press{transform:scale(.97)}
+  .recbtn .dot{display:inline-block;width:11px;height:11px;border-radius:50%;background:#fff;margin-inline-end:9px;vertical-align:middle}
+  .recbtn .timer{display:block;font-family:var(--mono);font-size:13px;font-weight:400;opacity:.85;margin-top:3px}
+  .recs.rec .recbtn{background:var(--alert);box-shadow:0 10px 26px rgba(163,59,42,.30)}
+  .recs.rec .recbtn .dot{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .recs.review .recbtn{display:none}
+  .reviewcard{margin-top:11px;padding:16px;display:none}
+  .recs.review .reviewcard{display:block;animation:rise .4s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .reviewcard h2{font-family:var(--amiri);font-size:20px;margin:0 0 11px;color:var(--ink);direction:rtl;text-align:right}
+  .verdict{border-radius:14px;padding:12px;margin-bottom:12px;border:1px solid;display:flex;align-items:center;gap:11px;
+    background:#EAF3ED;border-color:var(--monsoon);color:#1D4633;direction:rtl}
+  .verdict .big{font-size:23px;flex:0 0 auto}
+  .verdict strong{display:block;font-size:15px;font-family:var(--amiri)}
+  .verdict span{font-size:12px;opacity:.8}
+  .player{display:flex;align-items:center;gap:10px;background:var(--well);border-radius:12px;padding:8px 11px;margin-bottom:8px}
+  .player .pp{width:28px;height:28px;border-radius:50%;background:var(--mountain);color:#fff;display:grid;place-items:center;font-size:11px;flex:0 0 auto;padding-left:2px}
+  .player .track{flex:1;height:4px;border-radius:2px;background:var(--mist-2);position:relative}
+  .player .track::after{content:"";position:absolute;left:0;top:0;height:100%;width:34%;border-radius:2px;background:var(--ink-soft)}
+  .player .dur{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+  .row{display:flex;gap:10px}
+  .btn{display:block;width:100%;padding:13px;font-weight:600;font-size:15px;background:var(--mountain);color:#fff;
+    border:1.5px solid var(--mountain);border-radius:14px;box-shadow:var(--shadow-sm);text-align:center;font-family:var(--amiri);
+    transition:transform .16s}
+  .btn.secondary{background:var(--paper);color:var(--mountain)}
+  .btn.press{transform:scale(.97)}
+
+  /* the finger */
+  .touch{position:absolute;left:0;top:0;width:60px;height:60px;border-radius:50%;z-index:8;pointer-events:none;
+    opacity:0;transform:translate(250px,560px) scale(.9);
+    background:radial-gradient(circle at 38% 34%, rgba(40,55,50,.30), rgba(40,55,50,.42) 60%, rgba(40,55,50,.12) 72%);
+    border:1.5px solid rgba(255,255,255,.5);transition:transform .55s cubic-bezier(.5,.05,.3,1),opacity .35s}
+  .touch::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(198,135,63,0)}
+  .touch.contact::after{border-color:rgba(198,135,63,.55);animation:contact .5s ease-out}
+  @keyframes contact{0%{transform:scale(1.35);opacity:.9}100%{transform:scale(1);opacity:0}}
+
+  @media (prefers-reduced-motion:reduce){
+    .find.idle .mic,.find.rec .ring,.find.busy .mic::after,.recs.rec .recbtn .dot,.find.results .rc-play{animation:none!important}
+  }
+
+  /* caption (ARABIC featured) + controls — OUTSIDE the frame */
+  .caption{max-width:340px;text-align:center;min-height:60px}
+  .caption .ar{font-family:var(--amiri);font-size:22px;color:var(--mountain);direction:rtl;line-height:1.5}
+  .caption .en{font-size:12.5px;color:var(--mist);margin-top:3px}
+  .caption.ar-only .en{display:none}
+  .caption.off{visibility:hidden}
+  body.embed{background:transparent;padding:10px}
+  body.embed .controls{display:none}
+  .controls{display:flex;gap:8px}
+  .controls button{font-family:var(--sans);font-size:13px;color:var(--mountain);background:var(--cloud);
+    border:1.5px solid var(--mist-2);border-radius:999px;padding:8px 15px;cursor:pointer}
+  .controls button:hover{border-color:var(--ink-soft)}
+</style>
+</head>
+<body>
+
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="screen">
+      <div class="ribbon"><i id="rb0"></i><i id="rb1"></i><i id="rb2"></i><i id="rb3"></i></div>
+
+      <!-- FIND -->
+      <section class="surface find idle on" id="find">
+        <div class="top">
+          <svg class="logo" viewBox="0 0 48 48"><circle cx="24" cy="7" r="3.2" fill="#C6873F"/><circle cx="24" cy="24" r="15" fill="none" stroke="#1F3A34" stroke-width="2.4"/></svg>
+          <span class="wordmark">Hakli<small>انطق لتجد</small></span>
+          <span class="account"></span>
+        </div>
+        <div class="body">
+          <div class="stage">
+            <span class="ring"></span><span class="ring"></span><span class="ring"></span>
+            <span class="bloom" id="fbloom"></span>
+            <button class="mic" id="fmic" aria-label="Hold and speak">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+            </button>
+          </div>
+          <p class="fhint" id="fhint">تكلّم</p>
+          <div class="rescard">
+            <div class="rc-picto">☀️</div>
+            <div style="flex:1;min-width:0">
+              <svg class="rc-wave" viewBox="0 0 110 20"><g fill="#C6873F"><rect x="2" y="7" width="4" height="6" rx="2"/><rect x="10" y="3" width="4" height="14" rx="2"/><rect x="18" y="8" width="4" height="5" rx="2"/><rect x="26" y="1" width="4" height="18" rx="2"/><rect x="34" y="6" width="4" height="9" rx="2"/><rect x="42" y="4" width="4" height="12" rx="2"/><rect x="50" y="9" width="4" height="4" rx="2"/><rect x="58" y="2" width="4" height="16" rx="2"/><rect x="66" y="7" width="4" height="7" rx="2"/><rect x="74" y="5" width="4" height="11" rx="2"/><rect x="82" y="8" width="4" height="5" rx="2"/><rect x="90" y="3" width="4" height="14" rx="2"/></g></svg>
+              <div class="rc-sub">٣ أصوات · حَكلي</div>
+            </div>
+            <button class="rc-play">▶</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- RECORDER (word / sentence / meaning) -->
+      <section class="surface recs idle" id="recs">
+        <div class="topbar">
+          <span class="stepdots" id="stepdots" dir="rtl">الخطوة ٣ / ٣ · كلمة ١ من ٤٠</span>
+          <span>
+            <span class="dispskin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg></span>
+          </span>
+        </div>
+        <div class="rectype">
+          <span class="rt active" id="tabWord">كلمة</span>
+          <span class="rt" id="tabSent">جملة</span>
+          <span class="rt" id="tabMean">معنى</span>
+        </div>
+        <div class="card prompt">
+          <div class="picto">☀️</div>
+          <p class="gloss">sun</p>
+          <p class="gloss-ar">شمس</p>
+          <p class="instruction" id="instruction">انطق الكلمة <b>مرّتين</b>، مع وقفةٍ قصيرة.</p>
+        </div>
+        <div class="silhouette">
+          <span class="sil-label" id="silLabel">ready</span>
+          <span id="bars"></span>
+        </div>
+        <button class="recbtn" id="rbtn" dir="rtl"><span class="dot"></span>اضغط مطوّلًا للتسجيل</button>
+        <div class="card reviewcard">
+          <h2>كيف كان الصوت؟</h2>
+          <div class="verdict"><span class="big">✓</span><div><strong>صوتٌ واضح</strong><span>واضح وقويّ بما يكفي</span></div></div>
+          <div class="player"><span class="pp">▶</span><span class="track"></span><span class="dur">0:01</span></div>
+          <div class="row"><span class="btn secondary">أعد التسجيل</span><span class="btn" id="keep">احفظه</span></div>
+        </div>
+      </section>
+
+      <div class="touch" id="touch"></div>
+    </div>
+  </div>
+
+  <div class="caption" id="caption"></div>
+  <div class="controls">
+    <button id="pauseBtn">Pause</button>
+    <button id="restartBtn">Restart</button>
+    <button id="capBtn">Captions: عربي + EN</button>
+  </div>
+
+<script>
+  if(/[?&]embed/.test(location.search)) document.body.classList.add("embed");
+  const $=(id)=>document.getElementById(id);
+  const screen=document.querySelector('.screen');
+  const find=$('find'), recs=$('recs'), touch=$('touch'), capEl=$('caption');
+  const fmic=$('fmic'), fbloom=$('fbloom'), fhint=$('fhint');
+  const rbtn=$('rbtn'), keep=$('keep'), silLabel=$('silLabel'), stepdots=$('stepdots'), instruction=$('instruction');
+  const tabWord=$('tabWord'), tabSent=$('tabSent'), tabMean=$('tabMean');
+  const ribbons=[$('rb0'),$('rb1'),$('rb2'),$('rb3')];
+
+  const bars=[]; for(let i=0;i<38;i++){const b=document.createElement('span');b.className='bar';$('bars').appendChild(b);bars.push(b);}
+
+  const setCap=(ar,en)=>{capEl.innerHTML=`<div class="ar">${ar}</div>`+(en?`<div class="en">${en}</div>`:'');};
+  const setRibbon=(i)=>ribbons.forEach((r,k)=>r.classList.toggle('on',k===i));
+  const showFind=()=>{find.classList.add('on');recs.classList.remove('on');};
+  const showRecs=()=>{recs.classList.add('on');find.classList.remove('on');};
+  const setFind=(s)=>find.className='surface find '+s+(find.classList.contains('on')?' on':'');
+  const setRecs=(s)=>recs.className='surface recs '+s+(recs.classList.contains('on')?' on':'');
+
+  function moveTouch(el,scale){const r=el.getBoundingClientRect(),s=screen.getBoundingClientRect();
+    const cx=r.left-s.left+r.width/2, cy=r.top-s.top+r.height/2;
+    touch.style.opacity='1'; touch.style.transform=`translate(${(cx-30).toFixed(1)}px,${(cy-30).toFixed(1)}px) scale(${scale})`;}
+  const park=()=>{touch.style.opacity='0';touch.style.transform='translate(250px,560px) scale(.9)';};
+  const contact=()=>{touch.classList.remove('contact');void touch.offsetWidth;touch.classList.add('contact');};
+
+  const TABS={word:tabWord,context:tabSent,definition:tabMean};
+  const INSTR={
+    word:'انطق الكلمة <b>مرّتين</b>، مع وقفةٍ قصيرة.',
+    context:'انطق <b>جملةً</b> تستعمل فيها الكلمة.',
+    definition:'قل <b>معنى</b> الكلمة، بالحَكلي.'
+  };
+  function setTab(type){for(const k in TABS)TABS[k].classList.toggle('active',k===type);instruction.innerHTML=INSTR[type];}
+  function recIdle(){rbtn.innerHTML='<span class="dot"></span>اضغط مطوّلًا للتسجيل';}
+  let timerEl=null;
+  function recHold(){rbtn.innerHTML='<span class="dot"></span>يُسجّل…<span class="timer">0.0s</span>';timerEl=rbtn.querySelector('.timer');}
+
+  // waveforms
+  let bloomT=null;
+  function bloomRun(){clearInterval(bloomT);const st=performance.now();
+    bloomT=setInterval(()=>{const e=performance.now()-st;if(e>2400||paused){clearInterval(bloomT);fbloom.style.transform='scale(0)';return;}
+      const env=Math.max(0,Math.sin(e/2400*Math.PI*2))*(.55+Math.random()*.4);fbloom.style.transform=`scale(${(.35+env*.9).toFixed(3)})`;},70);}
+  let waveT=null;
+  function waveRun(dur){clearInterval(waveT);const st=performance.now();
+    waveT=setInterval(()=>{const e=performance.now()-st;if(e>dur||paused){clearInterval(waveT);bars.forEach(b=>b.style.height='6px');return;}
+      const env=Math.max(0,Math.sin(e/dur*Math.PI*2));bars.forEach(b=>{const n=.35+Math.random()*.75;b.style.height=(6+env*n*40).toFixed(0)+'px';});
+      if(timerEl)timerEl.textContent=(e/1000).toFixed(1)+'s';},70);}
+
+  // ---- master timeline (ms) ----
+  const LOOP=37800;
+  const P=[
+    // SCENE 1 · FIND
+    {t:0,fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent='ready';
+      fhint.textContent='تكلّم';recIdle();setTab('word');setRecs('idle');
+      setCap('للعثور على كلمة، اضغط الدائرة الخضراء وتكلّم.','To find a word, hold the green circle and speak.');}},
+    {t:1400,fn(){moveTouch(fmic,1);}},
+    {t:2250,fn(){moveTouch(fmic,.84);contact();fmic.classList.add('press');setFind('rec');fhint.textContent='أستمع…';bloomRun();
+      setCap('اضغط، وانطق الكلمة.','Hold it, and say the word.');}},
+    {t:4850,fn(){fmic.classList.remove('press');park();setFind('busy');fhint.textContent='أبحث…';
+      setCap('ارفع إصبعك — يستمع الحَكلي ويجدها.','Lift your finger — Hakli listens and finds it.');}},
+    {t:6100,fn(){setFind('results');fhint.textContent='تكلّم';
+      setCap('الكلمة التي قلتها، جاهزةٌ لتُسمَع.','The word you said, ready to hear.');}},
+    // SCENE 2 · WORD
+    {t:8300,fn(){setRibbon(1);showRecs();setRecs('idle');setTab('word');recIdle();silLabel.textContent='ready';park();
+      stepdots.textContent='الخطوة ٣ / ٣ · كلمة ١ من ٤٠';
+      setCap('لتضيف صوتك، اضغط الزرّ الكهرماني.','To add your voice, hold the amber button.');}},
+    {t:9700,fn(){moveTouch(rbtn,1);setCap('انطق الكلمة مرّتين.','Say the word twice.');}},
+    {t:10500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='recording';waveRun(2400);}},
+    {t:13000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='ready';
+      setCap('استمع إليه — احفظه، أو أعد.','Hear it back — keep it, or record again.');}},
+    {t:14600,fn(){moveTouch(keep,1);setCap('واضح؟ احفظه.','Clear? Keep it.');}},
+    {t:15400,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('احفظه — فينضمّ صوتك إلى الكلمة.','Keep it — your voice joins the word.');}},
+    {t:16400,fn(){keep.classList.remove('press');park();setRecs('idle');setCap('حُفِظ.','Kept.');}},
+    // SCENE 3 · SENTENCE
+    {t:17400,fn(){setRibbon(2);setCap('ويمكنك أن تنطقها داخل جملة.','You can also say it inside a sentence.');moveTouch(tabSent,1);}},
+    {t:18200,fn(){moveTouch(tabSent,.9);contact();setTab('context');}},
+    {t:19100,fn(){moveTouch(rbtn,1);setCap('انطق جملةً تستعمل فيها الكلمة.','Say a sentence using the word.');}},
+    {t:19900,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='recording';waveRun(2800);}},
+    {t:22800,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='ready';setCap('استمع — احفظه.','Hear it — keep it.');}},
+    {t:24200,fn(){moveTouch(keep,1);}},
+    {t:24900,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظت الجملة.','Sentence kept.');}},
+    {t:25900,fn(){keep.classList.remove('press');park();setRecs('idle');}},
+    // SCENE 4 · MEANING
+    {t:26800,fn(){setRibbon(3);setCap('وأن تقول معناها — بالحَكلي.','And say what it means — in Hakli.');moveTouch(tabMean,1);}},
+    {t:27600,fn(){moveTouch(tabMean,.9);contact();setTab('definition');}},
+    {t:28500,fn(){moveTouch(rbtn,1);setCap('قل ما تعنيه الكلمة.','Say what the word means.');}},
+    {t:29300,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='recording';waveRun(2600);}},
+    {t:32000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='ready';setCap('استمع — احفظه.','Hear it — keep it.');}},
+    {t:33400,fn(){moveTouch(keep,1);}},
+    {t:34100,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظ المعنى.','Meaning kept.');}},
+    {t:35100,fn(){keep.classList.remove('press');park();setRecs('idle');}},
+    // CLOSE
+    {t:36000,fn(){setCap('هكذا تُضيف صوتك إلى الحَكلي.','That is how you add your voice to Hakli.');}},
+  ];
+
+  let base=performance.now(),pausedAt=0,paused=false,last=-1;
+  function apply(e){let idx=0;for(let i=0;i<P.length;i++){if(e>=P[i].t)idx=i;}if(idx!==last){last=idx;P[idx].fn();}}
+  function frame(now){if(!paused){let e=now-base;if(e>=LOOP){base=now;e=0;last=-1;}apply(e);}requestAnimationFrame(frame);}
+  requestAnimationFrame((t)=>{base=t;requestAnimationFrame(frame);});
+
+  const pauseBtn=$('pauseBtn');
+  pauseBtn.onclick=()=>{paused=!paused;if(paused){pausedAt=performance.now();pauseBtn.textContent='Play';}else{base+=performance.now()-pausedAt;pauseBtn.textContent='Pause';}};
+  $('restartBtn').onclick=()=>{base=performance.now();last=-1;paused=false;pauseBtn.textContent='Pause';clearInterval(waveT);clearInterval(bloomT);bars.forEach(b=>b.style.height='6px');fbloom.style.transform='scale(0)';};
+  const capBtn=$('capBtn');
+  const capModes=[['','Captions: عربي + EN'],['ar-only','Captions: عربي'],['off','Captions: off']];
+  let capIdx=0;
+  capBtn.onclick=()=>{capIdx=(capIdx+1)%3;capEl.classList.remove('ar-only','off');if(capModes[capIdx][0])capEl.classList.add(capModes[capIdx][0]);capBtn.textContent=capModes[capIdx][1];};
+  if(document.body.classList.contains("embed")){capIdx=1;capEl.classList.add("ar-only");capBtn.textContent=capModes[1][1];}
+</script>
+</body>
+</html>

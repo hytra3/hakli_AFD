@@ -75,6 +75,15 @@
   .rule{height:1px; background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);
     border:0; margin:36px 0}
 
+  /* embedded walkthrough */
+  .demo{margin:34px auto 4px; text-align:center}
+  .demo-lead{font-family:var(--ar); font-weight:700; font-size:clamp(20px,5vw,26px); color:var(--ink); margin:0 0 14px}
+  .demo.en .demo-lead{font-family:var(--en); font-style:italic}
+  .demo-frame{width:min(100vw,380px); margin-left:50%; transform:translateX(-50%);
+    height:780px; overflow:hidden}
+  .demo-frame iframe{width:100%; height:100%; border:0; display:block; background:transparent}
+  @media print{ .demo{display:none} }
+
   /* the lines */
   .lines{margin-top:6px}
   .line{display:flex; align-items:center; gap:16px; padding:20px 4px; border-bottom:1px solid var(--line)}
@@ -129,6 +138,13 @@
     <p class="note" id="hint"></p>
     <button class="playall" id="playAll"><span class="tri">▶</span> <span id="playAllLbl">استمع إلى المقدمة</span></button>
   </header>
+
+  <section class="demo" id="demo">
+    <h2 class="demo-lead" id="demoLead">شاهد كيف يعمل</h2>
+    <div class="demo-frame">
+      <iframe title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?embed=1" loading="lazy" scrolling="no"></iframe>
+    </div>
+  </section>
 
   <hr class="rule">
   <section class="lines" id="lines"></section>
@@ -299,6 +315,12 @@ function render(){
   if(enter){
     enter.textContent = (mode==="en") ? "Enter the dictionary →" : "ادخل القاموس ←";
     enter.className = "enter" + (mode==="en" ? " en" : "");
+  }
+
+  const dl = document.getElementById("demoLead");
+  if(dl){
+    dl.textContent = (mode==="en") ? "See how it works" : "شاهد كيف يعمل";
+    document.getElementById("demo").className = "demo" + (mode==="en" ? " en" : "");
   }
 }
 
