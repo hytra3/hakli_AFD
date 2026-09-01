@@ -192,6 +192,35 @@ window.AFDCore = (function(){
     return s.en;                             // auto
   }
 
+  /* tHTML(key, mode) — the HTML sibling of t(), for chrome that renders bilingually.
+     Its whole reason to exist: in `auto` the label is Arabic-primary with a small
+     English subtitle beneath it — the large Arabic is for the speaker in Oman, the
+     small English line is for Marty and bilingual helpers. It emits the SAME markup
+     the static onboarding/auth chrome already uses
+        <span class="bi-ar" dir="rtl">…</span><small class="sub">…</small>
+     so dynamically-painted chrome (record button, review card, next/skip, …) looks
+     identical to the hand-written screens. `script` = Arabic only; `sound` = the
+     icon if one is defined, else Arabic (same fallback as t(), Marty's call).
+     Output lands in innerHTML, so every interpolated value is escaped. */
+  function escHtml(x){
+    return String(x).replace(/[&<>"]/g, c =>
+      ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+  }
+  function tHTML(key, mode){
+    const s = STRINGS[key];
+    if(!s) return escHtml(key);                       // missing key shows itself
+    if(mode === "sound" && s.icon) return s.icon;
+    if(mode === "sound")
+      return s.ar ? `<span class="bi-ar" dir="rtl">${escHtml(s.ar)}</span>` : escHtml(s.en);
+    if(mode === "script")
+      return `<span class="bi-ar" dir="rtl">${escHtml(s.ar || s.en)}</span>`;
+    // auto → Arabic primary + English subtitle
+    if(!s.ar) return escHtml(s.en);                   // no Arabic yet → English alone
+    let html = `<span class="bi-ar" dir="rtl">${escHtml(s.ar)}</span>`;
+    if(s.en && s.en !== s.ar) html += `<small class="sub">${escHtml(s.en)}</small>`;
+    return html;
+  }
+
   /* ---- identicon — a stable, unique, abstract mark for an entry -------------
      Deterministic from the entryId: the same entry always gets the same "face"
      no matter who records it or how many times. This is the DEFAULT thumbnail so
@@ -221,7 +250,7 @@ window.AFDCore = (function(){
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     MIC_CONSTRAINTS, openStream,
-    STRINGS, t,
+    STRINGS, t, tHTML,
     identicon
   };
 })();
