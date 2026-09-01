@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0831a" type="image/svg+xml">
-<script src="afd-core.js?v=b0831a"></script>
-<script src="afd-words.js?v=b0831a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0831a">
+<link rel="icon" href="favicon.svg?v=b0831b" type="image/svg+xml">
+<script src="afd-core.js?v=b0831b"></script>
+<script src="afd-words.js?v=b0831b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0831b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -104,6 +105,13 @@ h1 .sub{font-size:15px}
 .check .sub{font-size:11px}
 .stepdots .sub{display:inline;margin:0;font-size:10px}
 .rec .sub, #wdRecBtn .sub{color:rgba(255,255,255,.88)}
+/* Long Arabic NOTES read as proper RTL paragraphs (right-aligned); the English
+   subtitle keeps its own LTR, left-aligned flow — standard bilingual convention.
+   :has(.bi-ar) scopes this to bilingual notes only, so English-only notes
+   (session summary, "no recordings yet") stay LTR/left. Buttons, headings and
+   field labels are untouched. */
+p.note:has(.bi-ar){direction:rtl;text-align:right}
+p.note:has(.bi-ar) .sub{text-align:left}
 input[type=text],input[type=password],select{
   width:100%;padding:13px;font-family:inherit;font-size:16px;
   border:1px solid var(--hairline);border-radius:12px;background:var(--paper);color:var(--ink)
@@ -493,7 +501,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0831a";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0831b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -810,7 +818,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0831a";   // bump every publish; shown in the header + console
+const BUILD="b0831b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
