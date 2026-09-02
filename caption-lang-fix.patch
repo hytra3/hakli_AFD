@@ -1,0 +1,66 @@
+diff --git a/hakli-welcome-walkthrough.html b/hakli-welcome-walkthrough.html
+index a6a82a4..1ad6d15 100644
+--- a/hakli-welcome-walkthrough.html
++++ b/hakli-welcome-walkthrough.html
+@@ -358,6 +358,20 @@
+   let capIdx=0;
+   capBtn.onclick=()=>{capIdx=(capIdx+1)%3;capEl.classList.remove('ar-only','off');if(capModes[capIdx][0])capEl.classList.add(capModes[capIdx][0]);capBtn.textContent=capModes[capIdx][1];};
+   if(document.body.classList.contains("embed")){capIdx=1;capEl.classList.add("ar-only");capBtn.textContent=capModes[1][1];}
++
++  // When embedded in welcome.html, the language toggle drives the caption:
++  //   en        → Arabic caption + English subtitle beneath  (capModes[0])
++  //   ar / hakli → Arabic caption only                        (capModes[1])
++  // The in-phone chrome (tabs, record button, review card) stays Arabic in
++  // every mode, by design — the audience reads Arabic, not English.
++  window.addEventListener("message",(e)=>{
++    const d = e && e.data;
++    if(!d || d.type !== "afd:lang") return;
++    capEl.classList.remove("ar-only","off");
++    if(d.mode !== "en") capEl.classList.add("ar-only");
++    capIdx = (d.mode === "en") ? 0 : 1;
++    if(capBtn) capBtn.textContent = capModes[capIdx][1];
++  });
+ </script>
+ </body>
+ </html>
+diff --git a/welcome.html b/welcome.html
+index 27759a8..d466be9 100644
+--- a/welcome.html
++++ b/welcome.html
+@@ -143,7 +143,7 @@
+   <section class="demo" id="demo">
+     <h2 class="demo-lead" id="demoLead">شاهد كيف يعمل</h2>
+     <div class="demo-frame">
+-      <iframe title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?embed=1" loading="lazy" scrolling="no"></iframe>
++      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?embed=1" loading="lazy" scrolling="no"></iframe>
+     </div>
+   </section>
+ 
+@@ -323,12 +323,27 @@ function render(){
+     dl.textContent = (mode==="en") ? "See how it works" : "شاهد كيف يعمل";
+     document.getElementById("demo").className = "demo" + (mode==="en" ? " en" : "");
+   }
++
++  // Drive the embedded walkthrough's caption language from the toggle.
++  syncFrameLang();
++}
++
++// Tell the walkthrough iframe which language is active. The walkthrough shows
++// the English subtitle only in "en"; Arabic-only in "ar"/"hakli". Safe to call
++// before the (lazy) iframe has loaded — the load handler re-posts once it's live.
++function syncFrameLang(){
++  const f = document.getElementById("demoFrame");
++  if(f && f.contentWindow) f.contentWindow.postMessage({type:"afd:lang", mode:mode}, "*");
+ }
+ 
+ function setMode(m){ stop(); mode = m; render(); }
+ 
+ render();      // text renders immediately — no Firebase needed …
+ loadClips();   // … then Hakli audio lights up if the CDN is reachable
++
++// The walkthrough loads lazily; sync its caption language once it's ready.
++(function(){ const f = document.getElementById("demoFrame");
++  if(f) f.addEventListener("load", syncFrameLang); })();
+ </script>
+ </body>
+ </html>

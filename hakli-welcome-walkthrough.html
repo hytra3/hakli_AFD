@@ -358,6 +358,20 @@
   let capIdx=0;
   capBtn.onclick=()=>{capIdx=(capIdx+1)%3;capEl.classList.remove('ar-only','off');if(capModes[capIdx][0])capEl.classList.add(capModes[capIdx][0]);capBtn.textContent=capModes[capIdx][1];};
   if(document.body.classList.contains("embed")){capIdx=1;capEl.classList.add("ar-only");capBtn.textContent=capModes[1][1];}
+
+  // When embedded in welcome.html, the language toggle drives the caption:
+  //   en        → Arabic caption + English subtitle beneath  (capModes[0])
+  //   ar / hakli → Arabic caption only                        (capModes[1])
+  // The in-phone chrome (tabs, record button, review card) stays Arabic in
+  // every mode, by design — the audience reads Arabic, not English.
+  window.addEventListener("message",(e)=>{
+    const d = e && e.data;
+    if(!d || d.type !== "afd:lang") return;
+    capEl.classList.remove("ar-only","off");
+    if(d.mode !== "en") capEl.classList.add("ar-only");
+    capIdx = (d.mode === "en") ? 0 : 1;
+    if(capBtn) capBtn.textContent = capModes[capIdx][1];
+  });
 </script>
 </body>
 </html>

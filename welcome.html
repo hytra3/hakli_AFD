@@ -143,7 +143,7 @@
   <section class="demo" id="demo">
     <h2 class="demo-lead" id="demoLead">شاهد كيف يعمل</h2>
     <div class="demo-frame">
-      <iframe title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?embed=1" loading="lazy" scrolling="no"></iframe>
+      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?embed=1" loading="lazy" scrolling="no"></iframe>
     </div>
   </section>
 
@@ -323,12 +323,27 @@ function render(){
     dl.textContent = (mode==="en") ? "See how it works" : "شاهد كيف يعمل";
     document.getElementById("demo").className = "demo" + (mode==="en" ? " en" : "");
   }
+
+  // Drive the embedded walkthrough's caption language from the toggle.
+  syncFrameLang();
+}
+
+// Tell the walkthrough iframe which language is active. The walkthrough shows
+// the English subtitle only in "en"; Arabic-only in "ar"/"hakli". Safe to call
+// before the (lazy) iframe has loaded — the load handler re-posts once it's live.
+function syncFrameLang(){
+  const f = document.getElementById("demoFrame");
+  if(f && f.contentWindow) f.contentWindow.postMessage({type:"afd:lang", mode:mode}, "*");
 }
 
 function setMode(m){ stop(); mode = m; render(); }
 
 render();      // text renders immediately — no Firebase needed …
 loadClips();   // … then Hakli audio lights up if the CDN is reachable
+
+// The walkthrough loads lazily; sync its caption language once it's ready.
+(function(){ const f = document.getElementById("demoFrame");
+  if(f) f.addEventListener("load", syncFrameLang); })();
 </script>
 </body>
 </html>
