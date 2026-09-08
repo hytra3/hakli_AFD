@@ -49,11 +49,42 @@ within each group.
 ## Features designed, not yet built
 
 - **Rep-splitting** *(this is the "two-soundwave tile")* — the word tile shows the
-  full say-it-twice envelope with a dead gap. Plan: keep the 2-rep clip as ONE
-  immutable atom, store burst boundaries as timestamps, and *derive* a single clean
-  rep for the tile / playback / embedding. Split only on a real pause; tag both
-  derived reps with the shared recordingId so one recording = one contribution.
-  Touches `analyse()`, storage, the embed service, and rendering.
+  full say-it-twice envelope with a dead gap. Design settled 09-05; build in this
+  order. The 2-rep clip stays ONE immutable atom in Storage; only the embedding and
+  rendering change.
+
+  *Why (so the decisions don't get relitigated):* mean pooling averages MMS frames
+  **within one utterance**; silence frames carry a consistent "silence" vector, so a
+  whole-atom pool is ~(word + word + pause)/3 and pause length becomes a confound.
+  Pooling is order-invariant, so once silence is out, word+word ≈ word — repetition
+  buys almost nothing for the match itself. Its value is QC (do the two reps agree?),
+  threshold calibration (fresh intra-clip pairs), and redundancy (one rep clipped, the
+  other survives). Silence trimming is the fix; "use rep 2" is not.
+
+  1. **`embed_service/app.py`** — VAD/energy split into voiced segments; mean-pool
+     *each rep over its own frames*, L2-normalise; extend `/embed` response to
+     `{ vectors: [...], n_reps, rep_distance, rep_offsets }` (keep `embedding` for
+     compat = rep 1, or drop once callers move). Find queries go through the same
+     trim → one vector. Test with synthetic clips before any UI work.
+  2. **Recorder: two-rep elicitation + soft QC gate** — prompt asks for exactly two
+     reps. `n_reps ≠ 2` *or* `rep_distance` over threshold → one confirm screen
+     ("we're not sure these are the same word — listen back / re-record?"), never a
+     refusal. Speaker confirms → atom saved, flag left on the doc for later review.
+     VAD will misfire on real speech (lost glottal onsets, short pauses merging reps,
+     stop closures splitting a word), so the flag doubles as misfire telemetry.
+     Needs a new spoken prompt for the confirm screen: MSA draft → Dhofari review →
+     record. Wording must never imply the speaker got it wrong.
+  3. **Find: single utterance, nearest-rep match** — store one vector per rep
+     (do NOT average them; that discards the consistency signal). Query vector vs.
+     every rep vector, nearest rep per entry — same policy as nearest-recording-per-
+     entry, at rep granularity. Contribute-from-find routes into the recorder (two
+     reps); never reuse the disposable query audio as an atom.
+  4. **Threshold calibration** — derive the acceptance band from real intra-clip rep
+     pairs once Hakli atoms exist (expect ~0.14–0.25 normalised); track the VAD
+     misfire rate on Hakli to tune the split threshold.
+
+  Corpus is currently empty, so no re-embed pass is needed; if that changes,
+  `scripts/reset-corpus.mjs` is the hook.
 - **Distinct Sentence / Meaning icons** — speech-bubble (sentence) and open-book
   (meaning), used consistently across recorder, find, and dictionary.
 - **Agent-mediated Withdraw / Erase** — needs the spoken-withdrawal audio artifact so

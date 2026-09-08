@@ -65,7 +65,20 @@ gets a vector written to its recording doc within a second or two.
 ## 4. Try it
 
 Record a couple of words in the app. In Firestore, confirm each
-`afd_entries/{id}/recordings/{id}` now has an `embedding` array. Then:
+`afd_entries/{id}/recordings/{id}` now has:
+
+| field | what |
+|---|---|
+| `vectors` | one unit vector per detected rep (search matches the nearest rep per entry) |
+| `embedding` | pool over all voiced frames, silence dropped — single-vector view |
+| `nReps` | how many voiced bursts the VAD found (expect 2 for a word atom) |
+| `repDistance` | cosine distance between reps (max pairwise if >2); `null` if <2 |
+| `repOffsets` | `[[start_s, end_s], …]` per rep, for the two-soundwave tile |
+
+`/embed` returns the same fields in snake_case. `nReps ≠ 2` or a large
+`repDistance` is what the recorder's soft "couldn't quite catch it twice"
+gate keys on — the service only reports, it never rejects. VAD thresholds are
+env-tunable (`VAD_*` in `app.py`). Then:
 
 ```bash
 # speak-to-find, from a wav/webm of a word you recorded:

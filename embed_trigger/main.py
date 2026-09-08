@@ -57,10 +57,21 @@ def on_finalize(cloud_event):
     audio = blob.download_as_bytes()
     resp = requests.post(EMBED_URL, files={"file": (name, audio)}, timeout=120)
     resp.raise_for_status()
-    embedding = resp.json()["embedding"]
+    r = resp.json()
+    embedding = r["embedding"]
 
+    # `vectors` = one vector per detected rep (search matches nearest rep);
+    # `embedding` = pool over all voiced frames (single-vector view / compat).
+    # nReps / repDistance / repOffsets feed the recorder's soft QC gate and the
+    # threshold calibration — stored raw, no flag decided here.
     _db.document(f"afd_entries/{entry_id}/recordings/{recording_id}").set(
-        {"embedding": embedding, "embedModel": "mms-300m", "embedLayer": 12},
+        {"embedding": embedding,
+         "vectors": r.get("vectors") or [embedding],
+         "nReps": r.get("n_reps"),
+         "repDistance": r.get("rep_distance"),
+         "repOffsets": r.get("rep_offsets") or [],
+         "embedModel": "mms-300m", "embedLayer": 12, "embedPooling": "voiced-per-rep"},
         merge=True,
     )
-    print(f"embedded {entry_id}/{recording_id}  dim={len(embedding)}")
+    print(f"embedded {entry_id}/{recording_id}  dim={len(embedding)} "
+          f"n_reps={r.get('n_reps')} rep_distance={r.get('rep_distance')}")
