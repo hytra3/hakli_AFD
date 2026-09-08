@@ -69,13 +69,13 @@ Record a couple of words in the app. In Firestore, confirm each
 
 | field | what |
 |---|---|
-| `vectors` | one unit vector per detected rep (search matches the nearest rep per entry) |
+| `reps` | one map per detected rep: `{start, end, vector}` — search matches the nearest rep per entry; `start`/`end` (seconds) feed the two-soundwave tile |
 | `embedding` | pool over all voiced frames, silence dropped — single-vector view |
 | `nReps` | how many voiced bursts the VAD found (expect 2 for a word atom) |
 | `repDistance` | cosine distance between reps (max pairwise if >2); `null` if <2 |
-| `repOffsets` | `[[start_s, end_s], …]` per rep, for the two-soundwave tile |
 
-`/embed` returns the same fields in snake_case. `nReps ≠ 2` or a large
+`/embed` returns the same data as `vectors` + `rep_offsets` (nested arrays are
+fine in JSON; Firestore forbids them, hence the map-per-rep shape on the doc). `nReps ≠ 2` or a large
 `repDistance` is what the recorder's soft "couldn't quite catch it twice"
 gate keys on — the service only reports, it never rejects. VAD thresholds are
 env-tunable (`VAD_*` in `app.py`). Then:

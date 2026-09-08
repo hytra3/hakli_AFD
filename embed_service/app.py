@@ -283,9 +283,14 @@ class Corpus:
         # collection-group over every entry's recordings; only playable + embedded
         for snap in db.collection_group("recordings").stream():
             d = snap.to_dict() or {}
-            # one row per rep vector (nearest-rep-per-entry); legacy docs that
-            # only carry the whole-clip `embedding` still count as one row
-            rows = d.get("vectors") or ([d["embedding"]] if d.get("embedding") else [])
+            # one row per rep vector (nearest-rep-per-entry). Docs carry
+            #   reps: [ {start, end, vector:[...]}, ... ]
+            # (Firestore forbids nested arrays, hence maps). Legacy docs that
+            # only have the whole-clip `embedding` still count as one row.
+            reps = d.get("reps") or []
+            rows = [rp.get("vector") for rp in reps if rp.get("vector")]
+            if not rows and d.get("embedding"):
+                rows = [d["embedding"]]
             eid = d.get("entryId", snap.reference.parent.parent.id)
             for emb in rows:
                 vecs.append(np.asarray(emb, dtype=np.float32))

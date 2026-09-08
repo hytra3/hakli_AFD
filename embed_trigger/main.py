@@ -60,16 +60,20 @@ def on_finalize(cloud_event):
     r = resp.json()
     embedding = r["embedding"]
 
-    # `vectors` = one vector per detected rep (search matches nearest rep);
+    # Firestore forbids nested arrays, so per-rep data is a list of maps:
+    #   reps: [ {start, end, vector:[...]}, ... ]   (search matches nearest rep)
     # `embedding` = pool over all voiced frames (single-vector view / compat).
-    # nReps / repDistance / repOffsets feed the recorder's soft QC gate and the
-    # threshold calibration — stored raw, no flag decided here.
+    # nReps / repDistance feed the recorder's soft QC gate and the threshold
+    # calibration — stored raw, no flag decided here.
+    vectors = r.get("vectors") or [embedding]
+    offsets = r.get("rep_offsets") or [[None, None]] * len(vectors)
+    reps = [{"start": s, "end": e, "vector": v} for (s, e), v in zip(offsets, vectors)]
+
     _db.document(f"afd_entries/{entry_id}/recordings/{recording_id}").set(
         {"embedding": embedding,
-         "vectors": r.get("vectors") or [embedding],
+         "reps": reps,
          "nReps": r.get("n_reps"),
          "repDistance": r.get("rep_distance"),
-         "repOffsets": r.get("rep_offsets") or [],
          "embedModel": "mms-300m", "embedLayer": 12, "embedPooling": "voiced-per-rep"},
         merge=True,
     )
