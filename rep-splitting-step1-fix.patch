@@ -1,0 +1,73 @@
+diff --git a/embed_service/README.md b/embed_service/README.md
+index 3405a5b..7e03677 100644
+--- a/embed_service/README.md
++++ b/embed_service/README.md
+@@ -69,13 +69,13 @@ Record a couple of words in the app. In Firestore, confirm each
+ 
+ | field | what |
+ |---|---|
+-| `vectors` | one unit vector per detected rep (search matches the nearest rep per entry) |
++| `reps` | one map per detected rep: `{start, end, vector}` — search matches the nearest rep per entry; `start`/`end` (seconds) feed the two-soundwave tile |
+ | `embedding` | pool over all voiced frames, silence dropped — single-vector view |
+ | `nReps` | how many voiced bursts the VAD found (expect 2 for a word atom) |
+ | `repDistance` | cosine distance between reps (max pairwise if >2); `null` if <2 |
+-| `repOffsets` | `[[start_s, end_s], …]` per rep, for the two-soundwave tile |
+ 
+-`/embed` returns the same fields in snake_case. `nReps ≠ 2` or a large
++`/embed` returns the same data as `vectors` + `rep_offsets` (nested arrays are
++fine in JSON; Firestore forbids them, hence the map-per-rep shape on the doc). `nReps ≠ 2` or a large
+ `repDistance` is what the recorder's soft "couldn't quite catch it twice"
+ gate keys on — the service only reports, it never rejects. VAD thresholds are
+ env-tunable (`VAD_*` in `app.py`). Then:
+diff --git a/embed_service/app.py b/embed_service/app.py
+index b0afa65..c9e1abf 100644
+--- a/embed_service/app.py
++++ b/embed_service/app.py
+@@ -283,9 +283,14 @@ class Corpus:
+         # collection-group over every entry's recordings; only playable + embedded
+         for snap in db.collection_group("recordings").stream():
+             d = snap.to_dict() or {}
+-            # one row per rep vector (nearest-rep-per-entry); legacy docs that
+-            # only carry the whole-clip `embedding` still count as one row
+-            rows = d.get("vectors") or ([d["embedding"]] if d.get("embedding") else [])
++            # one row per rep vector (nearest-rep-per-entry). Docs carry
++            #   reps: [ {start, end, vector:[...]}, ... ]
++            # (Firestore forbids nested arrays, hence maps). Legacy docs that
++            # only have the whole-clip `embedding` still count as one row.
++            reps = d.get("reps") or []
++            rows = [rp.get("vector") for rp in reps if rp.get("vector")]
++            if not rows and d.get("embedding"):
++                rows = [d["embedding"]]
+             eid = d.get("entryId", snap.reference.parent.parent.id)
+             for emb in rows:
+                 vecs.append(np.asarray(emb, dtype=np.float32))
+diff --git a/embed_trigger/main.py b/embed_trigger/main.py
+index 21e45b7..8c7e63c 100644
+--- a/embed_trigger/main.py
++++ b/embed_trigger/main.py
+@@ -60,16 +60,20 @@ def on_finalize(cloud_event):
+     r = resp.json()
+     embedding = r["embedding"]
+ 
+-    # `vectors` = one vector per detected rep (search matches nearest rep);
++    # Firestore forbids nested arrays, so per-rep data is a list of maps:
++    #   reps: [ {start, end, vector:[...]}, ... ]   (search matches nearest rep)
+     # `embedding` = pool over all voiced frames (single-vector view / compat).
+-    # nReps / repDistance / repOffsets feed the recorder's soft QC gate and the
+-    # threshold calibration — stored raw, no flag decided here.
++    # nReps / repDistance feed the recorder's soft QC gate and the threshold
++    # calibration — stored raw, no flag decided here.
++    vectors = r.get("vectors") or [embedding]
++    offsets = r.get("rep_offsets") or [[None, None]] * len(vectors)
++    reps = [{"start": s, "end": e, "vector": v} for (s, e), v in zip(offsets, vectors)]
++
+     _db.document(f"afd_entries/{entry_id}/recordings/{recording_id}").set(
+         {"embedding": embedding,
+-         "vectors": r.get("vectors") or [embedding],
++         "reps": reps,
+          "nReps": r.get("n_reps"),
+          "repDistance": r.get("rep_distance"),
+-         "repOffsets": r.get("rep_offsets") or [],
+          "embedModel": "mms-300m", "embedLayer": 12, "embedPooling": "voiced-per-rep"},
+         merge=True,
+     )
