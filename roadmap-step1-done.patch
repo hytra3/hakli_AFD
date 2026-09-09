@@ -1,0 +1,97 @@
+diff --git a/ROADMAP.md b/ROADMAP.md
+index 02306c7..6cbc88a 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -45,13 +45,26 @@ within each group.
+   `envelope` array is already stored on each recording and returned by
+   `listPlayable`, so render it as a sparkline on find's voice rows / tiles to match
+   the recorder's treatment. Mostly a rendering reuse.
++- **Mobile "Couldn't create the entry — please try again"** — on the phone, speak-to-
++  find → "Add it to the dictionary" intermittently fails to mint the entry, while the
++  same flow on desktop works and the phone can still *match/display* existing entries
++  (so read path + anon auth are basically alive). Seen 09-07/09-08. Next step: repro
++  with a console attached and read the actual write error — leading guess is the entry
++  create write (`afd_entries` + `createdBy`) being denied when the phone's anon
++  sign-in didn't fully settle, or a referrer/API-key check differing on mobile. Ties
++  into the prompts-tool sign-in error-handler TODO (distinguish `auth/requests-from-
++  referer-*` from `auth/operation-not-allowed`).
++- **Confidence wording differs across find surfaces** — same match (0.2033, 09-08)
++  showed "Here it is / ها هو" on mobile but "Did you mean… / هل تقصد…" on desktop.
++  Decide one confidence policy + one set of strings shared between find surfaces
++  rather than each client drawing the `AUTOPLAY_MAX`/`MAYBE_MAX` line its own way.
+ 
+ ## Features designed, not yet built
+ 
+ - **Rep-splitting** *(this is the "two-soundwave tile")* — the word tile shows the
+-  full say-it-twice envelope with a dead gap. Design settled 09-05; build in this
+-  order. The 2-rep clip stays ONE immutable atom in Storage; only the embedding and
+-  rendering change.
++  full say-it-twice envelope with a dead gap. Design settled 09-05; **service + find
++  shipped and verified on live Hakli audio 09-08**. The 2-rep clip stays ONE
++  immutable atom in Storage; only the embedding and rendering change.
+ 
+   *Why (so the decisions don't get relitigated):* mean pooling averages MMS frames
+   **within one utterance**; silence frames carry a consistent "silence" vector, so a
+@@ -61,30 +74,39 @@ within each group.
+   threshold calibration (fresh intra-clip pairs), and redundancy (one rep clipped, the
+   other survives). Silence trimming is the fix; "use rep 2" is not.
+ 
+-  1. **`embed_service/app.py`** — VAD/energy split into voiced segments; mean-pool
+-     *each rep over its own frames*, L2-normalise; extend `/embed` response to
+-     `{ vectors: [...], n_reps, rep_distance, rep_offsets }` (keep `embedding` for
+-     compat = rep 1, or drop once callers move). Find queries go through the same
+-     trim → one vector. Test with synthetic clips before any UI work.
+-  2. **Recorder: two-rep elicitation + soft QC gate** — prompt asks for exactly two
+-     reps. `n_reps ≠ 2` *or* `rep_distance` over threshold → one confirm screen
+-     ("we're not sure these are the same word — listen back / re-record?"), never a
+-     refusal. Speaker confirms → atom saved, flag left on the doc for later review.
+-     VAD will misfire on real speech (lost glottal onsets, short pauses merging reps,
+-     stop closures splitting a word), so the flag doubles as misfire telemetry.
+-     Needs a new spoken prompt for the confirm screen: MSA draft → Dhofari review →
+-     record. Wording must never imply the speaker got it wrong.
+-  3. **Find: single utterance, nearest-rep match** — store one vector per rep
+-     (do NOT average them; that discards the consistency signal). Query vector vs.
+-     every rep vector, nearest rep per entry — same policy as nearest-recording-per-
+-     entry, at rep granularity. Contribute-from-find routes into the recorder (two
+-     reps); never reuse the disposable query audio as an atom.
+-  4. **Threshold calibration** — derive the acceptance band from real intra-clip rep
+-     pairs once Hakli atoms exist (expect ~0.14–0.25 normalised); track the VAD
+-     misfire rate on Hakli to tune the split threshold.
++  1. ✅ **`embed_service/app.py`** — VAD/energy split (`find_reps`), mean-pool
++     *each rep over its own frames*, L2-normalise. `/embed` returns
++     `{ embedding, vectors, n_reps, rep_distance, rep_offsets }`; `embedding` =
++     pool over ALL voiced frames (single-vector view / compat). Firestore forbids
++     nested arrays, so the doc stores `reps: [{start,end,vector}, …]` + `nReps` +
++     `repDistance` (not `vectors`/`repOffsets`). Trigger writes those; corpus
++     loader reads them (nearest-rep per entry) with a legacy `embedding` fallback.
++     Synthetic-clip VAD tests pass; `n_reps=2` confirmed on real audio.
++  2. **Recorder: two-rep elicitation + soft QC gate** — *(now the active build —
++     see below)*. Prompt asks for exactly two reps. `nReps ≠ 2` *or* `repDistance`
++     over threshold → one confirm screen, never a refusal. Speaker confirms → atom
++     saved, flag left on the doc. VAD will misfire on real speech (lost glottal
++     onsets, short pauses merging reps, stop closures splitting a word), so the flag
++     doubles as misfire telemetry. Spoken prompt `review.reps.unsure` is **written
++     and deployed** (73→74 prompts) — still needs Dhofari review + recording. Wording
++     must never imply the speaker got it wrong.
++  3. ✅ **Find: single utterance, nearest-rep match** — query vs. every rep vector,
++     nearest rep per entry. Contribute-from-find routes into the recorder; query
++     audio is never reused as an atom. Verified end-to-end on desktop + mobile 09-08.
++  4. **Threshold calibration** *(open — needs many more atoms)* — derive the
++     acceptance band from real intra-clip rep pairs. **First live data points:**
++     intra-clip `repDistance` **0.0632** (two reps, one voice, one session — tighter
++     than expected, as predicted); cross-session find query landed **0.2033** from
++     the stored reps of the same word (inside the old 0.14–0.25 self-repeat band).
++     Track the VAD misfire rate on Hakli to tune the split threshold too.
+ 
+-  Corpus is currently empty, so no re-embed pass is needed; if that changes,
+-  `scripts/reset-corpus.mjs` is the hook.
++  **Match-decision thresholds** (`index.html`: `AUTOPLAY_MAX 0.15`, `MAYBE_MAX 0.25`,
++  `MARGIN_MIN 0.03`) are first estimates off a near-empty corpus. The 09-08 query at
++  0.2033 correctly showed as "maybe" (past `AUTOPLAY_MAX`) — *reasonable behaviour,
++  not a bug*, but with a one-entry corpus the margin is ∞ so only the absolute gate
++  fires, which isn't convincing yet. Do NOT retune on single data points; let
++  `repDistance` values accumulate across many atoms first, then set `AUTOPLAY_MAX`
++  from the observed cross-session distribution.
+ - **Distinct Sentence / Meaning icons** — speech-bubble (sentence) and open-book
+   (meaning), used consistently across recorder, find, and dictionary.
+ - **Agent-mediated Withdraw / Erase** — needs the spoken-withdrawal audio artifact so
