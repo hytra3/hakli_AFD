@@ -56,14 +56,21 @@ body{
     padding:18px 20px calc(6px + env(safe-area-inset-top));
     color:var(--mountain);
   }
-.mark{width:30px;height:30px;flex:0 0 auto}
-.wordmark{font-family:var(--serif); font-size:20px; letter-spacing:.2px}
-.wordmark small{color:var(--mist); font-family:var(--sans); font-size:12px; letter-spacing:.12em; text-transform:uppercase; margin-inline-start:8px}
+.glyph{width:30px;height:34px;flex:0 0 auto;display:inline-flex;align-items:center}
+.glyph svg{width:100%;height:100%}
+.screen{display:flex; align-items:center; gap:9px; min-width:0}
+.screen-ic{width:24px;height:24px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
+.screen-ic svg{width:100%;height:100%}
+.screen-t{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.screen-ar{font-family:var(--serif); font-size:19px; letter-spacing:.2px; direction:rtl}
+.screen-en{color:var(--mist); font-family:var(--sans); font-size:11px; letter-spacing:.12em; text-transform:uppercase; margin-top:2px}
 .skin{margin-inline-start:auto; width:42px; height:42px; flex:0 0 auto; border-radius:50%;
         border:1px solid var(--hairline); background:var(--cloud); color:var(--mountain);
         display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
 .skin svg{width:20px;height:20px}
 .skin .lbl{font-family:var(--serif); font-size:18px; line-height:1}
+.buildstamp{margin-top:auto; padding:14px 0 calc(12px + env(safe-area-inset-bottom)); text-align:center;
+        font-family:var(--sans); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--mist)}
 /* ---------------------------------------------------------------- hero */
   main{flex:1; display:flex; flex-direction:column; align-items:center; padding:0 20px 32px}
 /* idle: the mic is a centered hero */
@@ -163,11 +170,11 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 </head>
 <body>
   <header>
-    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M2 26 L11 9 L17 20 L21 13 L30 26 Z" fill="#1F3A34"/>
-      <circle cx="24" cy="7" r="3.2" fill="#C6873F"/>
-    </svg>
-    <span class="wordmark" id="wordmark">الحَكلي<small>speak to find</small></span>
+    <span class="glyph" id="mastGlyph" aria-hidden="true"><svg viewBox="0 0 64 82" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="2,26 14,26 4,4" fill="#C24A32"/><polygon points="19,26 31,26 25,12" fill="#C24A32"/><polygon points="33,26 45,26 39,12" fill="#C24A32"/><polygon points="50,26 62,26 60,4" fill="#C24A32"/><polygon points="4,26 60,26 54,74 10,74" fill="#C24A32"/><rect x="8" y="74" width="48" height="5" rx="2" fill="#7E2C1C"/><rect x="8" y="34" width="48" height="5" fill="#2E8B57"/><rect x="11" y="41" width="42" height="3" fill="#F3ECE0"/><rect x="26" y="52" width="12" height="22" rx="2" fill="#7E2C1C"/></svg></span>
+    <span class="screen">
+      <span class="screen-ic" id="mastIcon" aria-hidden="true"></span>
+      <span class="screen-t"><span class="screen-ar" id="mastAr" dir="rtl"></span><small class="screen-en sub" id="mastEn"></small></span>
+    </span>
     <button class="skin" id="skin" aria-label="Change how words are shown"></button>
     <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
   </header>
@@ -191,6 +198,7 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
   </main>
 
   <div class="dbg hidden" id="dbg"></div>
+  <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -431,7 +439,7 @@ async function runSearch(blob){
 
 async function render(results){
   const my = ++renderToken; deepEntry = null;
-  lastResults = results;
+  lastResults = results; setMastView("find");
   resultsEl.innerHTML=""; hint.classList.add("small");
   resultsEl.appendChild(backToAll());
   const best = results[0];
@@ -473,7 +481,7 @@ async function render(results){
    autoplay: the user navigated deliberately, so let them pick a voice. */
 async function openEntry(entryId){
   const my = ++renderToken; deepEntry = entryId;
-  lastResults = [{entryId, distance:0}];
+  lastResults = [{entryId, distance:0}]; setMastView("find");
   resultsEl.innerHTML=""; hint.classList.add("small");
   setHint("Here it is","ها هو");
   const lead = await entryCard({entryId, distance:0}, true);
@@ -506,7 +514,7 @@ function backToAll(){
   return b;
 }
 async function renderBrowse(){
-  const my = ++renderToken; deepEntry = null; lastResults = null;
+  const my = ++renderToken; deepEntry = null; lastResults = null; setMastView("dictionary");
   hint.classList.remove("small");
   // A cold Firestore connection makes the 40 header reads slow, so show a loading
   // pulse immediately (a blank landing reads as broken) and fetch the headers in
@@ -663,8 +671,30 @@ function banner(msg){
 
 /* press-and-hold on the mic (pointer covers touch + mouse) */
 // Visible build stamp — compare laptop vs phone to catch a stale cache.
-try{ document.querySelector("#wordmark small").textContent = "speak to find · " + BUILD; }catch(_){}
+try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] build", BUILD, "·", location.href);
+
+/* The shifting masthead: a find identity on the speak view, a dictionary identity
+   on the browse view — so the header itself tells a non-reader which room they're
+   in, by icon and colour (green speak vs. neutral browse). Arabic title shows in
+   auto + script; the English sub only in auto; the sound tier (non-reader) shows
+   the glyph + icon alone, no words. Arabic titles are PROVISIONAL — pending local
+   speaker review. */
+const MAST = {
+  find:       { color:"#5E9E3E", ar:"قُل لتجد", en:"speak to find",
+    ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 10v4M7.5 6v12M12 3v18M16.5 6v12M21 10v4"/></svg>` },
+  dictionary: { color:"var(--mountain)", ar:"القاموس", en:"dictionary",
+    ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>` },
+};
+let mastView = "find";
+function renderMasthead(){
+  const m = MAST[mastView] || MAST.find;
+  const ic=$("mastIcon"), arEl=$("mastAr"), enEl=$("mastEn");
+  if(ic){ ic.innerHTML=m.ic; ic.style.color=m.color; }
+  if(arEl){ arEl.textContent=m.ar; arEl.style.display=(displayMode==="sound")?"none":""; }
+  if(enEl){ enEl.textContent=m.en; enEl.style.display=(displayMode==="auto")?"":"none"; }
+}
+function setMastView(v){ mastView=v; renderMasthead(); }
 
 // deep-link opens one entry; otherwise show the whole dictionary as browsable cards
 if(!applyEntryDeepLink()) renderBrowse();
@@ -731,9 +761,9 @@ onAuthStateChanged(auth, (u)=>{
 });
 updateAccountUi();
 
-/* dev distance readout: tap the wordmark three times */
+/* dev distance readout: tap the glyph three times */
 let taps=0,tt=0;
-$("wordmark").addEventListener("click",()=>{ taps++; clearTimeout(tt); tt=setTimeout(()=>taps=0,600);
+$("mastGlyph").addEventListener("click",()=>{ taps++; clearTimeout(tt); tt=setTimeout(()=>taps=0,600);
   if(taps>=3){ dbg.classList.toggle("hidden"); taps=0; } });
 function showDbg(results, n){
   if(dbg.classList.contains("hidden")) return;

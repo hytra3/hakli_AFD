@@ -48,6 +48,8 @@
     color:var(--ink); margin:0}
   .name .latin{display:block; font-family:var(--en); font-style:italic; font-weight:500;
     font-size:clamp(18px,4.2vw,24px); color:var(--frank); letter-spacing:.05em; margin-top:12px; direction:ltr}
+  .heromark{display:flex; justify-content:center; margin:0 0 10px}
+  .heromark svg{width:clamp(84px,22vw,120px); height:auto}
   .wave{display:flex; align-items:center; justify-content:center; gap:4px; height:56px;
     margin:28px auto 6px; max-width:300px}
   .wave i{flex:1; background:var(--frank); border-radius:3px; opacity:.9; transform-origin:center;
@@ -126,13 +128,8 @@
 <body>
 <main class="wrap">
   <header class="hero">
+    <div class="heromark" aria-hidden="true"><svg viewBox="0 0 120 128" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M52 44 C46 32 58 24 52 12" stroke="#CFC4B4" stroke-width="3" stroke-linecap="round" opacity=".85"/><path d="M60 44 C66 30 56 22 62 10" stroke="#CFC4B4" stroke-width="3" stroke-linecap="round" opacity=".7"/><path d="M67 44 C61 34 71 26 67 16" stroke="#CFC4B4" stroke-width="2.5" stroke-linecap="round" opacity=".55"/><path d="M92 60 C114 66 116 100 82 110" stroke="#C24A32" stroke-width="7" stroke-linecap="round"/><polygon points="12,46 30,46 16,16" fill="#C24A32"/><polygon points="38,46 54,46 46,24" fill="#C24A32"/><polygon points="58,46 74,46 66,24" fill="#C24A32"/><polygon points="82,46 100,46 96,16" fill="#C24A32"/><polygon points="16,46 96,46 88,114 24,114" fill="#C24A32"/><rect x="20" y="114" width="72" height="7" rx="3" fill="#7E2C1C"/><rect x="22" y="58" width="68" height="7" fill="#2E8B57"/><rect x="26" y="68" width="60" height="4" fill="#F3ECE0"/><rect x="46" y="80" width="18" height="34" rx="2" fill="#7E2C1C"/></svg></div>
     <h1 class="name">الحَكلي<span class="latin">Hakli</span></h1>
-    <div class="wave" aria-hidden="true">
-      <i style="height:30%"></i><i style="height:52%"></i><i style="height:78%"></i><i style="height:44%"></i>
-      <i style="height:92%"></i><i style="height:100%"></i><i style="height:60%"></i><i style="height:36%"></i>
-      <i style="height:66%"></i><i style="height:84%"></i><i style="height:48%"></i><i style="height:26%"></i>
-      <i style="height:56%"></i><i style="height:80%"></i><i style="height:96%"></i><i style="height:58%"></i>
-    </div>
 
     <div class="toggle" id="toggle" role="group" aria-label="language"></div>
 
