@@ -45,19 +45,30 @@ within each group.
   `envelope` array is already stored on each recording and returned by
   `listPlayable`, so render it as a sparkline on find's voice rows / tiles to match
   the recorder's treatment. Mostly a rendering reuse.
-- **Mobile "Couldn't create the entry — please try again"** — on the phone, speak-to-
-  find → "Add it to the dictionary" intermittently fails to mint the entry, while the
-  same flow on desktop works and the phone can still *match/display* existing entries
-  (so read path + anon auth are basically alive). Seen 09-07/09-08. Next step: repro
-  with a console attached and read the actual write error — leading guess is the entry
-  create write (`afd_entries` + `createdBy`) being denied when the phone's anon
-  sign-in didn't fully settle, or a referrer/API-key check differing on mobile. Ties
-  into the prompts-tool sign-in error-handler TODO (distinguish `auth/requests-from-
-  referer-*` from `auth/operation-not-allowed`).
-- **Confidence wording differs across find surfaces** — same match (0.2033, 09-08)
-  showed "Here it is / ها هو" on mobile but "Did you mean… / هل تقصد…" on desktop.
-  Decide one confidence policy + one set of strings shared between find surfaces
-  rather than each client drawing the `AUTOPLAY_MAX`/`MAYBE_MAX` line its own way.
+- **✅ Mobile "Couldn't create the entry"** *(fixed 09-08, commit 6c12fac)* — root
+  cause was a client gate out of step with the rules, not a network flake. The phone
+  held an **anonymous** session (enough to read, so search/display worked), but
+  `startNewEntry` gated on `if(!currentUser)` — an anonymous user is a user, so it
+  skipped the Google sign-in and called `setDoc`, which `afd_entries` create denies
+  via `notAnon()` (`sign_in_provider != 'anonymous'`). The account checkmark used the
+  same weak check, so it falsely showed "signed in" and hid the problem. Fix: added
+  `isRealUser()` (present AND not anonymous, mirroring `notAnon()`); create now forces
+  Google sign-in for anon users, re-checks the live user after the popup, and nudges
+  "sign in with Google to add a word" instead of failing into permission-denied; the
+  account indicator + button now reflect a *real* account. Verified on the phone.
+  *Watch:* if `signInWithPopup` ever misbehaves on a mobile browser, the fallback is
+  `signInWithRedirect` on mobile (deeper mobile-auth item, not yet needed). If anon
+  contribution is ever wanted, that's a rules change with consent implications.
+- **Confidence wording is action-dependent (by design — not a bug)** — spoken *search*
+  hedges: `render()` picks "Here it is / ها هو" only when `confident` (distance ≤
+  `AUTOPLAY_MAX` AND margin ≥ `MARGIN_MIN`), else "Did you mean… / هل تقصد…".
+  *Opening* an entry (dictionary tap / `#ent_xxx` deep link) always says "Here it is"
+  because the user chose it — distance 0, nothing to hedge. The 09-08 mobile
+  screenshot showing "Here it is" at 0.2033 was an opened entry (or a stale build),
+  not the search path misfiring. So there is no wording code to change; the only lever
+  on search wording is `AUTOPLAY_MAX`, and that's the threshold-calibration work
+  blocked on recording more words. Leave the copy as-is until the corpus can set the
+  threshold from real cross-session distances.
 
 ## Features designed, not yet built
 
