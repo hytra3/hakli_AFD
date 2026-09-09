@@ -283,6 +283,12 @@ const db    = getFirestore(app);
 const store = getStorage(app);
 const auth  = getAuth(app);
 let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
+// A *named* account, not the anonymous key the find flow may already hold.
+// This mirrors notAnon() in afd-firestore.rules: anonymous can read (search
+// works) but cannot create entries/recordings, so the UI must gate writes on
+// this, not on mere presence of a session — otherwise we skip the Google
+// sign-in and walk straight into a permission-denied.
+const isRealUser = () => !!currentUser && !currentUser.isAnonymous;
 initCard({ db, store, recorderUrl: RECORDER_URL, mode:()=>displayMode, user:()=>currentUser, banner });
 
 const $ = id => document.getElementById(id);
@@ -540,12 +546,24 @@ async function renderBrowse(){
    opens, so the seed recording lands in the same acoustic space as the corpus).
    Writing needs a real, non-anonymous sign-in, matching the Firestore rules. */
 async function startNewEntry(){
-  if(!currentUser){
+  // The rules require a named account to create an entry (notAnon()). An
+  // anonymous session — which the find flow may already hold — reads fine but
+  // cannot write, so gate on isRealUser(), not on currentUser being present.
+  if(!isRealUser()){
     try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
     catch(e){ console.warn("[AFD] sign-in for new entry", e); return; }
   }
-  const uid = auth.currentUser && auth.currentUser.uid;
-  if(!uid) return;
+  // Re-check the live user after the popup: it may have been dismissed, or the
+  // provider could still resolve anonymous. Minting now would only earn a
+  // permission-denied, so stop here with a clear nudge instead.
+  const u = auth.currentUser;
+  if(!u || u.isAnonymous){
+    banner(displayMode==="auto"
+      ? "Please sign in with Google to add a word."
+      : "الرجاء تسجيل الدخول عبر Google لإضافة كلمة.");
+    return;
+  }
+  const uid = u.uid;
   const entryId = AFDCore.mintEntryId();
   try{
     await setDoc(doc(db,"afd_entries",entryId), {
@@ -681,22 +699,26 @@ setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current 
 const accountBtn = $("account");
 function updateAccountUi(){
   if(!accountBtn) return;
-  accountBtn.innerHTML = currentUser
+  // Checkmark only for a real account — an anonymous session must still read as
+  // "sign in", or the user thinks they're set up and hits the create wall.
+  const real = isRealUser();
+  accountBtn.innerHTML = real
     ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`
     : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
-  accountBtn.classList.toggle("in", !!currentUser);
-  accountBtn.setAttribute("aria-label", currentUser ? "Signed in — tap to sign out" : "Sign in to manage your voice");
+  accountBtn.classList.toggle("in", real);
+  accountBtn.setAttribute("aria-label", real ? "Signed in — tap to sign out" : "Sign in to manage your voice");
 }
 if(accountBtn){
   accountBtn.addEventListener("click", async ()=>{
     try{
-      if(currentUser){
+      if(isRealUser()){
         const msg = (displayMode==="auto")
           ? "Sign out? You can sign back in anytime."
           : "تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت.";
         if(!confirm(msg)) return;
         await signOut(auth);
       } else {
+        // No user, or only an anonymous one — either way, get a named account.
         await signInWithPopup(auth, new GoogleAuthProvider());
       }
     }
