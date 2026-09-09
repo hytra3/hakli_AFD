@@ -134,7 +134,7 @@
     <div class="toggle" id="toggle" role="group" aria-label="language"></div>
 
     <p class="note" id="hint"></p>
-    <button class="playall" id="playAll"><span class="tri">▶</span> <span id="playAllLbl">استمع إلى المقدمة</span></button>
+    <button class="playall" id="playAll"><span class="tri">▶</span> <span id="playAllLbl">استمع</span></button>
   </header>
 
   <section class="demo" id="demo">
@@ -172,19 +172,20 @@ const firebaseConfig = {
 /* The introduction, line by line. Keys match the intro.tour.* prompts in the
    recorder's prompt tool, so each line's Hakli audio appears the moment it's
    recorded. Arabic/English are the text alternatives. */
+/* The essential spine. The animated walkthrough now carries the "how" (find,
+   record, review, sentence, meaning), so the mechanics lines that used to live
+   here (min1/min2/min3/more) were dropped as redundant — these lines carry only
+   the "why + trust", which the animation cannot. Order = the narrated arc:
+   openers (what, new) play before the animation; closers (yours, waits) after. */
 const LINES = [
   { k:"intro.tour.what",  ar:"هذا مكانٌ لسماع لغة الحَكلي، ولحفظها بأصوات أهلها.",                    en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people." },
-  { k:"intro.tour.min1",  ar:"افتح التطبيق، فترى كلمات، لكلٍّ منها صورة.",                             en:"Open it, and you'll see words — each with a picture." },
-  { k:"intro.tour.min2",  ar:"اضغط زرّ التشغيل لتسمع كلمة، أو انطق كلمة لتجدها.",                        en:"Tap play to hear a word, or say a word to find it." },
-  { k:"intro.tour.min3",  ar:"لتضيف صوتك، انطق الكلمة بنفسك — مرّتين.",                                 en:"To add your voice, say a word yourself — twice." },
-  { k:"intro.tour.new",   ar:"إن لم تكن الكلمة هنا بعد، فيمكنك أن تكون أوّل من ينطقها.",                 en:"If a word isn't here yet, you can be the first to say it." },
-  { k:"intro.tour.more",  ar:"ويمكنك أيضًا أن تنطق الكلمة في جملة، أو أن تقول معناها.",                  en:"You can also say a word in a sentence, or say what it means." },
+  { k:"intro.tour.new",   ar:"إن لم تكن الكلمة هنا بعد، فيمكنك أن تكون أوّل من يقولها.",                 en:"If a word isn't here yet, you can be the first to say it." },
   { k:"intro.tour.yours", ar:"كل تسجيلٍ هو ملكك — ويمكنك سحبه في أي وقت.",                              en:"Every recording is yours — you can take it back anytime." },
   { k:"intro.tour.waits", ar:"لا يضيع شيء إن انقطع الاتصال — لا عجلة في الأمر.",                        en:"Nothing is lost if you go offline — there is no rush." },
 ];
 const CLOSE = { k:"intro.tour.why",
-  ar:"لغتكم، محفوظةً بأصواتكم، لمن يأتي بعدكم.",
-  en:"Your language, kept in your own voices, for those who come after you." };
+  ar:"لغتُك، محفوظةً بصوتك، لمن يأتي بعدك.",
+  en:"Your language, kept in your own voice, for those who come after you." };
 
 const HINTS = {
   hakli_none: { txt:"ستُروى هذه المقدمة بالحَكلي حين يسجّلها أهلها — وحتى ذلك الحين، إليك النصّ بالعربية.", en:false },
@@ -209,7 +210,7 @@ async function loadClips(){
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app), store = getStorage(app);
     const snap = await getDocs(collection(db, "afd_ui_prompts"));
-    const wanted = new Set([...LINES, CLOSE].map(l=>l.k));
+    const wanted = new Set([...LINES, CLOSE].map(l=>l.k).concat(HOWTO));
     const jobs = [];
     snap.forEach(d=>{
       const data = d.data() || {};
@@ -223,10 +224,23 @@ async function loadClips(){
   }catch(e){ console.warn("[AFD] welcome: audio unavailable — showing text only", e); }
 }
 
-let playing = null;
+/* The five per-scene clips the walkthrough narrates, and the narrated arc:
+   openers play while the animation is held at its first frame; the animation
+   then runs once (emitting its own scene cues); closers play as it finishes. */
+const HOWTO   = ["howto.find","howto.record","howto.review","howto.sentence","howto.meaning"];
+const OPENERS = ["intro.tour.what","intro.tour.new"];
+const CLOSERS = ["intro.tour.yours","intro.tour.waits", CLOSE.k];
+
+let playing = null;          // null | "one" | "tour"
+let animEndResolve = null;   // resolves when the walkthrough reports its run ended
+
 function stop(){ try{ player.pause(); }catch(_){}
   document.querySelectorAll(".play.playing").forEach(b=>b.classList.remove("playing"));
-  document.getElementById("playAllLbl").textContent = "استمع إلى المقدمة";
+  document.getElementById("playAllLbl").textContent = "استمع";
+  if(playing==="tour"){                 // tear the tour down: release any pending
+    const r=animEndResolve; animEndResolve=null; if(r) r();   // await, resume looping
+    postWT({cmd:"loop"});
+  }
   playing = null; }
 
 function playOne(key, btn){
@@ -239,24 +253,59 @@ function playOne(key, btn){
   player.onended = ()=>{ if(btn) btn.classList.remove("playing"); playing=null; };
 }
 
-function playAll(){
-  if(playing){ stop(); return; }
-  const order = [...LINES, CLOSE].map(l=>l.k).filter(k=>urls[k]);
-  if(!order.length) return;
-  document.getElementById("playAllLbl").textContent = "إيقاف";
-  playing = "all";
-  let i = 0;
-  const step = ()=>{
-    if(playing!=="all" || i>=order.length){ stop(); return; }
-    const k = order[i++];
-    document.querySelectorAll(".play.playing").forEach(b=>b.classList.remove("playing"));
-    const btn = document.querySelector('.play[data-k="'+k+'"]'); if(btn) btn.classList.add("playing");
-    player.src = urls[k]; player.play().catch(()=>{});
-    player.onended = step;
-  };
-  step();
+// Post a command to the embedded walkthrough (hold / run / loop).
+function postWT(cmd){
+  const f = document.getElementById("demoFrame");
+  if(f && f.contentWindow) f.contentWindow.postMessage(Object.assign({type:"afd:wt-cmd"}, cmd), "*");
 }
-document.getElementById("playAll").onclick = playAll;
+
+// Play a list of intro clips in order, skipping any not yet recorded. Resolves
+// when the list is done or as soon as the tour is stopped.
+function playSeq(keys){
+  return new Promise((resolve)=>{
+    const order = keys.filter(k=>urls[k]);
+    let i = 0;
+    const step = ()=>{
+      if(playing!=="tour" || i>=order.length){ resolve(); return; }
+      const k = order[i++];
+      document.querySelectorAll(".play.playing").forEach(b=>b.classList.remove("playing"));
+      const btn = document.querySelector('.play[data-k="'+k+'"]'); if(btn) btn.classList.add("playing");
+      player.src = urls[k]; player.play().catch(()=>{});
+      player.onended = step;
+    };
+    step();
+  });
+}
+
+// One per-scene clip, fired when the walkthrough reports reaching that scene.
+// Scene beats are 8–9s and clips ~3–5s, so a clip finishes before the next cue;
+// a late clip is simply cut off by the next scene, which matches the visuals.
+function playCue(key){
+  if(!urls[key]) return;
+  player.src = urls[key]; player.play().catch(()=>{});
+}
+
+window.addEventListener("message",(e)=>{
+  const d = e && e.data;
+  if(!d || d.type !== "afd:wt") return;
+  if(d.ev === "cue"){ if(playing==="tour" && mode==="hakli") playCue(d.key); }
+  else if(d.ev === "end"){ const r=animEndResolve; animEndResolve=null; if(r) r(); }
+});
+
+// The single shared "listen" button: framing → watch it done → trust + close.
+async function runTour(){
+  playing = "tour";
+  document.getElementById("playAllLbl").textContent = "إيقاف";
+  postWT({cmd:"hold"});                                             // freeze at frame 1
+  await playSeq(OPENERS);                                           // 1 · framing
+  if(playing!=="tour") return;
+  await new Promise((res)=>{ animEndResolve=res; postWT({cmd:"run"}); }); // 2 · the demo
+  if(playing!=="tour") return;
+  await playSeq(CLOSERS);                                           // 3 · trust + close
+  if(playing==="tour") stop();                                     // → resume silent loop
+}
+function playTour(){ if(playing){ stop(); return; } runTour(); }
+document.getElementById("playAll").onclick = playTour;
 
 function lineHTML(l, n){
   const hasClip = mode==="hakli" && urls[l.k];

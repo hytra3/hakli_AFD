@@ -350,6 +350,32 @@ chrome reads worse than all-English. Do it as one pass, in this order:
 Net: one keyed inventory drives (a) English chrome, (b) Arabic chrome, (c) the
 spoken-Hakli prompts, and (d) the next language's chrome — all from the same source.
 
+## Welcome onboarding — narrated walkthrough (decision; built, pending deploy)
+
+**Split of labour: the animation carries the "how"; the intro text carries the "why".**
+The animated walkthrough (`hakli-welcome-walkthrough.html`) demonstrates the mechanics —
+find, record (×2), review/keep, sentence, meaning — so the intro lines that used to
+restate those same mechanics (`intro.tour.min1/min2/min3/more`) were dropped as
+redundant. The intro is trimmed to the spine the animation *cannot* convey — purpose and
+trust: `what → new → yours → (waits) → why`. Rationale recorded so it isn't relitigated:
+a silent-looping animation shows the steps better than words for a non-reader, but it
+cannot say *why this matters* or *your voice stays yours* — that is the text's job.
+
+- **Single shared listen button** drives one narrated arc: openers (`what`, `new`) play
+  while the animation is held at its first frame → the animation runs once, posting a
+  per-scene cue so the parent plays the matching `howto.*` clip as each scene lands →
+  closers (`yours`, `waits`, `why`) play as it finishes → silent looping resumes. One
+  `<audio>` element in the parent, so the intro and scene narrations never collide.
+- **`howto.types` retired** — the animation has no "choose word / sentence / meaning"
+  screen (it switches tabs inline), so that clip had no playback surface. Narration set
+  is now 5 intro + 5 howto = 10 clips: `intro.tour.{what,new,yours,waits,why}` and
+  `howto.{find,record,review,sentence,meaning}`.
+- Scene beats are 8–9 s and clips ~3–5 s, so cues never overlap; a late clip is simply
+  cut off by the next scene, which matches the visuals. The standalone (non-embedded)
+  walkthrough still loops silently — narration only runs when embedded in `welcome.html`.
+- `waits` kept for now (fieldwork connectivity reassurance); one-line drop if trimmed.
+- Copy (Arabic + English) is draft — **not yet reviewed by local speakers.**
+
 ## External (non-AFD)
 
 - **Scott's `tawq.in` `server.js`** — the expired-token string-mismatch auth bypass

@@ -302,7 +302,7 @@
   const LOOP=37800;
   const P=[
     // SCENE 1 · FIND
-    {t:0,fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent='جاهز';
+    {t:0,cue:'howto.find',fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent='جاهز';
       fhint.textContent='تكلّم';recIdle();setTab('word');setRecs('idle');
       setCap('للعثور على كلمة، اضغط الدائرة الخضراء وتكلّم.','To find a word, hold the green circle and speak.');}},
     {t:1400,fn(){moveTouch(fmic,1);}},
@@ -313,18 +313,18 @@
     {t:6100,fn(){setFind('results');fhint.textContent='تكلّم';
       setCap('الكلمة التي قلتها، جاهزةٌ لتُسمَع.','The word you said, ready to hear.');}},
     // SCENE 2 · WORD
-    {t:8300,fn(){setRibbon(1);showRecs();setRecs('idle');setTab('word');recIdle();silLabel.textContent='جاهز';park();
+    {t:8300,cue:'howto.record',fn(){setRibbon(1);showRecs();setRecs('idle');setTab('word');recIdle();silLabel.textContent='جاهز';park();
       stepdots.textContent='الخطوة ٣ / ٣ · كلمة ١ من ٤٠';
       setCap('لتضيف صوتك، اضغط الزرّ الكهرماني.','To add your voice, hold the amber button.');}},
     {t:9700,fn(){moveTouch(rbtn,1);setCap('انطق الكلمة مرّتين.','Say the word twice.');}},
     {t:10500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2400);}},
-    {t:13000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';
+    {t:13000,cue:'howto.review',fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';
       setCap('استمع إليه — احفظه، أو أعد.','Hear it back — keep it, or record again.');}},
     {t:14600,fn(){moveTouch(keep,1);setCap('واضح؟ احفظه.','Clear? Keep it.');}},
     {t:15400,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('احفظه — فينضمّ صوتك إلى الكلمة.','Keep it — your voice joins the word.');}},
     {t:16400,fn(){keep.classList.remove('press');park();setRecs('idle');setCap('حُفِظ.','Kept.');}},
     // SCENE 3 · SENTENCE
-    {t:17400,fn(){setRibbon(2);setCap('ويمكنك أن تنطقها داخل جملة.','You can also say it inside a sentence.');moveTouch(tabSent,1);}},
+    {t:17400,cue:'howto.sentence',fn(){setRibbon(2);setCap('ويمكنك أن تنطقها داخل جملة.','You can also say it inside a sentence.');moveTouch(tabSent,1);}},
     {t:18200,fn(){moveTouch(tabSent,.9);contact();setTab('context');}},
     {t:19100,fn(){moveTouch(rbtn,1);setCap('انطق جملةً تستعمل فيها الكلمة.','Say a sentence using the word.');}},
     {t:19900,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2800);}},
@@ -333,7 +333,7 @@
     {t:24900,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظت الجملة.','Sentence kept.');}},
     {t:25900,fn(){keep.classList.remove('press');park();setRecs('idle');}},
     // SCENE 4 · MEANING
-    {t:26800,fn(){setRibbon(3);setCap('وأن تقول معناها — بالحَكلي.','And say what it means — in Hakli.');moveTouch(tabMean,1);}},
+    {t:26800,cue:'howto.meaning',fn(){setRibbon(3);setCap('وأن تقول معناها — بالحَكلي.','And say what it means — in Hakli.');moveTouch(tabMean,1);}},
     {t:27600,fn(){moveTouch(tabMean,.9);contact();setTab('definition');}},
     {t:28500,fn(){moveTouch(rbtn,1);setCap('قل ما تعنيه الكلمة.','Say what the word means.');}},
     {t:29300,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2600);}},
@@ -342,11 +342,20 @@
     {t:34100,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظ المعنى.','Meaning kept.');}},
     {t:35100,fn(){keep.classList.remove('press');park();setRecs('idle');}},
     // CLOSE
-    {t:36000,fn(){setCap('هكذا تُضيف صوتك إلى الحَكلي.','That is how you add your voice to Hakli.');}},
+    {t:36000,end:true,fn(){setCap('هكذا تُضيف صوتك إلى الحَكلي.','That is how you add your voice to Hakli.');}},
   ];
 
-  let base=performance.now(),pausedAt=0,paused=false,last=-1;
-  function apply(e){let idx=0;for(let i=0;i<P.length;i++){if(e>=P[i].t)idx=i;}if(idx!==last){last=idx;P[idx].fn();}}
+  let base=performance.now(),pausedAt=0,paused=false,last=-1,narrating=false;
+  // When embedded, tell the parent (welcome.html) which scene we've reached so it
+  // can play the matching howto.* clip, and when the run has finished.
+  function postUp(msg){try{if(window.parent&&window.parent!==window)window.parent.postMessage(Object.assign({type:"afd:wt"},msg),"*");}catch(_){}}
+  function apply(e){let idx=0;for(let i=0;i<P.length;i++){if(e>=P[i].t)idx=i;}
+    if(idx!==last){last=idx;P[idx].fn();
+      if(narrating){
+        if(P[idx].cue) postUp({ev:"cue",key:P[idx].cue});
+        if(P[idx].end){ postUp({ev:"end"}); narrating=false; paused=true; pausedAt=performance.now(); }
+      }
+    }}
   function frame(now){if(!paused){let e=now-base;if(e>=LOOP){base=now;e=0;last=-1;}apply(e);}requestAnimationFrame(frame);}
   requestAnimationFrame((t)=>{base=t;requestAnimationFrame(frame);});
 
@@ -371,6 +380,19 @@
     if(d.mode !== "en") capEl.classList.add("ar-only");
     capIdx = (d.mode === "en") ? 0 : 1;
     if(capBtn) capBtn.textContent = capModes[capIdx][1];
+  });
+
+  // Parent (welcome.html) drives a single narrated pass:
+  //   hold → freeze at the first frame while the intro openers play
+  //   run  → play once from the top, emitting a per-scene cue at each scene and
+  //          an "end" when the closing frame is reached (then freeze there)
+  //   loop → return to the normal silent looping demo
+  window.addEventListener("message",(e)=>{
+    const d = e && e.data;
+    if(!d || d.type !== "afd:wt-cmd") return;
+    if(d.cmd === "hold"){ base=performance.now(); last=-1; narrating=false; paused=true; pausedAt=performance.now(); apply(0); }
+    else if(d.cmd === "run"){ base=performance.now(); last=-1; narrating=true; paused=false; }
+    else if(d.cmd === "loop"){ base=performance.now(); last=-1; narrating=false; paused=false; }
   });
 </script>
 </body>
