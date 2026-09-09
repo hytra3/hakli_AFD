@@ -15,3 +15,7 @@ __pycache__/
 
 # gcloud function source bundles
 **/function-source.zip
+
+# working patch files (keep the one tracked exception)
+*.patch
+!caption-lang-fix.patch
