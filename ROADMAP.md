@@ -118,6 +118,66 @@ within each group.
   fires, which isn't convincing yet. Do NOT retune on single data points; let
   `repDistance` values accumulate across many atoms first, then set `AUTOPLAY_MAX`
   from the observed cross-session distribution.
+- **Word silhouette (manner-class strip)** *(the "phonetic rhythm line")* — a
+  horizontal strip, one block per segment, left→right in time, encoding the *shape*
+  of the sound rather than its spelling. **shape** = manner class (block = stop,
+  wavy = fricative, rounded = nasal, open circle = vowel); **width** = duration;
+  **raised block** = stress; **colour** reinforces manner, never replaces it.
+
+  *Why manner, not phones or spectrograms (so it doesn't get relitigated):* IPA is a
+  new alphabet; spectrograms are speaker-variable and differ between the stored take
+  and the user's own query; **manner class is the most robustly recognised dimension**
+  — the matching study got exact phone identity wrong constantly but "that was a
+  fricative" is far more recoverable. The glyph is therefore built on the sturdy part
+  of the signal and degrades gracefully. Same derive-from-audio machinery as the
+  Allosaurus ordering candidate below.
+
+  **Rule: store the manner sequence as data, render the strip at display time.** When
+  the recogniser improves after fine-tuning, every silhouette updates automatically —
+  no stale PNGs. Computed **per recording** (per immutable atom, in the same
+  upload/embed pass that writes `reps`), *not* at add-to-dictionary time (a new label
+  has no audio to derive from). The card shows **one entry-level strip** = a *view*
+  over those per-recording sequences (cleanest take, or consensus across speakers),
+  getting better as atoms arrive. Two other homes where per-utterance strips earn
+  their keep as separate strips: the **QC/confirm screen** (does what I just recorded
+  match the entry?) and **find results** (query strip on top, candidates below — a
+  discrimination task, not recall, since the user already said the word).
+- **Navigable context sentence (word-level tap-to-entry)** — make the *USED IN A
+  SENTENCE* take a navigable object: segment it into word-units rendered as silhouette
+  chunks; tapping a chunk isolates that word and follows a hyperlink to its dictionary
+  entry. Turns a running context sentence into a browsable map of the flat corpus.
+
+  *The mechanism is disambiguation by context.* The acoustic matcher returns a fuzzy
+  candidate set — {bounced, ran, slept} — and the visible frame "the ball ___" kills
+  the implausible ones instantly. Same family as the syllable-count trick, but a much
+  richer discriminator because it carries selectional meaning. **Crucially: for a big
+  language a language model does the "not slept" step; Hakli has no n-gram / selectional
+  model and can't cheaply get one, so the *human reading the card* does it — and that's
+  correct, not a compromise.** Same division of labour as everywhere else: machine
+  carries the acoustics, human carries the semantics. Showing the sentence hands
+  disambiguation to the only party who can currently do it.
+
+  **Two hard parts — both argue for capturing links at *contribute* time, not
+  reconstructing them later:**
+  1. *Segmentation.* A context sentence is connected speech — words coarticulate, no
+     clean silences for per-rep VAD to split on (this is exactly why the old
+     phrase-length tawq.in corpus matched so poorly). So don't auto-segment; let the
+     *add-a-sentence / say-it-yourself* flow capture word boundaries (or the words
+     individually) from someone who knows where they are.
+  2. *Domain mismatch on the link.* Even once "bounced" is cut out, it's
+     connected-speech "bounced" (reduced, coarticulated) matched against a
+     *citation-form* entry — the August failure mode. So automatic word→entry
+     resolution inside a sentence is noisier than the isolated-word find already
+     calibrated; prefer contributor tap-and-tag.
+
+  **Phasing** — *build the framework early, but it won't be "useful" until significant
+  data.* v1: contributor tags just the **single word being used** in the sentence at
+  record time (captures the boundary *and* the entry link for free). Later: tagging the
+  *other* entries in the sentence. Later still — the honest place the machine could earn
+  back the "not slept" step: as the corpus grows, accumulate **real Hakli word
+  co-occurrence** into a corpus-derived collocation prior (the language's own data, not
+  borrowed English intuitions about balls and bouncing), upgrading human-side
+  disambiguation into machine-assisted. Not for v1.
 - **Distinct Sentence / Meaning icons** — speech-bubble (sentence) and open-book
   (meaning), used consistently across recorder, find, and dictionary.
 - **Agent-mediated Withdraw / Erase** — needs the spoken-withdrawal audio artifact so
