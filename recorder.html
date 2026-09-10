@@ -305,7 +305,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   </div>
 
   <div class="card">
-    <h2><span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
+    <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
+    <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small></p>
     <label class="field"><span><span class="bi-ar" dir="rtl">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
       <input type="text" id="spkId" placeholder="spk_01" value="spk_01"></label>
     <label class="field"><span><span class="bi-ar" dir="rtl">البلدة</span><small class="sub">Town</small></span>
@@ -325,8 +326,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
         </select></label>
       <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl">الجنس</span><small class="sub">Gender</small></span>
         <select id="spkGender">
-          <option value="">—</option><option value="f">f</option>
-          <option value="m">m</option><option value="other">other</option>
+          <option value="">— اختياري · optional —</option>
+          <option value="f">أنثى · Female</option>
+          <option value="m">ذكر · Male</option>
+          <option value="other">آخر · Another</option>
         </select></label>
     </div>
     <label class="check"><input type="checkbox" id="agentMode">
@@ -834,6 +837,40 @@ function nextSpeakerCode(cur){
   if(m){ return m[1]+String(+m[2]+1).padStart(m[2].length,"0"); }
   return "spk_02";
 }
+
+/* ---- friendly speaker-code default + context-aware labelling -------------
+   A steward may record many people from one account, and afd_speakers is set
+   to re-key by speakerId — so the code has to be globally unique, not every
+   account's "spk_01". Default to spk_<uid6>_01 once the account is known, but
+   never clobber a code the user typed or one restored from a prior session. */
+let spkTouched=false;
+(function(){ const el=$("spkId"); if(el) el.addEventListener("input",()=>{ spkTouched=true; }); })();
+function defaultSpeakerCode(){
+  const u=(window.AFD && window.AFD.user && window.AFD.user());
+  return "spk_"+String(u?u.uid:"").slice(0,6)+"_01";
+}
+function ensureSpeakerCode(){
+  const el=$("spkId"); if(!el) return;
+  if(!(window.AFD && window.AFD.user && window.AFD.user())) return;  // no account yet — keep placeholder
+  if(spkTouched || hasSavedSpeaker) return;               // never overwrite a typed or restored code
+  if(!el.value || /^spk_0*1$/.test(el.value)) el.value = defaultSpeakerCode();
+}
+
+/* Whose details is the "About the speaker" card collecting — yours, or the
+   person you're recording? Town/tribe/age always describe the VOICE, so say so
+   the moment the agent toggle flips. */
+function reflectAgent(){
+  const on=!!($("agentMode") && $("agentMode").checked);
+  const t=$("spkCardTitle"), a=$("spkAbout");
+  if(t) t.innerHTML = on
+    ? '<span class="bi-ar" dir="rtl">عن الشخص الذي تُسجِّله</span><small class="sub">About the person you are recording</small>'
+    : '<span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small>';
+  if(a) a.innerHTML = on
+    ? '<span class="bi-ar" dir="rtl">هذه التفاصيل تصف المتحدِّث، لا أنت. ومن البلدة تُشتَقّ اللهجة.</span><small class="sub">These details describe the speaker, not you. Town is what the dialect is derived from.</small>'
+    : '<span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small>';
+}
+(function(){ const a=$("agentMode"); if(a) a.addEventListener("change", reflectAgent); reflectAgent(); })();
+
 $("switchSpeaker").onclick=()=>{
   // fresh person: new code, cleared details, cleared per-speaker permission
   $("spkId").value = nextSpeakerCode($("spkId").value);
@@ -1900,6 +1937,7 @@ $("syncBtn").onclick=syncPending;
 window.afdOnAuth=(u)=>{
   renderClips();                       // session list is per-account
   if(!u) return;
+  ensureSpeakerCode();                 // signed in → give this steward a globally-unique code default
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(pend.length) console.log(pend.length+" recording(s) pending upload");
   maybeFastPath();                     // signed in → take the returning-speaker fast path if a speaker is saved
@@ -1937,6 +1975,8 @@ function dl(blob,name){
         $("cAttr").value=spk.consent.attribution||"pseudonymous";
       }
     }
+    reflectAgent();                    // saved viaAgent doesn't drive the form yet, but keep labels honest
+    ensureSpeakerCode();               // covers the case where auth resolved before this restore ran
     if(saved.length){
       const n=saved.filter(s=>!s.skipped).length;
       const bar=document.createElement("div");
