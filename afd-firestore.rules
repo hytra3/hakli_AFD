@@ -153,6 +153,30 @@ service cloud.firestore {
       }
     }
 
+    // --------------------------- contributor (steward) profile ---------------------------
+    // One doc per account — the steward's OWN public identity, kept separate
+    // from the per-speaker records they manage (and untouched by the pending
+    // afd_speakers re-key). Presence-based, mirroring afd_avatars in storage:
+    //   • "obscure" (default) leaves the contributor behind the deterministic
+    //     fauna avatar, exactly as today;
+    //   • "known" surfaces displayName (and, via storage, an avatar) on that
+    //     steward's OWN voices only — never on voices they recorded by proxy.
+    // The rule enforces the presence guarantee itself: no displayName may be
+    // stored while obscure, so a name can't linger publicly after switching back.
+    match /afd_stewards/{uid} {
+      allow read: if true;
+      allow create, update: if notAnon()
+        && request.auth.uid == uid
+        && request.resource.data.visibility in ['obscure','known']
+        && ( !('displayName' in request.resource.data)
+             || ( request.resource.data.displayName is string
+                  && request.resource.data.displayName.size() <= 80 ) )
+        && ( request.resource.data.visibility == 'known'
+             || !('displayName' in request.resource.data)
+             || request.resource.data.displayName == '' );
+      allow delete: if false;
+    }
+
     // --------------------------- UI voice prompts ---------------------------
     // Spoken Hakli interface, recorded remotely over anonymous sign-in and
     // boxed into its own namespace — it can never reach the corpus.

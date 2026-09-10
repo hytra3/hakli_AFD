@@ -307,6 +307,25 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn ghost" id="listenOnlyBtn" style="margin-top:14px"><span class="bi-ar" dir="rtl">الاستماع فقط — دون حساب أو ميكروفون</span><small class="sub">Just listen — no account, no microphone</small></button>
   </div>
 
+  <div class="card hidden" id="youCard">
+    <h2><span class="bi-ar" dir="rtl">كيف تظهر</span><small class="sub">How you appear</small></h2>
+    <p class="note" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl">افتراضيًّا تظهر برمزٍ من الطبيعة دون اسم. يمكنك اختيار الظهور باسمك على تسجيلاتك أنت فقط.</span><small class="sub">By default you appear as a nature avatar, no name. You may choose to appear by name — on your own voices only.</small></p>
+    <label class="check"><input type="radio" name="vis" id="visObscure" value="obscure" checked>
+      <span><span class="bi-ar" dir="rtl">مستتر — رمزٌ من الطبيعة، دون اسم</span><small class="sub">Obscure — a nature avatar, no name</small></span></label>
+    <label class="check"><input type="radio" name="vis" id="visKnown" value="known">
+      <span><span class="bi-ar" dir="rtl">معروف — يظهر اسمي على تسجيلاتي أنا</span><small class="sub">Known — my name shows on my own voices</small></span></label>
+    <div id="knownFields" class="hidden">
+      <label class="field"><span><span class="bi-ar" dir="rtl">الاسم كما يظهر</span><small class="sub">Display name</small></span>
+        <input type="text" id="displayName" maxlength="80" placeholder="—"></label>
+      <label class="field"><span><span class="bi-ar" dir="rtl">صورة (اختياري)</span><small class="sub">Picture (optional)</small></span>
+        <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp"></label>
+      <div id="avatarPreview" class="hidden" style="margin:6px 0"><img id="avatarImg" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid var(--hairline)"></div>
+      <p class="note"><span class="bi-ar" dir="rtl">صورتك أنت فقط — لا تَرفع صور أشخاصٍ آخرين.</span><small class="sub">Your own picture only — don't upload photos of other people.</small></p>
+    </div>
+    <button class="btn secondary" id="saveProfileBtn"><span class="bi-ar" dir="rtl">حفظ الظهور</span><small class="sub">Save how I appear</small></button>
+    <p class="note" id="profileNote" style="margin-top:6px"></p>
+  </div>
+
   <div class="card">
     <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
     <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small></p>
@@ -505,7 +524,7 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL }
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0909c";
 
@@ -728,6 +747,42 @@ window.AFD.renderCard = async (entryId, mount)=>{
     return c;
   }catch(e){ console.warn("[AFD] renderCard", e); return null; }
 };
+
+// ---- steward profile (afd_stewards/{uid}) + avatar (afd_avatars/{uid}/avatar) ----
+// The contributor's OWN public identity. Obscure (default) keeps the fauna
+// avatar; Known surfaces displayName + an optional picture on the steward's own
+// voices. Presence-based: on obscure we clear the name (also rule-enforced) and
+// delete the picture, so nothing lingers publicly after a switch back. This is
+// the steward's own likeness only — proxied elders stay on fauna + attribution.
+const AVATAR_PATH = ()=> "afd_avatars/"+currentUser.uid+"/avatar";
+window.AFD.loadProfile = async ()=>{
+  const out = { visibility:"obscure", displayName:"", avatarUrl:null };
+  if(!CONFIGURED || !currentUser) return out;
+  try{
+    const sn = await getDoc(doc(db,"afd_stewards",currentUser.uid));
+    if(sn.exists()){ const d=sn.data()||{}; out.visibility = d.visibility==="known"?"known":"obscure"; out.displayName = d.displayName||""; }
+  }catch(e){ console.warn("[AFD] loadProfile", e); }
+  if(out.visibility==="known"){
+    try{ out.avatarUrl = await getDownloadURL(ref(store, AVATAR_PATH())); }catch(e){ /* no picture set */ }
+  }
+  return out;
+};
+window.AFD.saveProfile = async (visibility, displayName, avatarBlob)=>{
+  if(!CONFIGURED || !currentUser) throw new Error("not signed in");
+  const known = visibility==="known";
+  if(known && avatarBlob){
+    await uploadBytes(ref(store, AVATAR_PATH()), avatarBlob, { contentType: avatarBlob.type || "image/jpeg" });
+  }
+  if(!known){
+    try{ await deleteObject(ref(store, AVATAR_PATH())); }catch(e){ /* nothing to remove — fine */ }
+  }
+  await setDoc(doc(db,"afd_stewards",currentUser.uid), {
+    visibility: known ? "known" : "obscure",
+    displayName: known ? String(displayName||"").slice(0,80) : "",
+    updatedAt: serverTimestamp()
+  }, { merge:true });
+  return true;
+};
 </script>
 
 <script>
@@ -874,6 +929,69 @@ function reflectAgent(){
   renderRoster();
 }
 (function(){ const a=$("agentMode"); if(a) a.addEventListener("change", reflectAgent); reflectAgent(); })();
+
+/* ---- "How you appear": the steward's own public profile ------------------
+   Obscure (default) / Known. Writes afd_stewards/{uid} via the module bridge;
+   an optional picture goes to afd_avatars/{uid}/avatar and is deleted on
+   obscure (presence-based). Independent of the record flow — set once. */
+function knownSelected(){ return !!($("visKnown") && $("visKnown").checked); }
+function reflectVis(){ const kf=$("knownFields"); if(kf) kf.classList.toggle("hidden", !knownSelected()); }
+async function loadProfileCard(){
+  if(!(window.AFD && window.AFD.loadProfile)) return;
+  try{
+    const p = await window.AFD.loadProfile();
+    if($("visKnown"))   $("visKnown").checked   = p.visibility==="known";
+    if($("visObscure")) $("visObscure").checked = p.visibility!=="known";
+    if($("displayName")) $("displayName").value = p.displayName || "";
+    if(p.avatarUrl && $("avatarImg")){ $("avatarImg").src=p.avatarUrl; $("avatarPreview").classList.remove("hidden"); }
+    else if($("avatarPreview")){ $("avatarPreview").classList.add("hidden"); }
+    reflectVis();
+  }catch(e){ console.warn("[AFD] loadProfileCard", e); }
+}
+// Resize a chosen image to a small centred square JPEG — guarantees the storage
+// rule's allowed type and 2 MB cap, and keeps avatars light on slow links.
+function squareJpeg(file, size){
+  return new Promise((res,rej)=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const s=Math.min(img.width,img.height), c=document.createElement("canvas");
+      c.width=c.height=size;
+      c.getContext("2d").drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=> b?res(b):rej(new Error("encode failed")), "image/jpeg", 0.85);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
+    img.src=url;
+  });
+}
+(function(){
+  const o=$("visObscure"), k=$("visKnown"), f=$("avatarFile"), save=$("saveProfileBtn");
+  if(o) o.addEventListener("change", reflectVis);
+  if(k) k.addEventListener("change", reflectVis);
+  if(f) f.addEventListener("change", async ()=>{
+    const file=f.files && f.files[0]; if(!file) return;
+    try{ const b=await squareJpeg(file,256); f._blob=b;
+         if($("avatarImg")){ $("avatarImg").src=URL.createObjectURL(b); $("avatarPreview").classList.remove("hidden"); } }
+    catch(e){ if($("profileNote")) $("profileNote").textContent="Couldn't read that image — try another."; }
+  });
+  if(save) save.addEventListener("click", async ()=>{
+    if(!(window.AFD && window.AFD.saveProfile)) return;
+    const vis = knownSelected() ? "known" : "obscure";
+    const name = (($("displayName") && $("displayName").value) || "").trim();
+    if(vis==="known" && !name){ if($("profileNote")) $("profileNote").textContent="Add a name, or choose Obscure."; return; }
+    save.disabled=true; if($("profileNote")) $("profileNote").textContent="Saving…";
+    try{
+      const blob = (vis==="known" && f && f._blob) ? f._blob : null;
+      await window.AFD.saveProfile(vis, name, blob);
+      if($("profileNote")) $("profileNote").textContent = vis==="known"
+        ? "Saved — you appear by name on your own voices."
+        : "Saved — you appear as a nature avatar.";
+      if(vis!=="known" && $("avatarPreview")) $("avatarPreview").classList.add("hidden");
+    }catch(e){ console.warn("[AFD] saveProfile", e); if($("profileNote")) $("profileNote").textContent="Couldn't save — check your connection and try again."; }
+    finally{ save.disabled=false; }
+  });
+  reflectVis();
+})();
 
 $("switchSpeaker").onclick=()=>{
   // fresh person: new code, cleared details, cleared per-speaker permission
@@ -1977,8 +2095,10 @@ $("syncBtn").onclick=syncPending;
 // when a user signs in, quietly retry anything still sitting on the phone
 window.afdOnAuth=(u)=>{
   renderClips();                       // session list is per-account
+  const yc=$("youCard"); if(yc) yc.classList.toggle("hidden", !u);   // profile card needs an account
   if(!u) return;
   ensureSpeakerCode();                 // signed in → give this steward a globally-unique code default
+  loadProfileCard();                   // populate "How you appear" from afd_stewards
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(pend.length) console.log(pend.length+" recording(s) pending upload");
   maybeFastPath();                     // signed in → take the returning-speaker fast path if a speaker is saved

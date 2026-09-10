@@ -70,6 +70,27 @@ service firebase.storage {
                     && request.resource.contentType.matches('audio/.*');
       allow delete: if false;
     }
+    // ---------------- contributor avatar (opt-in "known" profile) ----------------
+    // A steward's OWN profile picture, shown on their voices only while they have
+    // chosen to be "known". Enforcement is by PRESENCE, not rule logic: the app
+    // deletes this file when the steward switches back to "obscure", so an obscure
+    // profile simply has no avatar to fetch. That keeps the read a plain public
+    // read (no per-fetch Firestore lookup) and is sufficient here because this is
+    // the person's own face and their own visibility choice — not a proxied elder.
+    //   • public read (a "known" avatar is meant to be seen),
+    //   • owner-only, NON-anonymous write; raster image only, 2 MB cap,
+    //   • MUTABLE (change your picture) and deletable (switch back to obscure).
+    // resource==null on write is a delete; otherwise it is a create/overwrite and
+    // the new bytes are size- and type-checked.
+    match /afd_avatars/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                   && request.auth.uid == uid
+                   && ( request.resource == null
+                        || ( request.resource.size < 2 * 1024 * 1024
+                             && request.resource.contentType.matches('image/(png|jpeg|webp)') ) );
+    }
     // everything else is closed
     match /{allPaths=**} {
       allow read, write: if false;
