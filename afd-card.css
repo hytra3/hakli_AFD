@@ -56,6 +56,13 @@
       display:grid;place-items:center;box-shadow:0 2px 8px rgba(31,58,52,.16)}
 .afdcard .av svg{width:60%;height:60%}
 .afdcard .av[aria-pressed="true"]{outline:3px solid var(--resin); outline-offset:2px}
+/* known-contributor name caption (opt-in "known" profile) — pseudonymous voices
+   render exactly as before; only a named steward's own voices get this wrapper. */
+.afdcard .av-wrap{display:inline-flex; flex-direction:column; align-items:center; gap:3px; flex:0 0 auto; max-width:76px}
+.afdcard .av-name{font:600 10px/1.15 var(--sans); color:var(--mountain); text-align:center; max-width:76px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block}
+.afdcard .voice-row .av-wrap{max-width:96px}
+.afdcard .voice-row .av-wrap .av-name{max-width:96px}
 /* collapsed count chip — a language-free "N voices", tap to itemize */
   .afdcard .voices-chip{display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--mist-2);
       background:transparent; border-radius:26px; padding:6px 14px 6px 8px; cursor:pointer;

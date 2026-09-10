@@ -260,6 +260,12 @@ function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   b.innerHTML=rec.avatar.svg;
   b.addEventListener("click",()=>{ b.setAttribute("aria-pressed","true");
     playVoiceInto(rec, thumbEl, playBtn, setUrl); });
+  if(rec.displayName){                       // "known" contributor — caption the avatar with the name
+    const wrap=document.createElement("span"); wrap.className="av-wrap";
+    const nm=document.createElement("span"); nm.className="av-name"; nm.textContent=rec.displayName;
+    wrap.appendChild(b); wrap.appendChild(nm);
+    return wrap;
+  }
   return b;
 }
 
@@ -272,7 +278,11 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
   const vrWave = (rec.envelope && rec.envelope.length)
     ? `<span class="vr-wave"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${boxBars(rec.envelope, 40)}</svg></span>`
     : `<span class="vr-wave"></span>`;
-  play.innerHTML=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`+
+  const avSm=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`;
+  const avBlock = rec.displayName
+    ? `<span class="av-wrap">${avSm}<span class="av-name">${escapeHtml(rec.displayName)}</span></span>`
+    : avSm;
+  play.innerHTML=avBlock+
     vrWave+
     `<svg class="pl" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
   play.addEventListener("click",()=>{
