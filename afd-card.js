@@ -123,6 +123,37 @@ async function entryCounts(entryId){
   return c;
 }
 
+// ---- contributor identity ------------------------------------------------
+// A steward who chose "known" shows their name + (optional) photo on their OWN
+// voices. Obscure stewards, and any voice recorded by proxy (viaAgent), keep
+// the deterministic fauna avatar — a known steward never reveals the elders
+// they recorded. Public reads (afd_stewards + afd_avatars), cached per owner.
+const _stewardCache = new Map();   // uid -> { known, displayName, avatarUrl } | null
+async function stewardProfile(uid){
+  if(!uid || !CFG.db) return null;
+  if(_stewardCache.has(uid)) return _stewardCache.get(uid);
+  let prof = null;
+  try{
+    const sn = await getDoc(doc(CFG.db,"afd_stewards",uid));
+    if(sn.exists()){
+      const d = sn.data() || {};
+      if(d.visibility === "known"){
+        prof = { known:true, displayName:String(d.displayName||"").slice(0,80), avatarUrl:null };
+        try{ prof.avatarUrl = await getDownloadURL(ref(CFG.store,"afd_avatars/"+uid+"/avatar")); }catch(_){}
+      }
+    }
+  }catch(_){}
+  _stewardCache.set(uid, prof);
+  return prof;
+}
+function photoAvatar(bg, url){
+  return { bg, svg:`<img src="${url}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit">` };
+}
+function monogramAvatar(bg, name){
+  const initials = String(name||"").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase() || "\u2022";
+  return { bg, svg:`<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-family="system-ui,sans-serif" font-weight="600" font-size="10" fill="rgba(255,255,255,.95)">${escapeHtml(initials)}</text></svg>` };
+}
+
 async function listPlayable(entryId){
   const out=[], seen=new Set();
   const add=async(d)=>{
@@ -130,7 +161,7 @@ async function listPlayable(entryId){
     if(v.consent==="deleted") return;   // erased: awaiting server purge, shown to no one — not even its owner
     let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }catch(_){ return; }
     seen.add(d.id);
-    out.push({ url, recordingId:d.id, entryId, uid:v.uid,
+    out.push({ url, recordingId:d.id, entryId, uid:v.uid, viaAgent: v.viaAgent===true,
                type: v.type || v.phase || "word",
                consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
                mine: !!(CFG.user() && v.uid===CFG.user().uid),
@@ -149,6 +180,18 @@ async function listPlayable(entryId){
       for(const d of mineQ.docs) await add(d);
     }
   }catch(_){}
+  // Overlay contributor identity: a "known" steward's own (non-proxied) voices
+  // get their photo, or a name monogram if they set no picture. Cache dedupes
+  // repeated owners, so this is at most one read per distinct contributor.
+  for(const rec of out){
+    if(rec.viaAgent || !rec.uid) continue;         // proxied voices stay pseudonymous
+    const p = await stewardProfile(rec.uid);
+    if(p && p.known){
+      rec.displayName = p.displayName;
+      rec.avatar = p.avatarUrl ? photoAvatar(rec.avatar.bg, p.avatarUrl)
+                               : monogramAvatar(rec.avatar.bg, p.displayName);
+    }
+  }
   return out;
 }
 
@@ -212,7 +255,8 @@ async function setConsent(rec, state){
 function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   const b=document.createElement("button");
   b.className="av"; b.style.background=rec.avatar.bg;
-  b.setAttribute("aria-label","Play this voice");
+  b.setAttribute("aria-label", rec.displayName ? ("Play "+rec.displayName) : "Play this voice");
+  if(rec.displayName) b.title=rec.displayName;
   b.innerHTML=rec.avatar.svg;
   b.addEventListener("click",()=>{ b.setAttribute("aria-pressed","true");
     playVoiceInto(rec, thumbEl, playBtn, setUrl); });
@@ -223,7 +267,8 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
   const row=document.createElement("div");
   row.className="voice-row"; row.setAttribute("aria-pressed","false");
   const play=document.createElement("button");
-  play.className="vr-play"; play.setAttribute("aria-label","Play this voice");
+  play.className="vr-play"; play.setAttribute("aria-label", rec.displayName ? ("Play "+rec.displayName) : "Play this voice");
+  if(rec.displayName) play.title=rec.displayName;
   const vrWave = (rec.envelope && rec.envelope.length)
     ? `<span class="vr-wave"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${boxBars(rec.envelope, 40)}</svg></span>`
     : `<span class="vr-wave"></span>`;
