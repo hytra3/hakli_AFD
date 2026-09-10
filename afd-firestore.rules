@@ -185,6 +185,51 @@ service cloud.firestore {
       allow write: if signedIn();
     }
 
+    // ------------------- Arabic prompt-edit suggestions --------------------
+    // Dhofari-Arabic proposals for the UI prompt strings, captured at the
+    // source (the speaker recording the prompts). Text only, append-only, and
+    // deliberately WALLED OFF from the corpus and from the live prompt docs —
+    // a suggestion can never become app content on its own. Marty reviews the
+    // queue and commits approved wording to the source table in git; git stays
+    // the source of truth.
+    //
+    // Suggesters are on the same ANONYMOUS session the prompt tool uses, so
+    // create is gated by a global switch Marty controls, not by identity:
+    // open the window when a trusted speaker is doing a pass, keep it shut
+    // otherwise. When named reviewers (real accounts) exist later, add
+    // `|| onAllowlist()` to the create guard below — a one-line change, and the
+    // switch keeps working for anonymous passes alongside it.
+    function suggestionsOpen() {
+      return exists(/databases/$(database)/documents/afd_ui_config/suggestions)
+             && get(/databases/$(database)/documents/afd_ui_config/suggestions).data.open == true;
+    }
+    // The switch itself: public-read so the tool can show/hide the affordance;
+    // only a real account (Marty) may flip it.
+    match /afd_ui_config/{key} {
+      allow read:  if true;
+      allow write: if notAnon();
+    }
+    match /afd_ui_suggestions/{id} {
+      allow read:   if notAnon();               // only Marty reviews the queue
+      allow create: if signedIn()
+                    && suggestionsOpen()
+                    && request.resource.data.by == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.keys().hasOnly(
+                         ['key','arSuggested','arSeen','note','by','createdAt'])
+                    && request.resource.data.key is string
+                    && request.resource.data.key.size() <= 60
+                    && request.resource.data.arSuggested is string
+                    && request.resource.data.arSuggested.size() > 0
+                    && request.resource.data.arSuggested.size() <= 400
+                    && request.resource.data.arSeen is string
+                    && request.resource.data.arSeen.size() <= 400
+                    && (!('note' in request.resource.data)
+                        || (request.resource.data.note is string
+                            && request.resource.data.note.size() <= 300));
+      allow update, delete: if false;           // append-only; resolved in git
+    }
+
     // ------------------------------ everything else ------------------------------
     match /{document=**} {
       allow read, write: if false;

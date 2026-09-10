@@ -68,6 +68,12 @@
   .hidden{display:none;}
   #recdone{display:none; gap:8px; justify-content:center; margin-top:10px}
   #recdone:not(.hidden){display:flex}
+  .suggest{margin-top:16px; border-top:1px solid var(--line); padding-top:14px;}
+  .btn.ghost{width:100%; justify-content:center; color:var(--accent); background:var(--accent-bg); border-color:var(--accent-bg); font-size:14px;}
+  .suggestbody{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+  .suggestbody textarea, .suggestbody input{width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink);}
+  .suggestbody textarea{font-size:20px; direction:rtl; text-align:right; resize:vertical;}
+  .suggestbody .review{margin-top:2px;}
 </style>
 </head>
 <body>
@@ -101,6 +107,19 @@
         </div>
       </div>
 
+      <div class="suggest hidden" id="suggestwrap">
+        <button class="btn ghost" id="suggesttoggle">اقترح تعديلًا للنص العربي · Suggest Arabic edit</button>
+        <div class="suggestbody hidden" id="suggestbody">
+          <textarea id="suggesttext" rows="2" placeholder="النص العربي المقترح"></textarea>
+          <input id="suggestnote" type="text" placeholder="Optional note — register, why, who" />
+          <div class="review">
+            <button class="btn" id="suggestcancel">Cancel</button>
+            <button class="btn keep" id="suggestsend">Send suggestion</button>
+          </div>
+          <div class="sync" id="suggeststatus"></div>
+        </div>
+      </div>
+
       <div class="nav">
         <button class="btn" id="prev">← Back</button>
         <button class="btn" id="next">Next →</button>
@@ -121,7 +140,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 /* ---- 1. PASTE the afd-dev web config here (same six values as the main recorder) ---- */
@@ -308,8 +327,10 @@ async function start(){
 
   onAuthStateChanged(auth, async (u)=>{
     if(!u) return;
+    state.uid = u.uid;
     $("status").textContent = navigator.onLine ? "ready" : "offline (saving here)";
     await loadProgress(db);
+    await loadConfig(db);
     await loadPending();
     $("app").classList.remove("hidden");
     render();
@@ -337,6 +358,20 @@ async function loadPending(){
   const all = await IDB.all().catch(()=>[]);
   (all||[]).forEach(r => { state.pending.set(r.key, r.blob); state.recorded.add(r.key); });
 }
+/* The Arabic-suggestion window is OFF unless afd_ui_config/suggestions.open is
+   true. Missing doc or any read failure → closed, so the affordance simply
+   never appears (and the rules would reject a write anyway). */
+async function loadConfig(db){
+  try{
+    const c = await getDoc(doc(db,"afd_ui_config","suggestions"));
+    state.suggestOpen = c.exists() && c.data().open === true;
+  }catch(e){ state.suggestOpen = false; }
+}
+
+/* Locally remember which keys this device has already suggested — informational
+   only (a second suggestion is still allowed); survives reload. */
+function suggestedSet(){ try{ return new Set(JSON.parse(localStorage.getItem("afd_ui_suggested")||"[]")); }catch(_){ return new Set(); } }
+function markSuggested(key){ const s=suggestedSet(); s.add(key); try{ localStorage.setItem("afd_ui_suggested", JSON.stringify([...s])); }catch(_){} }
 
 function updateProgress(){
   const done = state.recorded.size, total = ITEMS.length;
@@ -362,6 +397,16 @@ function render(){
   $("sync").textContent = state.pending.has(it.key) ? "saved here — will send when online" : (done ? "✓ recorded" : "");
   $("recbtn").textContent = done ? "Record again" : "Record";
   $("recdone").classList.toggle("hidden", !(done || state.pending.has(it.key)));
+
+  // Suggest-Arabic-edit: only when the window is open, the item has Arabic to
+  // improve, and it isn't a recorder directive ([توجيه] items aren't UI copy).
+  const canSuggest = state.suggestOpen && !!it.ar && !it.ar.startsWith("[توجيه]");
+  $("suggestwrap").classList.toggle("hidden", !canSuggest);
+  $("suggestbody").classList.add("hidden");
+  $("suggeststatus").textContent = "";
+  $("suggesttoggle").textContent = (canSuggest && suggestedSet().has(it.key))
+    ? "اقترح تعديلًا آخر · Suggest another edit ✓"
+    : "اقترح تعديلًا للنص العربي · Suggest Arabic edit";
 
   renderList();
   updateProgress();
@@ -499,6 +544,42 @@ function nextUnrecorded(){
 $("prev").onclick = ()=>{ state.i=(state.i-1+ITEMS.length)%ITEMS.length; render(); };
 $("next").onclick = ()=>{ state.i=(state.i+1)%ITEMS.length; render(); };
 $("nextpending").onclick = ()=>{ if(!nextUnrecorded()) alert("Every prompt is recorded. Thank you!"); };
+
+/* ---- suggest an Arabic edit (proposal only — never edits the live prompt) ---- */
+$("suggesttoggle").onclick = ()=>{
+  const b = $("suggestbody");
+  if(!b.classList.contains("hidden")){ b.classList.add("hidden"); return; }
+  $("suggesttext").value = ITEMS[state.i].ar || "";
+  $("suggestnote").value = "";
+  $("suggeststatus").textContent = "";
+  b.classList.remove("hidden");
+  $("suggesttext").focus();
+};
+$("suggestcancel").onclick = ()=>{ $("suggestbody").classList.add("hidden"); };
+$("suggestsend").onclick = async ()=>{
+  const it = ITEMS[state.i];
+  const arSuggested = $("suggesttext").value.trim();
+  if(!arSuggested){ $("suggeststatus").textContent = "Type the suggested Arabic first."; return; }
+  if(arSuggested === (it.ar||"")){ $("suggeststatus").textContent = "That's the same as the current text."; return; }
+  $("suggestsend").disabled = true;
+  try{
+    await addDoc(collection(state.db,"afd_ui_suggestions"), {
+      key: it.key,
+      arSuggested,
+      arSeen: it.ar || "",
+      note: $("suggestnote").value.trim(),
+      by: state.uid,
+      createdAt: serverTimestamp()
+    });
+    markSuggested(it.key);
+    $("suggeststatus").textContent = "اقتُرِح ✓ · suggestion sent";
+    $("suggesttoggle").textContent = "اقترح تعديلًا آخر · Suggest another edit ✓";
+    setTimeout(()=>{ $("suggestbody").classList.add("hidden"); }, 1000);
+  }catch(e){
+    $("suggeststatus").textContent = "Couldn't send — check the connection, and that suggestions are open.";
+  }
+  $("suggestsend").disabled = false;
+};
 
 /* ---- timer ---- */
 function startTimer(){ state.t0=Date.now(); state.timer=setInterval(()=>{ const s=(Date.now()-state.t0)/1000; $("timer").textContent="● "+s.toFixed(1)+"s"; },100); }
