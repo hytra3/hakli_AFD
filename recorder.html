@@ -218,6 +218,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 }
 .sync.up{background:#EAF3ED;color:#1D4633}
 .sync.pend{background:#FBF0E2;color:#7A4A11}
+#roster{margin:2px 0 12px}
+#roster .roster-row.current b::after{content:"•";color:var(--frank);margin-inline-start:6px}
+#roster .wd{padding:6px 12px;font-size:12px;background:transparent;border:1px solid var(--hairline);color:var(--ink-soft);border-radius:10px}
 .stepdots{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:14px}
   /* The shared entry card now carries the picture, word and voices, so the
      recorder's own picture / gloss / "hear others" line is redundant — hide it,
@@ -441,6 +444,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
   <div class="card" id="sessionCard">
     <p class="eyebrow" id="sessionTitle">This session</p>
+    <div id="roster"></div>
     <button class="btn secondary" id="switchSpeaker">Switch speaker</button>
     <button class="btn secondary" id="withdrawSpeaker">Withdraw this speaker's recordings</button>
     <div id="clips"><p class="note">No recordings kept yet.</p></div>
@@ -844,7 +848,7 @@ function nextSpeakerCode(cur){
    account's "spk_01". Default to spk_<uid6>_01 once the account is known, but
    never clobber a code the user typed or one restored from a prior session. */
 let spkTouched=false;
-(function(){ const el=$("spkId"); if(el) el.addEventListener("input",()=>{ spkTouched=true; }); })();
+(function(){ const el=$("spkId"); if(el) el.addEventListener("input",()=>{ spkTouched=true; renderRoster(); }); })();
 function defaultSpeakerCode(){
   const u=(window.AFD && window.AFD.user && window.AFD.user());
   return "spk_"+String(u?u.uid:"").slice(0,6)+"_01";
@@ -868,6 +872,7 @@ function reflectAgent(){
   if(a) a.innerHTML = on
     ? '<span class="bi-ar" dir="rtl">هذه التفاصيل تصف المتحدِّث، لا أنت. ومن البلدة تُشتَقّ اللهجة.</span><small class="sub">These details describe the speaker, not you. Town is what the dialect is derived from.</small>'
     : '<span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small>';
+  renderRoster();
 }
 (function(){ const a=$("agentMode"); if(a) a.addEventListener("change", reflectAgent); reflectAgent(); })();
 
@@ -1875,6 +1880,43 @@ function renderClips(){
 
   $("clips").querySelectorAll("[data-play]").forEach(b=>{
     b.onclick=()=>{ new Audio(URL.createObjectURL(mine[+b.dataset.play].blob)).play(); };
+  });
+  renderRoster();
+}
+
+/* ---- speaker roster ------------------------------------------------------
+   Who has been recorded on this device, grouped by speaker code and rebuilt
+   from the persisted clips so a reload never loses it. Each row can open the
+   spoken-proof withdrawal for that ONE speaker — the case where the person to
+   remove isn't the one in the form now (e.g. a relative asks the next day).
+   Recoverable by default: the overlay's confirm withdraws (hidden, bytes kept),
+   permanent erase stays behind the two-tap armed step inside the overlay. */
+function rosterEsc(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function speakerRoster(){
+  const map=new Map();
+  myClips().forEach(k=>{ if(k.skipped) return; const id=k.speakerId||"—"; map.set(id,(map.get(id)||0)+1); });
+  const cur=($("spkId").value||"").trim();
+  if(cur && !map.has(cur)) map.set(cur,0);         // show the current speaker even before their first keep
+  return [...map.entries()].map(([id,n])=>({id,n,current:id===cur}));
+}
+function renderRoster(){
+  const host=$("roster"); if(!host) return;
+  const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
+  const agent=!!($("agentMode") && $("agentMode").checked);
+  const rows=speakerRoster();
+  // A lone self-speaker needs no roster; show it once there's a choice to make
+  // (agent mode on, or more than one speaker recorded on this device).
+  if(rows.length<=1 && !agent){ host.innerHTML=""; return; }
+  host.innerHTML = rows.map(r=>
+    '<div class="clip roster-row'+(r.current?" current":"")+'"><div class="name"><b>'+rosterEsc(r.id)+
+    '</b>'+(r.n?'<span>'+r.n+'\u00d7</span>':"")+'</div>'+
+    (uid?'<button class="wd" data-wd="'+encodeURIComponent(r.id)+'">'+AFDCore.t("voice.takeback",dispMode)+'</button>':"")+
+    '</div>').join("");
+  host.querySelectorAll("[data-wd]").forEach(b=>{
+    b.onclick=()=>{
+      if(!uid){ alert(AFDCore.t("speaker.signin",dispMode)); return; }
+      openWithdrawProof(uid, decodeURIComponent(b.dataset.wd));   // recoverable withdraw; erase armed inside
+    };
   });
 }
 
