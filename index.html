@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911e" type="image/svg+xml">
-<script src="afd-core.js?v=b0911e"></script>
-<script src="afd-words.js?v=b0911e"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911e">
+<link rel="icon" href="favicon.svg?v=b0911f" type="image/svg+xml">
+<script src="afd-core.js?v=b0911f"></script>
+<script src="afd-words.js?v=b0911f"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911f">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -226,7 +226,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911e";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911f";
 
 
 /* ================================================================= CONFIG */
@@ -280,7 +280,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911e";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911f";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -750,8 +750,15 @@ function closeAcctMenu(){ if(acctMenu){ acctMenu.classList.remove("open"); acctM
 function openAcctMenu(){ if(acctMenu){ acctMenu.classList.add("open"); acctMenu.setAttribute("aria-hidden","false"); } }
 // Menu labels follow the same translator as the rest of the chrome: tHTML gives
 // Arabic-primary + English subtitle in auto, Arabic-only in script/sound.
+// The self-facing indicator prefers the steward's KNOWN public identity when
+// they've set one (so the circle matches how they appear to others), falling
+// back to the plain account name. stewardKnownName is filled async below.
+let stewardKnownName = "";
+function acctWhoName(){
+  return stewardKnownName || ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
+}
 function syncAcctLabels(){
-  const who = ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
+  const who = acctWhoName();
   if(acctWho)  acctWho.textContent = who || "Signed in";
   if(acctEdit) acctEdit.innerHTML  = AFDCore.tHTML("account.edit", displayMode);
   if(acctOut)  acctOut.innerHTML   = AFDCore.tHTML("account.signout", displayMode);
@@ -759,20 +766,32 @@ function syncAcctLabels(){
 
 function updateAccountUi(){
   if(!accountBtn) return;
-  // A real account shows its initial (upgraded to the profile photo if one is
-  // set); an anonymous or signed-out session shows the person glyph, so it still
-  // reads as "sign in" rather than looking set up (and hitting the create wall).
+  // A real account shows its initial — the KNOWN profile name's initial if one is
+  // set, else the account's — upgraded to the profile photo when there is one. An
+  // anonymous or signed-out session shows the person glyph, so it still reads as
+  // "sign in" rather than looking set up (and hitting the create wall).
   const real = isRealUser();
-  if(real){
-    const who = ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
-    const initial = (who[0] || "?").toUpperCase();
-    accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml(initial)}</span>`;
+  stewardKnownName = "";                     // reset; the async fetch below refills it
+  const paint = ()=>{
+    const who = acctWhoName();
+    accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml((who[0]||"?").toUpperCase())}</span>`;
     accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — account menu` : "Account menu");
     accountBtn.title = who || "Signed in";
+  };
+  if(real){
+    paint();
     syncAcctLabels();
-    // Self-facing upgrade: if this account set a profile photo, show it in the circle.
     const uid = currentUser.uid;
     (async()=>{
+      // Prefer the steward's own KNOWN identity in their private indicator.
+      try{
+        const sn = await getDoc(doc(db,"afd_stewards",uid));
+        stewardKnownName = (sn.exists() && (sn.data()||{}).visibility==="known")
+          ? (((sn.data()||{}).displayName)||"").trim() : "";
+      }catch(_){ stewardKnownName = ""; }
+      if(!(isRealUser() && currentUser && currentUser.uid===uid)) return;   // auth changed mid-fetch
+      paint(); syncAcctLabels();
+      // A set photo wins over the initial.
       try{
         const url = await getDownloadURL(ref(store, "afd_avatars/"+uid+"/avatar"));
         if(isRealUser() && currentUser && currentUser.uid===uid)
