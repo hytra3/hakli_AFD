@@ -376,6 +376,38 @@ cannot say *why this matters* or *your voice stays yours* — that is the text's
 - `waits` kept for now (fieldwork connectivity reassurance); one-line drop if trimmed.
 - Copy (Arabic + English) is draft — **not yet reviewed by local speakers.**
 
+## Speaker origin visibility — hidden by default, dialect-scoped, opt-in public (decision; not yet built)
+
+**The point of collecting town/tribe is dialect derivation, not public display** — so
+origin/tribe/pseudonym should reach the people doing linguistic work, not the open
+public. Three tiers, decided:
+
+1. **Steward-only (default).** The managing steward always sees the origin they entered.
+   This is the current design intent — origin lives in the steward-only
+   `afd_speakers/{speakerId}/private/{doc}` subdoc.
+2. **Qualified readers (the dialect-work tier).** A limited set of authorised users may
+   read origin across speakers for variety analysis. This needs a role mechanism that
+   does NOT exist yet: `isManager()` is per-recording consent authority (creator or that
+   speaker's steward), not a global research role. Options — (a) Firebase **custom auth
+   claims** set by an admin: cheap in rules (token-carried, no extra read) but needs an
+   admin process to grant; (b) an **allowlist doc / members collection** checked in
+   rules: self-serve to manage but costs a `get()` per read. Leaning custom claims.
+3. **Fully public — opt-in per speaker.** Only if the speaker/steward elects it, via a
+   `showOriginPublic` flag on the subdoc, enforced in its read rule
+   (`allow read: if steward || qualifiedReader || resource.data.showOriginPublic == true`).
+
+**Live gap (fix before any public share).** The app currently writes `origin`/`ageBand`/
+`gender` into the *world-readable* public `afd_speakers` doc (recorder.html), contradicting
+the rules' own comment that town/tribe belong in the private subdoc. Not yet exploitable —
+the site hasn't been shared, still collecting prompts — but it must be closed before launch.
+
+**Interim step (no role mechanism needed):** stop writing origin into the public doc and
+put it in the existing steward-only `/private` subdoc, matching what the rules and the
+consent test already assume. That alone delivers "hidden by default" and closes the leak;
+the qualified-reader tier and opt-in-public promotion follow with the role design above.
+Ties into the pending `afd_speakers` `{uid}` → `{speakerId}` re-key, where the origin move
+was already slated to happen at the rules-deploy cutover.
+
 ## External (non-AFD)
 
 - **Scott's `tawq.in` `server.js`** — the expired-token string-mismatch auth bypass
