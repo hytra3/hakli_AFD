@@ -184,7 +184,10 @@ window.AFDCore = (function(){
     "clip.yours":           { en:"Your recording",      ar:"تسجيلك" },
     "clip.speaker":         { en:"Speaker",             ar:"متحدّث" },
     "clip.none":            { en:"No one else has recorded this word yet. Yours is the first — check back as more speakers contribute.", ar:"لا أحد غيرك سجّل هذه الكلمة بعد. أنت الأول — عُد لاحقًا مع مساهمة متحدّثين آخرين." },
-    "unit.reps":            { en:"reps",                ar:"تكرار" }
+    "unit.reps":            { en:"reps",                ar:"تكرار" },
+    "account.edit":         { en:"Edit how you appear", ar:"تعديل كيف تظهر" },
+    "account.signout":      { en:"Sign out",            ar:"تسجيل الخروج" },
+    "account.signout.confirm": { en:"Sign out? You can sign back in anytime.", ar:"تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت." }
   };
   function t(key, mode){
     const s = STRINGS[key];

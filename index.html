@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911d" type="image/svg+xml">
-<script src="afd-core.js?v=b0911d"></script>
-<script src="afd-words.js?v=b0911d"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911d">
+<link rel="icon" href="favicon.svg?v=b0911e" type="image/svg+xml">
+<script src="afd-core.js?v=b0911e"></script>
+<script src="afd-words.js?v=b0911e"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911e">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -226,7 +226,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911d";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911e";
 
 
 /* ================================================================= CONFIG */
@@ -280,7 +280,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911d";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911e";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -735,7 +735,7 @@ const SKIN_ICON = {
 function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto; }
 $("skin").addEventListener("click", ()=>{
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
-  setDisplayMode(next); updateSkinIcon();
+  setDisplayMode(next); updateSkinIcon(); syncAcctLabels();
   if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults); else renderBrowse();  // re-skin what's on screen — incl. the browse list
 });
 updateSkinIcon();
@@ -748,6 +748,14 @@ const accountBtn = $("account");
 const acctMenu=$("acctMenu"), acctWho=$("acctWho"), acctEdit=$("acctEdit"), acctOut=$("acctOut");
 function closeAcctMenu(){ if(acctMenu){ acctMenu.classList.remove("open"); acctMenu.setAttribute("aria-hidden","true"); } }
 function openAcctMenu(){ if(acctMenu){ acctMenu.classList.add("open"); acctMenu.setAttribute("aria-hidden","false"); } }
+// Menu labels follow the same translator as the rest of the chrome: tHTML gives
+// Arabic-primary + English subtitle in auto, Arabic-only in script/sound.
+function syncAcctLabels(){
+  const who = ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
+  if(acctWho)  acctWho.textContent = who || "Signed in";
+  if(acctEdit) acctEdit.innerHTML  = AFDCore.tHTML("account.edit", displayMode);
+  if(acctOut)  acctOut.innerHTML   = AFDCore.tHTML("account.signout", displayMode);
+}
 
 function updateAccountUi(){
   if(!accountBtn) return;
@@ -761,9 +769,7 @@ function updateAccountUi(){
     accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml(initial)}</span>`;
     accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — account menu` : "Account menu");
     accountBtn.title = who || "Signed in";
-    if(acctWho)  acctWho.textContent  = who || "Signed in";
-    if(acctEdit) acctEdit.textContent = (displayMode==="auto") ? "Edit how you appear" : "تعديل كيف تظهر";
-    if(acctOut)  acctOut.textContent  = (displayMode==="auto") ? "Sign out" : "تسجيل الخروج";
+    syncAcctLabels();
     // Self-facing upgrade: if this account set a profile photo, show it in the circle.
     const uid = currentUser.uid;
     (async()=>{
@@ -795,7 +801,7 @@ if(accountBtn){
 if(acctEdit) acctEdit.addEventListener("click", ()=>{ closeAcctMenu(); location.href="recorder.html#profile"; });
 if(acctOut)  acctOut.addEventListener("click", async ()=>{
   closeAcctMenu();
-  const msg = (displayMode==="auto") ? "Sign out? You can sign back in anytime." : "تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت.";
+  const msg = AFDCore.t("account.signout.confirm", displayMode);
   if(!confirm(msg)) return;
   try{ await signOut(auth); }catch(err){ console.warn("[AFD] auth", err); }
 });
