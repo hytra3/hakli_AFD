@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0911j" type="image/svg+xml">
-<script src="afd-core.js?v=b0911j"></script>
-<script src="afd-words.js?v=b0911j"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911j">
+<link rel="icon" href="favicon.svg?v=b0911k" type="image/svg+xml">
+<script src="afd-core.js?v=b0911k"></script>
+<script src="afd-words.js?v=b0911k"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911k">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -51,7 +51,21 @@ body{
 .brand svg{width:28px;height:28px;flex:0 0 auto}
 .brand b{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.2px}
 .brand small{font-family:var(--sans);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#9AB0A8}
-.rec-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rec-topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 -16px 8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  background:#F3F7F5;box-shadow:0 2px 10px rgba(31,58,52,.05)}
+.account{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
+  background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;overflow:hidden}
+.account.in{background:var(--mountain);color:#fff;border-color:var(--mountain)}
+.account .acct-initial{font:600 16px/1 system-ui,sans-serif}
+.account img.acct-photo{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.account-wrap{position:relative;flex:0 0 auto}
+.acct-menu{position:absolute;top:50px;right:0;z-index:60;min-width:210px;background:var(--paper);
+  border:1px solid var(--hairline);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px;display:none}
+.acct-menu.open{display:block}
+.acct-menu .who{padding:8px 10px;font-size:12px;color:var(--ink-soft);border-bottom:1px solid var(--hairline);margin-bottom:4px;word-break:break-word}
+.acct-menu button{display:block;width:100%;text-align:start;padding:9px 10px;border:0;background:none;font:inherit;font-size:14px;color:var(--ink);border-radius:8px;cursor:pointer}
+.acct-menu button:hover{background:rgba(31,58,52,.06)}
 .spkchip{display:flex;align-items:center;gap:8px;padding:8px 12px;margin:-2px 0 14px;
   background:var(--paper);border:1px solid var(--hairline);border-radius:12px;cursor:pointer}
 .spkchip-ic{flex:0 0 auto;color:var(--ink-soft)}
@@ -412,6 +426,14 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
       </a>
       <button class="dispskin" id="dispSkin" aria-label="Change how words are shown"></button>
+      <span class="account-wrap">
+        <button class="account" id="account" aria-label="Account"></button>
+        <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
+          <div class="who" id="acctWho"></div>
+          <button id="acctEdit" role="menuitem"></button>
+          <button id="acctOut" role="menuitem"></button>
+        </div>
+      </span>
     </div>
   </div>
 
@@ -536,7 +558,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911j";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911k";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -910,7 +932,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0911j";   // bump every publish; shown in the header + console
+const BUILD="b0911k";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -2178,9 +2200,59 @@ $("revealRef").onclick=()=>{
 $("syncBtn").onclick=syncPending;
 
 // when a user signs in, quietly retry anything still sitting on the phone
+/* ---- account circle on the record bar: who you are · edit how you appear ·
+   sign out — mirrors the browse page so navigation feels consistent across the
+   two pages. Reuses window.AFD (user, loadProfile) and the existing sign-out. */
+const recAcct=$("account"), recMenu=$("acctMenu"), recWho=$("acctWho"), recEdit=$("acctEdit"), recOut=$("acctOut");
+function recAcctClose(){ if(recMenu){ recMenu.classList.remove("open"); recMenu.setAttribute("aria-hidden","true"); } }
+function recAcctOpen(){ if(recMenu){ recMenu.classList.add("open"); recMenu.setAttribute("aria-hidden","false"); } }
+function renderRecAccount(){
+  if(!recAcct) return;
+  const u = window.AFD && window.AFD.user && window.AFD.user();
+  if(!u){
+    recAcctClose();
+    recAcct.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+    recAcct.classList.remove("in"); recAcct.setAttribute("aria-label","Sign in"); recAcct.removeAttribute("title");
+    return;
+  }
+  const acctName = (u.displayName || u.email || "").trim();
+  const paint=(who)=>{
+    recAcct.innerHTML='<span class="acct-initial">'+rosterEsc((who[0]||"?").toUpperCase())+'</span>';
+    recAcct.setAttribute("aria-label", who ? ("Signed in as "+who+" — account menu") : "Account menu");
+    recAcct.title = who || "Signed in";
+  };
+  paint(acctName); recAcct.classList.add("in");
+  if(recEdit) recEdit.innerHTML = AFDCore.tHTML("account.edit", dispMode);
+  if(recOut)  recOut.innerHTML  = AFDCore.tHTML("account.signout", dispMode);
+  if(recWho)  recWho.textContent = acctName || "Signed in";
+  const uid=u.uid;
+  (async()=>{
+    try{
+      const p = await window.AFD.loadProfile();
+      const cur = window.AFD.user && window.AFD.user();
+      if(!(cur && cur.uid===uid)) return;            // auth changed mid-fetch
+      const known = (p && p.visibility==="known" && (p.displayName||"").trim()) || "";
+      if(known){ paint(known); if(recWho) recWho.textContent=known; }
+      if(p && p.avatarUrl) recAcct.innerHTML='<img class="acct-photo" src="'+p.avatarUrl+'" alt="">';
+    }catch(_){}
+  })();
+}
+if(recAcct){
+  recAcct.addEventListener("click",(e)=>{
+    e.stopPropagation();
+    if(!(window.AFD && window.AFD.user && window.AFD.user())){ show("setup"); return; }
+    (recMenu && recMenu.classList.contains("open")) ? recAcctClose() : recAcctOpen();
+  });
+}
+if(recEdit) recEdit.addEventListener("click",()=>{ recAcctClose(); show("setup"); const yc=$("youCard"); if(yc) yc.scrollIntoView({behavior:"smooth",block:"start"}); });
+if(recOut)  recOut.addEventListener("click",()=>{ recAcctClose(); const b=$("signoutBtn"); if(b) b.click(); });
+document.addEventListener("click",(e)=>{ if(recMenu && recMenu.classList.contains("open") && !e.target.closest(".account-wrap")) recAcctClose(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") recAcctClose(); });
+
 window.afdOnAuth=(u)=>{
   renderClips();                       // session list is per-account
   const yc=$("youCard"); if(yc) yc.classList.toggle("hidden", !u);   // profile card needs an account
+  renderRecAccount();                  // account circle on the record bar
   if(!u) return;
   ensureSpeakerCode();                 // signed in → give this steward a globally-unique code default
   loadProfileCard();                   // populate "How you appear" from afd_stewards
