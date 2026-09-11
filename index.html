@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911h" type="image/svg+xml">
-<script src="afd-core.js?v=b0911h"></script>
-<script src="afd-words.js?v=b0911h"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911h">
+<link rel="icon" href="favicon.svg?v=b0911i" type="image/svg+xml">
+<script src="afd-core.js?v=b0911i"></script>
+<script src="afd-words.js?v=b0911i"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911i">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -56,7 +56,8 @@ body{
     padding:18px 20px calc(6px + env(safe-area-inset-top));
     color:var(--mountain);
   }
-.glyph{width:30px;height:34px;flex:0 0 auto;display:inline-flex;align-items:center}
+.glyph{width:30px;height:34px;flex:0 0 auto;display:inline-flex;align-items:center;cursor:pointer}
+.glyph:focus-visible{outline:2px solid var(--mountain);outline-offset:3px;border-radius:6px}
 .glyph svg{width:100%;height:100%}
 .screen{display:flex; align-items:center; gap:9px; min-width:0}
 .screen-ic{width:24px;height:24px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
@@ -181,7 +182,7 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 </head>
 <body>
   <header>
-    <span class="glyph" id="mastGlyph" aria-hidden="true"><svg viewBox="0 0 64 78" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 22 C27 15 37 11 32 3" stroke="#C24A32" stroke-width="2.4" stroke-linecap="round" opacity=".5"/><polygon points="8,26 20,26 14,13" fill="#9B1C1C"/><polygon points="20,26 32,26 26,13" fill="#9B1C1C"/><polygon points="32,26 44,26 38,13" fill="#9B1C1C"/><polygon points="44,26 56,26 50,13" fill="#9B1C1C"/><polygon points="8,26 56,26 50,70 14,70" fill="#C24A32"/><rect x="12" y="70" width="40" height="4" rx="1" fill="#7E2C1C"/><rect x="30" y="45" width="4" height="25" rx="2" fill="#7E2C1C"/></svg></span>
+    <span class="glyph" id="mastGlyph" role="button" tabindex="0" aria-label="Home — the whole dictionary" title="Home"><svg viewBox="0 0 64 78" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 22 C27 15 37 11 32 3" stroke="#C24A32" stroke-width="2.4" stroke-linecap="round" opacity=".5"/><polygon points="8,26 20,26 14,13" fill="#9B1C1C"/><polygon points="20,26 32,26 26,13" fill="#9B1C1C"/><polygon points="32,26 44,26 38,13" fill="#9B1C1C"/><polygon points="44,26 56,26 50,13" fill="#9B1C1C"/><polygon points="8,26 56,26 50,70 14,70" fill="#C24A32"/><rect x="12" y="70" width="40" height="4" rx="1" fill="#7E2C1C"/><rect x="30" y="45" width="4" height="25" rx="2" fill="#7E2C1C"/></svg></span>
     <span class="screen">
       <span class="screen-ic" id="mastIcon" aria-hidden="true"></span>
       <span class="screen-t"><span class="screen-ar" id="mastAr" dir="rtl"></span><small class="screen-en sub" id="mastEn"></small></span>
@@ -226,7 +227,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911h";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911i";
 
 
 /* ================================================================= CONFIG */
@@ -280,7 +281,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911h";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911i";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -832,10 +833,20 @@ onAuthStateChanged(auth, (u)=>{
 });
 updateAccountUi();
 
-/* dev distance readout: tap the glyph three times */
+/* The incense-burner glyph is HOME: tap it to return to the whole dictionary
+   (with the add-a-word tile at the top) and scroll up. The hidden dev distance
+   readout still lives here — a quick triple-tap toggles it. */
+function goHome(){
+  if(!(mastView==="dictionary" && !deepEntry && !lastResults)) renderBrowse();
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
 let taps=0,tt=0;
-$("mastGlyph").addEventListener("click",()=>{ taps++; clearTimeout(tt); tt=setTimeout(()=>taps=0,600);
-  if(taps>=3){ dbg.classList.toggle("hidden"); taps=0; } });
+$("mastGlyph").addEventListener("click",()=>{
+  taps++; clearTimeout(tt); tt=setTimeout(()=>taps=0,600);
+  if(taps>=3){ dbg.classList.toggle("hidden"); taps=0; return; }   // dev readout easter egg
+  goHome();
+});
+$("mastGlyph").addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); goHome(); } });
 function showDbg(results, n){
   if(dbg.classList.contains("hidden")) return;
   dbg.textContent = `corpus ${n??"?"} · ` + results.map(r=>`${r.entryId}:${r.distance}`).join("  ");
