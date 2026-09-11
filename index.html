@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911c" type="image/svg+xml">
-<script src="afd-core.js?v=b0911c"></script>
-<script src="afd-words.js?v=b0911c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911c">
+<link rel="icon" href="favicon.svg?v=b0911d" type="image/svg+xml">
+<script src="afd-core.js?v=b0911d"></script>
+<script src="afd-words.js?v=b0911d"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911d">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -130,6 +130,16 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
       color:var(--mountain);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
 .account.in{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
 .account .acct-initial{font:600 16px/1 system-ui,sans-serif}
+.account img.acct-photo{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.account-wrap{position:relative;flex:0 0 auto}
+.acct-menu{position:absolute;top:48px;right:0;z-index:60;min-width:210px;background:var(--cloud);
+  border:1px solid var(--mist-2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px;display:none}
+.acct-menu.open{display:block}
+.acct-menu .who{padding:8px 10px;font-size:12px;color:var(--mountain);opacity:.85;
+  border-bottom:1px solid var(--mist-2);margin-bottom:4px;word-break:break-word}
+.acct-menu button{display:block;width:100%;text-align:start;padding:9px 10px;border:0;background:none;
+  font:inherit;font-size:14px;color:var(--mountain);border-radius:8px;cursor:pointer}
+.acct-menu button:hover{background:var(--mist-2)}
 /* empty / miss — an invitation, not an apology */
   .empty{width:100%; max-width:460px; background:var(--cloud); border-radius:var(--r);
          box-shadow:var(--shadow); padding:26px 22px; text-align:center}
@@ -177,7 +187,14 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
       <span class="screen-t"><span class="screen-ar" id="mastAr" dir="rtl"></span><small class="screen-en sub" id="mastEn"></small></span>
     </span>
     <button class="skin" id="skin" aria-label="Change how words are shown"></button>
-    <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
+    <span class="account-wrap">
+      <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
+      <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
+        <div class="who" id="acctWho"></div>
+        <button id="acctEdit" role="menuitem"></button>
+        <button id="acctOut" role="menuitem"></button>
+      </div>
+    </span>
   </header>
 
   <main>
@@ -209,7 +226,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911c";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911d";
 
 
 /* ================================================================= CONFIG */
@@ -263,7 +280,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911c";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911d";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -728,19 +745,36 @@ setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current 
 // button lets a fresh visitor sign in (Google); a speaker who used the recorder
 // is already recognised. On auth change we re-render so controls appear/vanish.
 const accountBtn = $("account");
+const acctMenu=$("acctMenu"), acctWho=$("acctWho"), acctEdit=$("acctEdit"), acctOut=$("acctOut");
+function closeAcctMenu(){ if(acctMenu){ acctMenu.classList.remove("open"); acctMenu.setAttribute("aria-hidden","true"); } }
+function openAcctMenu(){ if(acctMenu){ acctMenu.classList.add("open"); acctMenu.setAttribute("aria-hidden","false"); } }
+
 function updateAccountUi(){
   if(!accountBtn) return;
-  // A real account shows its initial (who you're signed in as); an anonymous or
-  // signed-out session shows the person glyph, so it still reads as "sign in"
-  // rather than looking set up (and hitting the create wall).
+  // A real account shows its initial (upgraded to the profile photo if one is
+  // set); an anonymous or signed-out session shows the person glyph, so it still
+  // reads as "sign in" rather than looking set up (and hitting the create wall).
   const real = isRealUser();
   if(real){
     const who = ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
     const initial = (who[0] || "?").toUpperCase();
     accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml(initial)}</span>`;
-    accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — tap to sign out` : "Signed in — tap to sign out");
+    accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — account menu` : "Account menu");
     accountBtn.title = who || "Signed in";
+    if(acctWho)  acctWho.textContent  = who || "Signed in";
+    if(acctEdit) acctEdit.textContent = (displayMode==="auto") ? "Edit how you appear" : "تعديل كيف تظهر";
+    if(acctOut)  acctOut.textContent  = (displayMode==="auto") ? "Sign out" : "تسجيل الخروج";
+    // Self-facing upgrade: if this account set a profile photo, show it in the circle.
+    const uid = currentUser.uid;
+    (async()=>{
+      try{
+        const url = await getDownloadURL(ref(store, "afd_avatars/"+uid+"/avatar"));
+        if(isRealUser() && currentUser && currentUser.uid===uid)
+          accountBtn.innerHTML = `<img class="acct-photo" src="${url}" alt="">`;
+      }catch(_){ /* no photo — keep the initial */ }
+    })();
   } else {
+    closeAcctMenu();
     accountBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
     accountBtn.setAttribute("aria-label", "Sign in to manage your voice");
     accountBtn.removeAttribute("title");
@@ -748,22 +782,25 @@ function updateAccountUi(){
   accountBtn.classList.toggle("in", real);
 }
 if(accountBtn){
-  accountBtn.addEventListener("click", async ()=>{
-    try{
-      if(isRealUser()){
-        const msg = (displayMode==="auto")
-          ? "Sign out? You can sign back in anytime."
-          : "تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت.";
-        if(!confirm(msg)) return;
-        await signOut(auth);
-      } else {
-        // No user, or only an anonymous one — either way, get a named account.
-        await signInWithPopup(auth, new GoogleAuthProvider());
-      }
+  accountBtn.addEventListener("click", async (e)=>{
+    e.stopPropagation();
+    if(isRealUser()){                                   // signed in → open the account menu
+      (acctMenu && acctMenu.classList.contains("open")) ? closeAcctMenu() : openAcctMenu();
+      return;
     }
-    catch(e){ console.warn("[AFD] auth", e); }
+    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }   // otherwise get a named account
+    catch(err){ console.warn("[AFD] auth", err); }
   });
 }
+if(acctEdit) acctEdit.addEventListener("click", ()=>{ closeAcctMenu(); location.href="recorder.html#profile"; });
+if(acctOut)  acctOut.addEventListener("click", async ()=>{
+  closeAcctMenu();
+  const msg = (displayMode==="auto") ? "Sign out? You can sign back in anytime." : "تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت.";
+  if(!confirm(msg)) return;
+  try{ await signOut(auth); }catch(err){ console.warn("[AFD] auth", err); }
+});
+document.addEventListener("click", (e)=>{ if(acctMenu && acctMenu.classList.contains("open") && !e.target.closest(".account-wrap")) closeAcctMenu(); });
+document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeAcctMenu(); });
 onAuthStateChanged(auth, (u)=>{
   currentUser = u; updateAccountUi();
   if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults);  // refresh owner controls
