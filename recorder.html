@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0911b" type="image/svg+xml">
-<script src="afd-core.js?v=b0911b"></script>
-<script src="afd-words.js?v=b0911b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911b">
+<link rel="icon" href="favicon.svg?v=b0911c" type="image/svg+xml">
+<script src="afd-core.js?v=b0911c"></script>
+<script src="afd-words.js?v=b0911c"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -330,6 +330,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   <div class="card">
     <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
     <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small></p>
+    <label class="check" style="margin-bottom:12px"><input type="checkbox" id="agentMode">
+      <span><span class="bi-ar" dir="rtl">أُسجِّل صوت شخصٍ آخر (لستُ المتحدِّث)</span><small class="sub">I'm recording someone else's voice (I'm not the speaker)</small></span></label>
     <label class="field"><span><span class="bi-ar" dir="rtl">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
       <input type="text" id="spkId" placeholder="spk_01" value="spk_01"></label>
     <label class="field"><span><span class="bi-ar" dir="rtl">البلدة</span><small class="sub">Town</small></span>
@@ -354,8 +356,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
           <option value="m">ذكر · Male</option>
         </select></label>
     </div>
-    <label class="check"><input type="checkbox" id="agentMode">
-      <span><span class="bi-ar" dir="rtl">أُسجِّل نيابةً عن شخصٍ آخر — أساعده على تسجيل صوته</span><small class="sub">I'm recording for someone else — helping them record their own voice</small></span></label>
     <p class="note"><span class="bi-ar" dir="rtl">لا حقلَ للهجة عن قصد — تُسجَّل البلدة وتُشتَقّ اللهجة لاحقًا.</span><small class="sub">No dialect field by design — locality is recorded, variety derived later.</small></p>
   </div>
 
@@ -527,7 +527,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911b";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911c";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -901,7 +901,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0911b";   // bump every publish; shown in the header + console
+const BUILD="b0911c";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);

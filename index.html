@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911b" type="image/svg+xml">
-<script src="afd-core.js?v=b0911b"></script>
-<script src="afd-words.js?v=b0911b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911b">
+<link rel="icon" href="favicon.svg?v=b0911c" type="image/svg+xml">
+<script src="afd-core.js?v=b0911c"></script>
+<script src="afd-words.js?v=b0911c"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911c">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -129,6 +129,7 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
   .account{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
       color:var(--mountain);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
 .account.in{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
+.account .acct-initial{font:600 16px/1 system-ui,sans-serif}
 /* empty / miss — an invitation, not an apology */
   .empty{width:100%; max-width:460px; background:var(--cloud); border-radius:var(--r);
          box-shadow:var(--shadow); padding:26px 22px; text-align:center}
@@ -208,7 +209,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911b";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911c";
 
 
 /* ================================================================= CONFIG */
@@ -262,7 +263,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911b";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911c";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -729,14 +730,22 @@ setHint("Hold and speak","تكلّم");   // idle hint, rendered in the current 
 const accountBtn = $("account");
 function updateAccountUi(){
   if(!accountBtn) return;
-  // Checkmark only for a real account — an anonymous session must still read as
-  // "sign in", or the user thinks they're set up and hits the create wall.
+  // A real account shows its initial (who you're signed in as); an anonymous or
+  // signed-out session shows the person glyph, so it still reads as "sign in"
+  // rather than looking set up (and hitting the create wall).
   const real = isRealUser();
-  accountBtn.innerHTML = real
-    ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`
-    : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
+  if(real){
+    const who = ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
+    const initial = (who[0] || "?").toUpperCase();
+    accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml(initial)}</span>`;
+    accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — tap to sign out` : "Signed in — tap to sign out");
+    accountBtn.title = who || "Signed in";
+  } else {
+    accountBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
+    accountBtn.setAttribute("aria-label", "Sign in to manage your voice");
+    accountBtn.removeAttribute("title");
+  }
   accountBtn.classList.toggle("in", real);
-  accountBtn.setAttribute("aria-label", real ? "Signed in — tap to sign out" : "Sign in to manage your voice");
 }
 if(accountBtn){
   accountBtn.addEventListener("click", async ()=>{
