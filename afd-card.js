@@ -240,6 +240,10 @@ async function withdrawSpeaker(uid, speakerId, state, withdrawal){
       }
     }catch(e){ console.warn("[AFD] withdrawSpeaker", eid, e); }
   }
+  // Keep the (speakerId-keyed) speaker card's bulk state in step with its takes,
+  // so the roster can read one field instead of scanning every recording.
+  try{ await updateDoc(doc(CFG.db,"afd_speakers",speakerId), { consent: state }); }
+  catch(e){ /* no card yet (nothing uploaded) — harmless */ }
   console.log("[AFD] withdrawSpeaker", speakerId, "\u2192", state, "count", n, proof?"(with proof)":"");
   return n;
 }

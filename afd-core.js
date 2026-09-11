@@ -108,6 +108,8 @@ window.AFDCore = (function(){
     "slot.add.meaning":     { en:"Add a meaning",      ar:"أضف معنى" },
     "voice.takeback":       { en:"Withdraw",           ar:"اسحب" },
     "voice.shareagain":     { en:"Restore",            ar:"استرجع" },
+    "roster.erased":        { en:"Erased",             ar:"محذوف" },
+    "roster.restore.confirm": { en:"Make {spk}'s recordings public again?", ar:"إعادة نشر تسجيلات {spk}؟" },
     "voice.erase":          { en:"Erase",              ar:"احذف" },
     "voice.erase.confirm":  { en:"Erase for good?",    ar:"حذف نهائي؟" },
     "result.here":          { en:"Here it is",         ar:"ها هو" },

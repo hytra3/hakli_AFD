@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0911a" type="image/svg+xml">
-<script src="afd-core.js?v=b0911a"></script>
-<script src="afd-words.js?v=b0911a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911a">
+<link rel="icon" href="favicon.svg?v=b0911b" type="image/svg+xml">
+<script src="afd-core.js?v=b0911b"></script>
+<script src="afd-words.js?v=b0911b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -221,6 +221,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 #roster{margin:2px 0 12px}
 #roster .roster-row.current b::after{content:"•";color:var(--frank);margin-inline-start:6px}
 #roster .wd{padding:6px 12px;font-size:12px;background:transparent;border:1px solid var(--hairline);color:var(--ink-soft);border-radius:10px}
+#roster .roster-row.withdrawn{opacity:.55}
 .stepdots{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:14px}
   /* The shared entry card now carries the picture, word and voices, so the
      recorder's own picture / gloss / "hear others" line is redundant — hide it,
@@ -526,7 +527,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911a";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -738,6 +739,14 @@ window.AFD.withdrawWithProof = async (uid, speakerId, blob, mode)=>{
   return await withdrawSpeaker(uid, speakerId, state,
     { at: serverTimestamp(), byUid: uid, audioPath });
 };
+// Current bulk consent state of a speaker card (public | withdrawn | deleted),
+// for the roster's Withdraw/Restore toggle. Kept fresh by withdrawSpeaker.
+window.AFD.speakerState = async (speakerId)=>{
+  if(!CONFIGURED || !speakerId) return null;
+  try{ const sn=await getDoc(doc(db,"afd_speakers",speakerId));
+       return sn.exists() ? ((sn.data()||{}).consent || "public") : null; }
+  catch(e){ console.warn("[AFD] speakerState", e); return null; }
+};
 window.AFD.getEntry = async (entryId)=>{
   // Firestore lookup for a deep-linked entry. Lives here in the module because
   // the plain script (where applyDeepLink runs) has no Firestore access at all.
@@ -892,7 +901,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0911a";   // bump every publish; shown in the header + console
+const BUILD="b0911b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1123,6 +1132,7 @@ async function wdApply(mode){
   try{
     const n=await window.AFD.withdrawWithProof(uid, spk, wd.blob, mode);
     closeWithdrawProof();
+    renderRoster();                     // reflect the new state on the roster
     const key = erasing ? (n?"speaker.erase.done":"speaker.erase.none")
                         : (n?"speaker.withdraw.done":"speaker.withdraw.none");
     alert(AFDCore.t(key,dispMode).split("{n}").join(n).split("{spk}").join(spk));
@@ -2029,7 +2039,7 @@ function speakerRoster(){
   if(cur && !map.has(cur)) map.set(cur,0);         // show the current speaker even before their first keep
   return [...map.entries()].map(([id,n])=>({id,n,current:id===cur}));
 }
-function renderRoster(){
+async function renderRoster(){
   const host=$("roster"); if(!host) return;
   const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
   const agent=!!($("agentMode") && $("agentMode").checked);
@@ -2037,15 +2047,39 @@ function renderRoster(){
   // A lone self-speaker needs no roster; show it once there's a choice to make
   // (agent mode on, or more than one speaker recorded on this device).
   if(rows.length<=1 && !agent){ host.innerHTML=""; return; }
-  host.innerHTML = rows.map(r=>
-    '<div class="clip roster-row'+(r.current?" current":"")+'"><div class="name"><b>'+rosterEsc(r.id)+
-    '</b>'+(r.n?'<span>'+r.n+'\u00d7</span>':"")+'</div>'+
-    (uid?'<button class="wd" data-wd="'+encodeURIComponent(r.id)+'">'+AFDCore.t("voice.takeback",dispMode)+'</button>':"")+
-    '</div>').join("");
+  // Current bulk state per speaker — one afd_speakers read each (cheap post re-key).
+  const st={};
+  if(uid && window.AFD && window.AFD.speakerState){
+    await Promise.all(rows.map(async r=>{ st[r.id]=await window.AFD.speakerState(r.id); }));
+  }
+  host.innerHTML = rows.map(r=>{
+    const s=st[r.id], meta=r.n?('<span>'+r.n+'\u00d7</span>'):"";
+    let ctl="";
+    if(uid){
+      if(s==="deleted")        ctl='<span class="sync pend">'+AFDCore.t("roster.erased",dispMode)+'</span>';
+      else if(s==="withdrawn") ctl='<button class="wd rs" data-rs="'+encodeURIComponent(r.id)+'">'+AFDCore.t("voice.shareagain",dispMode)+'</button>';
+      else                     ctl='<button class="wd" data-wd="'+encodeURIComponent(r.id)+'">'+AFDCore.t("voice.takeback",dispMode)+'</button>';
+    }
+    return '<div class="clip roster-row'+(r.current?" current":"")+(s==="withdrawn"?" withdrawn":"")+
+      '"><div class="name"><b>'+rosterEsc(r.id)+'</b>'+meta+'</div>'+ctl+'</div>';
+  }).join("");
   host.querySelectorAll("[data-wd]").forEach(b=>{
     b.onclick=()=>{
       if(!uid){ alert(AFDCore.t("speaker.signin",dispMode)); return; }
       openWithdrawProof(uid, decodeURIComponent(b.dataset.wd));   // recoverable withdraw; erase armed inside
+    };
+  });
+  host.querySelectorAll("[data-rs]").forEach(b=>{
+    b.onclick=async ()=>{
+      if(!uid) return;
+      const spk=decodeURIComponent(b.dataset.rs);
+      // Restore is the steward's deliberate re-exposure (the "she has more room now"
+      // case). Recoverable both ways; a light confirm guards an accidental tap.
+      if(!confirm(AFDCore.t("roster.restore.confirm",dispMode).split("{spk}").join(spk))) return;
+      b.disabled=true;
+      try{ await window.AFD.withdrawSpeaker(uid, spk, "public"); }   // public restore needs no proof
+      catch(e){ console.warn("[AFD] restore", e); }
+      renderRoster();
     };
   });
 }
