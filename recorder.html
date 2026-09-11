@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0911g" type="image/svg+xml">
-<script src="afd-core.js?v=b0911g"></script>
-<script src="afd-words.js?v=b0911g"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911g">
+<link rel="icon" href="favicon.svg?v=b0911h" type="image/svg+xml">
+<script src="afd-core.js?v=b0911h"></script>
+<script src="afd-words.js?v=b0911h"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911h">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -536,7 +536,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911g";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911h";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -910,7 +910,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0911g";   // bump every publish; shown in the header + console
+const BUILD="b0911h";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1028,7 +1028,7 @@ function squareJpeg(file, size){
 $("switchSpeaker").onclick=()=>{
   // fresh person: new code, cleared details, cleared per-speaker permission
   $("spkId").value = nextSpeakerCode($("spkId").value);
-  $("spkTribe").value=""; $("spkAge").value=""; $("spkGender").value="";   // keep town: usually the same locality — edit it for a roving session
+  $("spkAge").value=""; $("spkGender").value="";   // keep town + tribe: among Jibbali tribes a town is typically a tribe (edit for a roving session)
   ["cArchive","cML","cPlay"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
   switchingSpeaker=true;
   $("toMic").innerHTML='<span class="bi-ar" dir="rtl">سجِّل لهذا المتحدِّث</span><small class="sub">Record for this speaker</small>';
