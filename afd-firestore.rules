@@ -33,6 +33,17 @@ service cloud.firestore {
              && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    // A named window (config doc under afd_ui_config) is open while its
+    // openUntil is still in the future. Missing doc or a past openUntil →
+    // closed. Self-lapsing: a forgotten-open window shuts itself, so nobody has
+    // to remember to switch it back off. The steward admin page sets openUntil.
+    function windowOpen(name) {
+      return exists(/databases/$(database)/documents/afd_ui_config/$(name))
+             && get(/databases/$(database)/documents/afd_ui_config/$(name)).data.openUntil > request.time;
+    }
+    function suggestionsOpen() { return windowOpen('suggestions'); }
+    function recordingOpen()   { return windowOpen('recording'); }
+
     // The speaker card (public). get() is safe only after exists() is checked.
     function speakerExists(sid) {
       return exists(/databases/$(database)/documents/afd_speakers/$(sid));
@@ -182,7 +193,13 @@ service cloud.firestore {
     // boxed into its own namespace — it can never reach the corpus.
     match /afd_ui_prompts/{key} {
       allow read:  if true;
-      allow write: if signedIn();
+      // Live-on-record, but only while the recording window is open — publishing
+      // a clip is exactly this doc write (status:"recorded"), so a closed window
+      // stops new anonymous publishes without disturbing anything already live.
+      // A real steward account is never gated. NOTE: Storage rules can't read
+      // this window, so already-uploaded bytes aren't frozen here — that's the
+      // separate end-of-campaign Storage lock.
+      allow write: if signedIn() && (recordingOpen() || notAnon());
     }
 
     // ------------------- Arabic prompt-edit suggestions --------------------
@@ -199,11 +216,8 @@ service cloud.firestore {
     // otherwise. When named reviewers (real accounts) exist later, add
     // `|| onAllowlist()` to the create guard below — a one-line change, and the
     // switch keeps working for anonymous passes alongside it.
-    function suggestionsOpen() {
-      return exists(/databases/$(database)/documents/afd_ui_config/suggestions)
-             && get(/databases/$(database)/documents/afd_ui_config/suggestions).data.open == true;
-    }
-    // The switch itself: public-read so the tool can show/hide the affordance;
+    // (suggestionsOpen() and the openUntil model live with the window helpers up top.)
+    // The switch doc itself: public-read so the tool can show/hide the affordance;
     // only a real account (Marty) may flip it.
     match /afd_ui_config/{key} {
       allow read:  if true;

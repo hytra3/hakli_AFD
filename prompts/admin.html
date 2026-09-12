@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hakli prompts — steward</title>
+<link rel="icon" href="../favicon.svg?v=b0822b" type="image/svg+xml" />
+<style>
+  :root{
+    --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
+    --line:#e7e0d5; --warm:#b06a2c; --warm-bg:#f6ead9;
+    --go:#2f7d5b; --go-bg:#e3f2ea; --stop:#b23b3b;
+    --accent:#3a6ea5; --accent-bg:#e7f0f8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1a1713; --card:#241f19; --ink:#efe8dd; --muted:#a49a8c;
+      --line:#3a332a; --warm:#e0a163; --warm-bg:#33281c;
+      --go:#5bbd8e; --go-bg:#1d3329; --stop:#e2726f;
+      --accent:#7fb0e0; --accent-bg:#1e2b3a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px; margin:0 auto; padding:16px 16px 48px;}
+  h1{font-size:18px; margin:8px 0 4px;}
+  .sub{font-size:13px; color:var(--muted); margin-bottom:18px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:16px;}
+  .card h2{font-size:15px; margin:0 0 2px;}
+  .state{font-size:13px; margin:6px 0 14px;}
+  .state.open{color:var(--go);} .state.closed{color:var(--muted);}
+  .btnrow{display:flex; flex-wrap:wrap; gap:8px;}
+  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:11px 14px; font-size:14px; cursor:pointer;}
+  .btn.primary{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
+  .btn.danger{background:var(--card); border-color:var(--stop); color:var(--stop);}
+  .btn:disabled{opacity:.5; cursor:default;}
+  input{width:100%; font:inherit; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-top:8px;}
+  .note{background:var(--warm-bg); color:var(--warm); border-radius:12px; padding:12px 14px; font-size:13px; margin-top:14px;}
+  .msg{font-size:12px; color:var(--muted); margin-top:10px; min-height:16px;}
+  .hidden{display:none;}
+  .top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .who{font-size:12px; color:var(--muted);}
+  a.small{font-size:12px; color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Prompt windows</h1></div>
+    <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden">sign out</a></div>
+  </div>
+  <div class="sub">Open or close the recording and Arabic-edit windows. Both close themselves when the time runs out — you don't have to come back.</div>
+
+  <!-- sign in -->
+  <div id="signin" class="card">
+    <h2>Steward sign-in</h2>
+    <div class="msg" id="authmsg">Sign in with the steward account.</div>
+    <input id="email" type="email" placeholder="email" autocomplete="username" />
+    <input id="pass" type="password" placeholder="password" autocomplete="current-password" />
+    <div class="btnrow" style="margin-top:12px;"><button class="btn primary" id="dosignin">Sign in</button></div>
+  </div>
+
+  <!-- panel -->
+  <div id="panel" class="hidden">
+    <div class="card">
+      <h2>🎙️ Recording</h2>
+      <div class="state closed" id="rec-state">—</div>
+      <div class="btnrow">
+        <button class="btn primary" data-win="recording" data-days="30">Open 30 days</button>
+        <button class="btn" data-win="recording" data-days="7">Open 7 days</button>
+        <button class="btn danger" data-win="recording" data-close="1">Close now</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>✍️ Arabic edits</h2>
+      <div class="state closed" id="sug-state">—</div>
+      <div class="btnrow">
+        <button class="btn primary" data-win="suggestions" data-hours="8">Open 8 hours</button>
+        <button class="btn" data-win="suggestions" data-hours="2">Open 2 hours</button>
+        <button class="btn danger" data-win="suggestions" data-close="1">Close now</button>
+      </div>
+    </div>
+
+    <div class="msg" id="msg"></div>
+    <div class="note">Recording is closed unless it's open here. Arabic edits are proposals only — nothing a speaker types goes live until it's committed to the source. Neither window can freeze already-recorded audio; that's a separate one-time lock.</div>
+  </div>
+
+  <div id="setup" class="note hidden"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
+  authDomain:        "afd-dev.firebaseapp.com",
+  projectId:         "afd-dev",
+  storageBucket:     "afd-dev.firebasestorage.app",
+  messagingSenderId: "454829954488",
+  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
+};
+
+const $ = id => document.getElementById(id);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+function fmt(ts){
+  try{ return new Date(ts.toMillis()).toLocaleString(); }catch(_){ return "?"; }
+}
+async function refresh(){
+  for(const [id, name] of [["rec-state","recording"],["sug-state","suggestions"]]){
+    const el = $(id);
+    try{
+      const snap = await getDoc(doc(db,"afd_ui_config",name));
+      const u = snap.exists() && snap.data().openUntil;
+      const open = u && typeof u.toMillis === "function" && u.toMillis() > Date.now();
+      el.className = "state " + (open ? "open" : "closed");
+      el.textContent = open ? ("Open until " + fmt(u)) : "Closed";
+    }catch(e){ el.className="state closed"; el.textContent = "couldn't read state"; }
+  }
+}
+async function setWindow(name, ms){
+  $("msg").textContent = "saving…";
+  try{
+    const until = Timestamp.fromMillis(ms > 0 ? Date.now() + ms : 0);
+    await setDoc(doc(db,"afd_ui_config",name), { openUntil: until }, { merge:true });
+    $("msg").textContent = ms > 0 ? (name + " opened.") : (name + " closed.");
+    await refresh();
+  }catch(e){
+    $("msg").textContent = "Couldn't save — is this the steward account? (" + (e.code||e.message||"error") + ")";
+  }
+}
+
+document.querySelectorAll("#panel .btn[data-win]").forEach(b=>{
+  b.onclick = ()=>{
+    const name = b.getAttribute("data-win");
+    if(b.getAttribute("data-close")) return setWindow(name, 0);
+    const days = +b.getAttribute("data-days") || 0;
+    const hours = +b.getAttribute("data-hours") || 0;
+    setWindow(name, (days*24 + hours) * 3600 * 1000);
+  };
+});
+
+$("dosignin").onclick = async ()=>{
+  $("authmsg").textContent = "signing in…";
+  try{
+    await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value);
+  }catch(e){
+    $("authmsg").textContent = "Sign-in failed (" + (e.code||"error") + ").";
+  }
+};
+$("signout").onclick = (e)=>{ e.preventDefault(); signOut(auth); };
+
+onAuthStateChanged(auth, async (u)=>{
+  const real = u && u.providerData && u.providerData.length > 0; // not anonymous
+  if(u && real){
+    $("signin").classList.add("hidden");
+    $("panel").classList.remove("hidden");
+    $("who").textContent = u.email || "signed in";
+    $("signout").classList.remove("hidden");
+    await refresh();
+  }else{
+    $("panel").classList.add("hidden");
+    $("signin").classList.remove("hidden");
+    $("who").textContent = "";
+    $("signout").classList.add("hidden");
+    if(u && !real){ try{ await signOut(auth); }catch(_){ } } // reject stray anon
+  }
+});
+</script>
+</body>
+</html>

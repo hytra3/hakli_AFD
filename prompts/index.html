@@ -92,6 +92,8 @@
       <div class="hint" id="cur-hint"></div>
       <div class="key" id="cur-key"></div>
 
+      <div class="note hidden" id="recclosed">Recording is closed right now — your earlier recordings are safe, and it'll be open again when a session is scheduled.</div>
+
       <div class="controls">
         <button id="recbtn" class="recbtn">Record</button>
         <div class="timer" id="timer"></div>
@@ -358,14 +360,25 @@ async function loadPending(){
   const all = await IDB.all().catch(()=>[]);
   (all||[]).forEach(r => { state.pending.set(r.key, r.blob); state.recorded.add(r.key); });
 }
-/* The Arabic-suggestion window is OFF unless afd_ui_config/suggestions.open is
-   true. Missing doc or any read failure → closed, so the affordance simply
-   never appears (and the rules would reject a write anyway). */
+/* Both windows are OFF unless their afd_ui_config doc's openUntil is still in
+   the future. Missing doc / past time / any read failure → closed, so the
+   affordance never appears and the rules reject the write anyway. The steward
+   admin page sets openUntil; windows lapse on their own. */
+function stillOpen(snap){
+  try{
+    const u = snap.exists() && snap.data().openUntil;
+    return !!(u && typeof u.toMillis === "function" && u.toMillis() > Date.now());
+  }catch(_){ return false; }
+}
 async function loadConfig(db){
   try{
-    const c = await getDoc(doc(db,"afd_ui_config","suggestions"));
-    state.suggestOpen = c.exists() && c.data().open === true;
-  }catch(e){ state.suggestOpen = false; }
+    const [s,r] = await Promise.all([
+      getDoc(doc(db,"afd_ui_config","suggestions")),
+      getDoc(doc(db,"afd_ui_config","recording")),
+    ]);
+    state.suggestOpen = stillOpen(s);
+    state.recordOpen  = stillOpen(r);
+  }catch(e){ state.suggestOpen = false; state.recordOpen = false; }
 }
 
 /* Locally remember which keys this device has already suggested — informational
@@ -397,6 +410,12 @@ function render(){
   $("sync").textContent = state.pending.has(it.key) ? "saved here — will send when online" : (done ? "✓ recorded" : "");
   $("recbtn").textContent = done ? "Record again" : "Record";
   $("recdone").classList.toggle("hidden", !(done || state.pending.has(it.key)));
+
+  // Recording window: when closed, block new takes (the rules also refuse the
+  // publish). Existing recordings and playback are untouched.
+  const recOpen = state.recordOpen === true;
+  $("recclosed").classList.toggle("hidden", recOpen);
+  $("recbtn").disabled = !recOpen;
 
   // Suggest-Arabic-edit: only when the window is open, the item has Arabic to
   // improve, and it isn't a recorder directive ([توجيه] items aren't UI copy).
