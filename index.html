@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911m" type="image/svg+xml">
-<script src="afd-core.js?v=b0911m"></script>
-<script src="afd-words.js?v=b0911m"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911m">
+<link rel="icon" href="favicon.svg?v=b0911n" type="image/svg+xml">
+<script src="afd-core.js?v=b0911n"></script>
+<script src="afd-words.js?v=b0911n"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911n">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -63,6 +63,20 @@ body{
 .glyph:focus-visible{outline:2px solid var(--mountain);outline-offset:3px;border-radius:6px}
 .glyph svg{width:100%;height:100%}
 .screen{display:flex; align-items:center; gap:9px; min-width:0}
+.screen-wrap{position:relative; min-width:0}
+#mastScreen{cursor:pointer}
+.view-menu{position:absolute; top:calc(100% + 8px); inset-inline-start:0; z-index:60; min-width:230px;
+  background:var(--cloud); border:1px solid var(--mist-2); border-radius:12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.16); padding:6px; display:none}
+.view-menu.open{display:block}
+.view-menu button{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+  text-align:start; padding:9px 10px; border:0; background:none; font:inherit; font-size:14px;
+  color:var(--mountain); border-radius:8px; cursor:pointer}
+.view-menu button:hover{background:var(--mist-2)}
+.view-menu button[aria-current="true"]{font-weight:600}
+.vm-check{flex:0 0 auto}
+.vm-sep{height:1px; background:var(--mist-2); margin:5px 4px}
+.view-empty{padding:26px 16px; text-align:center; color:var(--mist); font-size:14px}
 .screen-ic{width:24px;height:24px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
 .screen-ic svg{width:100%;height:100%}
 .screen-t{display:flex;flex-direction:column;line-height:1.05;min-width:0}
@@ -187,9 +201,12 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 <body>
   <header>
     <span class="glyph" id="mastGlyph" role="button" tabindex="0" aria-label="Home — the whole dictionary" title="Home"><svg viewBox="0 0 64 78" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 22 C27 15 37 11 32 3" stroke="#C24A32" stroke-width="2.4" stroke-linecap="round" opacity=".5"/><polygon points="8,26 20,26 14,13" fill="#9B1C1C"/><polygon points="20,26 32,26 26,13" fill="#9B1C1C"/><polygon points="32,26 44,26 38,13" fill="#9B1C1C"/><polygon points="44,26 56,26 50,13" fill="#9B1C1C"/><polygon points="8,26 56,26 50,70 14,70" fill="#C24A32"/><rect x="12" y="70" width="40" height="4" rx="1" fill="#7E2C1C"/><rect x="30" y="45" width="4" height="25" rx="2" fill="#7E2C1C"/></svg></span>
-    <span class="screen">
-      <span class="screen-ic" id="mastIcon" aria-hidden="true"></span>
-      <span class="screen-t"><span class="screen-ar" id="mastAr" dir="rtl"></span><small class="screen-en sub" id="mastEn"></small></span>
+    <span class="screen-wrap">
+      <span class="screen" id="mastScreen" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" aria-label="Change view" title="Change view">
+        <span class="screen-ic" id="mastIcon" aria-hidden="true"></span>
+        <span class="screen-t"><span class="screen-ar" id="mastAr" dir="rtl"></span><small class="screen-en sub" id="mastEn"></small></span>
+      </span>
+      <div class="view-menu" id="viewMenu" role="menu" aria-hidden="true"></div>
     </span>
     <button class="skin" id="skin" aria-label="Change how words are shown"></button>
     <span class="account-wrap">
@@ -231,7 +248,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911m";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911n";
 
 
 /* ================================================================= CONFIG */
@@ -285,7 +302,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911m";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911n";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -539,32 +556,53 @@ function backToAll(){
 async function renderBrowse(){
   const my = ++renderToken; deepEntry = null; lastResults = null; setMastView("dictionary");
   hint.classList.remove("small");
-  // A cold Firestore connection makes the 40 header reads slow, so show a loading
+  // A cold Firestore connection makes the header reads slow, so show a loading
   // pulse immediately (a blank landing reads as broken) and fetch the headers in
-  // PARALLEL — this was a sequential await-loop, ~20s cold; firing them together
-  // turns 40 round-trips into roughly one.
+  // PARALLEL — firing them together turns dozens of round-trips into roughly one.
   resultsEl.innerHTML = '<div class="loadingdots" role="status" aria-label="Loading the dictionary"><span></span><span></span><span></span></div>';
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 
   const words = window.AFDWords || [];
-  const seen = new Set(words.map(w=>AFDCore.entryIdFor(w.id)));
-  const seedCards = await Promise.all(words.map(w =>
-    entryCard({entryId: AFDCore.entryIdFor(w.id)}, false).catch(()=>null)));
+  const seedIds = words.map(w=>AFDCore.entryIdFor(w.id));
+  const seen = new Set(seedIds);
+  const seedCards = await Promise.all(seedIds.map(id =>
+    entryCard({entryId: id}, false).catch(()=>null)));
   if(my!==renderToken) return;
 
-  let userCards = [];
+  let userDocs = [];
   try{
     const snap = await getDocs(query(collection(db,"afd_entries"), where("source","==","user")));
     if(my!==renderToken) return;
-    userCards = await Promise.all(snap.docs.filter(d=>!seen.has(d.id))
-      .map(d => entryCard({entryId: d.id}, false).catch(()=>null)));
-    if(my!==renderToken) return;
+    userDocs = snap.docs.filter(d=>!seen.has(d.id));
   }catch(e){ console.warn("[AFD] browse: user entries", e); }
+  const userCards = await Promise.all(userDocs.map(d =>
+    entryCard({entryId: d.id}, false).catch(()=>null)));
+  if(my!==renderToken) return;
+
+  // Unified list carrying the metadata the views need (creation date; entryId for counts).
+  let items = [];
+  seedCards.forEach((c,i)=>{ if(c) items.push({ card:c, entryId:seedIds[i], createdAt:0 }); });
+  userCards.forEach((c,i)=>{ if(c){ const t=userDocs[i].data().createdAt; items.push({ card:c, entryId:userDocs[i].id, createdAt:(t&&t.toMillis?t.toMillis():0) }); } });
+
+  if(currentView==="needs"){
+    // coverage worklist: only entries whose word has no spoken recording yet
+    const counts = await Promise.all(items.map(it=>entryCounts(it.entryId).catch(()=>({word:0}))));
+    if(my!==renderToken) return;
+    items = items.filter((it,i)=> (counts[i].word||0)===0);
+  }else if(currentView==="newest"){
+    items = items.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));   // recent additions first
+  }
 
   const frag = document.createDocumentFragment();
   frag.appendChild(addWordButton());
-  for(const c of seedCards) if(c) frag.appendChild(c.el);
-  for(const c of userCards) if(c) frag.appendChild(c.el);
+  for(const it of items) frag.appendChild(it.card.el);
+  if(!items.length){
+    const e=document.createElement("div"); e.className="view-empty";
+    e.textContent = currentView==="needs"
+      ? (displayMode==="auto" ? "Every word here has a voice \u2014 nothing needs recording." : "\u0643\u0644 \u0627\u0644\u0643\u0644\u0645\u0627\u062a \u0647\u0646\u0627 \u0644\u0647\u0627 \u0635\u0648\u062a.")
+      : (displayMode==="auto" ? "No words yet." : "\u0644\u0627 \u0643\u0644\u0645\u0627\u062a \u0628\u0639\u062f.");
+    frag.appendChild(e);
+  }
   if(my!==renderToken) return;
   resultsEl.replaceChildren(frag);
 }
@@ -703,6 +741,16 @@ console.log("[AFD] build", BUILD, "·", location.href);
    auto + script; the English sub only in auto; the sound tier (non-reader) shows
    the glyph + icon alone, no words. Arabic titles are PROVISIONAL — pending local
    speaker review. */
+/* Dictionary VIEWS — the switcher behind the identity. Extensible: add an entry
+   (with a filter/sort handled in renderBrowse, or a `nav` target for a page jump)
+   and it appears in the menu. Arabic labels PROVISIONAL — pending speaker review. */
+const VIEWS = [
+  { id:"all",    ar:"كل الكلمات", en:"All words" },
+  { id:"needs",  ar:"يحتاج صوتًا", en:"Needs a voice" },
+  { id:"newest", ar:"الأحدث",      en:"Newest" },
+  { id:"record", ar:"سجِّل كلمة",   en:"Record a word", nav:"recorder.html" },
+];
+let currentView = "all";
 const MAST = {
   find:       { color:"#5E9E3E", ar:"قُل لتجد", en:"speak to find",
     ic:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 10v4M7.5 6v12M12 3v18M16.5 6v12M21 10v4"/></svg>` },
@@ -712,12 +760,51 @@ const MAST = {
 let mastView = "find";
 function renderMasthead(){
   const m = MAST[mastView] || MAST.find;
+  let ar=m.ar, en=m.en;                       // in the dictionary, reflect the active view
+  if(mastView==="dictionary" && currentView!=="all"){
+    const v = VIEWS.find(x=>x.id===currentView);
+    if(v){ ar=v.ar; en=v.en; }
+  }
   const ic=$("mastIcon"), arEl=$("mastAr"), enEl=$("mastEn");
   if(ic){ ic.innerHTML=m.ic; ic.style.color=m.color; }
-  if(arEl){ arEl.textContent=m.ar; arEl.style.display=(displayMode==="sound")?"none":""; }
-  if(enEl){ enEl.textContent=m.en; enEl.style.display=(displayMode==="auto")?"":"none"; }
+  if(arEl){ arEl.textContent=ar; arEl.style.display=(displayMode==="sound")?"none":""; }
+  if(enEl){ enEl.textContent=en; enEl.style.display=(displayMode==="auto")?"":"none"; }
 }
 function setMastView(v){ mastView=v; renderMasthead(); }
+
+/* ---- view switcher menu (behind the dictionary identity) ---- */
+const viewMenu=$("viewMenu"), mastScreen=$("mastScreen");
+function viewMenuClose(){ if(viewMenu){ viewMenu.classList.remove("open"); viewMenu.setAttribute("aria-hidden","true"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","false"); }
+function viewMenuOpen(){ if(viewMenu){ viewMenu.classList.add("open"); viewMenu.setAttribute("aria-hidden","false"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","true"); }
+function viewLabel(v){ return (displayMode==="auto") ? (v.ar+" — "+v.en) : v.ar; }
+function renderViewMenu(){
+  if(!viewMenu) return;
+  let html="";
+  for(const v of VIEWS){
+    const active = (!v.nav && v.id===currentView);
+    html += '<button role="menuitem" data-view="'+v.id+'"'+(active?' aria-current="true"':'')+'>'
+          + '<span>'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
+    if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jump
+  }
+  viewMenu.innerHTML=html;
+  viewMenu.querySelectorAll("[data-view]").forEach(b=> b.onclick=()=>selectView(b.dataset.view));
+}
+function selectView(id){
+  viewMenuClose();
+  const v = VIEWS.find(x=>x.id===id); if(!v) return;
+  if(v.nav){ location.href=v.nav; return; }       // page jump (e.g. Record a word)
+  currentView = id;
+  renderViewMenu();
+  renderBrowse();
+}
+if(mastScreen){
+  mastScreen.addEventListener("click",(e)=>{ e.stopPropagation();
+    if(viewMenu && viewMenu.classList.contains("open")) viewMenuClose();
+    else { renderViewMenu(); viewMenuOpen(); } });
+  mastScreen.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); mastScreen.click(); } });
+}
+document.addEventListener("click",(e)=>{ if(viewMenu && viewMenu.classList.contains("open") && !e.target.closest(".screen-wrap")) viewMenuClose(); });
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewMenuClose(); });
 
 // deep-link opens one entry; otherwise show the whole dictionary as browsable cards
 if(!applyEntryDeepLink()) renderBrowse();
