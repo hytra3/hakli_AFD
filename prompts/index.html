@@ -68,6 +68,8 @@
   .hidden{display:none;}
   #recdone{display:none; gap:8px; justify-content:center; margin-top:10px}
   #recdone:not(.hidden){display:flex}
+  .recclosed{background:var(--card); border:1.5px solid var(--stop); border-left:5px solid var(--stop); border-radius:12px; padding:14px 16px; margin-top:16px; font-size:14px; color:var(--ink);}
+  .recclosed b{display:block; color:var(--stop); font-size:16px; margin-bottom:4px;}
   .suggest{margin-top:16px; border-top:1px solid var(--line); padding-top:14px;}
   .btn.ghost{width:100%; justify-content:center; color:var(--accent); background:var(--accent-bg); border-color:var(--accent-bg); font-size:14px;}
   .suggestbody{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
@@ -92,7 +94,7 @@
       <div class="hint" id="cur-hint"></div>
       <div class="key" id="cur-key"></div>
 
-      <div class="note hidden" id="recclosed">Recording is closed right now — your earlier recordings are safe, and it'll be open again when a session is scheduled.</div>
+      <div class="recclosed hidden" id="recclosed"><b>⏸ Recording is closed right now</b>Your earlier recordings are safe — this opens again when a session is scheduled.</div>
 
       <div class="controls">
         <button id="recbtn" class="recbtn">Record</button>
