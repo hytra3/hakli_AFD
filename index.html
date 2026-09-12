@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911n" type="image/svg+xml">
-<script src="afd-core.js?v=b0911n"></script>
-<script src="afd-words.js?v=b0911n"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911n">
+<link rel="icon" href="favicon.svg?v=b0911o" type="image/svg+xml">
+<script src="afd-core.js?v=b0911o"></script>
+<script src="afd-words.js?v=b0911o"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911o">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -75,6 +75,9 @@ body{
 .view-menu button:hover{background:var(--mist-2)}
 .view-menu button[aria-current="true"]{font-weight:600}
 .vm-check{flex:0 0 auto}
+.view-menu .vm-t{display:flex; flex-direction:column; line-height:1.12; min-width:0}
+.view-menu .vm-ar{font-family:var(--serif); font-size:15px; direction:rtl; text-align:start}
+.view-menu .vm-en{font-family:var(--sans); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-top:1px}
 .vm-sep{height:1px; background:var(--mist-2); margin:5px 4px}
 .view-empty{padding:26px 16px; text-align:center; color:var(--mist); font-size:14px}
 .screen-ic{width:24px;height:24px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
@@ -248,7 +251,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911n";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911o";
 
 
 /* ================================================================= CONFIG */
@@ -302,7 +305,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911n";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911o";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -776,14 +779,14 @@ function setMastView(v){ mastView=v; renderMasthead(); }
 const viewMenu=$("viewMenu"), mastScreen=$("mastScreen");
 function viewMenuClose(){ if(viewMenu){ viewMenu.classList.remove("open"); viewMenu.setAttribute("aria-hidden","true"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","false"); }
 function viewMenuOpen(){ if(viewMenu){ viewMenu.classList.add("open"); viewMenu.setAttribute("aria-hidden","false"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","true"); }
-function viewLabel(v){ return (displayMode==="auto") ? (v.ar+" — "+v.en) : v.ar; }
+function viewLabel(v){ return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="auto"?'<span class="vm-en">'+v.en+'</span>':''); }
 function renderViewMenu(){
   if(!viewMenu) return;
   let html="";
   for(const v of VIEWS){
     const active = (!v.nav && v.id===currentView);
     html += '<button role="menuitem" data-view="'+v.id+'"'+(active?' aria-current="true"':'')+'>'
-          + '<span>'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
+          + '<span class="vm-t">'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
     if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jump
   }
   viewMenu.innerHTML=html;
