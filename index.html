@@ -18,10 +18,10 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli.png">
-<link rel="icon" href="favicon.svg?v=b0911o" type="image/svg+xml">
-<script src="afd-core.js?v=b0911o"></script>
-<script src="afd-words.js?v=b0911o"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911o">
+<link rel="icon" href="favicon.svg?v=b0911p" type="image/svg+xml">
+<script src="afd-core.js?v=b0911p"></script>
+<script src="afd-words.js?v=b0911p"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911p">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -69,15 +69,22 @@ body{
   background:var(--cloud); border:1px solid var(--mist-2); border-radius:12px;
   box-shadow:0 10px 30px rgba(0,0,0,.16); padding:6px; display:none}
 .view-menu.open{display:block}
-.view-menu button{display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+.view-menu button{display:flex; align-items:center; gap:10px; width:100%;
   text-align:start; padding:9px 10px; border:0; background:none; font:inherit; font-size:14px;
   color:var(--mountain); border-radius:8px; cursor:pointer}
 .view-menu button:hover{background:var(--mist-2)}
 .view-menu button[aria-current="true"]{font-weight:600}
-.vm-check{flex:0 0 auto}
+.vm-check{flex:0 0 auto; margin-inline-start:auto}
+.view-menu .vm-ic{width:22px; height:22px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; color:var(--mountain)}
+.view-menu .vm-ic svg{width:100%; height:100%}
 .view-menu .vm-t{display:flex; flex-direction:column; line-height:1.12; min-width:0}
+.view-menu .vm-t:empty{display:none}
 .view-menu .vm-ar{font-family:var(--serif); font-size:15px; direction:rtl; text-align:start}
 .view-menu .vm-en{font-family:var(--sans); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-top:1px}
+.coverage{display:flex; align-items:center; gap:10px; padding:2px 2px 12px; color:var(--mist); font-size:12px}
+.cov-label{flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums}
+.cov-bar{flex:1; height:6px; background:var(--mist-2); border-radius:3px; overflow:hidden}
+.cov-fill{height:100%; width:0; background:var(--mountain); border-radius:3px; transition:width .5s ease}
 .vm-sep{height:1px; background:var(--mist-2); margin:5px 4px}
 .view-empty{padding:26px 16px; text-align:center; color:var(--mist); font-size:14px}
 .screen-ic{width:24px;height:24px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
@@ -251,7 +258,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911o";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b0911p";
 
 
 /* ================================================================= CONFIG */
@@ -305,7 +312,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b0911o";      // bump every publish; shown in the wordmark + console
+const BUILD = "b0911p";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -556,6 +563,21 @@ function backToAll(){
   b.addEventListener("click", renderBrowse);
   return b;
 }
+/* coverage meter: how many words already have a spoken recording, as a glanceable
+   goal that shrinks the wall of zeros into progress. */
+function coverageMeterEl(){
+  const d=document.createElement("div"); d.className="coverage"; d.id="coverage";
+  d.innerHTML='<span class="cov-label"></span><div class="cov-bar"><div class="cov-fill"></div></div>';
+  return d;
+}
+function setCoverage(withVoice, total){
+  const el=$("coverage"); if(!el) return;
+  const pct = total ? Math.round(withVoice/total*100) : 0;
+  const lbl=el.querySelector(".cov-label"), fill=el.querySelector(".cov-fill");
+  if(lbl) lbl.textContent = withVoice+" / "+total + (displayMode==="auto" ? "  with a voice" : "");
+  if(fill) fill.style.width = pct+"%";
+}
+
 async function renderBrowse(){
   const my = ++renderToken; deepEntry = null; lastResults = null; setMastView("dictionary");
   hint.classList.remove("small");
@@ -587,19 +609,24 @@ async function renderBrowse(){
   seedCards.forEach((c,i)=>{ if(c) items.push({ card:c, entryId:seedIds[i], createdAt:0 }); });
   userCards.forEach((c,i)=>{ if(c){ const t=userDocs[i].data().createdAt; items.push({ card:c, entryId:userDocs[i].id, createdAt:(t&&t.toMillis?t.toMillis():0) }); } });
 
+  const allItems = items;
+  let displayItems = allItems, withVoice = 0, coverageKnown = false;
+
   if(currentView==="needs"){
     // coverage worklist: only entries whose word has no spoken recording yet
-    const counts = await Promise.all(items.map(it=>entryCounts(it.entryId).catch(()=>({word:0}))));
+    const counts = await Promise.all(allItems.map(it=>entryCounts(it.entryId).catch(()=>({word:0}))));
     if(my!==renderToken) return;
-    items = items.filter((it,i)=> (counts[i].word||0)===0);
+    withVoice = counts.filter(c=>(c.word||0)>0).length; coverageKnown = true;
+    displayItems = allItems.filter((it,i)=> (counts[i].word||0)===0);
   }else if(currentView==="newest"){
-    items = items.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));   // recent additions first
+    displayItems = allItems.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));   // recent additions first
   }
 
   const frag = document.createDocumentFragment();
+  frag.appendChild(coverageMeterEl());
   frag.appendChild(addWordButton());
-  for(const it of items) frag.appendChild(it.card.el);
-  if(!items.length){
+  for(const it of displayItems) frag.appendChild(it.card.el);
+  if(!displayItems.length){
     const e=document.createElement("div"); e.className="view-empty";
     e.textContent = currentView==="needs"
       ? (displayMode==="auto" ? "Every word here has a voice \u2014 nothing needs recording." : "\u0643\u0644 \u0627\u0644\u0643\u0644\u0645\u0627\u062a \u0647\u0646\u0627 \u0644\u0647\u0627 \u0635\u0648\u062a.")
@@ -608,6 +635,15 @@ async function renderBrowse(){
   }
   if(my!==renderToken) return;
   resultsEl.replaceChildren(frag);
+
+  // Fill the meter: known already for the needs view; otherwise count in the
+  // background so the plain list isn't held up waiting on it.
+  if(coverageKnown){ setCoverage(withVoice, allItems.length); }
+  else{ (async()=>{
+    const cs = await Promise.all(allItems.map(it=>entryCounts(it.entryId).catch(()=>({word:0}))));
+    if(my!==renderToken) return;
+    setCoverage(cs.filter(c=>(c.word||0)>0).length, allItems.length);
+  })(); }
 }
 
 /* ---- new entry: the dictionary is growable ------------------------------------
@@ -748,10 +784,14 @@ console.log("[AFD] build", BUILD, "·", location.href);
    (with a filter/sort handled in renderBrowse, or a `nav` target for a page jump)
    and it appears in the menu. Arabic labels PROVISIONAL — pending speaker review. */
 const VIEWS = [
-  { id:"all",    ar:"كل الكلمات", en:"All words" },
-  { id:"needs",  ar:"يحتاج صوتًا", en:"Needs a voice" },
-  { id:"newest", ar:"الأحدث",      en:"Newest" },
-  { id:"record", ar:"سجِّل كلمة",   en:"Record a word", nav:"recorder.html" },
+  { id:"all",    ar:"كل الكلمات", en:"All words",
+    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>' },
+  { id:"needs",  ar:"يحتاج صوتًا", en:"Needs a voice",
+    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/><path d="M18 3.5v4M16 5.5h4"/></svg>' },
+  { id:"newest", ar:"الأحدث",      en:"Newest",
+    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2"/></svg>' },
+  { id:"record", ar:"سجِّل كلمة",   en:"Record a word", nav:"recorder.html",
+    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3" fill="currentColor" stroke="none"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>' },
 ];
 let currentView = "all";
 const MAST = {
@@ -779,14 +819,14 @@ function setMastView(v){ mastView=v; renderMasthead(); }
 const viewMenu=$("viewMenu"), mastScreen=$("mastScreen");
 function viewMenuClose(){ if(viewMenu){ viewMenu.classList.remove("open"); viewMenu.setAttribute("aria-hidden","true"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","false"); }
 function viewMenuOpen(){ if(viewMenu){ viewMenu.classList.add("open"); viewMenu.setAttribute("aria-hidden","false"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","true"); }
-function viewLabel(v){ return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="auto"?'<span class="vm-en">'+v.en+'</span>':''); }
+function viewLabel(v){ if(displayMode==="sound") return ""; return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="auto"?'<span class="vm-en">'+v.en+'</span>':''); }
 function renderViewMenu(){
   if(!viewMenu) return;
   let html="";
   for(const v of VIEWS){
     const active = (!v.nav && v.id===currentView);
     html += '<button role="menuitem" data-view="'+v.id+'"'+(active?' aria-current="true"':'')+'>'
-          + '<span class="vm-t">'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
+          + '<span class="vm-ic">'+v.ic+'</span><span class="vm-t">'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
     if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jump
   }
   viewMenu.innerHTML=html;
