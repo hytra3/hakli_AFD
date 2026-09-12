@@ -42,6 +42,15 @@
   .top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
   .who{font-size:12px; color:var(--muted);}
   a.small{font-size:12px; color:var(--accent);}
+  .queuehint code{background:var(--warm-bg); padding:1px 5px; border-radius:5px; font-size:12px;}
+  .qgroup{border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:10px;}
+  .qkey{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace; margin-bottom:6px;}
+  .qitem{border-top:1px dashed var(--line); padding-top:8px; margin-top:8px;}
+  .qgroup .qitem:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+  .qwas{font-size:13px; color:var(--muted); direction:rtl; text-align:right;}
+  .qsug{font-size:19px; direction:rtl; text-align:right; margin-top:2px;}
+  .qmeta{font-size:12px; color:var(--muted); margin-top:3px;}
+  .qempty{font-size:13px; color:var(--muted); padding:8px 0;}
 </style>
 </head>
 <body>
@@ -83,6 +92,15 @@
       </div>
     </div>
 
+    <div class="card" id="queuecard">
+      <div class="top">
+        <h2>✍️ Edit suggestions</h2>
+        <a href="#" id="refreshq" class="small">refresh</a>
+      </div>
+      <div class="note queuehint">Proposals only — read them here, then commit the ones you want: edit that key's <code>ar:</code> in <code>prompts/index.html</code> and <b>push to git</b>. Nothing on this page changes the app by itself.</div>
+      <div id="queue"><div class="qempty">—</div></div>
+    </div>
+
     <div class="msg" id="msg"></div>
     <div class="note">Recording is closed unless it's open here. Arabic edits are proposals only — nothing a speaker types goes live until it's committed to the source. Neither window can freeze already-recorded audio; that's a separate one-time lock.</div>
   </div>
@@ -93,7 +111,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -136,6 +154,38 @@ async function setWindow(name, ms){
   }
 }
 
+async function loadQueue(){
+  const q = $("queue");
+  const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const when = r => { try{ return (r.createdAt && r.createdAt.toMillis) ? new Date(r.createdAt.toMillis()).toLocaleString() : ""; }catch(_){ return ""; } };
+  q.innerHTML = '<div class="qempty">loading…</div>';
+  try{
+    const snap = await getDocs(collection(db,"afd_ui_suggestions"));
+    const rows = []; snap.forEach(d => rows.push(d.data()));
+    if(!rows.length){ q.innerHTML = '<div class="qempty">No suggestions yet.</div>'; return; }
+    const groups = {}; rows.forEach(r => { (groups[r.key] = groups[r.key] || []).push(r); });
+    const ms = r => (r.createdAt && r.createdAt.toMillis) ? r.createdAt.toMillis() : 0;
+    let html = "";
+    Object.keys(groups).sort().forEach(key=>{
+      const items = groups[key].sort((a,b)=> ms(b)-ms(a));
+      html += '<div class="qgroup"><div class="qkey">'+esc(key)+'</div>';
+      items.forEach(r=>{
+        html += '<div class="qitem">'
+             +  '<div class="qwas" dir="rtl">was: '+esc(r.arSeen)+'</div>'
+             +  '<div class="qsug" dir="rtl">'+esc(r.arSuggested)+'</div>'
+             +  (r.note ? '<div class="qmeta">“'+esc(r.note)+'”</div>' : '')
+             +  '<div class="qmeta">'+esc(when(r))+'</div>'
+             +  '</div>';
+      });
+      html += '</div>';
+    });
+    q.innerHTML = html;
+  }catch(e){
+    q.innerHTML = '<div class="qempty">Couldn\'t load ('+esc(e.code||e.message||"error")+').</div>';
+  }
+}
+$("refreshq").onclick = (e)=>{ e.preventDefault(); loadQueue(); };
+
 document.querySelectorAll("#panel .btn[data-win]").forEach(b=>{
   b.onclick = ()=>{
     const name = b.getAttribute("data-win");
@@ -164,6 +214,7 @@ onAuthStateChanged(auth, async (u)=>{
     $("who").textContent = u.email || "signed in";
     $("signout").classList.remove("hidden");
     await refresh();
+    loadQueue();
   }else{
     $("panel").classList.add("hidden");
     $("signin").classList.remove("hidden");
