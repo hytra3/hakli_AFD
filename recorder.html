@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0911p" type="image/svg+xml">
-<script src="afd-core.js?v=b0911p"></script>
-<script src="afd-words.js?v=b0911p"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0911p">
+<link rel="icon" href="favicon.svg?v=b0911q" type="image/svg+xml">
+<script src="afd-core.js?v=b0911q"></script>
+<script src="afd-words.js?v=b0911q"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0911q">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -54,6 +54,11 @@ body{
 .rec-topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:10px;
   margin:0 -16px 8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
   background:#F3F7F5;box-shadow:0 2px 10px rgba(31,58,52,.05)}
+.rec-left{display:flex; align-items:center; gap:12px; min-width:0}
+.rec-home{width:28px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer}
+.rec-home svg{width:100%; height:100%}
+.rec-topbar .stepdots{margin-bottom:0; cursor:pointer}
+.rec-topbar .stepdots .step-back{color:var(--ink-soft)}
 .account{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
   background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;overflow:hidden}
 .account.in{background:var(--mountain);color:#fff;border-color:var(--mountain)}
@@ -420,7 +425,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <!-- ============ 3. RECORD ============ -->
 <section id="recorder" class="hidden">
   <div class="rec-topbar">
-    <p class="stepdots"><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+    <div class="rec-left">
+      <a class="rec-home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="0 0 64 78" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 22 C27 15 37 11 32 3" stroke="#C24A32" stroke-width="2.4" stroke-linecap="round" opacity=".5"/><polygon points="8,26 20,26 14,13" fill="#9B1C1C"/><polygon points="20,26 32,26 26,13" fill="#9B1C1C"/><polygon points="32,26 44,26 38,13" fill="#9B1C1C"/><polygon points="44,26 56,26 50,13" fill="#9B1C1C"/><polygon points="8,26 56,26 50,70 14,70" fill="#C24A32"/><rect x="12" y="70" width="40" height="4" rx="1" fill="#7E2C1C"/><rect x="30" y="45" width="4" height="25" rx="2" fill="#7E2C1C"/></svg></a>
+      <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+    </div>
     <div class="topbtns">
       <a class="dispskin" id="findLink" href="index.html" aria-label="Look up a word">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
@@ -558,7 +566,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911p";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0911q";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -932,7 +940,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0911p";   // bump every publish; shown in the header + console
+const BUILD="b0911q";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1232,6 +1240,12 @@ function show(which){
   window.scrollTo(0,0);
   renderSpeakerChip();
 }
+/* The record-screen step readout is a breadcrumb back to the speaker step, so a
+   fast-pathed session (which lands straight on step 3) can still reach 1 and 2. */
+(function(){ const p=$("progressWrap"); if(p){
+  p.addEventListener("click",()=>show("setup"));
+  p.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); show("setup"); } });
+} })();
 
 /* ---- returning-speaker fast path ----------------------------------------
    When the speaker is already known (saved on this device) AND already signed
