@@ -676,9 +676,6 @@ async function uploadClip(rec, speaker){
   //   consent    = the three-state bulk switch (public | withdrawn)
   //   grant      = the recorded consent flags (archival / ML / attribution)
   // viaAgent + masked default off until the agent and masking flows exist.
-  // NOTE: still keyed by uid so the current (old) dev rules accept the write.
-  // The re-key to {speakerId} and moving origin into a steward-only /private
-  // subdoc happen together at the rules-deploy cutover.
   const speakerId = speaker.speakerId;
   // Keyed by the globally-unique speaker code (not uid): one doc PER SPEAKER, so a
   // steward recording several people no longer overwrites a single per-account doc.
