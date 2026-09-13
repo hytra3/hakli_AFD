@@ -842,9 +842,20 @@ window.AFD.grantWithProof = async (uid, speakerId, blob)=>{
     customMetadata: { speakerId: String(speakerId), kind: "grant" }
   });
   // Merge onto the speaker card's grant map — deep-merges field by field, so the
-  // spoken proof lands next to the flags without clobbering them.
-  try{ await setDoc(doc(db, "afd_speakers", speakerId),
-        { grant: { audioPath, grantedAt: serverTimestamp() } }, { merge: true }); }
+  // spoken proof lands next to the flags without clobbering them. If the speaker
+  // doc doesn't exist yet (grant captured at setup, before the first word is
+  // uploaded), this write is a CREATE — and the rules require an owned doc, so we
+  // seed the minimal ownership stub (stewardUid + a valid consent). consent is
+  // seeded "withdrawn": the grant records permission, it must not by itself make a
+  // brand-new speaker publicly playable — the later full speaker-save sets the
+  // real consent from the checkboxes. When the doc already exists we touch only
+  // the grant map, so an existing speaker's consent is never disturbed.
+  try{
+    const sref = doc(db, "afd_speakers", speakerId);
+    const snap = await getDoc(sref);
+    const stub = snap.exists() ? {} : { stewardUid: uid, speakerId, consent: "withdrawn" };
+    await setDoc(sref, { ...stub, grant: { audioPath, grantedAt: serverTimestamp() } }, { merge: true });
+  }
   catch(e){ console.warn("[AFD] grantWithProof: speaker merge", e); }
   return audioPath;
 };
