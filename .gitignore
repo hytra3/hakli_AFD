@@ -19,3 +19,4 @@ __pycache__/
 # working patch files (keep the one tracked exception)
 *.patch
 !caption-lang-fix.patch
+*.csv
