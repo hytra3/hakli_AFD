@@ -292,6 +292,33 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 #wdProof .wd-erase.armed{background:var(--alert);color:#fff;border-color:transparent;font-weight:600}
 #wdProof .wd-cancel{margin-top:12px}
 #wdProof .wd-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
+/* consent-grant overlay — its own rules so the withdrawal sheet above stays untouched */
+#grantProof{position:fixed;inset:0;z-index:60;display:none;
+  background:rgba(23,36,31,.55);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;padding:20px}
+#grantProof.open{display:flex}
+#grantProof .sheet{
+  width:100%;max-width:440px;background:var(--paper);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:22px 20px 18px;max-height:92vh;overflow:auto}
+#grantProof h2{font-size:19px;margin:0 0 4px}
+#grantProof .ask{font-size:15px;color:var(--ink-soft);line-height:1.5;margin:0 0 16px}
+#grantProof .wd-rec{width:100%;padding:20px;font-size:17px;font-weight:600;
+  background:var(--frank);color:#fff;border:none;border-radius:16px;
+  box-shadow:0 10px 26px rgba(198,135,63,.30);
+  -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+#grantProof .wd-rec.recording{background:var(--alert);box-shadow:0 10px 26px rgba(163,59,42,.30)}
+#grantProof .wd-rec .dot{display:inline-block;width:11px;height:11px;border-radius:50%;
+  background:#fff;margin-right:9px;vertical-align:middle}
+#grantProof .wd-rec.recording .dot{animation:pulse 1.1s ease-in-out infinite}
+#grantProof .wd-rec .timer{display:block;font-family:var(--mono);font-size:13px;font-weight:400;opacity:.85;margin-top:3px}
+#grantProof .wd-review{margin-top:14px;display:none}
+#grantProof.reviewing .wd-review{display:block}
+#grantProof.reviewing .wd-rec{display:none}
+#grantProof .wd-row{display:flex;gap:10px;margin-top:12px}
+#grantProof .wd-row .btn{margin-top:0}
+#grantProof .wd-confirm{background:var(--mountain);color:#fff;border:none}
+#grantProof .wd-cancel{margin-top:12px}
+#grantProof .wd-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
 </style>
 </head>
 <body>
@@ -399,6 +426,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
         <option value="named">بالاسم · By name</option>
         <option value="anonymous">دون نسبة · Not at all</option>
       </select></label>
+    <button class="btn secondary" id="grantRecordBtn" style="margin-top:2px">
+      <span class="bi-ar" dir="rtl">سجّل موافقة المتحدِّث المنطوقة</span><small class="sub">Record the speaker's spoken consent</small></button>
+    <p class="note" id="grantNote" style="margin:6px 0 0"></p>
     <button class="btn" id="toMic"><span class="bi-ar" dir="rtl">متابعة</span><small class="sub">Continue</small></button>
   </div>
 </section>
@@ -539,6 +569,24 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     </div>
     <p class="wd-status" id="wdStatus"></p>
     <button class="btn ghost wd-cancel" id="wdCancelBtn"></button>
+  </div>
+</div>
+
+<div id="grantProof" role="dialog" aria-modal="true" aria-labelledby="grantTitle">
+  <div class="sheet">
+    <h2 id="grantTitle">Record consent</h2>
+    <p class="ask" id="grantAsk"></p>
+    <button class="wd-rec" id="grantRecBtn"></button>
+    <div class="wd-review">
+      <audio id="grantPlayer" preload="auto"></audio>
+      <button class="btn secondary" id="grantPlayBtn"></button>
+      <div class="wd-row">
+        <button class="btn ghost" id="grantAgainBtn"></button>
+        <button class="btn wd-confirm" id="grantConfirmBtn"></button>
+      </div>
+    </div>
+    <p class="wd-status" id="grantStatus"></p>
+    <button class="btn ghost wd-cancel" id="grantCancelBtn"></button>
   </div>
 </div>
 <script type="module">
@@ -1218,6 +1266,106 @@ $("wdEraseBtn").onclick=()=>{
     return;
   }
   wdApply("deleted");
+};
+
+/* ---- spoken-consent-grant capture overlay --------------------------------
+   The mirror of the withdrawal proof, opened from the Permission card at setup
+   time. Records the speaker's own Hakli "yes" through the same one capture
+   protocol (AFDCore.openStream — processing off, 48k mono), lets the steward
+   hear it back, and on confirm hands the blob to window.AFD.grantWithProof to
+   upload + file it on the speaker card. No erase, no QC gate — a consent
+   utterance is not a corpus atom. */
+const gr = {
+  el:$("grantProof"), uid:null, spk:null, stream:null, rec:null, chunks:[],
+  blob:null, recording:false, t0:0, timer:null, busy:false
+};
+function grText(){
+  $("grantTitle").textContent    = AFDCore.t("grant.proof.title",dispMode).split("{spk}").join(gr.spk||"");
+  $("grantAsk").textContent      = AFDCore.t("grant.proof.ask",dispMode);
+  $("grantPlayBtn").textContent  = AFDCore.t("grant.proof.play",dispMode);
+  $("grantAgainBtn").textContent = AFDCore.t("grant.proof.again",dispMode);
+  $("grantConfirmBtn").textContent=AFDCore.t("grant.proof.confirm",dispMode);
+  $("grantCancelBtn").textContent= AFDCore.t("grant.proof.cancel",dispMode);
+  grIdleBtn();
+}
+function grIdleBtn(){
+  $("grantRecBtn").innerHTML = '<span class="dot"></span>'+AFDCore.t("grant.proof.hold",dispMode);
+}
+async function openGrantProof(uid, spk){
+  gr.uid=uid; gr.spk=spk; gr.blob=null; gr.chunks=[]; gr.busy=false;
+  gr.el.classList.remove("reviewing"); $("grantStatus").textContent="";
+  grText();
+  gr.el.classList.add("open");
+  try{
+    const s = await AFDCore.openStream();     // single recording protocol
+    gr.stream = s.stream;
+  }catch(e){ $("grantStatus").textContent=AFDCore.t("grant.proof.mic",dispMode); }
+}
+function closeGrantProof(){
+  gr.el.classList.remove("open","reviewing");
+  if(gr.timer){ clearInterval(gr.timer); gr.timer=null; }
+  try{ if(gr.rec && gr.recording) gr.rec.stop(); }catch(_){}
+  if(gr.stream){ gr.stream.getTracks().forEach(t=>{ try{ t.stop(); }catch(_){} }); gr.stream=null; }
+  gr.recording=false; gr.blob=null; gr.chunks=[];
+}
+function grStartRec(){
+  if(gr.recording || !gr.stream || gr.busy) return;
+  gr.recording=true; gr.chunks=[]; gr.t0=Date.now();
+  $("grantRecBtn").classList.add("recording");
+  $("grantRecBtn").innerHTML='<span class="dot"></span>'+AFDCore.tHTML("record.holding",dispMode)+'<span class="timer">0.0s</span>';
+  gr.timer=setInterval(()=>{ const el=$("grantRecBtn").querySelector(".timer");
+    if(el) el.textContent=((Date.now()-gr.t0)/1000).toFixed(1)+"s";
+    if(Date.now()-gr.t0>=30000) grStopRec();     // 30s hard cap; a consent statement is short
+  },100);
+  let mime="";
+  ["audio/webm;codecs=opus","audio/webm","audio/mp4"].forEach(m=>{
+    if(!mime&&window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) mime=m; });
+  gr.rec = mime?new MediaRecorder(gr.stream,{mimeType:mime}):new MediaRecorder(gr.stream);
+  gr.rec.ondataavailable=e=>{ if(e.data.size) gr.chunks.push(e.data); };
+  gr.rec.onstop=()=>{
+    gr.blob=new Blob(gr.chunks,{type:(gr.rec&&gr.rec.mimeType)||"audio/webm"});
+    $("grantPlayer").src=URL.createObjectURL(gr.blob);
+    gr.el.classList.add("reviewing");
+  };
+  try{ gr.rec.start(); }catch(e){ gr.recording=false; }
+}
+function grStopRec(){
+  if(!gr.recording) return;
+  gr.recording=false;
+  if(gr.timer){ clearInterval(gr.timer); gr.timer=null; }
+  $("grantRecBtn").classList.remove("recording"); grIdleBtn();
+  try{ gr.rec.stop(); }catch(_){}
+}
+$("grantRecBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); grStartRec(); });
+$("grantRecBtn").addEventListener("pointerup",  e=>{ e.preventDefault(); grStopRec();  });
+$("grantRecBtn").addEventListener("pointercancel",()=>{ grStopRec(); });
+$("grantPlayBtn").onclick=()=>{ try{ $("grantPlayer").currentTime=0; $("grantPlayer").play(); }catch(_){} };
+$("grantAgainBtn").onclick=()=>{ gr.blob=null; gr.el.classList.remove("reviewing"); $("grantStatus").textContent=""; grIdleBtn(); };
+$("grantCancelBtn").onclick=()=>{ if(!gr.busy) closeGrantProof(); };
+async function grApply(){
+  if(gr.busy || !gr.blob) return;
+  gr.busy=true; const spk=gr.spk, uid=gr.uid;
+  ["grantConfirmBtn","grantAgainBtn","grantCancelBtn"].forEach(id=>{ $(id).disabled=true; });
+  $("grantStatus").textContent=AFDCore.t("grant.proof.saving",dispMode);
+  try{
+    await window.AFD.grantWithProof(uid, spk, gr.blob);
+    closeGrantProof();
+    const n=$("grantNote"); if(n) n.textContent=AFDCore.t("grant.proof.saved",dispMode);
+  }catch(e){
+    console.warn("[AFD] grantWithProof", e);
+    $("grantStatus").textContent=AFDCore.t("grant.proof.err",dispMode);
+  }finally{
+    gr.busy=false;
+    ["grantConfirmBtn","grantAgainBtn","grantCancelBtn"].forEach(id=>{ $(id).disabled=false; });
+  }
+}
+$("grantConfirmBtn").onclick=()=>grApply();
+$("grantRecordBtn").onclick=()=>{
+  const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
+  const spk=($("spkId").value||"").trim();
+  if(!uid){ alert(AFDCore.t("grant.signin",dispMode)); return; }
+  if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
+  openGrantProof(uid, spk);
 };
 $("toMic").onclick=()=>{
   if(switchingSpeaker){
