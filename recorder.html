@@ -775,6 +775,31 @@ window.AFD.withdrawWithProof = async (uid, speakerId, blob, mode)=>{
   return await withdrawSpeaker(uid, speakerId, state,
     { at: serverTimestamp(), byUid: uid, audioPath });
 };
+// Upload the speaker's spoken-Hakli CONSENT GRANT — the mirror of the withdrawal
+// proof. Where withdrawWithProof records the speaker's spoken "no", this records
+// their spoken "yes" and files it beside the checkbox flags on the speaker card's
+// grant map. Same one-capture protocol, same immutable EVIDENCE store
+// (afd_consents/{uid}). The write is a MERGE, so the flags already on the grant
+// map (archival / ML / playback / attribution) survive untouched. Returns the
+// storage path of the grant audio. Nothing enforces its presence yet — the rule
+// that REQUIRES it for a proxied speaker is the follow-on step.
+window.AFD.grantWithProof = async (uid, speakerId, blob)=>{
+  if(!uid || !speakerId || !blob) return null;
+  const safe = String(speakerId).replace(/[^A-Za-z0-9_-]/g,"_").slice(0,40);
+  const id   = "gr_"+safe+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+  const ext  = /mp4/.test(blob.type||"") ? "m4a" : "webm";
+  const audioPath = "afd_consents/"+uid+"/"+id+"."+ext;
+  await uploadBytes(ref(store, audioPath), blob, {
+    contentType: blob.type || "audio/webm",
+    customMetadata: { speakerId: String(speakerId), kind: "grant" }
+  });
+  // Merge onto the speaker card's grant map — deep-merges field by field, so the
+  // spoken proof lands next to the flags without clobbering them.
+  try{ await setDoc(doc(db, "afd_speakers", speakerId),
+        { grant: { audioPath, grantedAt: serverTimestamp() } }, { merge: true }); }
+  catch(e){ console.warn("[AFD] grantWithProof: speaker merge", e); }
+  return audioPath;
+};
 // Current bulk consent state of a speaker card (public | withdrawn | deleted),
 // for the roster's Withdraw/Restore toggle. Kept fresh by withdrawSpeaker.
 window.AFD.speakerState = async (speakerId)=>{
