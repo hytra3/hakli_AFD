@@ -70,6 +70,7 @@ async function seed() {
     await setDoc(priv(db, "spk_elder"), { origin: { town: "Rakhyut", tribe: "Ackak" } });
     await setDoc(rec(db, "rec_self"),   baseRec());
     await setDoc(rec(db, "rec_elder"),  baseRec({ uid: "uAgent", speakerId: "spk_elder" }));
+    await setDoc(rec(db, "rec_elder_hidden"), baseRec({ uid: "uAgent", speakerId: "spk_elder", consent: "withdrawn", allowPlayback: false }));
     await setDoc(rec(db, "rec_hidden"), baseRec({ consent: "withdrawn", allowPlayback: false }));
   });
 }
@@ -90,6 +91,9 @@ describe("recording consent — who may withdraw (design §9)", () => {
   it("self-speaker restores their own recording — no artifact needed", async () => {
     await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: true }));
   });
+  it("agent restores elder's withdrawn recording — no artifact needed", async () => {
+    await assertSucceeds(updateDoc(rec(asAgent(), "rec_elder_hidden"), { consent: "public", allowPlayback: true }));
+  });
   it("agent withdraws elder's recording WITH the spoken artifact", async () => {
     await assertSucceeds(updateDoc(rec(asAgent(), "rec_elder"), WITHDRAW_ART));
   });
@@ -98,6 +102,9 @@ describe("recording consent — who may withdraw (design §9)", () => {
   });
   it("stranger cannot withdraw someone else's recording", async () => {
     await assertFails(updateDoc(rec(asOther(), "rec_self"), WITHDRAW));
+  });
+  it("stranger cannot restore a withdrawn recording", async () => {
+    await assertFails(updateDoc(rec(asOther(), "rec_hidden"), { consent: "public", allowPlayback: true }));
   });
   it("agent may delete only with the spoken artifact", async () => {
     await assertFails(updateDoc(rec(asAgent(), "rec_elder"), { consent: "deleted", allowPlayback: false }));
