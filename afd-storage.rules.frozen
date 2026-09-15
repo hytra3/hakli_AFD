@@ -2,16 +2,19 @@ rules_version = '2';
 /*  Audio First Dictionary — Cloud Storage rules — FROZEN VARIANT
  *  ==================================================================
  *  END-OF-CAMPAIGN LOCK.  Identical to afd-storage.rules EXCEPT the
- *  afd_ui/ (spoken UI prompt) block, which here seals ALL writes:
- *  playback stays public, but prompt audio can no longer be created,
- *  re-recorded, or deleted.  Corpus, withdrawal/consent proofs, and
- *  avatars are unchanged — they were already write-once.
+ *  afd_ui/ (spoken UI prompt) block: create/update there are downgraded
+ *  to REQUIRE A NON-ANONYMOUS (steward) account.  Playback stays public;
+ *  a signed-in steward can still re-record or add a clip; the anonymous
+ *  prompt-tool session can no longer write.  This closes the one write
+ *  path the Firestore recording-window can't reach — Storage rules can't
+ *  read that window.  delete stays closed, exactly as in the live rules.
  *
  *  APPLY ONLY when the prompt corpus is final:
  *    cp afd-storage.rules.frozen afd-storage.rules
  *    firebase deploy --only storage
- *    git commit -am "Freeze afd_ui prompt audio — corpus final"
- *  REOPEN:  git restore afd-storage.rules && firebase deploy --only storage
+ *    git commit -am "Freeze afd_ui — seal anonymous prompt-audio writes"
+ *  REOPEN a campaign: revert the two afd_ui guards to `request.auth != null`
+ *    (git restore afd-storage.rules), then firebase deploy --only storage.
  *  ==================================================================
  */
 service firebase.storage {
@@ -79,15 +82,26 @@ service firebase.storage {
     // ---------------- UI voice prompts ----------------
     // Recorded remotely over anonymous sign-in; played openly by the app.
     // 25 MB cap — the consent narration is a longer connected phrase.
-    // ---------------- UI voice prompts — FROZEN (end of campaign) ----------------
-    // The prompt corpus is final. Playback stays open; ALL writes are sealed —
-    // no re-records (update), no new prompt audio (create), no deletes. This is
-    // the only block that differs from afd-storage.rules; everything else was
-    // already write-once. To reopen for a correction: restore afd-storage.rules
-    // from git, deploy, make the fix, then re-deploy this frozen file.
+    //
+    // END-OF-CAMPAIGN FREEZE (this file): create/update now require a REAL
+    // steward account, not the anonymous prompt-tool session. Deploy this once
+    // the recording is truly done to seal the finished clips — after it, no
+    // anonymous session can add or overwrite audio, closing the one gap the
+    // Firestore recording-window can't reach (Storage rules can't read that
+    // window). To reopen an anonymous recording campaign, revert these two
+    // guards to `request.auth != null` and redeploy.
     match /afd_ui/{fileName} {
       allow read: if true;
-      allow create, update, delete: if false;
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.resource.size < 25 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      // steward-only re-record in place
+      allow update: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.resource.size < 25 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow delete: if false;
     }
     // ---------------- contributor avatar (opt-in "known" profile) ----------------
     // A steward's OWN profile picture, shown on their voices only while they have
