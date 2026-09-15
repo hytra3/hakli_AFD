@@ -19,3 +19,10 @@ __pycache__/
 # working patch files (keep the one tracked exception)
 *.patch
 *.csv
+
+# credentials & secrets — never commit
+serviceAccount*.json
+*serviceaccount*.json
+*-adminsdk-*.json
+.env
+.env.*

@@ -1,0 +1,118 @@
+rules_version = '2';
+/*  Audio First Dictionary — Cloud Storage rules — FROZEN VARIANT
+ *  ==================================================================
+ *  END-OF-CAMPAIGN LOCK.  Identical to afd-storage.rules EXCEPT the
+ *  afd_ui/ (spoken UI prompt) block, which here seals ALL writes:
+ *  playback stays public, but prompt audio can no longer be created,
+ *  re-recorded, or deleted.  Corpus, withdrawal/consent proofs, and
+ *  avatars are unchanged — they were already write-once.
+ *
+ *  APPLY ONLY when the prompt corpus is final:
+ *    cp afd-storage.rules.frozen afd-storage.rules
+ *    firebase deploy --only storage
+ *    git commit -am "Freeze afd_ui prompt audio — corpus final"
+ *  REOPEN:  git restore afd-storage.rules && firebase deploy --only storage
+ *  ==================================================================
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /afd/{uid}/{fileName} {
+      // anyone may listen to contributed audio
+      allow read: if true;
+      // only the signed-in, NON-anonymous owner may upload, audio only, 10 MB cap.
+      // resource == null makes recordings write-once: a content overwrite is
+      // evaluated as create (not update) in Storage rules, so immutability is
+      // enforced here rather than via `allow update`.
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      // recordings are immutable once uploaded
+      allow update: if false;
+      allow delete: if false;
+    }
+    // ---------------- consent-withdrawal proof ----------------
+    // The spoken-Hakli artifact that lets an AGENT (a steward acting for a
+    // speaker who cannot tap a toggle themselves) withdraw or erase that
+    // speaker's takes — the Firestore rule requires withdrawal.audioPath, and
+    // this is where those bytes live. It is EVIDENCE, not corpus and not public:
+    //   • only the signed-in, non-anonymous owner may write it,
+    //   • only that owner may read it back (to replay/confirm before applying),
+    //   • it is immutable once written — a withdrawal proof can't be edited away.
+    match /afd_withdrawals/{uid}/{fileName} {
+      allow read:   if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid;
+      // resource == null makes this truly write-once: in Storage rules a content
+      // overwrite is evaluated as create (not update), so immutability must be
+      // enforced here, not via `allow update`.
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
+    }
+    // ---------------- consent GRANT proof ----------------
+    // The mirror of the withdrawal proof: the spoken-Hakli artifact of a speaker
+    // GIVING consent (their "yes"), for the proxied case where a steward records
+    // on their behalf. Same guarantees as the withdrawal proof — private
+    // EVIDENCE, owner-only read, write-once — because a grant you can quietly
+    // edit later is no grant at all. The Firestore rule that will REQUIRE
+    // grant.audioPath for a proxied speaker is the follow-on step; these bytes
+    // are where it looks.
+    match /afd_consents/{uid}/{fileName} {
+      allow read:   if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid;
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
+    }
+    // ---------------- UI voice prompts ----------------
+    // Recorded remotely over anonymous sign-in; played openly by the app.
+    // 25 MB cap — the consent narration is a longer connected phrase.
+    // ---------------- UI voice prompts — FROZEN (end of campaign) ----------------
+    // The prompt corpus is final. Playback stays open; ALL writes are sealed —
+    // no re-records (update), no new prompt audio (create), no deletes. This is
+    // the only block that differs from afd-storage.rules; everything else was
+    // already write-once. To reopen for a correction: restore afd-storage.rules
+    // from git, deploy, make the fix, then re-deploy this frozen file.
+    match /afd_ui/{fileName} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+    // ---------------- contributor avatar (opt-in "known" profile) ----------------
+    // A steward's OWN profile picture, shown on their voices only while they have
+    // chosen to be "known". Enforcement is by PRESENCE, not rule logic: the app
+    // deletes this file when the steward switches back to "obscure", so an obscure
+    // profile simply has no avatar to fetch. That keeps the read a plain public
+    // read (no per-fetch Firestore lookup) and is sufficient here because this is
+    // the person's own face and their own visibility choice — not a proxied elder.
+    //   • public read (a "known" avatar is meant to be seen),
+    //   • owner-only, NON-anonymous write; raster image only, 2 MB cap,
+    //   • MUTABLE (change your picture) and deletable (switch back to obscure).
+    // resource==null on write is a delete; otherwise it is a create/overwrite and
+    // the new bytes are size- and type-checked.
+    match /afd_avatars/{uid}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                   && request.auth.uid == uid
+                   && ( request.resource == null
+                        || ( request.resource.size < 2 * 1024 * 1024
+                             && request.resource.contentType.matches('image/(png|jpeg|webp)') ) );
+    }
+    // everything else is closed
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
