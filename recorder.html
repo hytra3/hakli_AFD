@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0915a" type="image/svg+xml">
-<script src="afd-core.js?v=b0915a"></script>
-<script src="afd-words.js?v=b0915a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0915a">
+<link rel="icon" href="favicon.svg?v=b0915b" type="image/svg+xml">
+<script src="afd-core.js?v=b0915b"></script>
+<script src="afd-words.js?v=b0915b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0915b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -614,7 +614,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0915a";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0915b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -902,13 +902,13 @@ window.AFD.renderCard = async (entryId, mount)=>{
 // the steward's own likeness only — proxied elders stay on fauna + attribution.
 const AVATAR_PATH = ()=> "afd_avatars/"+currentUser.uid+"/avatar";
 window.AFD.loadProfile = async ()=>{
-  const out = { visibility:"obscure", displayName:"", avatarUrl:null };
+  const out = { visibility:"obscure", displayName:"", avatarUrl:null, hasAvatar:false };
   if(!CONFIGURED || !currentUser) return out;
   try{
     const sn = await getDoc(doc(db,"afd_stewards",currentUser.uid));
-    if(sn.exists()){ const d=sn.data()||{}; out.visibility = d.visibility==="known"?"known":"obscure"; out.displayName = d.displayName||""; }
+    if(sn.exists()){ const d=sn.data()||{}; out.visibility = d.visibility==="known"?"known":"obscure"; out.displayName = d.displayName||""; out.hasAvatar = d.hasAvatar===true; }
   }catch(e){ console.warn("[AFD] loadProfile", e); }
-  if(out.visibility==="known"){
+  if(out.visibility==="known" && out.hasAvatar){
     try{ out.avatarUrl = await getDownloadURL(ref(store, AVATAR_PATH())); }catch(e){ /* no picture set */ }
   }
   return out;
@@ -922,11 +922,19 @@ window.AFD.saveProfile = async (visibility, displayName, avatarBlob)=>{
   if(!known){
     try{ await deleteObject(ref(store, AVATAR_PATH())); }catch(e){ /* nothing to remove — fine */ }
   }
-  await setDoc(doc(db,"afd_stewards",currentUser.uid), {
+  // Presence flag so readers never getDownloadURL a picture that isn't there
+  // (a missing avatar still 404s in the console even when the fetch is caught).
+  // Obscure just deleted any picture → false; a Known save carrying a new blob
+  // just uploaded one → true; a Known save with no blob keeps the existing
+  // picture, so leave the flag untouched and let merge preserve it.
+  const prof = {
     visibility: known ? "known" : "obscure",
     displayName: known ? String(displayName||"").slice(0,80) : "",
     updatedAt: serverTimestamp()
-  }, { merge:true });
+  };
+  if(!known) prof.hasAvatar = false;
+  else if(avatarBlob) prof.hasAvatar = true;
+  await setDoc(doc(db,"afd_stewards",currentUser.uid), prof, { merge:true });
   return true;
 };
 </script>
@@ -1025,7 +1033,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0915a";   // bump every publish; shown in the header + console
+const BUILD="b0915b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);

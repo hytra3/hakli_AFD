@@ -139,7 +139,9 @@ async function stewardProfile(uid){
       const d = sn.data() || {};
       if(d.visibility === "known"){
         prof = { known:true, displayName:String(d.displayName||"").slice(0,80), avatarUrl:null };
-        try{ prof.avatarUrl = await getDownloadURL(ref(CFG.store,"afd_avatars/"+uid+"/avatar")); }catch(_){}
+        // Only reach for the picture when the profile says one exists — otherwise
+        // getDownloadURL 404s in the console even though we catch the rejection.
+        if(d.hasAvatar===true){ try{ prof.avatarUrl = await getDownloadURL(ref(CFG.store,"afd_avatars/"+uid+"/avatar")); }catch(_){} }
       }
     }
   }catch(_){}
