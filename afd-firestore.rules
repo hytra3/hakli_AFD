@@ -145,15 +145,33 @@ service cloud.firestore {
     match /afd_speakers/{speakerId} {
       allow read: if true;
 
+      // DEFENSE IN DEPTH: the public card is world-readable, so the RULE — not
+      // just client discipline — forbids any identifying field here. Town, tribe,
+      // age and gender live ONLY in the /private subdoc below; this allowlist
+      // makes it structurally impossible for them to surface on the card, now or
+      // after any future client change. Keep in step with the two writers of this
+      // doc: saveSpeaker() in recorder.html and the grant stub in afd-card.js.
+      // NB (migration): on update this checks the FULL merged doc, so a legacy
+      // card still carrying a stray field (e.g. pre-fix origin) will be frozen —
+      // even a plain consent flip is denied — until it is cleaned. Clean or reset
+      // existing speaker docs before deploying, or stage by dropping the update
+      // line first. See scripts/reset-speakers.mjs / scripts/export-origins.mjs.
+      function speakerCardFieldsOK() {
+        return request.resource.data.keys().hasOnly(
+          ['uid','stewardUid','speakerId','viaAgent','masked','consent','grant','updatedAt']);
+      }
+
       allow create: if notAnon()
                     && request.resource.data.stewardUid == request.auth.uid
-                    && request.resource.data.consent in ['public','withdrawn'];
+                    && request.resource.data.consent in ['public','withdrawn']
+                    && speakerCardFieldsOK();
 
       // Only the steward may change consent/masking, and the steward may not be
       // silently reassigned (claiming an account later is a deliberate flow).
       allow update: if notAnon()
                     && resource.data.stewardUid == request.auth.uid
-                    && request.resource.data.stewardUid == resource.data.stewardUid;
+                    && request.resource.data.stewardUid == resource.data.stewardUid
+                    && speakerCardFieldsOK();
 
       allow delete: if false;
 

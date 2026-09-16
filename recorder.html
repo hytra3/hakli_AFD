@@ -702,10 +702,39 @@ async function uploadClip(rec, speaker){
     rec.storagePath = path;
   }
 
-  const { blob, ...meta } = rec;
+  // Explicit field allowlist — NOT a blind {...rec} spread. Recording docs are
+  // world-readable whenever allowPlayback is true, so only corpus-meaningful,
+  // non-identifying fields belong here. Anything not named below stays on-device
+  // (IndexedDB) and can never leak: a field added to the local rec later cannot
+  // silently become public just by existing.
+  const cap = rec.capture || {};
   await setDoc(
     doc(db, "afd_entries", rec.entryId, "recordings", rec.recordingId),
-    { ...meta, uid,
+    {
+      recordingId:     rec.recordingId,
+      entryId:         rec.entryId,
+      gloss:           rec.gloss,
+      domain:          rec.domain,
+      speakerId:       rec.speakerId,
+      phase:           rec.phase,
+      type:            rec.type,
+      promptTier:      rec.promptTier,
+      repetitionIndex: rec.repetitionIndex,
+      // capture WITHOUT `device` (navigator.userAgent): a UA fingerprint has no
+      // place in a world-readable doc. The QC-relevant capture fields are kept.
+      capture: {
+        sampleRate:        cap.sampleRate,
+        codec:             cap.codec,
+        durationMs:        cap.durationMs,
+        bluetoothDetected: cap.bluetoothDetected === true
+      },
+      qc:              rec.qc,
+      envelope:        rec.envelope,
+      // storagePath is set above only when there was a blob; omit it otherwise
+      // rather than writing undefined (which Firestore rejects).
+      ...(rec.storagePath ? { storagePath: rec.storagePath } : {}),
+      recordedAt:      rec.recordedAt,
+      uid,
       // Three-state per-recording consent label; withdrawal flips this to
       // "withdrawn"/"deleted". Public at create — the recording isn't withdrawn.
       consent: "public",
@@ -716,7 +745,8 @@ async function uploadClip(rec, speaker){
       // Denormalised "currently public" flag that rules/queries filter on: the
       // recording's own consent AND the speaker's bulk consent must both allow.
       allowPlayback: speaker.consent.publicPlayback === true,
-      uploadedAt: serverTimestamp() }
+      uploadedAt: serverTimestamp()
+    }
   );
 
   // Speaker profile — consent model (afd-consent-design.md):
@@ -782,7 +812,6 @@ async function listOthers(entryId, excludeUid){
       durationMs: (v.capture && v.capture.durationMs) || 0,
       bursts: (v.qc && v.qc.bursts) || null,
       type: v.type || v.phase || "word",
-      town: (v.speakerTown) || null,
       mine: excludeUid ? false : (currentUser && v.uid === currentUser.uid)
     });
   }
