@@ -396,17 +396,17 @@ public. Three tiers, decided:
    `showOriginPublic` flag on the subdoc, enforced in its read rule
    (`allow read: if steward || qualifiedReader || resource.data.showOriginPublic == true`).
 
-**Live gap (fix before any public share).** The app currently writes `origin`/`ageBand`/
-`gender` into the *world-readable* public `afd_speakers` doc (recorder.html), contradicting
-the rules' own comment that town/tribe belong in the private subdoc. Not yet exploitable —
-the site hasn't been shared, still collecting prompts — but it must be closed before launch.
-
-**Interim step (no role mechanism needed):** stop writing origin into the public doc and
-put it in the existing steward-only `/private` subdoc, matching what the rules and the
-consent test already assume. That alone delivers "hidden by default" and closes the leak;
-the qualified-reader tier and opt-in-public promotion follow with the role design above.
-Ties into the pending `afd_speakers` `{uid}` → `{speakerId}` re-key, where the origin move
-was already slated to happen at the rules-deploy cutover.
+**Live gap — RESOLVED (2026-09-15).** Previously the app wrote `origin`/`ageBand`/`gender`
+into the *world-readable* public `afd_speakers` doc, contradicting the rules' own comment
+that identifying fields belong in the private subdoc. Closed: the `{uid}` → `{speakerId}`
+re-key shipped, and the recorder now writes only non-identifying fields to the public card
+(`stewardUid`, `consent`, `grant`, `viaAgent`, `masked`). Town/tribe **and** `ageBand`/
+`gender` now live in the steward-only `afd_speakers/{speakerId}/private/profile` subdoc,
+guarded by a read+write rule that matches the parent doc's `stewardUid`. Decision (2026-09-15):
+age and gender follow origin into private rather than staying on the public card — they're
+speaker-identifying in a small community, and the public card never displayed them anyway.
+"Hidden by default" is delivered; the qualified-reader tier and opt-in-public promotion
+below remain forward design for if/when a speaker elects wider visibility.
 
 ## External (non-AFD)
 
