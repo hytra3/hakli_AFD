@@ -1,0 +1,14 @@
+{
+  "name": "قاموس الحَكلي الصوتيّ — Hakli AFD",
+  "short_name": "Hakli AFD",
+  "lang": "ar", "dir": "rtl",
+  "description": "قاموسٌ صوتيٌّ أوّلًا للغة الحَكلي في ظفار — audio-first dictionary for the Hakli language.",
+  "start_url": "/", "scope": "/", "display": "standalone",
+  "background_color": "#17241F", "theme_color": "#17241F",
+  "icons": [
+    { "src": "icon-192.png?v=b0917b", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png?v=b0917b", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192-maskable.png?v=b0917b", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512-maskable.png?v=b0917b", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
