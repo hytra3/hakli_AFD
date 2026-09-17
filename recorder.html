@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0917c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0917c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0917c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0917c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0917c">
-<link rel="manifest" href="manifest.webmanifest?v=b0917c">
+<link rel="icon" href="favicon.svg?v=b0917d" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0917d" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0917d">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0917d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0917d">
+<link rel="manifest" href="manifest.webmanifest?v=b0917d">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0917c"></script>
-<script src="afd-words.js?v=b0917c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0917c">
+<script src="afd-core.js?v=b0917d"></script>
+<script src="afd-words.js?v=b0917d"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0917d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -54,7 +54,7 @@ body{
 
 /* ---------- brand mark ---------- */
 .brand{display:flex;align-items:center;gap:10px;margin:2px 0 16px;color:var(--mountain)}
-.brand svg{width:28px;height:28px;flex:0 0 auto}
+.brand svg{width:auto;height:32px;flex:0 0 auto}
 .brand b{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.2px}
 .brand small{font-family:var(--sans);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#9AB0A8}
 .rec-topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -334,7 +334,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <section id="setup">
   <p class="stepdots">الخطوة ١ / ٣ &nbsp;·&nbsp; المتحدِّث<small class="sub">STEP 1 / 3 · SPEAKER</small></p>
   <div class="brand">
-    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M2 26 L11 9 L17 20 L21 13 L30 26 Z" fill="#1F3A34"/><circle cx="24" cy="7" r="3.2" fill="#C6873F"/></svg>
+    <svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg>
     <b>الحَكلي</b><small>قاموس الصوت أوّلًا · Audio First Dictionary</small>
   </div>
   <h1><span class="bi-ar" dir="rtl">مُسجِّل كلمات الحَكلي</span><small class="sub">Hakli Word Recorder</small></h1>
@@ -462,7 +462,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <section id="recorder" class="hidden">
   <div class="rec-topbar">
     <div class="rec-left">
-      <a class="rec-home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="0 0 64 78" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M32 22 C27 15 37 11 32 3" stroke="#C24A32" stroke-width="2.4" stroke-linecap="round" opacity=".5"/><polygon points="8,26 20,26 14,13" fill="#9B1C1C"/><polygon points="20,26 32,26 26,13" fill="#9B1C1C"/><polygon points="32,26 44,26 38,13" fill="#9B1C1C"/><polygon points="44,26 56,26 50,13" fill="#9B1C1C"/><polygon points="8,26 56,26 50,70 14,70" fill="#C24A32"/><rect x="12" y="70" width="40" height="4" rx="1" fill="#7E2C1C"/><rect x="30" y="45" width="4" height="25" rx="2" fill="#7E2C1C"/></svg></a>
+      <a class="rec-home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
       <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
     </div>
     <div class="topbtns">
@@ -620,7 +620,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0917c";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0917d";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1068,7 +1068,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0917c";   // bump every publish; shown in the header + console
+const BUILD="b0917d";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
