@@ -22,6 +22,32 @@ within each group.
 - **Recorder** — returning-speaker fast path (skip setup when signed in + speaker
   saved), wordless "sound" tier (English hidden, icon buttons, dot cue), find icon
   back to the dictionary, type-aware "how others said it", visible build stamp.
+- **Field-readiness pass (09-22)** — for sessions with patchy or no signal:
+  - *Per-take consent snapshot.* Each kept take now stores its speaker (code, agent
+    flag, consent) on the device. A take that uploads later uploads under **its own**
+    speaker's consent, not whoever is in the form at retry time (previously a
+    deferred upload in a multi-speaker session took the *current* speaker's
+    `publicPlayback` — a consent leak). Older takes without a snapshot upload only
+    if the form still names their speaker; otherwise they stay on the phone.
+  - *Withdrawal wins over new takes.* `uploadClip` reads the speaker card first: a
+    withdrawn/erased card is never flipped back to public by a new or late take (it
+    arrives hidden; restore stays the roster's deliberate "share again"). A card
+    owned by another account refuses the upload. `masked` is set only on card create.
+  - *Retry-safe uploads.* Storage is write-once and recording docs can't be re-set,
+    so a half-finished upload (bytes up, then signal lost) used to fail every retry
+    forever. Now a refused write checks whether the earlier attempt landed.
+  - *Quiet auto-retry* on sign-in and on the browser's `online` event (the old
+    comment promised this; the code only logged). Stops at the first failure.
+  - `navigator.storage.persist()` so waiting takes aren't evicted on low storage.
+  - Export manifest gains a `speakers` map (per-take snapshots); Clear warns how many
+    takes were never uploaded.
+  - *Offline app shell* — `sw.js`, network-first for pages (never stale online),
+    cache-first only for `?v=`-stamped files and the versioned Firebase SDK; data
+    requests pass through untouched. `?nosw` unregisters on a phone; kill switch
+    documented at the top of `sw.js`.
+  - `sync-stamp.sh` now stamps **every** page (`*.html`, `prompts/*.html`) and the
+    manifest icons, and warns if any stale `?v=` survives. The walkthrough iframe is
+    stamped too.
 - **Reset tooling** — `scripts/reset-corpus.mjs` (dry-run default) clears test
   recordings + audio while keeping entry shells, wordlist, UI audio, and legacy.
 
@@ -407,6 +433,23 @@ age and gender follow origin into private rather than staying on the public card
 speaker-identifying in a small community, and the public card never displayed them anyway.
 "Hidden by default" is delivered; the qualified-reader tier and opt-in-public promotion
 below remain forward design for if/when a speaker elects wider visibility.
+
+## Consent edge cases — decided 09-22 (don't relitigate)
+
+- **New take for an ERASED speaker → uploads hidden, bytes kept.** Not refused, not
+  purged. Consistent with "withdrawal ≠ deletion; bytes survive." The rules enforce
+  it: while a card is `withdrawn`/`deleted`, a recording can only be created with
+  `allowPlayback:false` (test: "speaker card is honoured").
+- **Bulk "share again" (roster restore) also re-exposes takes that were withdrawn one
+  at a time.** Accepted as-is — restore is the steward's deliberate act. Revisit only
+  if a speaker is surprised by it in the field.
+- **`welcome.html` is not linked from inside the app — on purpose.** It's the
+  outward-facing page you hand out (WhatsApp, flyers); OG image/title already set.
+  Entry to the app is `index.html`.
+- **Rules tests run one file at a time** (`--test-concurrency=1`, now the `npm test`
+  default). All files share the `afd-dev` emulator project and wipe data per test;
+  run in parallel they erase each other's seeds (false "Null value" / "no ruleset"
+  failures). Run: `firebase emulators:exec --only firestore,storage "cd test && npm test"`.
 
 ## External (non-AFD)
 

@@ -121,7 +121,21 @@ service cloud.firestore {
                       && request.resource.data.gloss is string
                       && request.resource.data.entryId is string
                       && request.resource.data.consent == 'public'
-                      && request.resource.data.allowPlayback is bool;
+                      && request.resource.data.allowPlayback is bool
+                      // A take may only attach to a speaker card THIS account
+                      // stewards (or to a speaker with no card yet — the first
+                      // upload creates it right after). Stops a colliding or
+                      // mistyped code from filing a voice under someone else's
+                      // speaker and consent.
+                      && (!speakerExists(request.resource.data.speakerId)
+                          || speaker(request.resource.data.speakerId).stewardUid == request.auth.uid)
+                      // Withdrawal is the speaker's own act and wins: while the
+                      // card is withdrawn/erased, a new take (incl. one uploading
+                      // late after signal returns) can only arrive hidden.
+                      // Restoring stays the deliberate roster "share again".
+                      && (request.resource.data.allowPlayback == false
+                          || !speakerExists(request.resource.data.speakerId)
+                          || speaker(request.resource.data.speakerId).consent == 'public');
 
         // The consent label is the only mutable thing.
         allow update: if notAnon()

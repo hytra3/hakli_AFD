@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0921c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0921c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0921c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0921c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0921c">
-<link rel="manifest" href="manifest.webmanifest?v=b0921c">
+<link rel="icon" href="favicon.svg?v=b0922a" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0922a" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922a">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922a">
+<link rel="manifest" href="manifest.webmanifest?v=b0922a">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0921c"></script>
-<script src="afd-words.js?v=b0921c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0921c">
+<script src="afd-core.js?v=b0922a"></script>
+<script src="afd-words.js?v=b0922a"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0922a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -618,9 +618,9 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0921c";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922a";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -697,14 +697,40 @@ async function uploadClip(rec, speaker){
   if(!CONFIGURED) throw new Error("Firebase not configured");
   if(!currentUser) throw new Error("not signed in");
   const uid = currentUser.uid;
+  const speakerId = speaker.speakerId;
+  if(!speakerId) throw new Error("no speaker code");
 
+  // Read the speaker card FIRST. Two things it can tell us that the form can't:
+  //  • the card belongs to another steward → this code isn't ours to record
+  //    under (a collision or a mistyped code). Stop; the take stays on the phone.
+  //  • the speaker has since withdrawn (or erased). Withdrawal is the speaker's
+  //    own act, so a later take — or an old one uploading after signal returns —
+  //    must NOT quietly flip them back to public. It uploads hidden, and the card
+  //    keeps its state. Restoring is still the roster's deliberate "share again".
+  const cardSnap = await getDoc(doc(db, "afd_speakers", speakerId));
+  const card = cardSnap.exists() ? (cardSnap.data() || {}) : null;
+  if(card && card.stewardUid && card.stewardUid !== uid)
+    throw new Error("speaker code "+speakerId+" belongs to another account");
+  const cardHidden = !!card && (card.consent === "withdrawn" || card.consent === "deleted");
+  const allowPlayback = !cardHidden && speaker.consent.publicPlayback === true;
+
+  // Idempotent retries. Audio is write-once in Storage and a recording doc can't
+  // be re-set, so a take whose first attempt got partway (bytes up, then the
+  // signal dropped) would otherwise fail every retry forever. On a refused
+  // write, check whether the earlier attempt already landed and carry on.
   if(rec.blob){
     const ext = /mp4/.test(rec.capture.codec) ? "m4a" : "webm";
     const path = `afd/${uid}/${rec.recordingId}.${ext}`;
-    await uploadBytes(ref(store, path), rec.blob, {
-      contentType: rec.blob.type || "audio/webm",
-      customMetadata: { entryId: rec.entryId, gloss: rec.gloss, recordingId: rec.recordingId }
-    });
+    try{
+      await uploadBytes(ref(store, path), rec.blob, {
+        contentType: rec.blob.type || "audio/webm",
+        customMetadata: { entryId: rec.entryId, gloss: rec.gloss, recordingId: rec.recordingId }
+      });
+    }catch(e){
+      let landed = false;
+      try{ const m = await getMetadata(ref(store, path)); landed = !!m && m.size === rec.blob.size; }catch(_){}
+      if(!landed) throw e;
+    }
     rec.storagePath = path;
   }
 
@@ -714,64 +740,75 @@ async function uploadClip(rec, speaker){
   // (IndexedDB) and can never leak: a field added to the local rec later cannot
   // silently become public just by existing.
   const cap = rec.capture || {};
-  await setDoc(
-    doc(db, "afd_entries", rec.entryId, "recordings", rec.recordingId),
-    {
-      recordingId:     rec.recordingId,
-      entryId:         rec.entryId,
-      gloss:           rec.gloss,
-      domain:          rec.domain,
-      speakerId:       rec.speakerId,
-      phase:           rec.phase,
-      type:            rec.type,
-      promptTier:      rec.promptTier,
-      repetitionIndex: rec.repetitionIndex,
-      // capture WITHOUT `device` (navigator.userAgent): a UA fingerprint has no
-      // place in a world-readable doc. The QC-relevant capture fields are kept.
-      capture: {
-        sampleRate:        cap.sampleRate,
-        codec:             cap.codec,
-        durationMs:        cap.durationMs,
-        bluetoothDetected: cap.bluetoothDetected === true
-      },
-      qc:              rec.qc,
-      envelope:        rec.envelope,
-      // storagePath is set above only when there was a blob; omit it otherwise
-      // rather than writing undefined (which Firestore rejects).
-      ...(rec.storagePath ? { storagePath: rec.storagePath } : {}),
-      recordedAt:      rec.recordedAt,
-      uid,
-      // Three-state per-recording consent label; withdrawal flips this to
-      // "withdrawn"/"deleted". Public at create — the recording isn't withdrawn.
-      consent: "public",
-      // Provenance: recorded on the speaker's behalf by an agent (assistant).
-      // Lets find/rules require the speaker's spoken artifact before an agent
-      // may withdraw — never a silent third-party lever.
-      viaAgent: speaker.viaAgent === true,
-      // Denormalised "currently public" flag that rules/queries filter on: the
-      // recording's own consent AND the speaker's bulk consent must both allow.
-      allowPlayback: speaker.consent.publicPlayback === true,
-      uploadedAt: serverTimestamp()
-    }
-  );
+  const recRef = doc(db, "afd_entries", rec.entryId, "recordings", rec.recordingId);
+  try{
+    await setDoc(
+      recRef,
+      {
+        recordingId:     rec.recordingId,
+        entryId:         rec.entryId,
+        gloss:           rec.gloss,
+        domain:          rec.domain,
+        speakerId:       rec.speakerId,
+        phase:           rec.phase,
+        type:            rec.type,
+        promptTier:      rec.promptTier,
+        repetitionIndex: rec.repetitionIndex,
+        // capture WITHOUT `device` (navigator.userAgent): a UA fingerprint has no
+        // place in a world-readable doc. The QC-relevant capture fields are kept.
+        capture: {
+          sampleRate:        cap.sampleRate,
+          codec:             cap.codec,
+          durationMs:        cap.durationMs,
+          bluetoothDetected: cap.bluetoothDetected === true
+        },
+        qc:              rec.qc,
+        envelope:        rec.envelope,
+        // storagePath is set above only when there was a blob; omit it otherwise
+        // rather than writing undefined (which Firestore rejects).
+        ...(rec.storagePath ? { storagePath: rec.storagePath } : {}),
+        recordedAt:      rec.recordedAt,
+        uid,
+        // Three-state per-recording consent label; withdrawal flips this to
+        // "withdrawn"/"deleted". Public at create — the recording isn't withdrawn.
+        consent: "public",
+        // Provenance: recorded on the speaker's behalf by an agent (assistant).
+        // Lets find/rules require the speaker's spoken artifact before an agent
+        // may withdraw — never a silent third-party lever.
+        viaAgent: speaker.viaAgent === true,
+        // Denormalised "currently public" flag that rules/queries filter on: the
+        // recording's own consent AND the speaker's bulk consent must both allow
+        // (and a withdrawn/erased card, read above, always wins).
+        allowPlayback,
+        uploadedAt: serverTimestamp()
+      }
+    );
+  }catch(e){
+    // Refused because an earlier attempt already wrote it? Then it's done.
+    let mine = false;
+    try{ const sn = await getDoc(recRef); mine = sn.exists() && (sn.data()||{}).uid === uid; }catch(_){}
+    if(!mine) throw e;
+  }
 
   // Speaker profile — consent model (afd-consent-design.md):
   //   stewardUid = the account managing this speaker's consent
   //   consent    = the three-state bulk switch (public | withdrawn)
   //   grant      = the recorded consent flags (archival / ML / attribution)
   // viaAgent + masked default off until the agent and masking flows exist.
-  const speakerId = speaker.speakerId;
   // Keyed by the globally-unique speaker code (not uid): one doc PER SPEAKER, so a
   // steward recording several people no longer overwrites a single per-account doc.
   // This is also the key the rules already look up by (speaker()/speakerExists()).
+  // A hidden card keeps its consent AND its grant untouched (see above).
   await setDoc(doc(db, "afd_speakers", speakerId), {
     uid,
     stewardUid: uid,
     speakerId,
     viaAgent: speaker.viaAgent === true,
-    masked: false,
-    consent: speaker.consent.publicPlayback === true ? "public" : "withdrawn",
-    grant: speaker.consent,
+    ...(card ? {} : { masked: false }),
+    ...(cardHidden ? {} : {
+      consent: speaker.consent.publicPlayback === true ? "public" : "withdrawn",
+      grant: speaker.consent
+    }),
     updatedAt: serverTimestamp()
   }, { merge: true });
 
@@ -1068,7 +1105,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0921c";   // bump every publish; shown in the header + console
+const BUILD="b0922a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -2144,6 +2181,12 @@ $("keepBtn").onclick=async ()=>{
     envelope:lastQC.envelope||[],
     recordedAt:new Date().toISOString(),
     ownerUid:(window.AFD&&window.AFD.user())?window.AFD.user().uid:null,
+    // The speaker AS THEY WERE when this take was kept: code, agent flag and the
+    // consent they gave. A take that uploads later (no signal now, retried after
+    // the form has moved on to the next person) must carry ITS speaker's consent,
+    // never whoever happens to be in the form at retry time. Device-only: the
+    // uploadClip allowlist never copies this onto the public recording doc.
+    speaker:speakerRecord(),
     blob:lastBlob
   };
   kept.push(rec);
@@ -2216,11 +2259,22 @@ $("compareNext").onclick=()=>{
 $("hearOthers").onclick=async ()=>{ await showCompare(WORDS[idx], null); };
 
 /* ---- upload, then mark the LOCAL copy as synced ---- */
+// Which speaker (and whose consent) a take uploads under. Takes kept since the
+// per-clip snapshot carry their own. An older take without one may borrow the
+// form ONLY when the form still names that same speaker; otherwise we cannot
+// know what they consented to, so it stays on the phone rather than guess.
+function speakerFor(rec){
+  if(rec.speaker && rec.speaker.speakerId===rec.speakerId) return rec.speaker;
+  const cur=speakerRecord();
+  return (cur.speakerId && cur.speakerId===rec.speakerId) ? cur : null;
+}
 async function syncOne(rec){
   if(rec.skipped || rec.synced) return false;
   if(!(window.AFD && window.AFD.isSignedIn())) return false;
+  const spk=speakerFor(rec);
+  if(!spk){ console.warn("[AFD] kept locally — no consent snapshot for", rec.speakerId); return false; }
   try{
-    await window.AFD.uploadClip(rec, speakerRecord());
+    await window.AFD.uploadClip(rec, spk);
     rec.synced = true;
     await idbPut(STORE, rec);
     renderClips();
@@ -2232,20 +2286,38 @@ async function syncOne(rec){
   }
 }
 
+let syncing=false;
 async function syncPending(){
+  if(syncing){ alert("Already uploading — one moment."); return; }
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
   if(!pend.length){ alert("Everything is already uploaded."); return; }
   if(!(window.AFD&&window.AFD.isSignedIn())){ alert(AFDCore.t("session.signinupload",dispMode)); return; }
   const btn=$("syncBtn"), label=btn.textContent;
-  btn.disabled=true;
+  btn.disabled=true; syncing=true;
   let ok=0;
-  for(let i=0;i<pend.length;i++){
-    btn.textContent="Uploading "+(i+1)+" of "+pend.length+"…";
-    if(await syncOne(pend[i])) ok++;
-  }
-  btn.textContent=label; btn.disabled=false;
-  alert(ok+" of "+pend.length+" uploaded."+(ok<pend.length?"\nThe rest are still saved on this phone.":""));
+  try{
+    for(let i=0;i<pend.length;i++){
+      btn.textContent="Uploading "+(i+1)+" of "+pend.length+"…";
+      if(await syncOne(pend[i])) ok++;
+    }
+  }finally{ btn.textContent=label; btn.disabled=false; syncing=false; }
+  const orphan=pend.filter(k=>!k.synced && !speakerFor(k)).length;
+  alert(ok+" of "+pend.length+" uploaded."+(ok<pend.length?"\nThe rest are still saved on this phone.":"")+
+        (orphan?"\n"+orphan+" older take(s) belong to a speaker who isn't in the form now. Put that speaker's code back in the form to upload them.":""));
 }
+
+// Quiet background retry: no alerts, no button changes. Runs when an account
+// signs in and whenever the phone gets signal back, so a take kept at a site
+// with no coverage uploads on its own later. One pass at a time.
+async function syncQuietly(){
+  if(syncing || !(window.AFD&&window.AFD.isSignedIn()) || navigator.onLine===false) return;
+  const pend=myClips().filter(k=>!k.skipped&&!k.synced&&speakerFor(k));
+  if(!pend.length) return;
+  syncing=true;
+  try{ for(const k of pend){ if(!(await syncOne(k))) break; } }   // stop at the first failure — signal is gone again
+  finally{ syncing=false; }
+}
+window.addEventListener("online", ()=>{ setTimeout(syncQuietly, 1500); });
 
 $("skipBtn").onclick=async ()=>{
   const w=WORDS[idx];
@@ -2406,6 +2478,13 @@ $("dlManifest").onclick=async ()=>{
       session:{exportedAt:new Date().toISOString(),wordCount:WORDS.length},
       speaker:{speakerId:spk.speakerId,origin:spk.origin,ageBand:spk.ageBand,
                gender:spk.gender,consent:spk.consent},
+      // Every speaker in this export, from each take's own snapshot. The single
+      // `speaker` above is only whoever is in the form at export time (kept for
+      // older readers); a multi-speaker session needs this map to be accurate.
+      speakers:mine.reduce((m,k)=>{
+        const s=k.speaker; if(s && s.speakerId && !m[s.speakerId])
+          m[s.speakerId]={origin:s.origin,ageBand:s.ageBand,gender:s.gender,viaAgent:s.viaAgent,consent:s.consent};
+        return m; },{}),
       micCheck:actualSettings,
       recordings:mine.map(k=>{
         const {blob,...rest}=k;
@@ -2427,7 +2506,9 @@ $("dlManifest").onclick=async ()=>{
 
 $("clearBtn").onclick=async ()=>{
   const real=kept.filter(k=>!k.skipped).length;  // clearing removes ALL local data
+  const unsent=kept.filter(k=>!k.skipped&&!k.synced).length;
   if(!confirm("Delete all "+real+" recording(s) from this device?\n\n"+
+              (unsent?unsent+" of them have NOT been uploaded yet and exist only on this phone.\n\n":"")+
               "Export first if you have not already — this cannot be undone.")) return;
   await idbClear(STORE);
   kept=[]; renderClips();
@@ -2441,7 +2522,6 @@ $("revealRef").onclick=()=>{
 
 $("syncBtn").onclick=syncPending;
 
-// when a user signs in, quietly retry anything still sitting on the phone
 /* ---- account circle on the record bar: who you are · edit how you appear ·
    sign out — mirrors the browse page so navigation feels consistent across the
    two pages. Reuses window.AFD (user, loadProfile) and the existing sign-out. */
@@ -2498,8 +2578,7 @@ window.afdOnAuth=(u)=>{
   if(!u) return;
   ensureSpeakerCode();                 // signed in → give this steward a globally-unique code default
   loadProfileCard();                   // populate "How you appear" from afd_stewards
-  const pend=myClips().filter(k=>!k.skipped&&!k.synced);
-  if(pend.length) console.log(pend.length+" recording(s) pending upload");
+  syncQuietly();                       // anything still on the phone from a no-signal session goes up now
   maybeFastPath();                     // signed in → take the returning-speaker fast path if a speaker is saved
 };
 
@@ -2512,6 +2591,11 @@ function dl(blob,name){
 
 /* ---- restore anything already on this device ---- */
 (async function restore(){
+  // Ask the browser to treat this site's storage as persistent, so takes waiting
+  // on the phone for signal aren't evicted when the device runs low on space
+  // (mobile browsers clear "best-effort" storage without asking). Silent: some
+  // browsers grant it quietly, some ignore it; neither case needs the user.
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_){}
   try{
     await openDB();
     const saved=await idbAll(STORE);
@@ -2547,6 +2631,19 @@ function dl(blob,name){
     }
   }catch(e){ console.warn("restore failed",e); }
   maybeFastPath();   // saved speaker now loaded — take the fast path if signed in too
+})();
+</script>
+<script>
+/* Offline app shell (sw.js): lets this page open with no signal once it has been
+   visited online. Network-first, so it never serves stale code to anyone online.
+   Add ?nosw to the URL to switch it off on this phone (debugging). */
+(function(){
+  if(!("serviceWorker" in navigator)) return;
+  if(/[?&]nosw\b/.test(location.search)){
+    navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+    return;
+  }
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(e=>console.warn("[AFD] sw", e)); });
 })();
 </script>
 </body>

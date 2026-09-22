@@ -140,6 +140,30 @@ describe("recording create — archival gate + ownership", () => {
   });
 });
 
+describe("recording create — speaker card is honoured (late / offline uploads)", () => {
+  const hide = (id, consent) => testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(spk(ctx.firestore(), id), { consent });
+  });
+  it("cannot attach a take to a speaker another account stewards", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_x"), baseRec({ speakerId: "spk_elder" })));
+  });
+  it("may create for a brand-new speaker code (no card yet)", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_self_02" })));
+  });
+  it("withdrawn card: a PUBLIC new take is refused", async () => {
+    await hide("spk_self", "withdrawn");
+    await assertFails(setDoc(rec(asSelf(), "rec_late"), baseRec()));
+  });
+  it("withdrawn card: the same take arriving HIDDEN is accepted", async () => {
+    await hide("spk_self", "withdrawn");
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_late"), baseRec({ allowPlayback: false })));
+  });
+  it("erased card: a public new take is refused", async () => {
+    await hide("spk_self", "deleted");
+    await assertFails(setDoc(rec(asSelf(), "rec_late"), baseRec()));
+  });
+});
+
 describe("recording read — public vs. steward", () => {
   it("anyone reads a public recording", async () => {
     await assertSucceeds(getDoc(rec(asPublic(), "rec_self")));

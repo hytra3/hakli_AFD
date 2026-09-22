@@ -38,11 +38,23 @@ echo "sync-stamp: stamp = $STAMP  (was ${CUR:-none})"
 sed -i -E "s/(const BUILD *= *\")b[0-9a-z]+(\")/\1$STAMP\2/" index.html
 sed -i -E "s/(const BUILD *= *\")b[0-9a-z]+(\")/\1$STAMP\2/" recorder.html
 
-# --- propagate to every ?v= across the pages ---
-for f in recorder.html index.html dictionary.html; do
+# --- propagate to every ?v= across ALL served pages ---
+# Every page that loads a stamped asset belongs here. Earlier this covered only
+# the three main pages, so welcome / intro / walkthrough / prompts / the manifest
+# icons froze on whatever stamp they were last hand-edited to. The list is now
+# every top-level page plus prompts/ plus the manifest, and anything new is
+# picked up automatically by the globs.
+PAGES=( *.html prompts/*.html manifest.webmanifest )
+for f in "${PAGES[@]}"; do
   [ -f "$f" ] || continue
   sed -i -E "s/(\?v=)b[0-9a-z]+/\1$STAMP/g" "$f"
 done
 
 echo "sync-stamp: all ?v= and BUILD set to $STAMP"
-grep -nE '\?v=|const BUILD' recorder.html index.html dictionary.html | grep -E '\?v=|BUILD' || true
+# Drift check: any ?v= that is NOT the new stamp is a bug — say so loudly.
+STALE="$(grep -noE '\?v=b[0-9a-z]+' "${PAGES[@]}" 2>/dev/null | grep -v "?v=$STAMP" || true)"
+if [ -n "$STALE" ]; then
+  echo "sync-stamp: WARNING — stale stamps remain:"; echo "$STALE"
+else
+  echo "sync-stamp: $(grep -oE '\?v=b[0-9a-z]+' "${PAGES[@]}" | wc -l | tr -d ' ') stamps across ${#PAGES[@]} files, all current"
+fi

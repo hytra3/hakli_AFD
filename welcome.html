@@ -124,12 +124,12 @@
     .wrap{padding:0}
   }
 </style>
-<link rel="icon" href="favicon.svg?v=b0917b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0917b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0917b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0917b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0917b">
-<link rel="manifest" href="manifest.webmanifest?v=b0917b">
+<link rel="icon" href="favicon.svg?v=b0922a" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0922a" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922a">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922a">
+<link rel="manifest" href="manifest.webmanifest?v=b0922a">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -147,7 +147,7 @@
   <section class="demo" id="demo">
     <h2 class="demo-lead" id="demoLead">شاهد كيف يعمل</h2>
     <div class="demo-frame">
-      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?embed=1" loading="lazy" scrolling="no"></iframe>
+      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?v=b0922a&embed=1" loading="lazy" scrolling="no"></iframe>
     </div>
   </section>
 
@@ -397,6 +397,19 @@ loadClips();   // … then Hakli audio lights up if the CDN is reachable
 // The walkthrough loads lazily; sync its caption language once it's ready.
 (function(){ const f = document.getElementById("demoFrame");
   if(f) f.addEventListener("load", syncFrameLang); })();
+</script>
+<script>
+/* Offline app shell (sw.js): lets this page open with no signal once it has been
+   visited online. Network-first, so it never serves stale code to anyone online.
+   Add ?nosw to the URL to switch it off on this phone (debugging). */
+(function(){
+  if(!("serviceWorker" in navigator)) return;
+  if(/[?&]nosw\b/.test(location.search)){
+    navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+    return;
+  }
+  window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(e=>console.warn("[AFD] sw", e)); });
+})();
 </script>
 </body>
 </html>
