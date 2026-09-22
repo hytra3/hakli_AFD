@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0921b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0921b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0921b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0921b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0921b">
-<link rel="manifest" href="manifest.webmanifest?v=b0921b">
+<link rel="icon" href="favicon.svg?v=b0921c" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0921c" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0921c">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0921c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0921c">
+<link rel="manifest" href="manifest.webmanifest?v=b0921c">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0921b"></script>
-<script src="afd-words.js?v=b0921b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0921b">
+<script src="afd-core.js?v=b0921c"></script>
+<script src="afd-words.js?v=b0921c"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0921c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -61,8 +61,8 @@ body{
   margin:0 -16px 8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
   background:#F3F7F5;box-shadow:0 2px 10px rgba(31,58,52,.05)}
 .rec-left{display:flex; align-items:center; gap:12px; min-width:0}
-.rec-home{width:28px; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer}
-.rec-home svg{width:100%; height:100%}
+.rec-home{width:auto; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer}
+.rec-home svg{height:100%; width:auto; display:block}
 .rec-topbar .stepdots{margin-bottom:0; cursor:pointer}
 .rec-topbar .stepdots .step-back{color:var(--ink-soft)}
 .account{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
@@ -620,7 +620,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0921b";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0921c";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1068,7 +1068,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0921b";   // bump every publish; shown in the header + console
+const BUILD="b0921c";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
