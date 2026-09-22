@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli prompts — steward</title>
-<link rel="icon" href="../favicon.svg?v=b0922d" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b0922e" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -97,7 +97,7 @@
         <h2>✍️ Edit suggestions</h2>
         <a href="#" id="refreshq" class="small">refresh</a>
       </div>
-      <div class="note queuehint">Proposals only — read them here, then commit the ones you want: edit that key's <code>ar:</code> in <code>prompts/index.html</code> and <b>push to git</b>. Nothing on this page changes the app by itself.</div>
+      <div class="note queuehint">Proposals only — read them here. To apply the ones you want, run <code>node scripts/pull-suggestions.mjs</code> in <code>~/afd</code>: it asks apply / remove / skip for each and writes approved wording into the right file for you (spoken prompts → <code>prompts/index.html</code>; on-screen <code>screen:</code> keys → <code>afd-core.js</code>). Then <code>git diff</code> and <b>publish</b>. Nothing on this page changes the app by itself. Guide: <i>prompts-and-suggestions-guide.md</i> in the project files.</div>
       <div id="queue"><div class="qempty">—</div></div>
     </div>
 

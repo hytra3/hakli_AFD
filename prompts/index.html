@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli voice prompts</title>
-<link rel="icon" href="../favicon.svg?v=b0922d" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b0922e" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -61,6 +61,11 @@
   .rowtext{flex:1; min-width:0;}
   .rowtext .g{font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rowtext .k{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace;}
+  .rowtext .a{font-size:15px; direction:rtl; text-align:right; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px;}
+  .rowtext .a.dir{color:var(--muted); font-size:13px;}
+  .row .sug{flex:0 0 auto; font-size:12px; color:var(--accent);}
+  .sugclosed{margin-top:16px; border-top:1px solid var(--line); padding-top:14px; color:var(--muted); font-size:13px; line-height:1.5;}
+  .sugclosed b{display:block; color:var(--ink); font-size:15px; direction:rtl; text-align:right; font-weight:500;}
   .note{background:var(--warm-bg); color:var(--warm); border-radius:12px; padding:12px 14px; font-size:13px; margin-top:14px;}
   .sync{font-size:12px;}
   .sync.pending{color:var(--warm);} .sync.ok{color:var(--go);}
@@ -73,6 +78,7 @@
   .suggest{margin-top:16px; border-top:1px solid var(--line); padding-top:14px;}
   .btn.ghost{width:100%; justify-content:center; color:var(--accent); background:var(--accent-bg); border-color:var(--accent-bg); font-size:14px;}
   .suggestbody{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+  .suggestbody.hidden{display:none;}   /* .suggestbody came after .hidden and overrode it: the box was always open, and empty */
   .suggestbody textarea, .suggestbody input{width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink);}
   .suggestbody textarea{font-size:20px; direction:rtl; text-align:right; resize:vertical;}
   .suggestbody .review{margin-top:2px;}
@@ -124,6 +130,13 @@
         </div>
       </div>
 
+      <!-- Shown instead of the suggest button while the Arabic-edits window is
+           closed, so a speaker isn't left wondering where "suggest" went. -->
+      <div class="sugclosed hidden" id="sugclosed">
+        <b>✍️ اقتراح تعديل النص العربي مغلق الآن — اطلب من مارتي فتحه.</b>
+        Arabic suggestions are closed right now — ask Marty to open them (admin page → ✍️ Arabic edits).
+      </div>
+
       <div class="nav">
         <button class="btn" id="prev">← Back</button>
         <button class="btn" id="next">Next →</button>
@@ -143,7 +156,7 @@
 
 <!-- The app's on-screen string table (window.AFDCore.STRINGS) — listed below as
      suggest-only "On-screen text" so one review pass covers every Arabic line. -->
-<script src="../afd-core.js?v=b0922d"></script>
+<script src="../afd-core.js?v=b0922e"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -391,6 +404,14 @@ function stillOpen(snap){
     return !!(u && typeof u.toMillis === "function" && u.toMillis() > Date.now());
   }catch(_){ return false; }
 }
+// The admin page may open a window while this tab sits in the background; re-read
+// on return so the suggest button appears without a manual reload.
+document.addEventListener("visibilitychange", async ()=>{
+  if(document.visibilityState!=="visible" || !state.db || !ITEMS[state.i]) return;
+  const before = state.suggestOpen+"|"+state.recordOpen;
+  await loadConfig(state.db);
+  if(state.suggestOpen+"|"+state.recordOpen !== before) render();
+});
 async function loadConfig(db){
   try{
     const [s,r] = await Promise.all([
@@ -447,13 +468,19 @@ function render(){
 
   // Suggest-Arabic-edit: only when the window is open, the item has Arabic to
   // improve, and it isn't a recorder directive ([توجيه] items aren't UI copy).
-  const canSuggest = state.suggestOpen && !!it.ar && !it.ar.startsWith("[توجيه]");
+  const suggestable = !!it.ar && !it.ar.startsWith("[توجيه]");
+  const canSuggest = state.suggestOpen && suggestable;
   $("suggestwrap").classList.toggle("hidden", !canSuggest);
+  $("sugclosed").classList.toggle("hidden", !(suggestable && !state.suggestOpen));
   $("suggestbody").classList.add("hidden");
   $("suggeststatus").textContent = "";
   $("suggesttoggle").textContent = (canSuggest && suggestedSet().has(it.key))
     ? "اقترح تعديلًا آخر · Suggest another edit ✓"
     : "اقترح تعديلًا للنص العربي · Suggest Arabic edit";
+
+  // On-screen items have ONE action — suggesting — so open the box straight
+  // away (prefilled with the current Arabic; Send stays refused until changed).
+  if(canSuggest && isScreen(it)) openSuggestBox(false);
 
   renderList();
   updateProgress();
@@ -479,7 +506,10 @@ function renderList(){
       row.className = "row" + (gi===state.i?" active":"");
       row.innerHTML =
         '<div class="dot '+(pend?"pend":(done?"done":""))+'">'+(pend?"…":(done?"✓":""))+'</div>'+
-        '<div class="rowtext"><div class="g">'+it.en+'</div><div class="k">'+it.key+'</div></div>';
+        '<div class="rowtext"><div class="g">'+escHtml(it.en)+'</div>'+
+          (it.ar ? '<div class="a'+(it.ar.startsWith("[توجيه]")?' dir':'')+'">'+escHtml(it.ar)+'</div>' : '')+
+          '<div class="k">'+it.key+'</div></div>'+
+        (suggestedSet().has(it.key) ? '<span class="sug" title="You suggested an edit">✍️</span>' : '');
       row.onclick = ()=>{ state.i = gi; render(); window.scrollTo({top:0,behavior:"smooth"}); };
       el.appendChild(row);
     });
@@ -593,6 +623,13 @@ $("next").onclick = ()=>{ state.i=(state.i+1)%ITEMS.length; render(); };
 $("nextpending").onclick = ()=>{ if(!nextUnrecorded()) alert("Every prompt is recorded. Thank you!"); };
 
 /* ---- suggest an Arabic edit (proposal only — never edits the live prompt) ---- */
+function openSuggestBox(focus){
+  $("suggestbody").classList.remove("hidden");
+  $("suggesttext").value = ITEMS[state.i].ar || "";
+  $("suggestnote").value = "";
+  $("suggeststatus").textContent = "";
+  if(focus) $("suggesttext").focus();
+}
 $("suggesttoggle").onclick = ()=>{
   const b = $("suggestbody");
   if(!b.classList.contains("hidden")){ b.classList.add("hidden"); return; }

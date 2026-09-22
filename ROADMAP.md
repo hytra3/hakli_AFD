@@ -423,7 +423,12 @@ suggestion drops a `{spk}`/`{n}` placeholder. Header captions moved into STRINGS
 (`hdr.*`). **Open decision (for Dhofari speakers):** 7 keys exist in both lists
 with different Arabic — record.hold, record.holding, result.pick,
 result.sayityourself, review.keep, review.redo, voice.shareagain. Per key: keep
-spoken and on-screen wording separate, or make them one line.
+spoken and on-screen wording separate, or make them one line. *(09-22, later)* Suggesting made findable: the list shows each item's Arabic
+(✍️ marks ones suggested from this phone); a closed window now says so on the card
+instead of hiding the button; on-screen items open the suggestion box prefilled;
+the window state re-reads when the tab returns. Fixed: `.suggestbody` overrode
+`.hidden`, so the box was always open and EMPTY on spoken prompts. Admin queue
+note now points to `pull-suggestions.mjs`.
 
 ## Welcome onboarding — narrated walkthrough (decision; built, pending deploy)
 
