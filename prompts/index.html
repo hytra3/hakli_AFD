@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli voice prompts</title>
-<link rel="icon" href="../favicon.svg?v=b0922c" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b0922d" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -141,6 +141,9 @@
   <div id="setup" class="note hidden"></div>
 </div>
 
+<!-- The app's on-screen string table (window.AFDCore.STRINGS) — listed below as
+     suggest-only "On-screen text" so one review pass covers every Arabic line. -->
+<script src="../afd-core.js?v=b0922d"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -253,7 +256,23 @@ const SECTIONS = [
     { key:"action.hear_prompt", en:"Hear the prompt", ar:"اسمع التوجيه", kind:"label" },
   ]},
 ];
+/* ---- On-screen text: the app's button labels, badges and messages, straight
+   from afd-core.js STRINGS. SUGGEST-ONLY (no recording — these are read, not
+   heard) and not counted in the recording progress. Keys are prefixed
+   "screen:" so a suggestion for on-screen "record.hold" can never be confused
+   with the SPOKEN prompt "record.hold" above; pull-suggestions.mjs routes
+   "screen:" keys into afd-core.js and everything else into this file. */
+const SCREEN_SECTION = "On-screen text (suggest only) · النص الظاهر على الشاشة";
+(function(){
+  const S = (window.AFDCore && window.AFDCore.STRINGS) || {};
+  const items = Object.keys(S)
+    .filter(k => S[k] && S[k].ar)
+    .map(k => ({ key:"screen:"+k, en:S[k].en || k, ar:S[k].ar, kind:"screen" }));
+  if(items.length) SECTIONS.push({ name:SCREEN_SECTION, items });
+})();
 const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.name})));
+const isScreen = it => it && it.kind === "screen";
+const RECORDABLE = ITEMS.filter(it => !isScreen(it));
 
 /* ---- tiny IndexedDB for pending clips (survives reload / bad signal) ---- */
 const IDB = (()=>{
@@ -389,7 +408,8 @@ function suggestedSet(){ try{ return new Set(JSON.parse(localStorage.getItem("af
 function markSuggested(key){ const s=suggestedSet(); s.add(key); try{ localStorage.setItem("afd_ui_suggested", JSON.stringify([...s])); }catch(_){} }
 
 function updateProgress(){
-  const done = state.recorded.size, total = ITEMS.length;
+  const total = RECORDABLE.length;
+  const done = RECORDABLE.filter(it => state.recorded.has(it.key)).length;
   $("barfill").style.width = Math.round(done/total*100)+"%";
   $("count").textContent = done+" of "+total+" recorded";
   $("remaining").textContent = (total-done)+" to go";
@@ -401,9 +421,12 @@ function render(){
   $("cur-gloss").textContent = it.en;
   $("cur-ar").textContent = it.ar || "";
   const bits = [];
-  bits.push(it.kind==="narration" ? '<span class="badge b-narr">longer phrase</span>' : '<span class="badge b-label">short label</span>');
+  bits.push(isScreen(it) ? '<span class="badge b-tag">on-screen text · suggest only</span>'
+          : it.kind==="narration" ? '<span class="badge b-narr">longer phrase</span>' : '<span class="badge b-label">short label</span>');
   if(it.tag) bits.push('<span class="badge b-tag">'+it.tag+'</span>');
-  $("cur-hint").innerHTML = bits.join("") + (it.kind==="narration" ? '<div style="margin-top:8px">Take your time — a quiet room helps.</div>' : "");
+  $("cur-hint").innerHTML = bits.join("") + (it.kind==="narration" ? '<div style="margin-top:8px">Take your time — a quiet room helps.</div>' : "")
+    + (isScreen(it) && /\{[a-z]+\}/.test(it.ar||"")
+        ? '<div style="margin-top:8px">اترك ما بين الأقواس { } كما هو — يُستبدَل تلقائيًا بالاسم أو الرقم.<br><small>Keep anything in { } exactly as it is — the app fills in a name or number there.</small></div>' : "");
   $("cur-key").textContent = it.key;
 
   resetRecUI();
@@ -416,8 +439,11 @@ function render(){
   // Recording window: when closed, block new takes (the rules also refuse the
   // publish). Existing recordings and playback are untouched.
   const recOpen = state.recordOpen === true;
-  $("recclosed").classList.toggle("hidden", recOpen);
+  $("recclosed").classList.toggle("hidden", recOpen || isScreen(it));
   $("recbtn").disabled = !recOpen;
+  // On-screen text is read, not heard: no recording controls at all.
+  const ctl = document.querySelector(".controls");
+  if(ctl) ctl.classList.toggle("hidden", isScreen(it));
 
   // Suggest-Arabic-edit: only when the window is open, the item has Arabic to
   // improve, and it isn't a recorder directive ([توجيه] items aren't UI copy).
@@ -448,7 +474,7 @@ function renderList(){
     const h = document.createElement("h2"); h.textContent = sec.name; el.appendChild(h);
     sec.items.forEach(it=>{
       const gi = ITEMS.findIndex(x=>x.key===it.key);
-      const done = state.recorded.has(it.key), pend = state.pending.has(it.key);
+      const done = !isScreen(it) && state.recorded.has(it.key), pend = state.pending.has(it.key);
       const row = document.createElement("div");
       row.className = "row" + (gi===state.i?" active":"");
       row.innerHTML =
@@ -557,7 +583,7 @@ function goNextPending(){ if(!nextUnrecorded()) return; }
 function nextUnrecorded(){
   for(let n=1;n<=ITEMS.length;n++){
     const j=(state.i+n)%ITEMS.length;
-    if(!state.recorded.has(ITEMS[j].key)){ state.i=j; render(); window.scrollTo({top:0,behavior:"smooth"}); return true; }
+    if(!isScreen(ITEMS[j]) && !state.recorded.has(ITEMS[j].key)){ state.i=j; render(); window.scrollTo({top:0,behavior:"smooth"}); return true; }
   }
   return false;
 }

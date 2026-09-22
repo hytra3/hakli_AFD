@@ -413,6 +413,18 @@ chrome reads worse than all-English. Do it as one pass, in this order:
 Net: one keyed inventory drives (a) English chrome, (b) Arabic chrome, (c) the
 spoken-Hakli prompts, and (d) the next language's chrome — all from the same source.
 
+**Step toward it (09-22): every Arabic line is now suggestible.** The prompts tool
+loads `afd-core.js` and lists all on-screen STRINGS (120) after the 69 spoken
+prompts, as a suggest-only section (no recording, not in the progress count).
+Their suggestion keys are prefixed `screen:` so an on-screen "record.hold" never
+collides with the spoken "record.hold"; `pull-suggestions.mjs` routes `screen:`
+approvals into `afd-core.js`, the rest into `prompts/index.html`, and warns if a
+suggestion drops a `{spk}`/`{n}` placeholder. Header captions moved into STRINGS
+(`hdr.*`). **Open decision (for Dhofari speakers):** 7 keys exist in both lists
+with different Arabic — record.hold, record.holding, result.pick,
+result.sayityourself, review.keep, review.redo, voice.shareagain. Per key: keep
+spoken and on-screen wording separate, or make them one line.
+
 ## Welcome onboarding — narrated walkthrough (decision; built, pending deploy)
 
 **Split of labour: the animation carries the "how"; the intro text carries the "why".**

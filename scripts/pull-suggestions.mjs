@@ -5,8 +5,13 @@
  *  afd_ui_suggestions collection (append-only; nothing goes live on its own).
  *  This is the review/commit step: it reads that queue, shows each proposal
  *  next to the CURRENT source wording, and — for the ones you approve — rewrites
- *  that key's `ar:` straight into prompts/index.html. Git stays the source of
- *  truth: this only edits your working tree; you review `git diff` and push.
+ *  that key's `ar:` straight into the file that owns it:
+ *    • spoken-prompt keys (e.g. "record.hold")          → prompts/index.html
+ *    • on-screen keys, prefixed "screen:" (e.g. "screen:record.hold")
+ *                                                        → afd-core.js (STRINGS)
+ *  The prefix is what keeps a spoken prompt and a same-named button label from
+ *  being confused. Git stays the source of truth: this only edits your working
+ *  tree; you review `git diff` and push (publish-site.sh).
  *
  *  It also tidies stale data on the way past: the leftover `open` field on
  *  afd_ui_config/suggestions (superseded by the openUntil model), and, once you
@@ -29,8 +34,11 @@ const DRY = process.argv.includes("--dry");
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 const here = dirname(fileURLToPath(import.meta.url));
 const promptsPath = join(here, "..", "prompts", "index.html");
+const corePath    = join(here, "..", "afd-core.js");
+const SCREEN = "screen:";
 
-let src = readFileSync(promptsPath, "utf8");
+let src  = readFileSync(promptsPath, "utf8");
+let core = readFileSync(corePath, "utf8");
 
 // Map key -> current `ar:` by reading the prompt lines (one item per line).
 function currentArMap(text){
@@ -43,11 +51,35 @@ function currentArMap(text){
   }
   return map;
 }
+// Same for afd-core.js STRINGS, whose lines read:  "record.hold": { en:"…", ar:"…" },
+// Keys come back prefixed "screen:" so they never collide with prompt keys.
+function currentCoreArMap(text){
+  const map = {};
+  for(const line of text.split(/\r?\n/)){
+    const m = line.match(/^\s*"([A-Za-z0-9_.-]+)"\s*:\s*\{.*?\bar:"([^"]*)"/);
+    if(m) map[SCREEN + m[1]] = m[2];
+  }
+  return map;
+}
+const escAr = v => String(v).replace(/[\r\n]+/g, " ").trim()
+                   .replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+function applyToCore(key, newAr){
+  const bare = key.slice(SCREEN.length), val = escAr(newAr);
+  const lines = core.split(/\r?\n/);
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].trimStart().startsWith('"'+bare+'"') && /\bar:"[^"]*"/.test(lines[i])){
+      lines[i] = lines[i].replace(/\bar:"[^"]*"/, 'ar:"'+val+'"');
+      core = lines.join("\n");
+      return true;
+    }
+  }
+  return false;
+}
 // Rewrite the `ar:` on the single line that declares `key`. Returns false if
 // the key (or an ar: on its line) isn't found, so nothing is silently lost.
 function applyToSource(key, newAr){
-  const val = String(newAr).replace(/[\r\n]+/g, " ").trim()
-                .replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  if(key.startsWith(SCREEN)) return applyToCore(key, newAr);
+  const val = escAr(newAr);
   const lines = src.split(/\r?\n/);
   for(let i=0;i<lines.length;i++){
     if(lines[i].includes('key:"'+key+'"') && /\bar:"[^"]*"/.test(lines[i])){
@@ -82,7 +114,7 @@ snap.forEach(d => {
 });
 if(groups.size === 0){ console.log("No suggestions in the queue."); process.exit(0); }
 
-const cur = currentArMap(src);
+const cur = { ...currentArMap(src), ...currentCoreArMap(core) };
 const ms   = r => (r.createdAt && r.createdAt.toMillis) ? r.createdAt.toMillis() : 0;
 const when = r => { try{ return r.createdAt && r.createdAt.toDate ? r.createdAt.toDate().toLocaleString() : ""; }catch(_){ return ""; } };
 
@@ -92,11 +124,16 @@ const applied = [], removed = [];
 for(const [key, items] of groups){
   items.sort((a,b)=> ms(b)-ms(a));
   console.log("\n\x1b[2m"+key+"\x1b[0m");
-  console.log("  current source: " + (cur[key] ?? "(key not found in prompts/index.html)"));
+  console.log("  current source: " + (cur[key] ?? "(key not found in " + (key.startsWith(SCREEN) ? "afd-core.js" : "prompts/index.html") + ")"));
   for(const r of items){
     console.log("  ─ suggested:  " + r.arSuggested);
     if(r.arSeen && r.arSeen !== cur[key]) console.log("    (they saw:   " + r.arSeen + ")");
     if(r.note) console.log("    note: " + r.note);
+    // On-screen strings carry placeholders the app fills in ({spk}, {n}…). A
+    // suggestion that drops or renames one would show a blank or a raw "{n}".
+    const need = (String(cur[key]||"").match(/\{[a-z]+\}/g) || []);
+    const lost = need.filter(t => !String(r.arSuggested||"").includes(t));
+    if(lost.length) console.log("    \x1b[33m! missing placeholder(s) "+lost.join(" ")+" — fix the wording before applying\x1b[0m");
     console.log("    " + when(r) + "  ·  " + String(r.by||"?").slice(0,14));
     if(DRY) continue;
     const ans = (await rl.question("    apply / remove / skip [a/r/s] (s): ")).trim().toLowerCase();
@@ -114,9 +151,12 @@ for(const [key, items] of groups){
 if(DRY){ console.log("\n[dry] "+groups.size+" key(s) in queue; nothing written."); process.exit(0); }
 
 if(applied.length){
-  writeFileSync(promptsPath, src);
-  console.log("\nWrote "+applied.length+" edit(s) into prompts/index.html.");
-  console.log("  → review:  git diff prompts/index.html");
+  const toCore = applied.filter(r => String(r.key).startsWith(SCREEN)).length;
+  const toPrompts = applied.length - toCore;
+  if(toPrompts) writeFileSync(promptsPath, src);
+  if(toCore)    writeFileSync(corePath, core);
+  console.log("\nWrote "+applied.length+" edit(s): "+toPrompts+" into prompts/index.html, "+toCore+" into afd-core.js.");
+  console.log("  → review:  git diff prompts/index.html afd-core.js");
   console.log("  → then commit & push to make them live.");
 } else {
   console.log("\nNo source edits made.");

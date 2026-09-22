@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0922c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0922c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922c">
-<link rel="manifest" href="manifest.webmanifest?v=b0922c">
+<link rel="icon" href="favicon.svg?v=b0922d" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0922d" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922d">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922d">
+<link rel="manifest" href="manifest.webmanifest?v=b0922d">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0922c"></script>
-<script src="afd-words.js?v=b0922c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0922c">
+<script src="afd-core.js?v=b0922d"></script>
+<script src="afd-words.js?v=b0922d"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0922d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -488,11 +488,11 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
     </div>
     <div class="topbtns">
-      <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" title="Look up a word" aria-label="Look up a word">
+      <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" data-cap-key="hdr.find" title="Look up a word" aria-label="Look up a word">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
       </a>
-      <button class="dispskin capd" id="dispSkin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
-      <span class="account-wrap capd" id="recAcctWrap" data-cap="دخول">
+      <button class="dispskin capd" id="dispSkin" data-cap="العرض" data-cap-key="hdr.display" title="How words are shown" aria-label="Change how words are shown"></button>
+      <span class="account-wrap capd" id="recAcctWrap" data-cap="دخول" data-cap-key="hdr.signin">
         <button class="account" id="account" aria-label="Account"></button>
         <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
           <div class="who" id="acctWho"></div>
@@ -642,7 +642,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922c";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922d";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1136,7 +1136,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0922c";   // bump every publish; shown in the header + console
+const BUILD="b0922d";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -2623,7 +2623,7 @@ function recAcctOpen(){ if(recMenu){ recMenu.classList.add("open"); recMenu.setA
 function renderRecAccount(){
   if(!recAcct) return;
   const u = window.AFD && window.AFD.user && window.AFD.user();
-  const raw=$("recAcctWrap"); if(raw) raw.setAttribute("data-cap", u ? "حسابي" : "دخول");
+  const raw=$("recAcctWrap"); if(raw && window.afdCap) window.afdCap(raw, u ? "hdr.account" : "hdr.signin");
   if(!u){
     recAcctClose();
     recAcct.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
@@ -2768,6 +2768,18 @@ restored.then(()=>syncQuietly());      // auth may already be settled by now
   }
   window.addEventListener("load",()=>{ navigator.serviceWorker.register("sw.js").catch(e=>console.warn("[AFD] sw", e)); });
 })();
+</script>
+<script>
+/* Header-icon captions come from the shared string table (afd-core STRINGS
+   hdr.*) so they're one inventory with everything else — suggestible from the
+   prompts tool, and edited in one place. data-cap is the pre-JS fallback. */
+(function(){ try{
+  document.querySelectorAll("[data-cap-key]").forEach(el=>{
+    const s=(AFDCore.STRINGS||{})[el.getAttribute("data-cap-key")];
+    if(s && s.ar) el.setAttribute("data-cap", s.ar);
+  });
+}catch(_){ } })();
+window.afdCap = (el, key)=>{ try{ const s=(AFDCore.STRINGS||{})[key]; if(el && s && s.ar){ el.setAttribute("data-cap", s.ar); el.setAttribute("data-cap-key", key); } }catch(_){ } };
 </script>
 </body>
 </html>
