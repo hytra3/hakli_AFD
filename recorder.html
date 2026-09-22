@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0922b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0922b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922b">
-<link rel="manifest" href="manifest.webmanifest?v=b0922b">
+<link rel="icon" href="favicon.svg?v=b0922c" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0922c" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922c">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922c">
+<link rel="manifest" href="manifest.webmanifest?v=b0922c">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0922b"></script>
-<script src="afd-words.js?v=b0922b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0922b">
+<script src="afd-core.js?v=b0922c"></script>
+<script src="afd-words.js?v=b0922c"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0922c">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -58,12 +58,13 @@ body{
 .brand b{font-family:var(--serif);font-size:19px;font-weight:500;letter-spacing:.2px}
 .brand small{font-family:var(--sans);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#9AB0A8}
 .rec-topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:10px;
-  margin:0 -16px 8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  margin:0 -16px 8px;padding:calc(12px + env(safe-area-inset-top)) 16px 24px;
   background:#F3F7F5;box-shadow:0 2px 10px rgba(31,58,52,.05)}
 .rec-left{display:flex; align-items:center; gap:12px; min-width:0}
-.rec-home{width:auto; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer}
+.rec-home{width:auto; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer; color:var(--ink)}  /* was link blue/visited purple */
 .rec-home svg{height:100%; width:auto; display:block}
-.rec-topbar .stepdots{margin-bottom:0; cursor:pointer}
+.rec-topbar .stepdots{margin-bottom:0; cursor:pointer; display:flex; align-items:center; gap:4px; min-width:0}
+#progress{display:inline-block; min-width:0}
 .rec-topbar .stepdots .step-back{color:var(--ink-soft)}
 .account{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
   background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;overflow:hidden}
@@ -84,6 +85,14 @@ body{
 .spkchip-code{flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
 .spkchip-sw{flex:0 0 auto;color:var(--ink-soft);font-size:15px}
 .topbtns{display:flex;gap:8px;align-items:center}
+/* Small Arabic captions under the round header icons — a first-time visitor
+   couldn't tell what the page / waveform / person icons did. Arabic in every
+   tier (short, Arabic-primary); English stays in each button's title/aria-label. */
+.capd{position:relative}
+.capd::after{content:attr(data-cap); position:absolute; top:calc(100% + 4px); left:50%; transform:translateX(-50%);
+  font:500 10.5px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#6F8A81; white-space:nowrap;
+  pointer-events:none; letter-spacing:0; direction:rtl}
+
 .dispskin{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
   background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;padding:0;
   text-decoration:none}
@@ -260,6 +269,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 #roster .wd{padding:6px 12px;font-size:12px;background:transparent;border:1px solid var(--hairline);color:var(--ink-soft);border-radius:10px}
 #roster .roster-row.withdrawn{opacity:.55}
 .stepdots{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:14px}
+/* Arabic must never be letter-spaced — tracking pulls the joined letters apart
+   (the step label read as disconnected glyphs). The mono + tracking stays on the
+   English line only. */
+.sil-label.is-ar{letter-spacing:0;font-family:var(--sans);font-size:12px}
+.stepdots .bi-ar{display:block;font-family:var(--sans);font-size:13px;letter-spacing:0;line-height:1.3}
+.stepdots .sub{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-top:1px}
+.bi-ar,[dir="rtl"]{letter-spacing:0}
   /* The shared entry card now carries the picture, word and voices, so the
      recorder's own picture / gloss / "hear others" line is redundant — hide it,
      leaving the English-audio button and the capture instruction. (Stage 2c folds
@@ -338,7 +354,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
 <!-- ============ 1. CONSENT + SPEAKER ============ -->
 <section id="setup">
-  <p class="stepdots">الخطوة ١ / ٣ &nbsp;·&nbsp; المتحدِّث<small class="sub">STEP 1 / 3 · SPEAKER</small></p>
+  <p class="stepdots"><span class="bi-ar" dir="rtl">الخطوة ١ / ٣ · المتحدِّث</span><small class="sub">STEP 1 / 3 · SPEAKER</small></p>
   <div class="brand">
     <svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg>
     <b>الحَكلي</b><small>قاموس الصوت أوّلًا · Audio First Dictionary</small>
@@ -447,7 +463,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
 <!-- ============ 2. MIC CHECK ============ -->
 <section id="miccheck" class="hidden">
-  <p class="stepdots">الخطوة ٢ / ٣ &nbsp;·&nbsp; الميكروفون<small class="sub">STEP 2 / 3 · MICROPHONE</small></p>
+  <p class="stepdots"><span class="bi-ar" dir="rtl">الخطوة ٢ / ٣ · الميكروفون</span><small class="sub">STEP 2 / 3 · MICROPHONE</small></p>
   <div id="micChip" class="spkchip hidden" role="button" tabindex="0" title="Tap to change speaker"></div>
   <h1><span class="bi-ar" dir="rtl">افحص الميكروفون</span><small class="sub">Check the microphone</small></h1>
   <p class="note"><span class="bi-ar" dir="rtl">يؤكّد هذا أنّ هاتفك يلتقط تفاصيل كافية. لا يمكن استخدام تسجيلات دون ٤٤٬١٠٠ هرتز.</span><small class="sub">This confirms your phone is capturing enough detail. Recordings below 44,100 Hz can't be used.</small></p>
@@ -472,11 +488,11 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
     </div>
     <div class="topbtns">
-      <a class="dispskin" id="findLink" href="index.html" aria-label="Look up a word">
+      <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" title="Look up a word" aria-label="Look up a word">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
       </a>
-      <button class="dispskin" id="dispSkin" aria-label="Change how words are shown"></button>
-      <span class="account-wrap">
+      <button class="dispskin capd" id="dispSkin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
+      <span class="account-wrap capd" id="recAcctWrap" data-cap="دخول">
         <button class="account" id="account" aria-label="Account"></button>
         <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
           <div class="who" id="acctWho"></div>
@@ -626,7 +642,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922b";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922c";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -889,7 +905,7 @@ window.AFD = {
    current word. The capture loop below is untouched. mode reads from AFDCore so it
    tracks the display-tier toggle; user/db/store are the recorder's own handles. */
 initCard({ db, store, recorderUrl:"recorder.html",
-           mode:()=>AFDCore.getDisplayMode("auto"),
+           mode:()=>AFDCore.getDisplayMode("sound"),   // match the recorder's own default (was "auto" → English card labels inside a wordless page)
            user:()=>currentUser,
            banner:(m)=>{ try{ alert(m); }catch(_){ console.warn("[AFD]", m); } } });
 window.AFD.withdrawSpeaker = withdrawSpeaker;
@@ -1120,7 +1136,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0922b";   // bump every publish; shown in the header + console
+const BUILD="b0922c";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1673,7 +1689,7 @@ function renderPrompt(){
   const sil=document.querySelector(".silhouette");
   const sess=$("sessionCard");
   if(listenOnly){
-    $("progress").textContent="LISTENING · WORD "+(idx+1)+" OF "+WORDS.length;
+    setProgress("استماع", "LISTENING", false);
     $("instruction").textContent="Hear how other speakers say this word.";
     recBtn.classList.add("hidden");
     $("skipBtn").classList.add("hidden");
@@ -1682,13 +1698,45 @@ function renderPrompt(){
     if(sess) sess.classList.add("hidden");
     showCompare(WORDS[idx], null);      // load other speakers straight away
   }else{
-    $("progress").textContent="STEP 3 / 3 · WORD "+(idx+1)+" OF "+WORDS.length;
+    setProgress("", "STEP 3 / 3", true);
     setRecType(recType);
     recBtn.classList.remove("hidden");
     $("skipBtn").classList.remove("hidden");
     $("browseNav").classList.add("hidden");
     if(sil) sil.classList.remove("hidden");
   }
+}
+
+// The level-meter label is tracked mono for "READY"/"LISTENING", but tracking
+// splits joined Arabic ("جا هز"). It's written from 5 places, so watch it and
+// drop the tracking whenever it holds Arabic.
+(function(){ const el=$("silLabel"); if(!el || !window.MutationObserver) return;
+  const f=()=>el.classList.toggle("is-ar", /[\u0600-\u06FF]/.test(el.textContent||""));
+  new MutationObserver(f).observe(el,{childList:true,characterData:true,subtree:true}); f(); })();
+
+// Bilingual text helpers for the session area. Short badges in the "auto" tier
+// read "Arabic · ENGLISH"; pop-ups read Arabic, then English on the next line.
+// Other tiers get Arabic alone (AFDCore.t already does that). {x} fills vars.
+function fill(str, vars){ let o=String(str); for(const k in (vars||{})) o=o.split("{"+k+"}").join(vars[k]); return o; }
+function tBi(key, vars){
+  const s=(AFDCore.STRINGS||{})[key];
+  if(dispMode!=="auto" || !s || !s.ar) return fill(AFDCore.t(key, dispMode), vars);
+  return fill(s.ar, vars)+" · "+fill(s.en, vars);
+}
+function tMsg(key, vars){
+  const s=(AFDCore.STRINGS||{})[key];
+  if(dispMode!=="auto" || !s || !s.ar) return fill(AFDCore.t(key, dispMode), vars);
+  return fill(s.ar, vars)+"\n"+fill(s.en, vars);
+}
+
+// Step 3 / listening label: Arabic first ("الكلمة ١ من ٤٠"), English line only
+// in the "auto" tier — the same convention as tHTML. Was English-only.
+function setProgress(arLead, enLead, recording){
+  const n=(v)=>Number(v).toLocaleString("ar-EG");
+  const ar=(arLead?arLead+" · ":"")+"الكلمة "+n(idx+1)+" من "+n(WORDS.length);
+  const en=enLead+" · WORD "+(idx+1)+" OF "+WORDS.length;
+  const el=$("progress"); if(!el) return;
+  el.innerHTML='<span class="bi-ar" dir="rtl">'+ar+'</span>'+(dispMode==="auto"?'<small class="sub">'+en+'</small>':'');
 }
 
 // the ONE place an id is derived
@@ -2206,7 +2254,7 @@ $("keepBtn").onclick=async ()=>{
   };
   kept.push(rec);
   try{ await idbPut(STORE,rec); await saveSpeaker(); }
-  catch(e){ alert("Could not save to this device: "+e); }
+  catch(e){ alert(tMsg("save.failed")+" "+e); }
   renderClips();
   $("reviewCard").classList.add("hidden");
   await syncOne(rec);                 // upload first so the comparison includes it
@@ -2261,7 +2309,7 @@ async function showCompare(word, mine){
 
 function clipRow(name, meta, key, isMine){
   return '<div class="clip"><div class="name"><b>'+name+'</b><span>'+meta+'</span></div>'+
-         (isMine?'<span class="sync up">YOURS</span>':'')+
+         (isMine?'<span class="sync up">'+tBi("clip.mine")+'</span>':'')+
          '<button data-clip="'+key+'">'+AFDCore.t("clip.play",dispMode)+'</button></div>';
 }
 
@@ -2303,22 +2351,22 @@ async function syncOne(rec){
 
 let syncing=false;
 async function syncPending(){
-  if(syncing){ alert("Already uploading — one moment."); return; }
+  if(syncing){ alert(tMsg("sync.busy")); return; }
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
-  if(!pend.length){ alert("Everything is already uploaded."); return; }
+  if(!pend.length){ alert(tMsg("sync.none")); return; }
   if(!(window.AFD&&window.AFD.isSignedIn())){ alert(AFDCore.t("session.signinupload",dispMode)); return; }
   const btn=$("syncBtn"), label=btn.textContent;
   btn.disabled=true; syncing=true;
   let ok=0;
   try{
     for(let i=0;i<pend.length;i++){
-      btn.textContent="Uploading "+(i+1)+" of "+pend.length+"…";
+      btn.textContent=tBi("sync.progress",{i:(i+1),n:pend.length});
       if(await syncOne(pend[i])) ok++;
     }
   }finally{ btn.textContent=label; btn.disabled=false; syncing=false; }
   const orphan=pend.filter(k=>!k.synced && !speakerFor(k)).length;
-  alert(ok+" of "+pend.length+" uploaded."+(ok<pend.length?"\nThe rest are still saved on this phone.":"")+
-        (orphan?"\n"+orphan+" older take(s) belong to a speaker who isn't in the form now. Put that speaker's code back in the form to upload them.":""));
+  alert(tMsg("sync.result",{ok,n:pend.length})+(ok<pend.length?"\n\n"+tMsg("sync.rest"):"")+
+        (orphan?"\n\n"+tMsg("sync.orphan",{n:orphan}):""));
 }
 
 // Quiet background retry: no alerts, no button changes. Runs when an account
@@ -2385,7 +2433,7 @@ function next(){
   idx++;
   if(idx>=WORDS.length){
     idx=0;
-    alert("That's the whole list. Download the session data before closing.");
+    alert(tMsg("list.end"));
   }
   renderPrompt();
   window.scrollTo({top:0,behavior:"smooth"});
@@ -2400,11 +2448,25 @@ function myClips(){
   return kept.filter(k=>(k.ownerUid||null)===uid);
 }
 
+// Session summary: one language per line. Mixing Arabic and English with numbers
+// on a single line reorders badly under bidi ("2 2 · .1 مرفوع…").
+function sumLines(n, up, other){
+  const S=AFDCore.STRINGS||{}, line=(lang)=>
+    fill((S["session.summary"]||{})[lang]||"", {n, up}) +
+    (other ? " "+fill((S["session.othermore"]||{})[lang]||"", {n:other}) : "");
+  if(dispMode!=="auto") return '<span dir="rtl" class="bi-ar">'+line("ar")+'</span>';
+  return '<span dir="rtl" class="bi-ar" style="display:block">'+line("ar")+'</span>'+
+         '<small class="sub">'+line("en")+'</small>';
+}
+
 function renderClips(){
   const mine=myClips();
   const real=mine.filter(k=>!k.skipped);
   const otherAcct=kept.length-mine.length;
-  const T=(k)=>AFDCore.t(k,dispMode);
+  const T=(k)=>tBi(k);                 // bilingual in auto, Arabic in the other tiers
+  // The take's word: Arabic in the sound/script tiers (was always the English gloss).
+  const arOf=(k)=>{ const w=(window.AFDWords||[]).find(x=>entryIdFor(x.id)===k.entryId); return w&&w.ar; };
+  const nameOf=(k)=>{ const ar=arOf(k); return dispMode==="auto" ? k.gloss+(ar?' · '+ar:'') : (ar||k.gloss); };
   if(!mine.length){
     $("clips").innerHTML='<p class="note">'+T("session.norecordings")+
       (otherAcct?' '+T("session.otheracct").split("{n}").join(otherAcct):'')+'</p>';
@@ -2412,16 +2474,15 @@ function renderClips(){
   }
   $("clips").innerHTML=mine.slice().reverse().map((k,i)=>{
     const n=mine.length-1-i;
-    if(k.skipped) return '<div class="clip"><div class="name"><b>'+k.gloss+
+    if(k.skipped) return '<div class="clip"><div class="name"><b>'+nameOf(k)+
       '</b><span>'+T("clip.skipped")+'</span></div></div>';
     const badge=k.synced?'<span class="sync up">'+T("clip.uploaded")+'</span>'
                         :'<span class="sync pend">'+T("clip.onphone")+'</span>';
-    return '<div class="clip"><div class="name"><b>'+k.gloss+'</b><span>'+
+    return '<div class="clip"><div class="name"><b>'+nameOf(k)+'</b><span>'+
       (k.capture.durationMs/1000).toFixed(1)+'s · '+k.capture.sampleRate+' Hz'+
-      (isRepType(k.type)?' · '+k.qc.bursts+' '+T("unit.reps"):'')+'</span></div>'+badge+
+      (isRepType(k.type)?' · '+k.qc.bursts+' '+AFDCore.t("unit.reps",dispMode):'')+'</span></div>'+badge+
       '<button data-play="'+n+'">'+T("clip.play")+'</button></div>';
-  }).join("")+'<p class="note">'+T("session.summary").split("{n}").join(real.length).split("{up}").join(mine.filter(k=>!k.skipped&&k.synced).length)+
-    (otherAcct?' '+T("session.othermore").split("{n}").join(otherAcct):'')+'</p>';
+  }).join("")+'<p class="note">'+sumLines(real.length, mine.filter(k=>!k.skipped&&k.synced).length, otherAcct)+'</p>';
 
   $("clips").querySelectorAll("[data-play]").forEach(b=>{
     b.onclick=()=>{ new Audio(URL.createObjectURL(mine[+b.dataset.play].blob)).play(); };
@@ -2493,9 +2554,9 @@ async function renderRoster(){
 $("dlManifest").onclick=async ()=>{
   const mine=myClips();
   const real=mine.filter(k=>!k.skipped&&k.blob);
-  if(!mine.length){ alert("Nothing recorded yet for this account."); return; }
+  if(!mine.length){ alert(tMsg("export.none")); return; }
   const btn=$("dlManifest"); const label=btn.textContent;
-  btn.textContent="Packaging…"; btn.disabled=true;
+  btn.textContent=tBi("export.packaging"); btn.disabled=true;
   try{
     const spk=speakerRecord();
     const files=[];
@@ -2529,7 +2590,7 @@ $("dlManifest").onclick=async ()=>{
     const zip=makeZip(files);
     dl(zip,"hakli_"+spk.speakerId+"_"+new Date().toISOString().slice(0,10)+".zip");
   }catch(e){
-    alert("Export failed: "+e);
+    alert(tMsg("export.failed")+" "+e);
   }finally{
     btn.textContent=label; btn.disabled=false;
   }
@@ -2538,9 +2599,9 @@ $("dlManifest").onclick=async ()=>{
 $("clearBtn").onclick=async ()=>{
   const real=kept.filter(k=>!k.skipped).length;  // clearing removes ALL local data
   const unsent=kept.filter(k=>!k.skipped&&!k.synced).length;
-  if(!confirm("Delete all "+real+" recording(s) from this device?\n\n"+
-              (unsent?unsent+" of them have NOT been uploaded yet and exist only on this phone.\n\n":"")+
-              "Export first if you have not already — this cannot be undone.")) return;
+  if(!confirm(tMsg("clear.confirm",{n:real})+"\n\n"+
+              (unsent?tMsg("clear.unsent",{n:unsent})+"\n\n":"")+
+              tMsg("clear.warn"))) return;
   await idbClear(STORE);
   kept=[]; renderClips();
 };
@@ -2562,6 +2623,7 @@ function recAcctOpen(){ if(recMenu){ recMenu.classList.add("open"); recMenu.setA
 function renderRecAccount(){
   if(!recAcct) return;
   const u = window.AFD && window.AFD.user && window.AFD.user();
+  const raw=$("recAcctWrap"); if(raw) raw.setAttribute("data-cap", u ? "حسابي" : "دخول");
   if(!u){
     recAcctClose();
     recAcct.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';

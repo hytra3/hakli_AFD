@@ -116,6 +116,10 @@
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18); transition:transform .12s, background .12s}
   .enter.en{font-family:var(--en); font-style:italic; letter-spacing:.01em}
   .enter:hover{background:var(--ink); transform:translateY(-1px)}
+  .enter-wrap.top{margin-top:18px}
+  .enter.lite{font-size:17px; padding:10px 26px; background:transparent; color:var(--mountain);
+    border:1.5px solid var(--mountain); box-shadow:none}
+  .enter.lite:hover{background:var(--mountain); color:#fff}
 
   @media print{
     body{background:#fff; background-image:none}
@@ -124,12 +128,12 @@
     .wrap{padding:0}
   }
 </style>
-<link rel="icon" href="favicon.svg?v=b0922b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0922b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922b">
-<link rel="manifest" href="manifest.webmanifest?v=b0922b">
+<link rel="icon" href="favicon.svg?v=b0922c" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0922c" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922c">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922c">
+<link rel="manifest" href="manifest.webmanifest?v=b0922c">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -142,12 +146,16 @@
 
     <p class="note" id="hint"></p>
     <button class="playall" id="playAll"><span class="tri">▶</span> <span id="playAllLbl">استمع</span></button>
+    <!-- A way in above the fold: the main button is ~3 screens down, and a visitor
+         who doesn't scroll never found the dictionary. Lighter so it doesn't
+         out-shout the name; the full button still closes the page. -->
+    <nav class="enter-wrap top"><a class="enter lite" id="enterTop" href="index.html">ادخل القاموس ←</a></nav>
   </header>
 
   <section class="demo" id="demo">
     <h2 class="demo-lead" id="demoLead">شاهد كيف يعمل</h2>
     <div class="demo-frame">
-      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?v=b0922b&embed=1" loading="lazy" scrolling="no"></iframe>
+      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?v=b0922c&embed=1" loading="lazy" scrolling="no"></iframe>
     </div>
   </section>
 
@@ -365,11 +373,12 @@ function render(){
   const cb = document.querySelector('#close .play'); if(cb) cb.onclick = ()=> playOne(CLOSE.k, cb);
 
   // enter-the-dictionary button — label follows the toggle
-  const enter = document.getElementById("enter");
-  if(enter){
+  [["enter",""],["enterTop"," lite"]].forEach(([id,extra])=>{
+    const enter = document.getElementById(id);
+    if(!enter) return;
     enter.textContent = (mode==="en") ? "Enter the dictionary →" : "ادخل القاموس ←";
-    enter.className = "enter" + (mode==="en" ? " en" : "");
-  }
+    enter.className = "enter" + extra + (mode==="en" ? " en" : "");
+  });
 
   const dl = document.getElementById("demoLead");
   if(dl){

@@ -117,3 +117,17 @@
 .afdcard .head-counts{display:flex;gap:10px;margin-top:5px;font:600 11px/1 var(--sans);color:var(--mist)}
 .afdcard .card.open .head-counts{display:none}
 .afdcard .voices-list.hidden{ display:none; }
+
+/* "no voice yet" — shown when play is tapped on a word nobody has recorded.
+   Resin tint = an invitation, not an error. The play button gives a small
+   shake and "Say it yourself" pulses once, so the eye lands on the next step. */
+.afdcard .novoice{display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:14px;
+         background:rgba(198,135,63,.10); color:var(--mountain); font:500 15px/1.35 var(--sans)}
+.afdcard .novoice svg{flex:0 0 auto; color:var(--resin)}
+.afdcard .novoice .bi-ar{display:block; font-size:16px}
+.afdcard .novoice .sub{display:block; color:var(--mist); font-size:12.5px; margin-top:2px}
+.afdcard .play.afd-novoice-shake{animation:afd-shake .45s ease}
+@keyframes afd-shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+.afdcard .sayit.afd-novoice-pulse{animation:afd-pulse 1.2s ease 2}
+@keyframes afd-pulse{50%{border-color:var(--resin); box-shadow:0 0 0 4px rgba(198,135,63,.18)}}
+@media (prefers-reduced-motion:reduce){ .afdcard .play.afd-novoice-shake, .afdcard .sayit.afd-novoice-pulse{animation:none} }

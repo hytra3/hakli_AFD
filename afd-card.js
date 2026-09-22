@@ -93,13 +93,30 @@ async function envelopeFor(rec){
   }catch(_){ return null; }
 }
 
+let _wordById=null;
+function localWord(entryId){
+  if(!_wordById){
+    _wordById=new Map();
+    try{ (window.AFDWords||[]).forEach(w=>_wordById.set(AFDCore.entryIdFor(w.id), w)); }catch(_){}
+  }
+  return _wordById.get(entryId) || null;
+}
+
 async function applyBox(thumbEl, mode, recs){
   if(!thumbEl) return;
   const d = thumbEl.dataset;
   const asText = t => { thumbEl.textContent = t || (d.letter || "•"); };
   const asWave = async () => paintBox(thumbEl, recs && recs[0] ? await envelopeFor(recs[0]) : null);
   const asIcon = () => { thumbEl.innerHTML = AFDCore.identicon(d.entry || d.script || d.letter); };
-  if(mode==="sound")  return asWave();
+  // Sound tier paints the voice's shape — but a word with NO voice yet has no
+  // shape. Fall back to its picture (the non-reader anchor), never to the
+  // English initial in data-letter, which means nothing to a non-reader.
+  if(mode==="sound"){
+    const env = recs && recs[0] ? await envelopeFor(recs[0]) : null;
+    if(env && env.length) return paintBox(thumbEl, env);
+    if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
+    return d.pic ? asText(d.pic) : asIcon();
+  }
   if(mode==="script") return d.script ? asText(d.script) : (d.pic ? asText(d.pic) : asIcon());
   // auto
   if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
@@ -438,6 +455,15 @@ async function entryCard(res, lead){
   // entry metadata (public). Fall back gracefully if absent.
   let meta={};
   try{ const sn = await getDoc(doc(CFG.db,"afd_entries",res.entryId)); if(sn.exists()) meta=sn.data(); }catch(_){}
+  // No signal (or a slow one) → the entry doc can't load, and every card used to
+  // collapse into an anonymous identicon. The 40 seeded words ship with the app
+  // (afd-words.js), so fill picture / gloss / domain from there. Firestore still
+  // wins whenever it answered.
+  if(!meta.pic || !meta.gloss){
+    const w = localWord(res.entryId);
+    if(w) meta = { ...meta, pic: meta.pic || w.pic, gloss: meta.gloss || w.en,
+                   glossAr: meta.glossAr || w.ar, domain: meta.domain || w.dom };
+  }
   const glossEn = meta.gloss || res.gloss || "";
   const glossAr = meta.glossAr || meta.ar || "";
   const tile = domainColor(meta.domain || res.entryId);
@@ -504,9 +530,26 @@ async function entryCard(res, lead){
     return firstPlayable;
   }
 
+  // A word with no voice used to swallow the tap silently, which reads as
+  // "broken". Instead: open the card, say (in the reader's tier) that nobody has
+  // recorded it yet, and draw the eye to "Say it yourself" — the one thing to do.
+  function noVoice(){
+    el.classList.add("open");
+    const say = detail.querySelector(".sayit");
+    let n = detail.querySelector(".novoice");
+    if(!n){
+      n = document.createElement("div"); n.className = "novoice"; n.setAttribute("role","status");
+      n.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>` +
+                    `<span>${AFDCore.tHTML("card.novoice", CFG.mode())}</span>`;
+      if(say) detail.insertBefore(n, say); else detail.appendChild(n);
+    }
+    playBtn.classList.remove("afd-novoice-shake"); void playBtn.offsetWidth; playBtn.classList.add("afd-novoice-shake");
+    if(say){ say.classList.remove("afd-novoice-pulse"); void say.offsetWidth; say.classList.add("afd-novoice-pulse"); }
+    try{ n.scrollIntoView({ block:"nearest", behavior:"smooth" }); }catch(_){}
+  }
   playBtn.addEventListener("click", (e)=>{ e.stopPropagation();
     if(currentUrl){ playInto(playBtn, currentUrl); }
-    else loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl); });
+    else loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl); else noVoice(); });
   });
   el.querySelector(".head").addEventListener("click", (e)=>{
     if(e.target.closest(".play")) return;

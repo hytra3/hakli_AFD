@@ -60,6 +60,31 @@ within each group.
   - `sync-stamp.sh` now stamps **every** page (`*.html`, `prompts/*.html`) and the
     manifest icons, and warns if any stale `?v=` survives. The walkthrough iframe is
     stamped too.
+- **First-visit pass (09-22)** — walked the app as a new Dhofari user; five fixes:
+  1. *Pictures, not blanks.* Offline (no Firestore) every card fell back to an
+     identicon because picture/gloss came only from the entry doc; `entryCard` now
+     fills them from the bundled wordlist (`afd-words.js`). And in the sound tier a
+     word with no voice showed its picture until opened, then the English initial
+     ("S") — it now keeps the picture (the non-reader anchor).
+  2. *Silent play → invitation.* Play on a voiceless word opens the card with
+     "لا صوت بعد — كن أوّل من يقولها" (tier-aware), shakes the button once and
+     pulses "Say it yourself". Classes are `afd-novoice-*` (a first cut named one
+     `.empty` and collided with index's page-level `.empty` card style).
+  3. *No letter-spacing on Arabic.* Tracked mono labels split joined letters (step
+     label, "جاهز" on the meter). Arabic now sits in `.bi-ar` with tracking off; the
+     meter label drops tracking whenever it holds Arabic. Step-3 label is now
+     "الكلمة ١ من ٤٠" (+ English line in auto only).
+  4. *Welcome: a way in above the fold* — a lighter "ادخل القاموس" under the toggle;
+     the full button still closes the page.
+  5. *Labels.* Arabic captions under the round header icons (العرض · دخول/حسابي ·
+     ابحث); dictionary title shows in every tier; session badges read "ar · EN" in
+     auto; upload/export/clear pop-ups are Arabic (+ English line in auto); take
+     names show the Arabic word; summary is one language per line (mixed-direction
+     single lines reorder under bidi). All new Arabic is provisional MSA — flag
+     for Dhofari review with the rest.
+  - Also: recorder's home glyph had no colour (showed as link blue / visited
+    purple); the recorder's embedded card defaulted to "auto" while the recorder
+    itself defaults to "sound" — both now "sound".
 - **Reset tooling** — `scripts/reset-corpus.mjs` (dry-run default) clears test
   recordings + audio while keeping entry shells, wordlist, UI audio, and legacy.
 
