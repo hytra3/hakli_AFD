@@ -45,6 +45,18 @@ within each group.
     cache-first only for `?v=`-stamped files and the versioned Firebase SDK; data
     requests pass through untouched. `?nosw` unregisters on a phone; kill switch
     documented at the top of `sw.js`.
+  - *Anonymous ≠ signed in on the recorder (09-22 phone test).* The prompts tool
+    signs in anonymously on the same origin; that session carried into the recorder,
+    passed its sign-in gate, and every upload was silently refused (`notAnon`). The
+    recorder now mirrors index's `isRealUser()`. Anonymous uids seen on the device
+    are remembered, and takes kept under one are claimed by the next real account
+    (each take keeps its own speaker/consent snapshot; only the uploader changes).
+    Quiet retries now back off 3s → 9s → … 2 min instead of one try per `online`
+    event, also fire when the app returns to the foreground, and wait for IndexedDB
+    to load (auth could resolve first and find nothing pending).
+  - *Record button pinned* (`position:sticky` bottom) on the recording step — on a
+    phone the dictionary card pushed "Hold to record" ~2 screens down. It settles
+    into its own place once scrolled to, so it never covers the session card.
   - `sync-stamp.sh` now stamps **every** page (`*.html`, `prompts/*.html`) and the
     manifest icons, and warns if any stale `?v=` survives. The walkthrough iframe is
     stamped too.

@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0922a" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0922a" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922a">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922a">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922a">
-<link rel="manifest" href="manifest.webmanifest?v=b0922a">
+<link rel="icon" href="favicon.svg?v=b0922b" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0922b" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922b">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922b">
+<link rel="manifest" href="manifest.webmanifest?v=b0922b">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0922a"></script>
-<script src="afd-words.js?v=b0922a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0922a">
+<script src="afd-core.js?v=b0922b"></script>
+<script src="afd-words.js?v=b0922b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0922b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -205,6 +205,12 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
   touch-action:manipulation
 }
+/* Pinned to the bottom of the screen on the recording step. On a phone the
+   dictionary card + instructions push the button ~2 screens down; sticky keeps
+   it in reach while you scroll the card, and it settles back into its own
+   place once you scroll down to it (so it never covers the session card).
+   Hidden while the review card is up, exactly as before. */
+#recBtn.rec{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30}
 .rec .timer{
   display:block;font-family:var(--mono);font-size:13px;font-weight:400;
   opacity:.85;margin-top:3px
@@ -620,7 +626,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922a";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -651,7 +657,16 @@ if(CONFIGURED){
   $("toMic").disabled = false;
 }
 
-if(CONFIGURED) onAuthStateChanged(auth, u=>{
+if(CONFIGURED) onAuthStateChanged(auth, raw=>{
+  // An ANONYMOUS session is not a contributor. The prompts tool (same origin)
+  // signs in anonymously, and that session persists into this page — where it
+  // used to pass the sign-in gate, let takes be kept under a throwaway uid, and
+  // then have every upload silently refused by the rules (notAnon). Mirror
+  // index.html's isRealUser(): only a real account counts as signed in here.
+  // The anonymous uid is remembered so takes already kept under it can be
+  // claimed by the real account that signs in next (afdNoteAnon / adoptAnon).
+  if(raw && raw.isAnonymous && window.afdNoteAnon) window.afdNoteAnon(raw.uid);
+  const u = (raw && !raw.isAnonymous) ? raw : null;
   currentUser = u;
   $("signedOut").classList.toggle("hidden", !!u);
   $("signedIn").classList.toggle("hidden", !u);
@@ -1105,7 +1120,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
 let rafId=null, liveBars=[];
 
-const BUILD="b0922a";   // bump every publish; shown in the header + console
+const BUILD="b0922b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -2309,15 +2324,31 @@ async function syncPending(){
 // Quiet background retry: no alerts, no button changes. Runs when an account
 // signs in and whenever the phone gets signal back, so a take kept at a site
 // with no coverage uploads on its own later. One pass at a time.
+// Retries back off (3s → 9s → 27s → … capped at 2 min) while anything is still
+// pending, because the first attempt right after signal returns often fails —
+// the radio is up before the connection is usable. One attempt per "online"
+// event was not enough.
+let retryTimer=null, retryDelay=0;
+function scheduleRetry(){
+  if(retryTimer) return;
+  retryDelay = retryDelay ? Math.min(retryDelay*3, 120000) : 3000;
+  retryTimer = setTimeout(()=>{ retryTimer=null; syncQuietly(); }, retryDelay);
+}
 async function syncQuietly(){
   if(syncing || !(window.AFD&&window.AFD.isSignedIn()) || navigator.onLine===false) return;
   const pend=myClips().filter(k=>!k.skipped&&!k.synced&&speakerFor(k));
-  if(!pend.length) return;
-  syncing=true;
-  try{ for(const k of pend){ if(!(await syncOne(k))) break; } }   // stop at the first failure — signal is gone again
+  if(!pend.length){ retryDelay=0; return; }
+  syncing=true; let failed=false;
+  try{ for(const k of pend){ if(!(await syncOne(k))){ failed=true; break; } } }   // stop at the first failure
   finally{ syncing=false; }
+  if(failed) scheduleRetry(); else retryDelay=0;
 }
-window.addEventListener("online", ()=>{ setTimeout(syncQuietly, 1500); });
+function kickSync(delay){
+  if(retryTimer){ clearTimeout(retryTimer); retryTimer=null; }
+  retryDelay=0; setTimeout(syncQuietly, delay);
+}
+window.addEventListener("online", ()=>kickSync(2000));
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") kickSync(500); });
 
 $("skipBtn").onclick=async ()=>{
   const w=WORDS[idx];
@@ -2571,14 +2602,43 @@ if(recOut)  recOut.addEventListener("click",()=>{ recAcctClose(); const b=$("sig
 document.addEventListener("click",(e)=>{ if(recMenu && recMenu.classList.contains("open") && !e.target.closest(".account-wrap")) recAcctClose(); });
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") recAcctClose(); });
 
+// Anonymous uids seen on this device (see the auth handler). Takes kept under
+// one belong to nobody who can ever sign back in as it — an anonymous uid is
+// gone once a real account signs in — so the next real account claims them.
+// Each take still carries its own SPEAKER + consent snapshot; only the steward
+// (who uploads it) changes.
+window.afdNoteAnon = async (uid)=>{
+  try{ await restored;
+       const m = (await idbGet(META,"anonUids")) || {key:"anonUids", uids:[]};
+       if(!m.uids.includes(uid)){ m.uids.push(uid); await idbPut(META,m); } }
+  catch(e){ console.warn("[AFD] noteAnon", e); }
+};
+async function adoptAnonTakes(uid){
+  try{
+    const m = await idbGet(META,"anonUids");
+    const anon = new Set((m && m.uids) || []);
+    anon.delete(uid);
+    let n=0;
+    for(const k of kept){
+      if(k.ownerUid && anon.has(k.ownerUid) && !k.synced){ k.ownerUid=uid; k.adoptedFromAnon=true; await idbPut(STORE,k); n++; }
+    }
+    if(n) console.log("[AFD] claimed", n, "take(s) kept under an anonymous session");
+    return n;
+  }catch(e){ console.warn("[AFD] adoptAnon", e); return 0; }
+}
+
 window.afdOnAuth=(u)=>{
+  if(u) restored.then(async ()=>{     // IndexedDB loaded first — auth can resolve before it
+    if(await adoptAnonTakes(u.uid)) renderClips();
+    ensureSpeakerCode(); renderRoster();
+    syncQuietly();                     // anything still on the phone goes up now
+  });
   renderClips();                       // session list is per-account
   const yc=$("youCard"); if(yc) yc.classList.toggle("hidden", !u);   // profile card needs an account
   renderRecAccount();                  // account circle on the record bar
   if(!u) return;
   ensureSpeakerCode();                 // signed in → give this steward a globally-unique code default
   loadProfileCard();                   // populate "How you appear" from afd_stewards
-  syncQuietly();                       // anything still on the phone from a no-signal session goes up now
   maybeFastPath();                     // signed in → take the returning-speaker fast path if a speaker is saved
 };
 
@@ -2590,7 +2650,7 @@ function dl(blob,name){
 }
 
 /* ---- restore anything already on this device ---- */
-(async function restore(){
+const restored = (async function restore(){
   // Ask the browser to treat this site's storage as persistent, so takes waiting
   // on the phone for signal aren't evicted when the device runs low on space
   // (mobile browsers clear "best-effort" storage without asking). Silent: some
@@ -2632,6 +2692,7 @@ function dl(blob,name){
   }catch(e){ console.warn("restore failed",e); }
   maybeFastPath();   // saved speaker now loaded — take the fast path if signed in too
 })();
+restored.then(()=>syncQuietly());      // auth may already be settled by now
 </script>
 <script>
 /* Offline app shell (sw.js): lets this page open with no signal once it has been
