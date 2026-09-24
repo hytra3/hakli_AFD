@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0924e" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0924e" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924e">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924e">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924e">
-<link rel="manifest" href="manifest.webmanifest?v=b0924e">
+<link rel="icon" href="favicon.svg?v=b0924f" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0924f" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924f">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924f">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924f">
+<link rel="manifest" href="manifest.webmanifest?v=b0924f">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0924e"></script>
-<script src="afd-words.js?v=b0924e"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0924e">
+<script src="afd-core.js?v=b0924f"></script>
+<script src="afd-words.js?v=b0924f"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0924f">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -180,6 +180,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .verdict.ok{background:#EAF3ED;border-color:var(--monsoon);color:#1D4633}
 .verdict.bad{background:#F7EAE7;border-color:var(--alert);color:#6E2418}
 .verdict strong{display:block;font-size:15px;margin-bottom:3px}
+.verdict .bi-ar{display:block}   /* Arabic line right-aligned on its own row, English .sub under it */
 /* QC verdict: one big human cue; numbers live in the <details> below it */
 .qc-verdict{display:flex;align-items:center;gap:12px}
 .qc-verdict .big{font-size:26px;line-height:1;flex:0 0 auto}
@@ -410,135 +411,135 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
 <!-- ============ 1. CONSENT + SPEAKER ============ -->
 <section id="setup">
-  <p class="stepdots"><span class="bi-ar" dir="rtl">الخطوة ١ / ٣ · المتحدِّث</span><small class="sub">STEP 1 / 3 · SPEAKER</small></p>
+  <p class="stepdots"><span class="bi-ar" dir="rtl" data-str="setup.step">الخطوة ١ / ٣ · المتحدِّث</span><small class="sub">STEP 1 / 3 · SPEAKER</small></p>
   <div class="brand">
     <svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg>
     <b>الحَكلي</b><small>قاموس الصوت أوّلًا · Audio First Dictionary</small>
   </div>
-  <h1><span class="bi-ar" dir="rtl">مُسجِّل كلمات الحَكلي</span><small class="sub">Hakli Word Recorder</small></h1>
+  <h1><span class="bi-ar" dir="rtl" data-str="setup.title">مُسجِّل كلمات الحَكلي</span><small class="sub">Hakli Word Recorder</small></h1>
   <p class="note" id="aboutNote"><span class="bi-ar" dir="rtl">جزءٌ من قاموس الصوت أوّلًا. تُحفَظ التسجيلات على هذا الهاتف وتُرفَع عند تسجيل الدخول.</span><small class="sub">Part of the Audio First Dictionary. Recordings are saved on this phone and uploaded when you're signed in.</small></p>
 
   <div class="card" id="authCard">
-    <h2><span class="bi-ar" dir="rtl">سجِّل الدخول للتسجيل</span><small class="sub">Sign in to record</small></h2>
-    <p class="note" id="authNote" style="margin-bottom:10px"><span class="bi-ar" dir="rtl">يمكن لأيِّ أحدٍ أن يستمع. تسجيل الدخول مطلوبٌ فقط لإضافة تسجيل، حتى يُنسَب كلُّ صوتٍ إلى صاحبه.</span><small class="sub">Anyone can listen. Signing in is only needed to add a recording, so each word can be credited.</small></p>
+    <h2><span class="bi-ar" dir="rtl" data-str="setup.signin.title">سجِّل الدخول للتسجيل</span><small class="sub">Sign in to record</small></h2>
+    <p class="note" id="authNote" style="margin-bottom:10px"><span class="bi-ar" dir="rtl" data-str="setup.signin.note">يمكن لأيِّ أحدٍ أن يستمع. تسجيل الدخول مطلوبٌ فقط لإضافة تسجيل، حتى يُنسَب كلُّ صوتٍ إلى صاحبه.</span><small class="sub">Anyone can listen. Signing in is only needed to add a recording, so each word can be credited.</small></p>
 
     <div id="signedOut">
-      <button class="btn" id="googleBtn"><span class="bi-ar" dir="rtl">متابعة عبر Google</span><small class="sub">Continue with Google</small></button>
-      <p class="note" style="text-align:center;margin:12px 0 4px"><span class="bi-ar" dir="rtl">أو استخدم بريدًا إلكترونيًّا</span><small class="sub">or use an email address</small></p>
-      <label class="field"><span><span class="bi-ar" dir="rtl">البريد الإلكتروني</span><small class="sub">Email</small></span>
+      <button class="btn" id="googleBtn"><span class="bi-ar" dir="rtl" data-str="setup.google">متابعة عبر Google</span><small class="sub">Continue with Google</small></button>
+      <p class="note" style="text-align:center;margin:12px 0 4px"><span class="bi-ar" dir="rtl" data-str="setup.oremail">أو استخدم بريدًا إلكترونيًّا</span><small class="sub">or use an email address</small></p>
+      <label class="field"><span><span class="bi-ar" dir="rtl" data-str="setup.email">البريد الإلكتروني</span><small class="sub">Email</small></span>
         <input type="text" id="authEmail" placeholder="you@example.com" autocomplete="username"></label>
-      <label class="field"><span><span class="bi-ar" dir="rtl">كلمة المرور</span><small class="sub">Password</small></span>
+      <label class="field"><span><span class="bi-ar" dir="rtl" data-str="setup.password">كلمة المرور</span><small class="sub">Password</small></span>
         <input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password"></label>
       <div class="row">
-        <button class="btn secondary" id="signupBtn"><span class="bi-ar" dir="rtl">أنشئ حسابًا</span><small class="sub">Create account</small></button>
-        <button class="btn" id="emailBtn"><span class="bi-ar" dir="rtl">سجِّل الدخول</span><small class="sub">Sign in</small></button>
+        <button class="btn secondary" id="signupBtn"><span class="bi-ar" dir="rtl" data-str="setup.signup">أنشئ حسابًا</span><small class="sub">Create account</small></button>
+        <button class="btn" id="emailBtn"><span class="bi-ar" dir="rtl" data-str="setup.signin">سجِّل الدخول</span><small class="sub">Sign in</small></button>
       </div>
       <p class="note" id="authErr" style="color:var(--alert)"></p>
     </div>
 
     <div id="signedIn" class="hidden">
-      <div class="verdict ok"><strong><span class="bi-ar" dir="rtl">تمّ تسجيل الدخول</span><small class="sub">Signed in</small></strong><span id="whoami"></span></div>
-      <button class="btn ghost" id="signoutBtn"><span class="bi-ar" dir="rtl">تسجيل الخروج</span><small class="sub">Sign out</small></button>
+      <div class="verdict ok"><strong><span class="bi-ar" dir="rtl" data-str="setup.signedin">تمّ تسجيل الدخول</span><small class="sub">Signed in</small></strong><span id="whoami"></span></div>
+      <button class="btn ghost" id="signoutBtn"><span class="bi-ar" dir="rtl" data-str="account.signout">تسجيل الخروج</span><small class="sub">Sign out</small></button>
     </div>
 
-    <button class="btn ghost" id="listenOnlyBtn" style="margin-top:14px"><span class="bi-ar" dir="rtl">الاستماع فقط — دون حساب أو ميكروفون</span><small class="sub">Just listen — no account, no microphone</small></button>
+    <button class="btn ghost" id="listenOnlyBtn" style="margin-top:14px"><span class="bi-ar" dir="rtl" data-str="setup.listenonly">الاستماع فقط — دون حساب أو ميكروفون</span><small class="sub">Just listen — no account, no microphone</small></button>
   </div>
 
   <div class="card hidden" id="youCard">
-    <h2><span class="bi-ar" dir="rtl">كيف تظهر</span><small class="sub">How you appear</small></h2>
-    <p class="note" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl">افتراضيًّا تظهر برمزٍ من الطبيعة دون اسم. يمكنك اختيار الظهور باسمك على تسجيلاتك أنت فقط.</span><small class="sub">By default you appear as a nature avatar, no name. You may choose to appear by name — on your own voices only.</small></p>
+    <h2><span class="bi-ar" dir="rtl" data-str="profile.title">كيف تظهر</span><small class="sub">How you appear</small></h2>
+    <p class="note" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl" data-str="profile.note">افتراضيًّا تظهر برمزٍ من الطبيعة دون اسم. يمكنك اختيار الظهور باسمك على تسجيلاتك أنت فقط.</span><small class="sub">By default you appear as a nature avatar, no name. You may choose to appear by name — on your own voices only.</small></p>
     <label class="check"><input type="radio" name="vis" id="visObscure" value="obscure" checked>
-      <span><span class="bi-ar" dir="rtl">مستتر — رمزٌ من الطبيعة، دون اسم</span><small class="sub">Obscure — a nature avatar, no name</small></span></label>
+      <span><span class="bi-ar" dir="rtl" data-str="profile.obscure">مستتر — رمزٌ من الطبيعة، دون اسم</span><small class="sub">Obscure — a nature avatar, no name</small></span></label>
     <label class="check"><input type="radio" name="vis" id="visKnown" value="known">
-      <span><span class="bi-ar" dir="rtl">معروف — يظهر اسمي على تسجيلاتي أنا</span><small class="sub">Known — my name shows on my own voices</small></span></label>
+      <span><span class="bi-ar" dir="rtl" data-str="profile.known">معروف — يظهر اسمي على تسجيلاتي أنا</span><small class="sub">Known — my name shows on my own voices</small></span></label>
     <div id="knownFields" class="hidden">
-      <label class="field"><span><span class="bi-ar" dir="rtl">الاسم كما يظهر</span><small class="sub">Display name</small></span>
+      <label class="field"><span><span class="bi-ar" dir="rtl" data-str="profile.name">الاسم كما يظهر</span><small class="sub">Display name</small></span>
         <input type="text" id="displayName" maxlength="80" placeholder="—"></label>
-      <label class="field"><span><span class="bi-ar" dir="rtl">صورة (اختياري)</span><small class="sub">Picture (optional)</small></span>
+      <label class="field"><span><span class="bi-ar" dir="rtl" data-str="profile.picture">صورة (اختياري)</span><small class="sub">Picture (optional)</small></span>
         <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp"></label>
       <div id="avatarPreview" class="hidden" style="margin:6px 0"><img id="avatarImg" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid var(--hairline)"></div>
-      <p class="note"><span class="bi-ar" dir="rtl">صورتك أنت فقط — لا تَرفع صور أشخاصٍ آخرين.</span><small class="sub">Your own picture only — don't upload photos of other people.</small></p>
+      <p class="note"><span class="bi-ar" dir="rtl" data-str="profile.picture.note">صورتك أنت فقط — لا تَرفع صور أشخاصٍ آخرين.</span><small class="sub">Your own picture only — don't upload photos of other people.</small></p>
     </div>
-    <button class="btn secondary" id="saveProfileBtn"><span class="bi-ar" dir="rtl">حفظ الظهور</span><small class="sub">Save how I appear</small></button>
+    <button class="btn secondary" id="saveProfileBtn"><span class="bi-ar" dir="rtl" data-str="profile.save">حفظ الظهور</span><small class="sub">Save how I appear</small></button>
     <p class="note" id="profileNote" style="margin-top:6px"></p>
   </div>
 
   <div class="card">
-    <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
-    <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small></p>
+    <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl" data-str="speaker.title">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
+    <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl" data-str="speaker.about.self">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small></p>
     <label class="check" style="margin-bottom:12px"><input type="checkbox" id="agentMode">
-      <span><span class="bi-ar" dir="rtl">أُسجِّل صوت شخصٍ آخر (لستُ المتحدِّث)</span><small class="sub">I'm recording someone else's voice (I'm not the speaker)</small></span></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
+      <span><span class="bi-ar" dir="rtl" data-str="speaker.agent">أُسجِّل صوت شخصٍ آخر (لستُ المتحدِّث)</span><small class="sub">I'm recording someone else's voice (I'm not the speaker)</small></span></label>
+    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.code">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
       <input type="text" id="spkId" placeholder="spk_01" value="spk_01"></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl">البلدة</span><small class="sub">Town</small></span>
-      <input type="text" id="spkTown" placeholder="Mirbat" data-ar="مرباط" data-en="Mirbat" list="towns">
+    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.town">البلدة</span><small class="sub">Town</small></span>
+      <input type="text" id="spkTown" placeholder="Mirbat" data-str="form.town.eg" list="towns">
       <!-- value = what gets stored (unchanged, English); the Arabic label shows beside it in the list -->
       <datalist id="towns">
-        <option value="Salalah">صلالة</option><option value="Mirbat">مرباط</option><option value="Taqah">طاقة</option>
-        <option value="Sadah">سدح</option><option value="Rakhyut">رخيوت</option><option value="Dhalkut">ضلكوت</option>
+        <option value="Salalah" data-str="town.salalah">صلالة</option><option value="Mirbat" data-str="town.mirbat">مرباط</option><option value="Taqah" data-str="town.taqah">طاقة</option>
+        <option value="Sadah" data-str="town.sadah">سدح</option><option value="Rakhyut" data-str="town.rakhyut">رخيوت</option><option value="Dhalkut" data-str="town.dhalkut">ضلكوت</option>
       </datalist></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl">القبيلة</span><small class="sub">Tribe</small></span>
-      <input type="text" id="spkTribe" placeholder="self-identified" data-ar="كما يُعرِّف المتحدِّث نفسه" data-en="self-identified"></label>
+    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.tribe">القبيلة</span><small class="sub">Tribe</small></span>
+      <input type="text" id="spkTribe" placeholder="self-identified" data-str="form.tribe.eg"></label>
     <div class="row">
-      <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl">الفئة العُمرية</span><small class="sub">Age band</small></span>
+      <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl" data-str="speaker.age">الفئة العُمرية</span><small class="sub">Age band</small></span>
         <select id="spkAge">
           <option value="">—</option>
-          <option value="20s" data-ar="العشرينات" data-en="20s">العشرينات · 20s</option>
-          <option value="30s" data-ar="الثلاثينات" data-en="30s">الثلاثينات · 30s</option>
-          <option value="40s" data-ar="الأربعينات" data-en="40s">الأربعينات · 40s</option>
-          <option value="50s" data-ar="الخمسينات" data-en="50s">الخمسينات · 50s</option>
-          <option value="60s" data-ar="الستينات" data-en="60s">الستينات · 60s</option>
-          <option value="70s" data-ar="السبعينات" data-en="70s">السبعينات · 70s</option>
-          <option value="80s+" data-ar="الثمانينات فأكثر" data-en="80s+">الثمانينات فأكثر · 80s+</option>
+          <option value="20s" data-str="form.age.20s">العشرينات · 20s</option>
+          <option value="30s" data-str="form.age.30s">الثلاثينات · 30s</option>
+          <option value="40s" data-str="form.age.40s">الأربعينات · 40s</option>
+          <option value="50s" data-str="form.age.50s">الخمسينات · 50s</option>
+          <option value="60s" data-str="form.age.60s">الستينات · 60s</option>
+          <option value="70s" data-str="form.age.70s">السبعينات · 70s</option>
+          <option value="80s+" data-str="form.age.80s">الثمانينات فأكثر · 80s+</option>
         </select></label>
-      <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl">الجنس</span><small class="sub">Gender</small></span>
+      <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl" data-str="speaker.gender">الجنس</span><small class="sub">Gender</small></span>
         <select id="spkGender">
-          <option value="" data-ar="— اختياري" data-en="optional —">— اختياري · optional —</option>
-          <option value="f" data-ar="أنثى" data-en="Female">أنثى · Female</option>
-          <option value="m" data-ar="ذكر" data-en="Male">ذكر · Male</option>
+          <option value="" data-str="form.gender.optional">— اختياري · optional —</option>
+          <option value="f" data-str="form.gender.f">أنثى · Female</option>
+          <option value="m" data-str="form.gender.m">ذكر · Male</option>
         </select></label>
     </div>
-    <p class="note"><span class="bi-ar" dir="rtl">لا حقلَ للهجة عن قصد — تُسجَّل البلدة وتُشتَقّ اللهجة لاحقًا.</span><small class="sub">No dialect field by design — locality is recorded, variety derived later.</small></p>
+    <p class="note"><span class="bi-ar" dir="rtl" data-str="speaker.nodialect">لا حقلَ للهجة عن قصد — تُسجَّل البلدة وتُشتَقّ اللهجة لاحقًا.</span><small class="sub">No dialect field by design — locality is recorded, variety derived later.</small></p>
   </div>
 
   <div class="card">
-    <h2><span class="bi-ar" dir="rtl">الإذن</span><small class="sub">Permission</small></h2>
-    <p class="note" style="margin-bottom:8px"><span class="bi-ar" dir="rtl">كلُّ إذنٍ منفصل. قد يوافق المتحدِّث على بعضها دون بعض.</span><small class="sub">Each permission is separate. The speaker may agree to some and not others.</small></p>
+    <h2><span class="bi-ar" dir="rtl" data-str="consent.title">الإذن</span><small class="sub">Permission</small></h2>
+    <p class="note" style="margin-bottom:8px"><span class="bi-ar" dir="rtl" data-str="consent.separate">كلُّ إذنٍ منفصل. قد يوافق المتحدِّث على بعضها دون بعض.</span><small class="sub">Each permission is separate. The speaker may agree to some and not others.</small></p>
     <label class="check"><input type="checkbox" id="cArchive">
-      <span><span class="bi-ar" dir="rtl">حفظ هذه التسجيلات في أرشيفٍ لغوي</span><small class="sub">Keep these recordings in a language archive</small></span></label>
+      <span><span class="bi-ar" dir="rtl" data-str="consent.archive">حفظ هذه التسجيلات في أرشيفٍ لغوي</span><small class="sub">Keep these recordings in a language archive</small></span></label>
     <label class="check"><input type="checkbox" id="cML">
-      <span><span class="bi-ar" dir="rtl">استخدام هذه التسجيلات لتعليم الحاسوب فهم الحَكلي</span><small class="sub">Use these recordings to teach a computer to understand Hakli</small></span></label>
+      <span><span class="bi-ar" dir="rtl" data-str="consent.ml">استخدام هذه التسجيلات لتعليم الحاسوب فهم الحَكلي</span><small class="sub">Use these recordings to teach a computer to understand Hakli</small></span></label>
     <label class="check"><input type="checkbox" id="cPlay">
-      <span><span class="bi-ar" dir="rtl">السماح للآخرين بالاستماع إلى هذه التسجيلات في التطبيق</span><small class="sub">Let other people listen to these recordings in the app</small></span></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl">كيف يُنسَب التسجيل إلى المتحدِّث؟</span><small class="sub">How should the speaker be credited?</small></span>
+      <span><span class="bi-ar" dir="rtl" data-str="consent.play">السماح للآخرين بالاستماع إلى هذه التسجيلات في التطبيق</span><small class="sub">Let other people listen to these recordings in the app</small></span></label>
+    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="consent.attr">كيف يُنسَب التسجيل إلى المتحدِّث؟</span><small class="sub">How should the speaker be credited?</small></span>
       <select id="cAttr">
-        <option value="pseudonymous" data-ar="بالاسم الرمزي فقط" data-en="By a code name only">بالاسم الرمزي فقط · By a code name only</option>
-        <option value="named" data-ar="بالاسم" data-en="By name">بالاسم · By name</option>
-        <option value="anonymous" data-ar="دون نسبة" data-en="Not at all">دون نسبة · Not at all</option>
+        <option value="pseudonymous" data-str="form.attr.pseudonymous">بالاسم الرمزي فقط · By a code name only</option>
+        <option value="named" data-str="form.attr.named">بالاسم · By name</option>
+        <option value="anonymous" data-str="form.attr.anonymous">دون نسبة · Not at all</option>
       </select></label>
     <button class="btn secondary" id="grantRecordBtn" style="margin-top:2px">
-      <span class="bi-ar" dir="rtl">سجّل موافقة المتحدِّث المنطوقة</span><small class="sub">Record the speaker's spoken consent</small></button>
+      <span class="bi-ar" dir="rtl" data-str="consent.record">سجّل موافقة المتحدِّث المنطوقة</span><small class="sub">Record the speaker's spoken consent</small></button>
     <p class="note" id="grantNote" style="margin:6px 0 0"></p>
-    <button class="btn" id="toMic"><span class="bi-ar" dir="rtl">متابعة</span><small class="sub">Continue</small></button>
+    <button class="btn" id="toMic"><span class="bi-ar" dir="rtl" data-str="auth.continue">متابعة</span><small class="sub">Continue</small></button>
   </div>
 </section>
 
 <!-- ============ 2. MIC CHECK ============ -->
 <section id="miccheck" class="hidden">
-  <p class="stepdots"><span class="bi-ar" dir="rtl">الخطوة ٢ / ٣ · الميكروفون</span><small class="sub">STEP 2 / 3 · MICROPHONE</small></p>
+  <p class="stepdots"><span class="bi-ar" dir="rtl" data-str="mic.step">الخطوة ٢ / ٣ · الميكروفون</span><small class="sub">STEP 2 / 3 · MICROPHONE</small></p>
   <div id="micChip" class="spkchip hidden" role="button" tabindex="0" title="Tap to change speaker"></div>
-  <h1><span class="bi-ar" dir="rtl">افحص الميكروفون</span><small class="sub">Check the microphone</small></h1>
-  <p class="note"><span class="bi-ar" dir="rtl">يؤكّد هذا أنّ هاتفك يلتقط تفاصيل كافية. لا يمكن استخدام تسجيلات دون ٤٤٬١٠٠ هرتز.</span><small class="sub">This confirms your phone is capturing enough detail. Recordings below 44,100 Hz can't be used.</small></p>
+  <h1><span class="bi-ar" dir="rtl" data-str="mic.title">افحص الميكروفون</span><small class="sub">Check the microphone</small></h1>
+  <p class="note"><span class="bi-ar" dir="rtl" data-str="mic.note">يؤكّد هذا أنّ هاتفك يلتقط تفاصيل كافية. لا يمكن استخدام تسجيلات دون ٤٤٬١٠٠ هرتز.</span><small class="sub">This confirms your phone is capturing enough detail. Recordings below 44,100 Hz can't be used.</small></p>
 
   <div class="card">
-    <button class="btn" id="startMic"><span class="bi-ar" dir="rtl">شغِّل الميكروفون</span><small class="sub">Turn on the microphone</small></button>
+    <button class="btn" id="startMic"><span class="bi-ar" dir="rtl" data-str="mic.start">شغِّل الميكروفون</span><small class="sub">Turn on the microphone</small></button>
     <div id="micResult" class="hidden">
       <div id="verdict" class="verdict"></div>
       <div class="readout" id="readout"></div>
-      <button class="btn" id="toRecord"><span class="bi-ar" dir="rtl">ابدأ تسجيل الكلمات</span><small class="sub">Start recording words</small></button>
-      <button class="btn ghost" id="retryMic"><span class="bi-ar" dir="rtl">افحص مرّة أخرى</span><small class="sub">Check again</small></button>
+      <button class="btn" id="toRecord"><span class="bi-ar" dir="rtl" data-str="mic.torecord">ابدأ تسجيل الكلمات</span><small class="sub">Start recording words</small></button>
+      <button class="btn ghost" id="retryMic"><span class="bi-ar" dir="rtl" data-str="mic.retry">افحص مرّة أخرى</span><small class="sub">Check again</small></button>
     </div>
-    <button class="btn ghost" id="listenOnlyBtn2" style="margin-top:14px"><span class="bi-ar" dir="rtl">لا ميكروفون؟ استمع إلى متحدّثين آخرين بدلًا من ذلك</span><small class="sub">No microphone? Listen to other speakers instead</small></button>
+    <button class="btn ghost" id="listenOnlyBtn2" style="margin-top:14px"><span class="bi-ar" dir="rtl" data-str="mic.listenonly">لا ميكروفون؟ استمع إلى متحدّثين آخرين بدلًا من ذلك</span><small class="sub">No microphone? Listen to other speakers instead</small></button>
   </div>
 </section>
 
@@ -686,7 +687,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924e";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924f";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -732,7 +733,7 @@ if(CONFIGURED) onAuthStateChanged(auth, raw=>{
   $("signedIn").classList.toggle("hidden", !u);
   if(u) $("whoami").textContent = u.email || u.displayName || u.uid;
   $("toMic").disabled = !u;
-  $("toMic").innerHTML = u ? '<span class="bi-ar" dir="rtl">متابعة</span><small class="sub">Continue</small>' : '<span class="bi-ar" dir="rtl">سجِّل الدخول أولًا</span><small class="sub">Sign in first</small>';
+  $("toMic").innerHTML = u ? biHTML("auth.continue") : biHTML("auth.signinfirst");
   if(window.afdOnAuth) window.afdOnAuth(u);
 });
 
@@ -1180,7 +1181,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
-const BUILD="b0924e";   // bump every publish; shown in the header + console
+const BUILD="b0924f";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1222,11 +1223,11 @@ function reflectAgent(){
   const on=!!($("agentMode") && $("agentMode").checked);
   const t=$("spkCardTitle"), a=$("spkAbout");
   if(t) t.innerHTML = on
-    ? '<span class="bi-ar" dir="rtl">عن الشخص الذي تُسجِّله</span><small class="sub">About the person you are recording</small>'
-    : '<span class="bi-ar" dir="rtl">عن المتحدِّث</span><small class="sub">About the speaker</small>';
+    ? biHTML("speaker.title.agent")
+    : biHTML("speaker.title");
   if(a) a.innerHTML = on
-    ? '<span class="bi-ar" dir="rtl">هذه التفاصيل تصف المتحدِّث، لا أنت. ومن البلدة تُشتَقّ اللهجة.</span><small class="sub">These details describe the speaker, not you. Town is what the dialect is derived from.</small>'
-    : '<span class="bi-ar" dir="rtl">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small>';
+    ? biHTML("speaker.about.agent")
+    : biHTML("speaker.about.self");
   renderRoster();
 }
 (function(){ const a=$("agentMode"); if(a) a.addEventListener("change", reflectAgent); reflectAgent(); })();
@@ -1301,7 +1302,7 @@ $("switchSpeaker").onclick=()=>{
   $("spkAge").value=""; $("spkGender").value="";   // keep town + tribe: among Jibbali tribes a town is typically a tribe (edit for a roving session)
   ["cArchive","cML","cPlay"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
   switchingSpeaker=true;
-  $("toMic").innerHTML='<span class="bi-ar" dir="rtl">سجِّل لهذا المتحدِّث</span><small class="sub">Record for this speaker</small>';
+  $("toMic").innerHTML=biHTML("speaker.recordfor");
   show("setup");
 };
 $("withdrawSpeaker").onclick=async ()=>{
@@ -1541,7 +1542,7 @@ $("toMic").onclick=()=>{
   if(switchingSpeaker){
     saveSpeaker();                       // the form is the live speaker; persist for reload
     switchingSpeaker=false;
-    $("toMic").innerHTML='<span class="bi-ar" dir="rtl">متابعة</span><small class="sub">Continue</small>';
+    $("toMic").innerHTML=biHTML("auth.continue");
     show("recorder"); renderPrompt();
   }else{
     show("miccheck");
@@ -1678,8 +1679,7 @@ async function openMic(){
   if(r.err){
     $("micResult").classList.remove("hidden");
     $("verdict").className="verdict bad";
-    $("verdict").innerHTML="<strong>The microphone didn't open</strong>"+
-      "Allow microphone access in your browser, then check again.";
+    $("verdict").innerHTML=verdictHTML("mic.err.title","mic.err.body");
     $("readout").textContent=String(r.err&&r.err.message||r.err);
     $("toRecord").classList.add("hidden");
     return;
@@ -1690,15 +1690,11 @@ async function openMic(){
   $("toRecord").classList.toggle("hidden",!ok);
   $("verdict").className="verdict "+(ok?"ok":"bad");
   if(ok){
-    $("verdict").innerHTML="<strong>Good to record</strong>"+
-      "This microphone is capturing enough detail.";
+    $("verdict").innerHTML=verdictHTML("mic.ok.title","mic.ok.body");
   }else if(bt){
-    $("verdict").innerHTML="<strong>Disconnect the headset</strong>"+
-      "Bluetooth headsets record at telephone quality. Turn Bluetooth off "+
-      "and use the phone's own microphone, then check again.";
+    $("verdict").innerHTML=verdictHTML("mic.bt.title","mic.bt.body");
   }else{
-    $("verdict").innerHTML="<strong>Not enough detail</strong>"+
-      "This microphone is capturing at "+sr+" Hz. Recordings need 44,100 Hz or more.";
+    $("verdict").innerHTML=verdictHTML("mic.low.title","mic.low.body",{sr:Number(sr).toLocaleString("en-US"), srAr:Number(sr).toLocaleString("ar-EG")});
   }
 
   $("readout").innerHTML=
@@ -1782,6 +1778,16 @@ function renderPrompt(){
 // Bilingual text helpers for the session area. Short badges in the "auto" tier
 // read "Arabic · ENGLISH"; pop-ups read Arabic, then English on the next line.
 // Other tiers get Arabic alone (AFDCore.t already does that). {x} fills vars.
+/* Bilingual chrome from a STRINGS key — Arabic line + English .sub (the .sub is
+   hidden outside "auto" by CSS on steps 1–2). */
+function biHTML(key, vars){
+  const x=(AFDCore.STRINGS||{})[key]||{en:key,ar:key}, f=(t)=>fill(t,vars||{});
+  const esc=(t)=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  return '<span class="bi-ar" dir="rtl" data-str="'+key+'">'+esc(f(x.ar))+'</span><small class="sub">'+esc(f(x.en))+'</small>';
+}
+function verdictHTML(tKey, bKey, vars){
+  return '<div><strong>'+biHTML(tKey,vars)+'</strong><span>'+biHTML(bKey,vars)+'</span></div>';
+}
 function fill(str, vars){ let o=String(str); for(const k in (vars||{})) o=o.split("{"+k+"}").join(vars[k]); return o; }
 function tBi(key, vars){
   const s=(AFDCore.STRINGS||{})[key];
@@ -1835,15 +1841,33 @@ let dispMode=AFDCore.getDisplayMode("sound");   // shared setting; recorder now 
 function setDispMode(m){ dispMode=m; AFDCore.setDisplayMode(m); document.body.setAttribute("data-tier", m); paintFormTier(); }
 document.body.setAttribute("data-tier", dispMode);
 /* Form text that can't hold two lines — placeholders and <select> options —
-   carries data-ar / data-en: "Arabic · English" in auto, Arabic alone otherwise.
-   Option VALUES never change, so what's stored stays the same in every tier. */
+   carries data-str="<AFDCore.STRINGS key>": "Arabic · English" in auto, Arabic
+   alone otherwise. Keeping the text in STRINGS puts it on the prompts tool's
+   review list. Option VALUES never change, so what's stored is the same in
+   every tier. Town-list labels are Arabic only (the value beside it is English). */
 function paintFormTier(){
-  document.querySelectorAll("[data-ar][data-en]").forEach(el=>{
-    const t = dispMode==="auto" ? el.dataset.ar+" · "+el.dataset.en : el.dataset.ar;
+  const S=AFDCore.STRINGS||{};
+  document.querySelectorAll("[data-str]").forEach(el=>{
+    const x=S[el.dataset.str]; if(!x) return;
+    const inList = el.parentElement && el.parentElement.tagName==="DATALIST";
+    const t = (dispMode==="auto" && !inList) ? x.ar+" · "+x.en : x.ar;
     if(el.tagName==="OPTION") el.textContent=t; else el.placeholder=t;
   });
 }
 paintFormTier();
+/* Steps 1–2 static text: each Arabic line carries data-str="<STRINGS key>" and is
+   refreshed from AFDCore.STRINGS (its English partner is the .sub right after it),
+   so approved suggestions from the prompts tool land here without touching the
+   markup. The inline text is the no-JS fallback and matches STRINGS today. */
+function paintStaticStrings(root){
+  const S=AFDCore.STRINGS||{};
+  (root||document).querySelectorAll(".bi-ar[data-str]").forEach(el=>{
+    const x=S[el.dataset.str]; if(!x) return;
+    el.textContent=x.ar;
+    const en=el.nextElementSibling; if(en && en.classList.contains("sub")) en.textContent=x.en;
+  });
+}
+paintStaticStrings();
 const DISP_ICON={
   auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
   sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
@@ -2832,10 +2856,10 @@ const restored = (async function restore(){
       const bar=document.createElement("div");
       bar.className="verdict ok";
       // Arabic phrased as "count: N" to sidestep Arabic number agreement (1 / 2 / 3–10 / 11+)
-      bar.innerHTML='<div><strong><span class="bi-ar" dir="rtl">التسجيلات المحفوظة على هذا الهاتف: '+n.toLocaleString("ar-EG")+'</span>'+
-        '<small class="sub">'+n+' recording'+(n===1?'':'s')+' already on this phone</small></strong>'+
-        '<span><span class="bi-ar" dir="rtl">تابِع من حيث توقّفت، أو صدِّرها من أسفل شاشة التسجيل.</span>'+
-        '<small class="sub">Carry on where you left off, or export them from the bottom of the recording screen.</small></span></div>';
+      const S=AFDCore.STRINGS||{}, c=S["restore.count"]||{}, h=S["restore.hint"]||{};
+      bar.innerHTML='<div><strong><span class="bi-ar" dir="rtl">'+fill(c.ar,{n:n.toLocaleString("ar-EG")})+'</span>'+
+        '<small class="sub">'+fill(c.en,{n})+'</small></strong>'+
+        '<span><span class="bi-ar" dir="rtl">'+h.ar+'</span><small class="sub">'+h.en+'</small></span></div>';
       $("setup").insertBefore(bar,$("setup").children[3]);
     }
   }catch(e){ console.warn("restore failed",e); }
