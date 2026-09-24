@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0922e" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0922e" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0922e">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0922e">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0922e">
-<link rel="manifest" href="manifest.webmanifest?v=b0922e">
+<link rel="icon" href="favicon.svg?v=b0924a" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0924a" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924a">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924a">
+<link rel="manifest" href="manifest.webmanifest?v=b0924a">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0922e"></script>
-<script src="afd-words.js?v=b0922e"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0922e">
+<script src="afd-core.js?v=b0924a"></script>
+<script src="afd-words.js?v=b0924a"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0924a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -179,7 +179,19 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .readout b{font-weight:500;color:var(--ink-soft);display:inline-block;min-width:132px}
 
 /* ---------- prompt ---------- */
-.prompt{text-align:center;padding:28px 20px}
+/* The recorder's prompt is now just the capture cue sitting between the entry
+   card and the level meter — no card chrome, so it reads as the caption for the
+   record button rather than a third competing panel. */
+.prompt{text-align:center;padding:4px 8px 0}
+.gloss-audio{background:none;border:none;padding:6px 8px;margin-top:4px;font:500 12.5px/1.3 var(--sans);
+  color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.gloss-audio .sub{display:inline;margin:0 0 0 6px}
+.sess-more{margin-top:10px}
+.sess-more>summary{list-style:none;cursor:pointer;text-align:center;font-size:13px;color:var(--ink-soft);padding:8px}
+.sess-more>summary::-webkit-details-marker{display:none}
+.sess-more>summary .bi-ar,.sess-more>summary .sub{display:inline;margin:0 4px}
+.sess-more>summary::after{content:" \25BE";opacity:.55}
+.sess-more[open]>summary::after{content:" \25B4"}
 .picto{font-size:80px;line-height:1;margin-bottom:10px;user-select:none}
 .gloss{font-family:var(--serif);font-size:34px;font-weight:500;letter-spacing:-.02em;margin:0;color:var(--ink)}
 .gloss-ar{font-size:23px;font-weight:400;color:var(--ink-soft);margin:3px 0 0;direction:rtl}
@@ -188,10 +200,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   border-radius:12px;font:600 14px/1.2 var(--sans);color:var(--ink-soft);cursor:pointer;text-align:center}
 .rectype .rt .ar{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.8}
 .rectype .rt.active{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
-.instruction{
-  font-size:14px;color:var(--ink-soft);margin-top:16px;
-  padding-top:14px;border-top:1px solid var(--hairline)
-}
+.instruction{font-size:15px;line-height:1.45;color:var(--ink);margin:0}
+.instruction .bi-ar{display:block;direction:rtl;font-size:16px}
+.instruction .sub{text-align:center;font-size:12.5px}
 .counter{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em}
 
 /* ---------- signature: silhouette strip ---------- */
@@ -283,6 +294,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   #picto, #glossEn, #glossAr, #hearOthers{ display:none !important; }
   #entryCardHost{ width:100%; max-width:560px; margin:0 auto 14px; }
   #entryCardHost .card.lead .thumb::after{ display:none; }   /* no "closest match" pin here */
+  /* "Say it yourself" links back to this very page — here it only competes with
+     the record button, so the recorder hides it. */
+  #entryCardHost .sayit{ display:none; }
   /* 2c — the card's slots now choose the record type, so the Word/Sentence/Meaning
      tabs are redundant: hide them. The slot you're contributing to is ringed in
      amber so it's clear what the next recording will be filed under. */
@@ -512,13 +526,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   </div>
 
   <div class="afdcard" id="entryCardHost"></div>
-  <div class="card prompt">
+  <div class="prompt" id="promptCue">
     <div class="picto" id="picto">☀️</div>
     <p class="gloss" id="glossEn">sun</p>
     <p class="gloss-ar" id="glossAr"></p>
-    <button class="btn ghost" id="playGloss" style="margin-top:14px">▶ Hear the word in English</button>
     <button class="btn ghost" id="hearOthers" style="margin-top:8px">Hear how others said it in Hakli</button>
     <p class="instruction" id="instruction">Say the Hakli word <b>twice</b>, with a short pause between.</p>
+    <button class="gloss-audio hidden" id="playGloss" type="button">▶ Hear the word in English</button>
   </div>
 
   <div class="silhouette">
@@ -563,11 +577,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <div id="roster"></div>
     <button class="btn secondary" id="switchSpeaker">Switch speaker</button>
     <button class="btn secondary" id="withdrawSpeaker">Withdraw this speaker's recordings</button>
-    <div id="clips"><p class="note">No recordings kept yet.</p></div>
+    <div id="clips"><p class="note"><span class="bi-ar" dir="rtl">لا تسجيلات محفوظة بعد.</span></p></div>
     <button class="btn" id="syncBtn">Upload to the dictionary</button>
-    <button class="btn secondary" id="dlManifest">Export everything (.zip)</button>
-    <button class="btn ghost" id="revealRef">Show my field notes</button>
-    <button class="btn ghost" id="clearBtn">Clear this device</button>
+    <details class="sess-more">
+      <summary id="sessMore">More</summary>
+      <button class="btn secondary" id="dlManifest">Export everything (.zip)</button>
+      <button class="btn ghost" id="clearBtn">Clear this device</button>
+    </details>
     <p class="note" id="savedNote">Recordings are saved on this phone first, then uploaded.
       Nothing is lost if you go offline — upload again when you have signal.</p>
   </div>
@@ -642,7 +658,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0922e";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924a";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1133,10 +1149,10 @@ const WORDS=window.AFDWords;   // canonical entry list — shared via afd-words.
 const $=id=>document.getElementById(id);
 let stream=null, actualSettings=null, ctx=null, analyser=null, source=null;
 let recorder=null, chunks=[], recording=false;
-let idx=0, kept=[], lastBlob=null, lastQC=null, showRef=false;
+let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
-const BUILD="b0922e";   // bump every publish; shown in the header + console
+const BUILD="b0924a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1670,14 +1686,14 @@ function renderPrompt(){
   if(w.pic){ $("picto").textContent=w.pic; } else { $("picto").innerHTML=AFDCore.identicon(entryIdFor(w.id)); }
   // Display tier: auto = English + Arabic · script = Arabic only · sound = neither
   // (the picture + audio carry it). Empty lines get hidden so they leave no gap.
-  const enText = (dispMode==="auto") ? (showRef&&w.ref ? w.en+"  ·  "+w.ref : w.en) : "";
+  const enText = (dispMode==="auto") ? w.en : "";
   const arText = (dispMode==="auto"||dispMode==="script") ? w.ar : "";
   $("glossEn").textContent=enText; $("glossEn").classList.toggle("hidden",!enText);
   $("glossAr").textContent=arText; $("glossAr").classList.toggle("hidden",!arText);
   // Audio buttons: words for readers (auto / script), friendly icons for non-readers (sound)
   const wordless = (dispMode==="sound");
-  // English audio is no use to a Hakli-only speaker — hide it in sound mode.
-  $("playGloss").classList.toggle("hidden", wordless || !w.en);   // nothing to speak on a user-created entry (no English gloss yet)
+  // English audio is for the English tier only — hidden in sound AND script.
+  $("playGloss").classList.toggle("hidden", dispMode!=="auto" || !w.en);   // nothing to speak on a user-created entry (no English gloss yet)
   $("playGloss").innerHTML  = '▶ '+AFDCore.tHTML("action.hear.word",dispMode);
   $("hearOthers").innerHTML = wordless ? '<span class="bicon" role="img" aria-label="Hear how others said it">🗣️</span>'
                                        : AFDCore.tHTML("action.hear.others",dispMode);
@@ -1788,9 +1804,11 @@ function setRecType(t){
       instr.innerHTML = '<span class="reps-cue" role="img" aria-label="'+(twice?'say it twice':'say it once')+'">'+
                         '<b class="dot"></b>'+(twice?'<b class="dot"></b>':'')+'</span>';
     }else{
-      const ar = dispMode==="script";
-      instr.classList.toggle("rtl", ar);
-      instr.innerHTML = ar ? REC_INSTR_AR[recType] : REC_INSTR[recType];
+      // script: Arabic only · auto: Arabic first, English underneath (same
+      // convention as tHTML everywhere else on the page)
+      instr.classList.remove("rtl");
+      instr.innerHTML = '<span class="bi-ar" dir="rtl">'+REC_INSTR_AR[recType]+'</span>'+
+                        (dispMode==="auto" ? '<small class="sub">'+REC_INSTR[recType]+'</small>' : '');
     }
   }
 }
@@ -1819,7 +1837,8 @@ function paintChrome(){
   set("withdrawSpeaker","speaker.withdraw"); set("savedNote","session.savednote"); set("aboutNote","session.about");
   set("howSound","review.howsound");
   const pg=$("playGloss"); if(pg) pg.innerHTML="▶ "+AFDCore.tHTML("action.hear.word",dispMode);
-  const rr=$("revealRef"); if(rr) rr.textContent=AFDCore.t(showRef?"session.fieldnotes.hide":"session.fieldnotes",dispMode);
+  set("sessMore","session.more");
+  if(typeof renderClips==="function") try{ renderClips(); }catch(_){}   // session text follows the tier too
   setRecIdle();
 }
 
@@ -2468,8 +2487,13 @@ function renderClips(){
   const arOf=(k)=>{ const w=(window.AFDWords||[]).find(x=>entryIdFor(x.id)===k.entryId); return w&&w.ar; };
   const nameOf=(k)=>{ const ar=arOf(k); return dispMode==="auto" ? k.gloss+(ar?' · '+ar:'') : (ar||k.gloss); };
   if(!mine.length){
-    $("clips").innerHTML='<p class="note">'+T("session.norecordings")+
-      (otherAcct?' '+T("session.otheracct").split("{n}").join(otherAcct):'')+'</p>';
+    // Stacked like sumLines: Arabic line, English line under it in auto only.
+    // (One "ar · en" line let bidi scramble the other-account count.)
+    const S=AFDCore.STRINGS||{}, line=(lang)=>
+      (S["session.norecordings"]||{})[lang] +
+      (otherAcct ? " "+fill((S["session.otheracct"]||{})[lang]||"", {n:otherAcct}) : "");
+    $("clips").innerHTML='<p class="note"><span dir="rtl" class="bi-ar" style="display:block">'+line("ar")+'</span>'+
+      (dispMode==="auto" ? '<small class="sub">'+line("en")+'</small>' : '')+'</p>';
     return;
   }
   $("clips").innerHTML=mine.slice().reverse().map((k,i)=>{
@@ -2604,12 +2628,6 @@ $("clearBtn").onclick=async ()=>{
               tMsg("clear.warn"))) return;
   await idbClear(STORE);
   kept=[]; renderClips();
-};
-
-$("revealRef").onclick=()=>{
-  showRef=!showRef;
-  $("revealRef").textContent=AFDCore.t(showRef?"session.fieldnotes.hide":"session.fieldnotes",dispMode);
-  renderPrompt();
 };
 
 $("syncBtn").onclick=syncPending;
