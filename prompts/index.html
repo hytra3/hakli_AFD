@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli voice prompts</title>
-<link rel="icon" href="../favicon.svg?v=b0924f" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b0924g" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -55,6 +55,15 @@
   .list h2{font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:18px 0 8px;}
   .row{display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px; background:var(--card); cursor:pointer;}
   .row.active{border-color:var(--warm);}
+  .row .num{flex:0 0 auto; min-width:34px; font-size:12px; font-variant-numeric:tabular-nums; color:var(--muted); font-family:ui-monospace,monospace;}
+  .list h2 .num{display:inline-block; min-width:22px; color:var(--ink);}
+  .list h2 .top{float:right; color:var(--muted); text-decoration:none; font-size:14px;}
+  .list h2{scroll-margin-top:110px;}   /* clear the sticky header when jumping */
+  .jump{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; display:flex; flex-wrap:wrap; gap:6px;}
+  .jumptitle{width:100%; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px;}
+  .jump a{font-size:13px; text-decoration:none; color:var(--ink); border:1px solid var(--line); border-radius:20px; padding:4px 10px; background:var(--bg);}
+  .jump a b{color:var(--warm); margin-right:2px;}
+  .jump a span{color:var(--muted); font-size:11px; margin-left:2px;}
   .dot{width:22px; height:22px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-size:14px; border:1px solid var(--line); color:var(--muted);}
   .dot.done{background:var(--go); border-color:var(--go); color:#fff;}
   .dot.pend{background:var(--warm-bg); border-color:var(--warm); color:var(--warm);}
@@ -156,7 +165,7 @@
 
 <!-- The app's on-screen string table (window.AFDCore.STRINGS) — listed below as
      suggest-only "On-screen text" so one review pass covers every Arabic line. -->
-<script src="../afd-core.js?v=b0924f"></script>
+<script src="../afd-core.js?v=b0924g"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -275,15 +284,35 @@ const SECTIONS = [
    "screen:" so a suggestion for on-screen "record.hold" can never be confused
    with the SPOKEN prompt "record.hold" above; pull-suggestions.mjs routes
    "screen:" keys into afd-core.js and everything else into this file. */
-const SCREEN_SECTION = "On-screen text (suggest only) · النص الظاهر على الشاشة";
+/* On-screen text is split by SCREEN (from the key's prefix) so a team can divide
+   it up — "you take Permission, I'll take Microphone". Numbers are section.item
+   (e.g. 13.4). To keep numbers stable for people already working through them:
+   add NEW screens at the END of SCREEN_GROUPS, and add new strings at the end of
+   their prefix group in afd-core.js (items keep afd-core.js order). */
+const SCREEN_GROUPS = [
+  { name:"Screen · Header & sign-in",          ar:"الترويسة والدخول",          prefixes:["setup","auth","account","hdr","restore"] },
+  { name:"Screen · Speaker & permission",      ar:"المتحدِّث والإذن",   prefixes:["speaker","form","town","consent","profile"] },
+  { name:"Screen · Microphone",                ar:"الميكروفون",        prefixes:["mic"] },
+  { name:"Screen · Recording",                 ar:"التسجيل",           prefixes:["record","review","qc","status","unit","clip","nav","action","list"] },
+  { name:"Screen · This session",              ar:"هذه الجلسة",        prefixes:["session","sync","save","export","clear"] },
+  { name:"Screen · Your voice (withdraw / spoken consent)", ar:"صوتك", prefixes:["withdraw","grant","voice","roster"] },
+  { name:"Screen · Dictionary card",           ar:"بطاقة القاموس",     prefixes:["slot","group","result","card","entry"] },
+  { name:"Screen · Other",                     ar:"أخرى",              prefixes:[] },   // catch-all — keep LAST
+];
 (function(){
   const S = (window.AFDCore && window.AFDCore.STRINGS) || {};
-  const items = Object.keys(S)
-    .filter(k => S[k] && S[k].ar)
-    .map(k => ({ key:"screen:"+k, en:S[k].en || k, ar:S[k].ar, kind:"screen" }));
-  if(items.length) SECTIONS.push({ name:SCREEN_SECTION, items });
+  const buckets = SCREEN_GROUPS.map(()=>[]);
+  const other = SCREEN_GROUPS.length-1;
+  Object.keys(S).filter(k => S[k] && S[k].ar).forEach(k=>{
+    const pre = k.split(".")[0];
+    let g = SCREEN_GROUPS.findIndex(x=>x.prefixes.includes(pre)); if(g<0) g = other;
+    buckets[g].push({ key:"screen:"+k, en:S[k].en || k, ar:S[k].ar, kind:"screen" });
+  });
+  SCREEN_GROUPS.forEach((g,i)=>{ if(buckets[i].length || i<other) SECTIONS.push({ name:g.name+" · "+g.ar, items:buckets[i], screen:true }); });
 })();
-const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.name})));
+// Number every section (1, 2, 3…) and item (1.1, 1.2…) in list order.
+SECTIONS.forEach((sec,si)=>{ sec.num = si+1; sec.items.forEach((it,ii)=>{ it.num = (si+1)+"."+(ii+1); }); });
+const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.num+" · "+s.name})));
 const isScreen = it => it && it.kind === "screen";
 const RECORDABLE = ITEMS.filter(it => !isScreen(it));
 
@@ -448,7 +477,7 @@ function render(){
   $("cur-hint").innerHTML = bits.join("") + (it.kind==="narration" ? '<div style="margin-top:8px">Take your time — a quiet room helps.</div>' : "")
     + (isScreen(it) && /\{[a-z]+\}/.test(it.ar||"")
         ? '<div style="margin-top:8px">اترك ما بين الأقواس { } كما هو — يُستبدَل تلقائيًا بالاسم أو الرقم.<br><small>Keep anything in { } exactly as it is — the app fills in a name or number there.</small></div>' : "");
-  $("cur-key").textContent = it.key;
+  $("cur-key").textContent = it.num+"  ·  "+it.key;
 
   resetRecUI();
   const done = state.recorded.has(it.key);
@@ -497,8 +526,16 @@ function resetRecUI(){
 
 function renderList(){
   const el = $("list"); el.innerHTML="";
+  // Jump menu: every section with its number and size, so nobody scrolls past
+  // 150 rows to reach theirs.
+  const jump = document.createElement("div"); jump.className="jump";
+  jump.innerHTML = '<div class="jumptitle">Sections · الأقسام</div>' + SECTIONS.filter(s=>s.items.length).map(s=>
+    '<a href="#sec-'+s.num+'"><b>'+s.num+'</b> '+escHtml(s.name.replace(/^Screen · /,"").split(" · ")[0])+' <span>'+s.items.length+'</span></a>').join("");
+  el.appendChild(jump);
   SECTIONS.forEach(sec=>{
-    const h = document.createElement("h2"); h.textContent = sec.name; el.appendChild(h);
+    if(!sec.items.length) return;
+    const h = document.createElement("h2"); h.id = "sec-"+sec.num;
+    h.innerHTML = '<span class="num">'+sec.num+'</span> '+escHtml(sec.name)+' <a class="top" href="#list">↑</a>'; el.appendChild(h);
     sec.items.forEach(it=>{
       const gi = ITEMS.findIndex(x=>x.key===it.key);
       const done = !isScreen(it) && state.recorded.has(it.key), pend = state.pending.has(it.key);
@@ -506,11 +543,13 @@ function renderList(){
       row.className = "row" + (gi===state.i?" active":"");
       row.innerHTML =
         '<div class="dot '+(pend?"pend":(done?"done":""))+'">'+(pend?"…":(done?"✓":""))+'</div>'+
+        '<span class="num">'+it.num+'</span>'+
         '<div class="rowtext"><div class="g">'+escHtml(it.en)+'</div>'+
           (it.ar ? '<div class="a'+(it.ar.startsWith("[توجيه]")?' dir':'')+'">'+escHtml(it.ar)+'</div>' : '')+
           '<div class="k">'+it.key+'</div></div>'+
         (suggestedSet().has(it.key) ? '<span class="sug" title="You suggested an edit">✍️</span>' : '');
       row.onclick = ()=>{ state.i = gi; render(); window.scrollTo({top:0,behavior:"smooth"}); };
+      row.title = it.num;
       el.appendChild(row);
     });
   });
