@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0924a" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0924a" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924a">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924a">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924a">
-<link rel="manifest" href="manifest.webmanifest?v=b0924a">
+<link rel="icon" href="favicon.svg?v=b0924b" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0924b" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924b">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924b">
+<link rel="manifest" href="manifest.webmanifest?v=b0924b">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0924a"></script>
-<script src="afd-words.js?v=b0924a"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0924a">
+<script src="afd-core.js?v=b0924b"></script>
+<script src="afd-words.js?v=b0924b"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0924b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -133,6 +133,13 @@ button:focus-visible{outline:3px solid var(--frank);outline-offset:2px}
 .btn[disabled]{opacity:.4;cursor:not-allowed;box-shadow:none}
 .row{display:flex;gap:10px}
 .row .btn{margin-top:10px}
+/* Every button shows it was pressed — the next screen can take a moment. */
+.btn{transition:transform .08s ease, filter .08s ease, opacity .2s ease}
+.btn:active:not([disabled]){transform:scale(.98);filter:brightness(.93)}
+/* "Speaker doesn't know this word": a check replaces the label while we move on. */
+#skipBtn.done,#skipBtn.done[disabled]{pointer-events:none;opacity:1;border-color:var(--frank);color:var(--frank);font-size:0}
+#skipBtn.done > *{display:none}
+#skipBtn.done::before{content:"\2713";display:block;font-size:22px;line-height:1.2}
 
 label.field{display:block;margin:14px 0 0}
 label.field span{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--ink)}
@@ -292,7 +299,12 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
      leaving the English-audio button and the capture instruction. (Stage 2c folds
      the instruction and record button into the card cleanly.) */
   #picto, #glossEn, #glossAr, #hearOthers{ display:none !important; }
-  #entryCardHost{ width:100%; max-width:560px; margin:0 auto 14px; }
+  #entryCardHost{ width:100%; max-width:560px; margin:0 auto 14px; transition:opacity .15s ease; }
+  /* word changed: dim the old card at once, fade the new one in when it lands */
+  #entryCardHost.swapping{ opacity:.3; }
+  #entryCardHost > .card{ animation:afd-card-in .25s ease; }
+  @keyframes afd-card-in{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  @media (prefers-reduced-motion:reduce){ #entryCardHost > .card{ animation:none; } .btn:active{ transform:none; } }
   #entryCardHost .card.lead .thumb::after{ display:none; }   /* no "closest match" pin here */
   /* "Say it yourself" links back to this very page — here it only competes with
      the record button, so the recorder hides it. */
@@ -658,7 +670,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924a";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924b";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1152,7 +1164,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
-const BUILD="b0924a";   // bump every publish; shown in the header + console
+const BUILD="b0924b";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1682,7 +1694,11 @@ $("toRecord").onclick=()=>{ show("recorder"); renderPrompt(); sizeCanvas(); };
 /* ================= prompt ================= */
 function renderPrompt(){
   const w=WORDS[idx];
-  if(window.AFD && window.AFD.renderCard) window.AFD.renderCard(entryIdFor(w.id), document.getElementById("entryCardHost"));
+  const host=document.getElementById("entryCardHost"), eid=entryIdFor(w.id);
+  if(host && host.dataset.entry!==eid){ host.dataset.entry=eid; if(host.firstChild) host.classList.add("swapping"); }
+  if(window.AFD && window.AFD.renderCard)
+    Promise.resolve(window.AFD.renderCard(eid, host)).finally(()=>{ if(host && host.dataset.entry===eid) host.classList.remove("swapping"); });
+  else if(host) host.classList.remove("swapping");
   if(w.pic){ $("picto").textContent=w.pic; } else { $("picto").innerHTML=AFDCore.identicon(entryIdFor(w.id)); }
   // Display tier: auto = English + Arabic · script = Arabic only · sound = neither
   // (the picture + audio carry it). Empty lines get hidden so they leave no gap.
@@ -2424,8 +2440,12 @@ $("skipBtn").onclick=async ()=>{
     ownerUid:(window.AFD&&window.AFD.user())?window.AFD.user().uid:null,
     recordedAt:new Date().toISOString(),blob:null};
   kept.push(rec);
-  try{ await idbPut(STORE,rec); await saveSpeaker(); }catch(e){}
+  // Feedback first: a check on the button, and move on right away. Saving to the
+  // phone happens behind it (it was awaited before, so the tap looked dead).
+  const b=$("skipBtn"); b.classList.add("done"); b.disabled=true;   // also stops a double-tap skipping two words
+  setTimeout(()=>{ b.classList.remove("done"); b.disabled=false; }, 700);
   renderClips(); next();
+  try{ await idbPut(STORE,rec); await saveSpeaker(); }catch(e){}
 };
 
 function speakerRecord(){
