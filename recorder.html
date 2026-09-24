@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0924c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0924c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924c">
-<link rel="manifest" href="manifest.webmanifest?v=b0924c">
+<link rel="icon" href="favicon.svg?v=b0924d" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0924d" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0924d">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0924d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0924d">
+<link rel="manifest" href="manifest.webmanifest?v=b0924d">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0924c"></script>
-<script src="afd-words.js?v=b0924c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0924c">
+<script src="afd-core.js?v=b0924d"></script>
+<script src="afd-words.js?v=b0924d"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0924d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -52,6 +52,12 @@ body{
 }
 .wrap{max-width:560px;margin:0 auto;padding:20px 16px calc(28px + env(safe-area-inset-bottom))}
 
+/* Steps 1–2 now share the step-3 header, which carries the logo and the step
+   readout — so their own copies are hidden. */
+#setup > .stepdots, #miccheck > .stepdots, #setup > .brand{display:none}
+/* Display tier on steps 1–2: those screens are forms and can't go wordless, so
+   "script" and "sound" both mean Arabic only — the English subtitle lines drop. */
+body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
 /* ---------- brand mark ---------- */
 .brand{display:flex;align-items:center;gap:10px;margin:2px 0 16px;color:var(--mountain)}
 .brand svg{width:auto;height:32px;flex:0 0 auto}
@@ -64,6 +70,7 @@ body{
 .rec-home{width:auto; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer; color:var(--ink)}  /* was link blue/visited purple */
 .rec-home svg{height:100%; width:auto; display:block}
 .rec-topbar .stepdots{margin-bottom:0; cursor:pointer; display:flex; align-items:center; gap:4px; min-width:0}
+.rec-topbar .stepdots.is-static{cursor:default}
 #progress{display:inline-block; min-width:0}
 .rec-topbar .stepdots .step-back{color:var(--ink-soft)}
 .account{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
@@ -378,6 +385,29 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <body>
 <div class="wrap">
 
+<!-- Shared header for all three steps: home · step readout · find · display · account.
+     (Was on step 3 only; step 1 had no display selector.) -->
+  <div class="rec-topbar">
+    <div class="rec-left">
+      <a class="rec-home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
+      <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+    </div>
+    <div class="topbtns">
+      <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" data-cap-key="hdr.find" title="Look up a word" aria-label="Look up a word">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
+      </a>
+      <button class="dispskin capd" id="dispSkin" data-cap="العرض" data-cap-key="hdr.display" title="How words are shown" aria-label="Change how words are shown"></button>
+      <span class="account-wrap capd" id="recAcctWrap" data-cap="دخول" data-cap-key="hdr.signin">
+        <button class="account" id="account" aria-label="Account"></button>
+        <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
+          <div class="who" id="acctWho"></div>
+          <button id="acctEdit" role="menuitem"></button>
+          <button id="acctOut" role="menuitem"></button>
+        </div>
+      </span>
+    </div>
+  </div>
+
 <!-- ============ 1. CONSENT + SPEAKER ============ -->
 <section id="setup">
   <p class="stepdots"><span class="bi-ar" dir="rtl">الخطوة ١ / ٣ · المتحدِّث</span><small class="sub">STEP 1 / 3 · SPEAKER</small></p>
@@ -441,25 +471,31 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <label class="field"><span><span class="bi-ar" dir="rtl">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
       <input type="text" id="spkId" placeholder="spk_01" value="spk_01"></label>
     <label class="field"><span><span class="bi-ar" dir="rtl">البلدة</span><small class="sub">Town</small></span>
-      <input type="text" id="spkTown" placeholder="Mirbat" list="towns">
+      <input type="text" id="spkTown" placeholder="Mirbat" data-ar="مرباط" data-en="Mirbat" list="towns">
+      <!-- value = what gets stored (unchanged, English); the Arabic label shows beside it in the list -->
       <datalist id="towns">
-        <option>Salalah</option><option>Mirbat</option><option>Taqah</option>
-        <option>Sadah</option><option>Rakhyut</option><option>Dhalkut</option>
+        <option value="Salalah">صلالة</option><option value="Mirbat">مرباط</option><option value="Taqah">طاقة</option>
+        <option value="Sadah">سدح</option><option value="Rakhyut">رخيوت</option><option value="Dhalkut">ضلكوت</option>
       </datalist></label>
     <label class="field"><span><span class="bi-ar" dir="rtl">القبيلة</span><small class="sub">Tribe</small></span>
-      <input type="text" id="spkTribe" placeholder="self-identified"></label>
+      <input type="text" id="spkTribe" placeholder="self-identified" data-ar="كما يُعرِّف المتحدِّث نفسه" data-en="self-identified"></label>
     <div class="row">
       <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl">الفئة العُمرية</span><small class="sub">Age band</small></span>
         <select id="spkAge">
-          <option value="">—</option><option>20s</option><option>30s</option>
-          <option>40s</option><option>50s</option><option>60s</option>
-          <option>70s</option><option>80s+</option>
+          <option value="">—</option>
+          <option value="20s" data-ar="العشرينات" data-en="20s">العشرينات · 20s</option>
+          <option value="30s" data-ar="الثلاثينات" data-en="30s">الثلاثينات · 30s</option>
+          <option value="40s" data-ar="الأربعينات" data-en="40s">الأربعينات · 40s</option>
+          <option value="50s" data-ar="الخمسينات" data-en="50s">الخمسينات · 50s</option>
+          <option value="60s" data-ar="الستينات" data-en="60s">الستينات · 60s</option>
+          <option value="70s" data-ar="السبعينات" data-en="70s">السبعينات · 70s</option>
+          <option value="80s+" data-ar="الثمانينات فأكثر" data-en="80s+">الثمانينات فأكثر · 80s+</option>
         </select></label>
       <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl">الجنس</span><small class="sub">Gender</small></span>
         <select id="spkGender">
-          <option value="">— اختياري · optional —</option>
-          <option value="f">أنثى · Female</option>
-          <option value="m">ذكر · Male</option>
+          <option value="" data-ar="— اختياري" data-en="optional —">— اختياري · optional —</option>
+          <option value="f" data-ar="أنثى" data-en="Female">أنثى · Female</option>
+          <option value="m" data-ar="ذكر" data-en="Male">ذكر · Male</option>
         </select></label>
     </div>
     <p class="note"><span class="bi-ar" dir="rtl">لا حقلَ للهجة عن قصد — تُسجَّل البلدة وتُشتَقّ اللهجة لاحقًا.</span><small class="sub">No dialect field by design — locality is recorded, variety derived later.</small></p>
@@ -476,9 +512,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <span><span class="bi-ar" dir="rtl">السماح للآخرين بالاستماع إلى هذه التسجيلات في التطبيق</span><small class="sub">Let other people listen to these recordings in the app</small></span></label>
     <label class="field"><span><span class="bi-ar" dir="rtl">كيف يُنسَب التسجيل إلى المتحدِّث؟</span><small class="sub">How should the speaker be credited?</small></span>
       <select id="cAttr">
-        <option value="pseudonymous">بالاسم الرمزي فقط · By a code name only</option>
-        <option value="named">بالاسم · By name</option>
-        <option value="anonymous">دون نسبة · Not at all</option>
+        <option value="pseudonymous" data-ar="بالاسم الرمزي فقط" data-en="By a code name only">بالاسم الرمزي فقط · By a code name only</option>
+        <option value="named" data-ar="بالاسم" data-en="By name">بالاسم · By name</option>
+        <option value="anonymous" data-ar="دون نسبة" data-en="Not at all">دون نسبة · Not at all</option>
       </select></label>
     <button class="btn secondary" id="grantRecordBtn" style="margin-top:2px">
       <span class="bi-ar" dir="rtl">سجّل موافقة المتحدِّث المنطوقة</span><small class="sub">Record the speaker's spoken consent</small></button>
@@ -508,26 +544,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
 <!-- ============ 3. RECORD ============ -->
 <section id="recorder" class="hidden">
-  <div class="rec-topbar">
-    <div class="rec-left">
-      <a class="rec-home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
-      <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
-    </div>
-    <div class="topbtns">
-      <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" data-cap-key="hdr.find" title="Look up a word" aria-label="Look up a word">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
-      </a>
-      <button class="dispskin capd" id="dispSkin" data-cap="العرض" data-cap-key="hdr.display" title="How words are shown" aria-label="Change how words are shown"></button>
-      <span class="account-wrap capd" id="recAcctWrap" data-cap="دخول" data-cap-key="hdr.signin">
-        <button class="account" id="account" aria-label="Account"></button>
-        <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
-          <div class="who" id="acctWho"></div>
-          <button id="acctEdit" role="menuitem"></button>
-          <button id="acctOut" role="menuitem"></button>
-        </div>
-      </span>
-    </div>
-  </div>
 
   <div id="recChip" class="spkchip hidden" role="button" tabindex="0" title="Tap to change speaker"></div>
 
@@ -670,7 +686,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924c";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0924d";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1164,7 +1180,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
-const BUILD="b0924c";   // bump every publish; shown in the header + console
+const BUILD="b0924d";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -1561,14 +1577,31 @@ function renderSpeakerChip(){
 }
 function show(which){
   ["setup","miccheck","recorder"].forEach(s=>$(s).classList.toggle("hidden",s!==which));
+  paintStepHeader(which);
   window.scrollTo(0,0);
   renderSpeakerChip();
+}
+/* Header readout on steps 1–2: that step's own label, tier-aware, no back-chevron
+   (the chevron + click-to-go-back only mean something on step 3). */
+function paintStepHeader(which){
+  const wrap=$("progressWrap"); if(!wrap) return;
+  which = which || ["setup","miccheck","recorder"].find(id=>!$(id).classList.contains("hidden")) || "setup";
+  const onRec = which==="recorder";
+  wrap.classList.toggle("is-static", !onRec);
+  const back=wrap.querySelector(".step-back"); if(back) back.style.display = onRec ? "" : "none";
+  if(onRec) return;                                   // renderPrompt → setProgress paints step 3
+  const src=document.querySelector("#"+which+" > .stepdots");
+  if(!src) return;
+  const ar=src.querySelector(".bi-ar"), en=src.querySelector(".sub");
+  $("progress").innerHTML='<span class="bi-ar" dir="rtl">'+(ar?ar.innerHTML:"")+'</span>'+
+    (dispMode==="auto" && en ? '<small class="sub">'+en.innerHTML+'</small>' : '');
 }
 /* The record-screen step readout is a breadcrumb back to the speaker step, so a
    fast-pathed session (which lands straight on step 3) can still reach 1 and 2. */
 (function(){ const p=$("progressWrap"); if(p){
-  p.addEventListener("click",()=>show("setup"));
-  p.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); show("setup"); } });
+  const back=()=>{ if(!p.classList.contains("is-static")) show("setup"); };
+  p.addEventListener("click",back);
+  p.addEventListener("keydown",(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); back(); } });
 } })();
 
 /* ---- returning-speaker fast path ----------------------------------------
@@ -1799,7 +1832,18 @@ const REC_INSTR_AR={
    emoji picture is the constant visual anchor across all tiers. */
 const DISP_MODES=AFDCore.DISP_MODES;
 let dispMode=AFDCore.getDisplayMode("sound");   // shared setting; recorder now defaults to sound (audio-first), matching find — English only if a user picks "auto"
-function setDispMode(m){ dispMode=m; AFDCore.setDisplayMode(m); }
+function setDispMode(m){ dispMode=m; AFDCore.setDisplayMode(m); document.body.setAttribute("data-tier", m); paintFormTier(); }
+document.body.setAttribute("data-tier", dispMode);
+/* Form text that can't hold two lines — placeholders and <select> options —
+   carries data-ar / data-en: "Arabic · English" in auto, Arabic alone otherwise.
+   Option VALUES never change, so what's stored stays the same in every tier. */
+function paintFormTier(){
+  document.querySelectorAll("[data-ar][data-en]").forEach(el=>{
+    const t = dispMode==="auto" ? el.dataset.ar+" · "+el.dataset.en : el.dataset.ar;
+    if(el.tagName==="OPTION") el.textContent=t; else el.placeholder=t;
+  });
+}
+paintFormTier();
 const DISP_ICON={
   auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
   sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
@@ -1863,11 +1907,13 @@ const dispSkin=$("dispSkin");
 if(dispSkin){
   dispSkin.addEventListener("click", ()=>{
     dispMode=DISP_MODES[(DISP_MODES.indexOf(dispMode)+1)%DISP_MODES.length];
-    setDispMode(dispMode); updateDispSkin(); renderPrompt(); paintChrome();
+    setDispMode(dispMode); updateDispSkin(); paintChrome();
+    if($("recorder").classList.contains("hidden")) paintStepHeader(); else renderPrompt();
   });
   updateDispSkin();
 }
 paintChrome();
+paintStepHeader();
 
 /* Deep link from index.html — "Say it yourself" / "Add a sentence" / "Add a meaning".
    The hash is #<entryId> or #<entryId>|<type>. entryId targets a word in this
@@ -2785,8 +2831,11 @@ const restored = (async function restore(){
       const n=saved.filter(s=>!s.skipped).length;
       const bar=document.createElement("div");
       bar.className="verdict ok";
-      bar.innerHTML="<strong>"+n+" recording"+(n===1?"":"s")+" already on this phone</strong>"+
-        "Carry on where you left off, or export them from the bottom of the recording screen.";
+      // Arabic phrased as "count: N" to sidestep Arabic number agreement (1 / 2 / 3–10 / 11+)
+      bar.innerHTML='<div><strong><span class="bi-ar" dir="rtl">التسجيلات المحفوظة على هذا الهاتف: '+n.toLocaleString("ar-EG")+'</span>'+
+        '<small class="sub">'+n+' recording'+(n===1?'':'s')+' already on this phone</small></strong>'+
+        '<span><span class="bi-ar" dir="rtl">تابِع من حيث توقّفت، أو صدِّرها من أسفل شاشة التسجيل.</span>'+
+        '<small class="sub">Carry on where you left off, or export them from the bottom of the recording screen.</small></span></div>';
       $("setup").insertBefore(bar,$("setup").children[3]);
     }
   }catch(e){ console.warn("restore failed",e); }
