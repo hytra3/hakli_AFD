@@ -59,6 +59,123 @@ window.AFDCore = (function(){
     try{ localStorage.setItem(DISP_KEY, m); }catch(_){}
   }
 
+  /* ---- quiet mode — does the app speak TO you? ------------------------------
+     A separate axis from the display tier (tier = how words are SHOWN; quiet =
+     whether the app NARRATES). Three kinds of sound, and quiet touches only one:
+       content   — the Hakli recordings. Always plays.
+       asked     — sound the person just asked for: a long-pressed button's
+                   label, a tapped ▶ / "hear in English". Always plays — they
+                   asked for it.
+       narration — sound the app volunteers: spoken hints on arrival, guidance
+                   between steps. The scaffolding a speaker outgrows. Quiet
+                   silences this, and only this.
+     Every volunteered interface sound must go through playUI(url, "narration")
+     (or check mayPlayUI) so quiet is honoured everywhere from day one.
+     Persisted shared, like the display mode. See ROADMAP "Mute / quiet mode". */
+  const QUIET_KEY = "afd_quiet";
+  const quietSubs = new Set();
+  let uiNarration = null;                        // the narration clip playing now, if any
+  function getQuiet(){
+    try{ return localStorage.getItem(QUIET_KEY) === "1"; }catch(_){ return false; }
+  }
+  function setQuiet(on){
+    on = !!on;
+    try{ localStorage.setItem(QUIET_KEY, on ? "1" : "0"); }catch(_){}
+    if(on && uiNarration){ try{ uiNarration.pause(); }catch(_){} uiNarration = null; }  // hush mid-sentence
+    quietSubs.forEach(fn => { try{ fn(on); }catch(_){} });
+  }
+  function onQuietChange(fn){ quietSubs.add(fn); return () => quietSubs.delete(fn); }
+  function mayPlayUI(kind){ return kind !== "narration" || !getQuiet(); }
+  // Play an interface sound; returns the Audio element, or null if quiet held it back.
+  function playUI(url, kind){
+    kind = kind || "narration";
+    if(!url || !mayPlayUI(kind)) return null;
+    const a = new Audio(url);
+    if(kind === "narration"){
+      if(uiNarration){ try{ uiNarration.pause(); }catch(_){} }
+      uiNarration = a;
+      a.addEventListener("ended", () => { if(uiNarration === a) uiNarration = null; });
+    }
+    a.play().catch(()=>{});                      // autoplay may be blocked; that's fine
+    return a;
+  }
+  // Another tab flipped it → follow along.
+  try{ window.addEventListener("storage", e => {
+    if(e.key === QUIET_KEY) quietSubs.forEach(fn => { try{ fn(getQuiet()); }catch(_){} });
+  }); }catch(_){}
+
+  /* attachQuietToggle(btn) — long-press the display-tier button to toggle quiet.
+     Marty's design: the gesture lives on the tier control (wordless, no new
+     button), and a small mute bubble rides on that circle while quiet is on —
+     on every tier, so a quiet app never looks like a talking one. A plain tap
+     still cycles the tier; the click that follows a long-press is swallowed.
+     Feedback: the bubble, a short buzz where supported, and (when the tier shows
+     text) a one-line toast. Keyboard: Shift+Enter / Shift+Space toggles. */
+  const QUIET_HOLD_MS = 550;
+  function injectQuietCSS(){
+    if(document.getElementById("afdQuietCSS")) return;
+    const st = document.createElement("style"); st.id = "afdQuietCSS";
+    st.textContent =
+      '[data-quiet-btn]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}'+
+      '[data-quiet-btn][data-quiet="1"]::before{content:"";position:absolute;top:-3px;inset-inline-end:-3px;'+
+        'width:17px;height:17px;border-radius:50%;background:#1F3A34 no-repeat center/11px 11px;'+
+        'background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23EAF1ED%27 stroke-width=%272.4%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M11 5 6 9H3v6h3l5 4z%27/%3E%3Cpath d=%27M22 9l-6 6M16 9l6 6%27/%3E%3C/svg%3E");'+
+        'box-shadow:0 0 0 2px #FBFCFB;pointer-events:none;animation:afdQuietPop .18s ease-out}'+
+      '@keyframes afdQuietPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}'+
+      '@media (prefers-reduced-motion:reduce){[data-quiet-btn][data-quiet="1"]::before{animation:none}}'+
+      '.afd-quiet-toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);'+
+        'background:#1F3A34;color:#EAF1ED;padding:9px 16px;border-radius:20px;font:500 14px/1.3 system-ui,sans-serif;'+
+        'z-index:9999;max-width:calc(100vw - 32px);text-align:center;pointer-events:none;opacity:0;transition:opacity .2s}'+
+      '.afd-quiet-toast.show{opacity:1}'+
+      '.afd-quiet-toast small{display:block;opacity:.75;font-size:12px;margin-top:2px}';
+    document.head.appendChild(st);
+  }
+  function quietToast(on){
+    const mode = getDisplayMode("auto");
+    if(mode === "sound") return;                 // wordless tier: the bubble says it
+    let el = document.querySelector(".afd-quiet-toast");
+    if(!el){ el = document.createElement("div"); el.className = "afd-quiet-toast";
+      el.setAttribute("role","status"); el.setAttribute("aria-live","polite"); document.body.appendChild(el); }
+    el.innerHTML = tHTML(on ? "hdr.quiet.on" : "hdr.quiet.off", mode);
+    el.classList.add("show");
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200);
+  }
+  function attachQuietToggle(btn){
+    if(!btn || btn._afdQuiet) return; btn._afdQuiet = true;
+    injectQuietCSS();
+    btn.setAttribute("data-quiet-btn", "");
+    if(getComputedStyle(btn).position === "static") btn.style.position = "relative";
+    const baseTitle = btn.getAttribute("title") || "";
+    const paint = on => {
+      btn.setAttribute("data-quiet", on ? "1" : "0");
+      btn.setAttribute("title", baseTitle + (on ? " · quiet (long-press to hear narration)" : " · long-press for quiet"));
+    };
+    paint(getQuiet());
+    onQuietChange(paint);
+    const flip = () => {
+      const on = !getQuiet(); setQuiet(on);
+      try{ navigator.vibrate && navigator.vibrate(on ? [18,40,18] : 30); }catch(_){}
+      quietToast(on);
+    };
+    let timer = null, fired = false;
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    btn.addEventListener("pointerdown", e => {
+      if(e.button && e.button !== 0) return;
+      fired = false; cancel();
+      timer = setTimeout(() => { timer = null; fired = true; flip(); }, QUIET_HOLD_MS);
+    });
+    ["pointerup","pointercancel","pointerleave"].forEach(ev => btn.addEventListener(ev, cancel));
+    btn.addEventListener("contextmenu", e => e.preventDefault());   // mobile long-press menu
+    // Capture phase: at the target, capture listeners run first, so this can
+    // swallow the click before the page's own tier-cycling handler sees it.
+    btn.addEventListener("click", e => {
+      if(fired){ fired = false; e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+    btn.addEventListener("keydown", e => {
+      if(e.shiftKey && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); e.stopImmediatePropagation(); flip(); }
+    }, true);
+  }
+
   /* ---- microphone capture — the single recording protocol -------------------
      Processing is OFF so the corpus and the speak-to-find query are captured in
      the SAME acoustic space. This is the one place the mic opens; routing both
@@ -297,7 +414,11 @@ window.AFDCore = (function(){
     "unit.reps":            { en:"reps",                ar:"تكرار" },
     "account.edit":         { en:"Edit how you appear", ar:"تعديل كيف تظهر" },
     "account.signout":      { en:"Sign out",            ar:"تسجيل الخروج" },
-    "account.signout.confirm": { en:"Sign out? You can sign back in anytime.", ar:"تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت." }
+    "account.signout.confirm": { en:"Sign out? You can sign back in anytime.", ar:"تسجيل الخروج؟ يمكنك الدخول مجددًا في أي وقت." },
+    // Quiet mode toast (long-press the display button). Added at the very END so
+    // the prompts tool's section.item numbers don't shift (lands last in §11).
+    "hdr.quiet.on":         { en:"Quiet — the app won't talk you through it. Words still play.", ar:"هدوء — لن يتكلّم التطبيق بالإرشادات. الكلمات تُسمَع كما هي." },
+    "hdr.quiet.off":        { en:"Spoken guidance is on", ar:"الإرشاد الصوتيّ مُفعَّل" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -364,6 +485,7 @@ window.AFDCore = (function(){
   return {
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
+    QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tHTML,
     identicon

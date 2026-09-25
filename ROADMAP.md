@@ -410,6 +410,30 @@ chrome reads worse than all-English. Do it as one pass, in this order:
    mute; show a small mute bubble attached to the soundwave (sound-tier) circle
    when it's active — discoverable, wordless, and tied to the tier it belongs to.
 
+   **Built (2026-09-25).** `afd-core.js`: `getQuiet / setQuiet / onQuietChange`
+   (persisted under `afd_quiet`, synced across tabs), `mayPlayUI(kind)`,
+   `playUI(url, kind)`, and `attachQuietToggle(btn)`, wired to the display
+   button on the finder (`#skin`) and the recorder (`#dispSkin`).
+   - **Refinement: three kinds of sound, and quiet touches one.** *Content* (Hakli
+     recordings) always plays. *Asked* (a long-pressed label, a tapped ▶ or "hear
+     in English") always plays, because the person just asked for it. *Narration* (sound
+     the app volunteers: arrival hints, between-step guidance) is what quiet
+     silences. This is also the rule for the seven spoken/on-screen duplicate
+     keys: the six LABELS should match their on-screen text (heard only on
+     demand); `result.pick` is NARRATION and is meant to differ from its heading.
+   - **Rule for new code:** any sound the app volunteers goes through
+     `AFDCore.playUI(url, "narration")`, never a bare `new Audio().play()`.
+     Turning quiet on mid-clip stops the clip.
+   - **Gesture:** long-press (550 ms) the display button toggles; a plain tap
+     still cycles the tier (the click after a long-press is swallowed). Keyboard:
+     Shift+Enter / Shift+Space. The mute bubble shows on **every** tier, not
+     only sound, because it's a separate axis: a quiet app should never look
+     like a talking one. Feedback: bubble + short buzz + a one-line toast
+     (`hdr.quiet.on/off`) when the tier shows text; bubble only in sound.
+   - Today the only volunteered narration is the finder's `find_hint`, so the
+     flag is in place before narration spreads. Auto-fade after N completions is
+     still an optional later step.
+
 Net: one keyed inventory drives (a) English chrome, (b) Arabic chrome, (c) the
 spoken-Hakli prompts, and (d) the next language's chrome — all from the same source.
 
