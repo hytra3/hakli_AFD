@@ -117,7 +117,13 @@ async function applyBox(thumbEl, mode, recs){
     if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
     return d.pic ? asText(d.pic) : asIcon();
   }
-  if(mode==="script") return d.script ? asText(d.script) : (d.pic ? asText(d.pic) : asIcon());
+  // Script tier: the Arabic word already sits beside the box, so the box keeps
+  // the PICTURE (the constant visual anchor across all tiers). The script word
+  // stands in only when there's no picture at all.
+  if(mode==="script"){
+    if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
+    return d.pic ? asText(d.pic) : (d.script ? asText(d.script) : asIcon());
+  }
   // auto
   if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
   if(d.pic){ return asText(d.pic); }
@@ -496,7 +502,7 @@ async function entryCard(res, lead){
 
   // Collapsed header shows the entry's IDENTITY (emoji / identicon / script word).
   // The sound-shape (waveform, in sound tier) is painted when the detail loads.
-  if(meta.pic) thumbEl.textContent = meta.pic;
+  if(meta.pic) thumbEl.textContent = meta.pic;   // picture first in every tier
   else if(CFG.mode()==="script" && scriptLabel) thumbEl.textContent = scriptLabel;
   else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
   // compact voice counts on the collapsed header (wordless icons, tier-safe)
