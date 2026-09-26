@@ -44,6 +44,17 @@ service cloud.firestore {
     function suggestionsOpen() { return windowOpen('suggestions'); }
     function recordingOpen()   { return windowOpen('recording'); }
 
+    // THE steward — not just any real account. notAnon() alone meant any Google
+    // sign-in (i.e. every contributor) could open/close the windows, overwrite a
+    // published prompt, or read the suggestion queue. Stewardship is now an
+    // explicit list: afd_admins/{uid}, written ONLY by the Admin SDK
+    // (scripts/grant-steward.mjs); clients can neither read nor write it.
+    // exists() in a rule ignores read rules, so the lookup still works.
+    function isSteward() {
+      return notAnon()
+             && exists(/databases/$(database)/documents/afd_admins/$(request.auth.uid));
+    }
+
     // The speaker card (public). get() is safe only after exists() is checked.
     function speakerExists(sid) {
       return exists(/databases/$(database)/documents/afd_speakers/$(sid));
@@ -231,7 +242,7 @@ service cloud.firestore {
       // A real steward account is never gated. NOTE: Storage rules can't read
       // this window, so already-uploaded bytes aren't frozen here — that's the
       // separate end-of-campaign Storage lock.
-      allow write: if signedIn() && (recordingOpen() || notAnon());
+      allow write: if signedIn() && (recordingOpen() || isSteward());
     }
 
     // ------------------- Arabic prompt-edit suggestions --------------------
@@ -250,13 +261,21 @@ service cloud.firestore {
     // switch keeps working for anonymous passes alongside it.
     // (suggestionsOpen() and the openUntil model live with the window helpers up top.)
     // The switch doc itself: public-read so the tool can show/hide the affordance;
-    // only a real account (Marty) may flip it.
+    // only the steward may flip it — and only the openUntil timestamp.
     match /afd_ui_config/{key} {
       allow read:  if true;
-      allow write: if notAnon();
+      // Only openUntil may be SET — checked on the fields this write changes, so
+      // a leftover field on an old doc (e.g. the retired `open`) can't lock the
+      // steward out, but no new field can be added.
+      allow write: if isSteward()
+                   && (resource == null
+                         ? request.resource.data.keys()
+                         : request.resource.data.diff(resource.data).affectedKeys()
+                      ).hasOnly(['openUntil'])
+                   && request.resource.data.openUntil is timestamp;
     }
     match /afd_ui_suggestions/{id} {
-      allow read:   if notAnon();               // only Marty reviews the queue
+      allow read:   if isSteward();             // only the steward reviews the queue
       allow create: if signedIn()
                     && suggestionsOpen()
                     && request.resource.data.by == request.auth.uid
@@ -277,6 +296,12 @@ service cloud.firestore {
     }
 
     // ------------------------------ everything else ------------------------------
+    // Steward list — Admin SDK only (scripts/grant-steward.mjs). Explicitly closed
+    // to clients; spelled out here so nobody "fixes" it open later.
+    match /afd_admins/{uid} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

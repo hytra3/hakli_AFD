@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b0925b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b0925b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0925b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0925b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0925b">
-<link rel="manifest" href="manifest.webmanifest?v=b0925b">
+<link rel="icon" href="favicon.svg?v=b0926a" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b0926a" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b0926a">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b0926a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b0926a">
+<link rel="manifest" href="manifest.webmanifest?v=b0926a">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b0925b"></script>
-<script src="afd-words.js?v=b0925b"></script>
-<link rel="stylesheet" href="afd-card.css?v=b0925b">
+<script src="afd-core.js?v=b0926a"></script>
+<script src="afd-words.js?v=b0926a"></script>
+<link rel="stylesheet" href="afd-card.css?v=b0926a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -687,7 +687,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0925b";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b0926a";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1181,7 +1181,7 @@ let recorder=null, chunks=[], recording=false;
 let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
-const BUILD="b0925b";   // bump every publish; shown in the header + console
+const BUILD="b0926a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);

@@ -90,6 +90,47 @@ within each group.
 
 ---
 
+## Security follow-ups
+
+- **✅ Steward-only controls (2026-09-26).** `notAnon()` meant *any* Google sign-in —
+  i.e. every contributor — could open/close the recording + suggestion windows,
+  publish a prompt outside the recording window, and read the suggestion queue.
+  Now `isSteward()` = a real account listed in `afd_admins/{uid}`, a collection
+  closed to all clients and written only by `scripts/grant-steward.mjs` (Admin SDK).
+  `afd_ui_config` writes are also shape-locked to `{ openUntil: timestamp }`.
+  Tests: `test/ui-steward.rules.test.mjs`. **Deploy order: grant first, then rules.**
+- **Recording-create provenance (designed, not built — trace the create order first).**
+  The recording create rule checks who you are and which speaker, but not *what the
+  doc points at*. Four gaps, most serious first:
+  1. `storagePath` is unchecked — a doc can point at **another person's audio** (all
+     `afd/` audio is public-read, so paths are discoverable). A voice whose own take
+     was withdrawn could be re-surfaced as public under someone else's speaker card.
+     Fix: require `storagePath == 'afd/' + uid + '/' + recordingId + '.(webm|m4a)'`.
+  2. The embed trigger trusts uploader-stamped metadata — anyone can upload their own
+     clip with metadata naming someone else's `entryId/recordingId`, and the trigger
+     (Admin SDK, bypasses rules) overwrites that recording's embedding, or creates a
+     stray doc. Fix in `embed_trigger/main.py`: read the recording doc first; proceed
+     only if it exists, its `storagePath == name`, and its `uid` matches the folder.
+  3. `entryId` / `recordingId` fields aren't required to equal the doc path — a take
+     filed under one word can claim another. Integrity only; one-line rule each.
+  4. First-take window: the recording is created BEFORE its speaker card, so the rule
+     allows "no card yet". Speaker codes default to `spk_<uid6>_NN` but are editable,
+     so binding the code to the account needs a decision (enforce the prefix, or
+     create the card first — which changes the retry/consent order in `uploadClip`).
+  Create order today: Storage bytes → recording doc → speaker card → private profile
+  (the consent-grant stub can create the card earlier). Idempotent retries rely on
+  "refused, then check it landed", so each new check must accept a genuine retry.
+
+## Matcher warm-up (2026-09-26)
+
+- **✅ `scripts/set-warm.sh on|off|status`.** The repo disagreed with itself:
+  `deploy-service.sh` pinned `--min-instances=1` (always on, 2 CPU / 8 GiB, billed
+  idle) while `index.html` described min-instances=0 plus a page-open warm-up ping.
+  Now scaling is a deliberate switch, flipped without a rebuild: **off** (default,
+  free idle; the finder's `prewarmMatcher` hides most cold starts) and **on** for
+  field weeks (no cold start at all). `deploy-service.sh` no longer sets it, so a
+  redeploy keeps the last choice. Check Billing after a day of "on" before leaving it.
+
 ## Polish / small fixes
 
 - **✅ Lead-card "closest match" marker** — in the wordless sound/script tiers nothing

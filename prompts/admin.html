@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli prompts — steward</title>
-<link rel="icon" href="../favicon.svg?v=b0925b" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b0926a" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -150,7 +150,9 @@ async function setWindow(name, ms){
     $("msg").textContent = ms > 0 ? (name + " opened.") : (name + " closed.");
     await refresh();
   }catch(e){
-    $("msg").textContent = "Couldn't save — is this the steward account? (" + (e.code||e.message||"error") + ")";
+    $("msg").textContent = (e.code === "permission-denied")
+      ? "Not allowed — this account isn't listed as the steward. On the laptop: node scripts/grant-steward.mjs <this email>"
+      : "Couldn't save (" + (e.code||e.message||"error") + ")";
   }
 }
 
@@ -181,7 +183,9 @@ async function loadQueue(){
     });
     q.innerHTML = html;
   }catch(e){
-    q.innerHTML = '<div class="qempty">Couldn\'t load ('+esc(e.code||e.message||"error")+').</div>';
+    q.innerHTML = '<div class="qempty">' + ((e.code === "permission-denied")
+      ? "Not allowed — this account isn't listed as the steward (scripts/grant-steward.mjs)."
+      : "Couldn\'t load ("+esc(e.code||e.message||"error")+").") + '</div>';
   }
 }
 $("refreshq").onclick = (e)=>{ e.preventDefault(); loadQueue(); };

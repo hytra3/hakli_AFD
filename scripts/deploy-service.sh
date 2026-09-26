@@ -8,12 +8,14 @@ echo "==> Pointing gcloud at afd-dev (never tawq-in-www)"
 gcloud config set project afd-dev
 
 echo "==> Deploying afd-embed from embed_service/ ..."
+# min-instances is NOT set here on purpose: a redeploy keeps whatever
+# scripts/set-warm.sh last chose (on = always warm, off = sleeps when idle).
 cd "$HERE/../embed_service"
 gcloud run deploy afd-embed \
   --source . \
   --project=afd-dev \
   --region=europe-west1 \
-  --min-instances=1 --cpu=2 --memory=8Gi --timeout=300 \
+  --cpu=2 --memory=8Gi --timeout=300 \
   --allow-unauthenticated \
   --set-env-vars=EMBED_LAYER=12
 
