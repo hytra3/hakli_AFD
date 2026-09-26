@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli prompts — steward</title>
-<link rel="icon" href="../favicon.svg?v=b0926a" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b0926b" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -28,8 +28,17 @@
   .sub{font-size:13px; color:var(--muted); margin-bottom:18px;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:16px;}
   .card h2{font-size:15px; margin:0 0 2px;}
-  .state{font-size:13px; margin:6px 0 14px;}
-  .state.open{color:var(--go);} .state.closed{color:var(--muted);}
+  /* The STATE is the feedback, not the buttons: a badge that says OPEN/CLOSED
+     plus time left, and a green edge on the whole card while it's open. */
+  .state{display:inline-flex; align-items:center; gap:8px; font-size:13px; margin:8px 0 14px;
+    padding:5px 11px; border-radius:20px; border:1px solid var(--line); color:var(--muted); background:var(--bg);}
+  .state b{font-size:12px; letter-spacing:.06em;}
+  .state::before{content:""; width:9px; height:9px; border-radius:50%; background:var(--muted); opacity:.5;}
+  .state.open{color:var(--go); background:var(--go-bg); border-color:var(--go);}
+  .state.open::before{background:var(--go); opacity:1; box-shadow:0 0 0 3px var(--go-bg);}
+  .card.win{transition:border-color .2s, box-shadow .2s;}
+  .card.win.is-open{border-color:var(--go); box-shadow:inset 4px 0 0 var(--go);}
+  .btn.done{border-color:var(--go); color:var(--go);}
   .btnrow{display:flex; flex-wrap:wrap; gap:8px;}
   .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:11px 14px; font-size:14px; cursor:pointer;}
   .btn.primary{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
@@ -72,21 +81,21 @@
 
   <!-- panel -->
   <div id="panel" class="hidden">
-    <div class="card">
+    <div class="card win" id="rec-card">
       <h2>🎙️ Recording</h2>
       <div class="state closed" id="rec-state">—</div>
       <div class="btnrow">
-        <button class="btn primary" data-win="recording" data-days="30">Open 30 days</button>
+        <button class="btn" data-win="recording" data-days="30">Open 30 days</button>
         <button class="btn" data-win="recording" data-days="7">Open 7 days</button>
         <button class="btn danger" data-win="recording" data-close="1">Close now</button>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card win" id="sug-card">
       <h2>✍️ Arabic edits</h2>
       <div class="state closed" id="sug-state">—</div>
       <div class="btnrow">
-        <button class="btn primary" data-win="suggestions" data-hours="8">Open 8 hours</button>
+        <button class="btn" data-win="suggestions" data-hours="8">Open 8 hours</button>
         <button class="btn" data-win="suggestions" data-hours="2">Open 2 hours</button>
         <button class="btn danger" data-win="suggestions" data-close="1">Close now</button>
       </div>
@@ -130,18 +139,41 @@ const db = getFirestore(app);
 function fmt(ts){
   try{ return new Date(ts.toMillis()).toLocaleString(); }catch(_){ return "?"; }
 }
+// How long is left, in plain words: "29 days", "5 h 12 min", "8 min".
+function left(ms){
+  const m = Math.max(0, Math.round(ms/60000)), h = Math.floor(m/60), d = Math.floor(h/24);
+  if(d >= 2) return d + " days";
+  if(h >= 1) return h + " h " + (m % 60) + " min";
+  return Math.max(1, m) + " min";
+}
+const until = {};                                   // name → openUntil ms (for the countdown)
+function paintState(name){
+  const [stateId, cardId] = name === "recording" ? ["rec-state","rec-card"] : ["sug-state","sug-card"];
+  const el = $(stateId), card = $(cardId), u = until[name];
+  const open = !!u && u > Date.now();
+  el.className = "state " + (open ? "open" : "closed");
+  el.innerHTML = open
+    ? "<b>OPEN</b> " + left(u - Date.now()) + " left · until " + new Date(u).toLocaleString()
+    : "<b>CLOSED</b>";
+  if(card) card.classList.toggle("is-open", open);
+  const closeBtn = document.querySelector('#panel .btn[data-win="'+name+'"][data-close]');
+  if(closeBtn) closeBtn.disabled = !open;            // nothing to close
+}
 async function refresh(){
-  for(const [id, name] of [["rec-state","recording"],["sug-state","suggestions"]]){
-    const el = $(id);
+  for(const name of ["recording","suggestions"]){
     try{
       const snap = await getDoc(doc(db,"afd_ui_config",name));
       const u = snap.exists() && snap.data().openUntil;
-      const open = u && typeof u.toMillis === "function" && u.toMillis() > Date.now();
-      el.className = "state " + (open ? "open" : "closed");
-      el.textContent = open ? ("Open until " + fmt(u)) : "Closed";
-    }catch(e){ el.className="state closed"; el.textContent = "couldn't read state"; }
+      until[name] = (u && typeof u.toMillis === "function") ? u.toMillis() : 0;
+      paintState(name);
+    }catch(e){
+      const el = $(name === "recording" ? "rec-state" : "sug-state");
+      el.className = "state closed"; el.innerHTML = "<b>?</b> couldn't read state";
+    }
   }
 }
+// Count down on screen, and flip to CLOSED by itself when a window lapses.
+setInterval(()=>{ if(!$("panel").classList.contains("hidden")) ["recording","suggestions"].forEach(paintState); }, 30000);
 async function setWindow(name, ms){
   $("msg").textContent = "saving…";
   try{
@@ -191,12 +223,19 @@ async function loadQueue(){
 $("refreshq").onclick = (e)=>{ e.preventDefault(); loadQueue(); };
 
 document.querySelectorAll("#panel .btn[data-win]").forEach(b=>{
-  b.onclick = ()=>{
+  b.onclick = async ()=>{
     const name = b.getAttribute("data-win");
-    if(b.getAttribute("data-close")) return setWindow(name, 0);
     const days = +b.getAttribute("data-days") || 0;
     const hours = +b.getAttribute("data-hours") || 0;
-    setWindow(name, (days*24 + hours) * 3600 * 1000);
+    const label = b.textContent;
+    b.disabled = true;
+    await setWindow(name, b.getAttribute("data-close") ? 0 : (days*24 + hours) * 3600 * 1000);
+    // brief ✓ on the button you pressed — the badge above is the lasting signal
+    if(!/^Not allowed|^Couldn/.test($("msg").textContent)){
+      b.classList.add("done"); b.textContent = "✓ " + label;
+      setTimeout(()=>{ b.classList.remove("done"); b.textContent = label; paintState(name); }, 1500);
+    }
+    b.disabled = false; paintState(name);
   };
 });
 
