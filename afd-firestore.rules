@@ -269,7 +269,7 @@ service cloud.firestore {
       // steward out, but no new field can be added.
       allow write: if isSteward()
                    && (resource == null
-                         ? request.resource.data.keys()
+                         ? request.resource.data.keys().toSet()
                          : request.resource.data.diff(resource.data).affectedKeys()
                       ).hasOnly(['openUntil'])
                    && request.resource.data.openUntil is timestamp;
