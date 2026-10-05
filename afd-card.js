@@ -253,6 +253,17 @@ async function withdrawSpeaker(uid, speakerId, state, withdrawal){
     const snap = await getDocs(query(collection(CFG.db,"afd_entries"), where("source","==","user")));
     snap.docs.forEach(d=>entryIds.add(d.id));
   }catch(e){ console.warn("[AFD] withdrawSpeaker: user entries", e); }
+  // Keep the (speakerId-keyed) speaker card's bulk state in step with its takes,
+  // so the roster can read one field instead of scanning every recording.
+  // ORDER MATTERS, and is opposite for the two directions: the rules let a take
+  // become playable only while its card is public, so a restore flips the card
+  // FIRST; a withdrawal hides the takes first and the card last, so a failure
+  // part-way never leaves a public card over hidden-but-claimed-public takes.
+  const setCard = async () => {
+    try{ await updateDoc(doc(CFG.db,"afd_speakers",speakerId), { consent: state }); }
+    catch(e){ /* no card yet (nothing uploaded) — harmless */ }
+  };
+  if(state==="public") await setCard();
   let n=0;
   for(const eid of entryIds){
     try{
@@ -265,10 +276,7 @@ async function withdrawSpeaker(uid, speakerId, state, withdrawal){
       }
     }catch(e){ console.warn("[AFD] withdrawSpeaker", eid, e); }
   }
-  // Keep the (speakerId-keyed) speaker card's bulk state in step with its takes,
-  // so the roster can read one field instead of scanning every recording.
-  try{ await updateDoc(doc(CFG.db,"afd_speakers",speakerId), { consent: state }); }
-  catch(e){ /* no card yet (nothing uploaded) — harmless */ }
+  if(state!=="public") await setCard();
   console.log("[AFD] withdrawSpeaker", speakerId, "\u2192", state, "count", n, proof?"(with proof)":"");
   return n;
 }

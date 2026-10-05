@@ -200,6 +200,35 @@ describe("recording create — speaker card is honoured (late / offline uploads)
   });
 });
 
+describe("recording update — playback can't contradict consent or the card", () => {
+  const hideCard = (id) => testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(spk(ctx.firestore(), id), { consent: "withdrawn" });
+  });
+  it("a withdrawn take can't be left playable", async () => {
+    await assertFails(updateDoc(rec(asSelf(), "rec_self"), { consent: "withdrawn", allowPlayback: true }));
+  });
+  it("an erased take can't be left playable", async () => {
+    await assertFails(updateDoc(rec(asSelf(), "rec_self"), { consent: "deleted", allowPlayback: true }));
+  });
+  it("public-but-not-playable is still allowed (no public-playback consent)", async () => {
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: false }));
+  });
+  it("withdrawn card: one take can't be made playable again behind its back", async () => {
+    await hideCard("spk_self");
+    await assertFails(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: true }));
+  });
+  it("roster 'share again': card first, then its takes", async () => {
+    await hideCard("spk_self");
+    await assertSucceeds(updateDoc(spk(asSelf(), "spk_self"), { consent: "public" }));
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: true }));
+  });
+  it("withdrawn card: takes can still be withdrawn or erased", async () => {
+    await hideCard("spk_self");
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_self"), WITHDRAW));
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "deleted", allowPlayback: false }));
+  });
+});
+
 describe("recording read — public vs. steward", () => {
   it("anyone reads a public recording", async () => {
     await assertSucceeds(getDoc(rec(asPublic(), "rec_self")));

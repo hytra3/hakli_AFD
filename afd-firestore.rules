@@ -178,6 +178,16 @@ service cloud.firestore {
                       && isManager()
                       && onlyConsentChanged()
                       && request.resource.data.consent in ['public','withdrawn','deleted']
+                      // the playback flag can never contradict the label: only a
+                      // 'public' take may be playable
+                      && (request.resource.data.consent == 'public'
+                          || request.resource.data.allowPlayback == false)
+                      // and, as on create, a withdrawn/erased speaker card wins:
+                      // making a take playable needs the card public first (the
+                      // roster's "share again" flips the card, then its takes)
+                      && (request.resource.data.allowPlayback == false
+                          || !speakerExists(resource.data.speakerId)
+                          || speaker(resource.data.speakerId).consent == 'public')
                       && withdrawalArtifactOK()
                       // ownership and speaker link can never be reassigned
                       && request.resource.data.uid == resource.data.uid
