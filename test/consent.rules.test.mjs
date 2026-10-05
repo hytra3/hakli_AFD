@@ -140,6 +140,42 @@ describe("recording create — archival gate + ownership", () => {
   });
 });
 
+describe("recording create — storagePath and fields can't be forged", () => {
+  // The full doc uploadClip() in recorder.html writes — must keep passing.
+  const fullRec = (id, over = {}) => baseRec({
+    recordingId: id, phase: "word", type: "word", promptTier: "auto",
+    repetitionIndex: 0, qc: { peak: 0.5 }, envelope: [0.1, 0.2],
+    storagePath: `afd/uSelf/${id}.webm`, recordedAt: 1, viaAgent: false,
+    uploadedAt: 1, ...over,
+  });
+  it("the recorder's real upload doc is accepted (webm and m4a)", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_full"), fullRec("rec_full")));
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_m4a"),
+      fullRec("rec_m4a", { storagePath: "afd/uSelf/rec_m4a.m4a" })));
+  });
+  it("storagePath pointing at another account's audio is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { storagePath: "afd/uAgent/rec_elder.webm" })));
+  });
+  it("storagePath naming a different recording of your own is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { storagePath: "afd/uSelf/rec_self.webm" })));
+  });
+  it("storagePath outside the corpus folder is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { storagePath: "afd_ui/find_hint.webm" })));
+  });
+  it("entryId / recordingId must match the doc's own path", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { entryId: "ent_moon" })));
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { recordingId: "rec_self" })));
+  });
+  it("server-owned fields (embedding, reps) can't be planted by a client", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { embedding: [1, 0] })));
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { reps: [{ start: 0, end: 1, vector: [1, 0] }] })));
+  });
+});
+
 describe("recording create — speaker card is honoured (late / offline uploads)", () => {
   const hide = (id, consent) => testEnv.withSecurityRulesDisabled(async (ctx) => {
     await updateDoc(spk(ctx.firestore(), id), { consent });

@@ -16,6 +16,7 @@ gcloud functions deploy afd-embed-trigger \
   --trigger-event-filters="bucket=afd-dev.firebasestorage.app" \
   --trigger-location=us-east1 \
   --set-env-vars=EMBED_URL=https://afd-embed-454829954488.europe-west1.run.app/embed \
-  --entry-point=on_finalize --memory=256Mi
+  --entry-point=on_finalize --memory=256Mi \
+  --retry   # redeliver until the recorder has written the recording doc
 
 echo "==> Done."

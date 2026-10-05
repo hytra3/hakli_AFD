@@ -55,6 +55,7 @@ import io
 import os
 import subprocess
 import threading
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -69,6 +70,9 @@ EMBED_LAYER   = int(os.environ.get("EMBED_LAYER", "12"))   # notebook's best-ish
 TARGET_SR     = 16000                                       # wav2vec2 / MMS expects 16 kHz
 ADMIN_TOKEN   = os.environ.get("ADMIN_TOKEN", "")           # gate /reindex if set
 TORCH_THREADS = int(os.environ.get("TORCH_THREADS", "0"))   # 0 = leave default
+# A withdrawal must reach search without anyone remembering to /reindex: the
+# corpus cache reloads on the next search once it is older than this.
+CORPUS_MAX_AGE_S = float(os.environ.get("CORPUS_MAX_AGE_S", "300"))
 
 # Energy VAD for rep-splitting. All tunable; defaults chosen for citation-form
 # single words with a deliberate pause between reps. Revisit once we have the
@@ -263,6 +267,13 @@ def embed_waveform(audio: np.ndarray) -> Dict[str, Any]:
 
 
 # ------------------------------------------------------------------ corpus cache
+def searchable(d: Dict[str, Any]) -> bool:
+    """Only voices that are public RIGHT NOW may match a search. A withdrawn or
+    erased take must not surface its entry (or gloss) to a searcher, even though
+    its vector is still stored on the doc until the purge removes it."""
+    return d.get("allowPlayback") is True and d.get("consent") == "public"
+
+
 class Corpus:
     """In-memory nearest-neighbour over recording embeddings, grouped by entry.
 
@@ -275,14 +286,20 @@ class Corpus:
         self.entry_ids: List[str] = []
         self.glosses: List[str] = []
         self.loaded = False
+        self.loaded_at = 0.0
+
+    def stale(self) -> bool:
+        return not self.loaded or time.monotonic() - self.loaded_at > CORPUS_MAX_AGE_S
 
     def load_from_firestore(self):
         from google.cloud import firestore
         db = firestore.Client()
         vecs, entry_ids, glosses = [], [], []
-        # collection-group over every entry's recordings; only playable + embedded
+        # collection-group over every entry's recordings; only public + embedded
         for snap in db.collection_group("recordings").stream():
             d = snap.to_dict() or {}
+            if not searchable(d):
+                continue
             # one row per rep vector (nearest-rep-per-entry). Docs carry
             #   reps: [ {start, end, vector:[...]}, ... ]
             # (Firestore forbids nested arrays, hence maps). Legacy docs that
@@ -300,6 +317,7 @@ class Corpus:
         self.entry_ids = entry_ids
         self.glosses = glosses
         self.loaded = True
+        self.loaded_at = time.monotonic()
         return len(entry_ids)
 
     def search(self, q: np.ndarray, top_k: int = 5):
@@ -344,7 +362,7 @@ async def embed(file: UploadFile = File(...)):
 
 @app.post("/search")
 async def search(file: UploadFile = File(...), top_k: int = 5):
-    if not _corpus.loaded:
+    if _corpus.stale():
         _corpus.load_from_firestore()
     # query = disposable single utterance; if the searcher repeats anyway, the
     # voiced-only pool still ≈ one word (order-invariant), so no split needed

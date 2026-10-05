@@ -25,6 +25,9 @@ SAFETY RAILS (this deletes an irreplaceable corpus of elders' voices):
     and the Firestore rules don't have to change.
   * Bytes are deleted BEFORE the doc, so a crash mid-way leaves a doc still
     marked deleted (swept again next run) rather than an orphaned blob.
+  * Only ever deletes the recording's OWN file (afd/{uid}/{recordingId}.*). A
+    doc whose storagePath names anything else is refused and logged, never
+    purged — see owned_storage_path().
   * Idempotent — safe to run on a schedule and safe to re-run.
 
 Deploy (from this folder):
@@ -48,6 +51,7 @@ read/delete and Storage object delete on the corpus bucket.
 """
 
 import os
+import re
 import datetime
 import functions_framework
 from google.cloud import firestore, storage
@@ -59,6 +63,23 @@ BUCKET_NAME = os.environ.get("STORAGE_BUCKET", "")            # e.g. afd-dev.fir
 
 _db  = firestore.Client()
 _gcs = storage.Client()
+
+
+def owned_storage_path(data, recording_id):
+    """The doc's storagePath, but ONLY if it is this recording's own corpus file:
+    afd/{doc uid}/{recording id}.webm|.m4a — exactly what the recorder writes and
+    the Firestore rules allow. Returns None when the doc has no path, and raises
+    ValueError for any other path: storagePath is client-written, and the purge
+    runs with admin rights, so trusting it blindly would let a doc point at
+    someone else's audio and have it deleted here."""
+    path = data.get("storagePath")
+    if not path:
+        return None
+    uid = data.get("uid")
+    if (isinstance(uid, str) and uid and isinstance(path, str)
+            and re.fullmatch(rf"afd/{re.escape(uid)}/{re.escape(recording_id)}\.(webm|m4a)", path)):
+        return path
+    raise ValueError(f"storagePath {path!r} is not afd/{uid}/{recording_id}.*")
 
 
 @functions_framework.cloud_event
@@ -100,8 +121,15 @@ def purge(cloud_event):
                 continue
 
             data = snap.to_dict() or {}
-            path = data.get("storagePath")
             ref  = snap.reference
+            try:
+                path = owned_storage_path(data, snap.id)
+            except ValueError as e:
+                # Never delete bytes we can't prove belong to this doc, and keep
+                # the doc too, so it stays visible for a human to look at.
+                errors += 1
+                print(f"REFUSING to purge {ref.path}: {e}")
+                continue
 
             if DRY_RUN:
                 print(f"DRY-RUN would purge {ref.path}  storage={path}")

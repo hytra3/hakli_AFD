@@ -125,12 +125,37 @@ service cloud.firestore {
         allow read: if resource.data.allowPlayback == true
                     || (notAnon() && isManager());
 
+        // storagePath is trusted downstream — the purge Function deletes the
+        // object it names, the embed trigger matches uploads back to this doc —
+        // so it may only ever name THIS account's own copy of THIS recording.
+        // Otherwise a doc could point at someone else's audio and, once erased,
+        // have the purge delete it.
+        function storagePathOK() {
+          return !('storagePath' in request.resource.data)
+                 || request.resource.data.storagePath
+                      in ['afd/' + request.auth.uid + '/' + recordingId + '.webm',
+                          'afd/' + request.auth.uid + '/' + recordingId + '.m4a'];
+        }
+
         allow create: if notAnon()
+                      // Explicit allowlist — keep in step with uploadClip() in
+                      // recorder.html. Server-owned fields (embedding, reps,
+                      // nReps, …, written by the embed trigger) and the consent
+                      // `withdrawal` record can't be planted by a client.
+                      && request.resource.data.keys().hasOnly(
+                           ['recordingId','entryId','gloss','domain','speakerId',
+                            'phase','type','promptTier','repetitionIndex','capture',
+                            'qc','envelope','storagePath','recordedAt','uid',
+                            'consent','viaAgent','allowPlayback','uploadedAt'])
                       && request.resource.data.uid == request.auth.uid
+                      // the doc's own ids must match its place in the tree
+                      && request.resource.data.entryId == entryId
+                      && (!('recordingId' in request.resource.data)
+                          || request.resource.data.recordingId == recordingId)
+                      && storagePathOK()
                       && request.resource.data.speakerId is string
                       && request.resource.data.capture.sampleRate >= 44100
                       && request.resource.data.gloss is string
-                      && request.resource.data.entryId is string
                       && request.resource.data.consent == 'public'
                       && request.resource.data.allowPlayback is bool
                       // A take may only attach to a speaker card THIS account
