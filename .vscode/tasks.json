@@ -26,6 +26,14 @@
       "presentation": { "reveal": "always", "panel": "shared", "clear": true }
     },
     {
+      "label": "AFD: Deploy revoke (Cloud Function)",
+      "detail": "Redeploy the link-revoker after editing revoke/main.py.",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/deploy-revoke.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
       "label": "AFD: Health check the service",
       "detail": "Confirm the matcher is alive and see its routes + corpus size.",
       "type": "shell",

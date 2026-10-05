@@ -12,6 +12,7 @@ Then pick one:
 | **AFD: Publish site to GitHub** | After editing `find.html` or `index.html`. Commits + pushes; the live site updates in ~1 min. It asks for a short "what changed" message. |
 | **AFD: Deploy embed service** | After editing `embed_service/app.py`. Rebuilds the matcher on Cloud Run (slow — bakes in the model). |
 | **AFD: Deploy trigger** | After editing `embed_trigger/main.py`. Redeploys the auto-embed function. |
+| **AFD: Deploy revoke** | After editing `revoke/main.py`. Redeploys the function that kills old playback links when a take is withdrawn. |
 | **AFD: Health check the service** | Any time, to confirm the matcher is alive. |
 | **AFD: Reindex search cache** | After new recordings, if search doesn't find them yet. |
 
@@ -29,6 +30,13 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   Updated by the **Deploy embed service** task.
 - **Auto-embed trigger** (`embed_trigger/`) — a Cloud Function that vectorises
   every new recording. Updated by the **Deploy trigger** task.
+- **Link revoker** (`revoke/`) — a Cloud Function that rotates a take's
+  download token the moment it's withdrawn or erased, so links people already
+  have stop working. Updated by the **Deploy revoke** task.
+- **Storage rules** (`afd-storage.rules`) — corpus audio is playable only
+  while its recording is public. Before deploying them, run
+  `node scripts/audit-recording-paths.mjs` (add `--fix` to repair missing
+  metadata) so no older take goes silent.
 
 ## Key facts (baked into the scripts — you don't need to type these)
 

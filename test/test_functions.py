@@ -1,5 +1,5 @@
 """
-Server-side safety tests — purge, embed trigger, search corpus
+Server-side safety tests — purge, embed trigger, search corpus, revoke
 ==============================================================
 Unit tests for the Python services that act with admin rights, so the rules
 can't protect them: each must check client-written fields itself.
@@ -57,6 +57,7 @@ os.environ.setdefault("EMBED_URL", "https://embed.invalid/embed")
 purge = _load("afd_purge", "purge/main.py")
 trigger = _load("afd_embed_trigger", "embed_trigger/main.py")
 service = _load("afd_embed_service", "embed_service/app.py")
+revoke = _load("afd_revoke", "revoke/main.py")
 
 
 # ------------------------------------------------------------------- purge
@@ -235,6 +236,57 @@ class SearchCorpus(unittest.TestCase):
         self.assertFalse(c.stale())
         c.loaded_at -= service.CORPUS_MAX_AGE_S + 1
         self.assertTrue(c.stale())
+
+
+# ------------------------------------------------------------------ revoke
+class Revoke(unittest.TestCase):
+    PATH = "afd_entries/ent_sun/recordings/rec1"
+
+    def _run(self, doc, token="tok-old", subject=None):
+        event = {"subject": subject or f"documents/{self.PATH}"}
+        snap = mock.MagicMock(exists=doc is not None, id="rec1")
+        snap.to_dict.return_value = doc
+        blob = mock.MagicMock()
+        blob.metadata = {"entryId": "ent_sun", "recordingId": "rec1",
+                         **({"firebaseStorageDownloadTokens": token} if token else {})}
+        with mock.patch.object(revoke, "_db") as db, \
+             mock.patch.object(revoke, "_gcs") as gcs, \
+             mock.patch.object(revoke, "BUCKET_NAME", "b"):
+            db.document.return_value.get.return_value = snap
+            gcs.bucket.return_value.get_blob.return_value = blob
+            revoke.revoke(event)
+            return db, blob
+
+    def test_withdrawn_take_gets_a_new_token(self):
+        db, blob = self._run({"uid": "uA", "storagePath": "afd/uA/rec1.webm",
+                              "allowPlayback": False, "consent": "withdrawn"})
+        db.document.assert_called_once_with(self.PATH)
+        blob.patch.assert_called_once()
+        self.assertNotEqual(blob.metadata["firebaseStorageDownloadTokens"], "tok-old")
+        self.assertTrue(blob.metadata["firebaseStorageDownloadTokens"])   # rotated, not removed
+        self.assertEqual(blob.metadata["entryId"], "ent_sun")              # other metadata kept
+
+    def test_public_take_is_left_alone(self):
+        _, blob = self._run({"uid": "uA", "storagePath": "afd/uA/rec1.webm",
+                             "allowPlayback": True, "consent": "public"})
+        blob.patch.assert_not_called()
+
+    def test_foreign_storage_path_is_not_touched(self):
+        _, blob = self._run({"uid": "uA", "storagePath": "afd/uVictim/x.webm",
+                             "allowPlayback": False})
+        blob.patch.assert_not_called()
+
+    def test_no_token_means_nothing_to_revoke(self):
+        _, blob = self._run({"uid": "uA", "storagePath": "afd/uA/rec1.webm",
+                             "allowPlayback": False}, token=None)
+        blob.patch.assert_not_called()
+
+    def test_doc_path_parsing(self):
+        ok = "afd_entries/e/recordings/r"
+        self.assertEqual(revoke.doc_path({"subject": f"documents/{ok}"}), ok)
+        self.assertEqual(revoke.doc_path({"document": ok}), ok)
+        self.assertIsNone(revoke.doc_path({"subject": "documents/afd_speakers/s"}))
+        self.assertIsNone(revoke.doc_path({}))
 
 
 if __name__ == "__main__":

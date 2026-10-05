@@ -264,9 +264,8 @@ service cloud.firestore {
       // Live-on-record, but only while the recording window is open — publishing
       // a clip is exactly this doc write (status:"recorded"), so a closed window
       // stops new anonymous publishes without disturbing anything already live.
-      // A real steward account is never gated. NOTE: Storage rules can't read
-      // this window, so already-uploaded bytes aren't frozen here — that's the
-      // separate end-of-campaign Storage lock.
+      // A real steward account is never gated. The afd_ui/ audio in Storage
+      // reads this same window (afd-storage.rules), so it closes there too.
       allow write: if signedIn() && (recordingOpen() || isSteward());
     }
 
