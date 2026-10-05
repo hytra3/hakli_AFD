@@ -24,7 +24,8 @@ SAFETY RAILS (this deletes an irreplaceable corpus of elders' voices):
   * Grace is measured from the doc's own update_time — no client field needed,
     and the Firestore rules don't have to change.
   * Bytes are deleted BEFORE the doc, so a crash mid-way leaves a doc still
-    marked deleted (swept again next run) rather than an orphaned blob.
+    marked deleted (swept again next run) rather than an orphaned blob — and
+    so does a failed delete: the doc is kept until its bytes are really gone.
   * Only ever deletes the recording's OWN file (afd/{uid}/{recordingId}.*). A
     doc whose storagePath names anything else is refused and logged, never
     purged — see owned_storage_path().
@@ -54,6 +55,7 @@ import os
 import re
 import datetime
 import functions_framework
+from google.api_core.exceptions import NotFound
 from google.cloud import firestore, storage
 from google.cloud.firestore_v1.base_query import FieldFilter
 
@@ -136,12 +138,19 @@ def purge(cloud_event):
                 purged += 1
                 continue
 
-            # bytes first, then the doc
+            # bytes first, then the doc — and the doc ONLY once the bytes are
+            # gone. If the delete fails for any other reason, keep the doc so
+            # the next sweep tries again; deleting it anyway would leave audio
+            # in Storage that nothing points at and nothing will ever erase.
             if path:
                 try:
                     bucket.blob(path).delete()
-                except Exception as e:            # already gone is fine; log the rest
-                    print(f"storage delete failed {path}: {e}")
+                except NotFound:
+                    pass                          # already gone (e.g. a re-run) — fine
+                except Exception as e:
+                    errors += 1
+                    print(f"storage delete failed {path}: {e} — keeping {ref.path} for the next sweep")
+                    continue
             try:
                 ref.delete()
                 purged += 1

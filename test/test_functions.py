@@ -4,10 +4,11 @@ Server-side safety tests — purge, embed trigger, search corpus, revoke
 Unit tests for the Python services that act with admin rights, so the rules
 can't protect them: each must check client-written fields itself.
 
-The Google Cloud clients, functions_framework, requests and torch are stubbed,
-so this needs only numpy + fastapi (for the embed service import):
+The Google Cloud clients, google-auth, functions_framework, requests and torch
+are stubbed, so this needs only numpy + fastapi (+ httpx for its TestClient)
+and ffmpeg on the PATH:
 
-    pip install numpy fastapi python-multipart
+    pip install numpy fastapi python-multipart httpx
     python3 -m unittest discover -s test -p "test_*.py"
 """
 import importlib.util
@@ -36,6 +37,18 @@ def _stub_modules():
     cloud.storage = mod("google.cloud.storage", Client=mock.MagicMock)
     mod("google.cloud.firestore_v1")
     mod("google.cloud.firestore_v1.base_query", FieldFilter=lambda *a: a)
+    class NotFound(Exception):
+        pass
+    api_core = mod("google.api_core")
+    api_core.exceptions = mod("google.api_core.exceptions", NotFound=NotFound)
+    auth = mod("google.auth")
+    auth.transport = mod("google.auth.transport")
+    auth.transport.requests = mod("google.auth.transport.requests", Request=mock.MagicMock)
+    oauth2 = mod("google.oauth2")
+    oauth2.id_token = mod("google.oauth2.id_token",
+                          fetch_id_token=mock.MagicMock(return_value="id-tok"),
+                          verify_oauth2_token=mock.MagicMock())
+    google.api_core, google.auth, google.oauth2 = api_core, auth, oauth2
     mod("functions_framework", cloud_event=lambda f: f)
     mod("requests", post=mock.MagicMock())
 
@@ -103,12 +116,12 @@ class PurgeRun(unittest.TestCase):
         s.reference.path = f"afd_entries/ent_sun/recordings/{doc_id}"
         return s
 
-    def _run(self, snaps):
+    def _run(self, snaps, bucket=None):
         entry = mock.MagicMock()
         entry.to_dict.return_value = {}                      # seed entry
         recs = entry.reference.collection.return_value
         recs.where.return_value.stream.return_value = snaps
-        bucket = mock.MagicMock()
+        bucket = bucket or mock.MagicMock()
         with mock.patch.object(purge, "_db") as db, \
              mock.patch.object(purge, "_gcs") as gcs, \
              mock.patch.object(purge, "DRY_RUN", False), \
@@ -124,6 +137,22 @@ class PurgeRun(unittest.TestCase):
         bucket = self._run([evil])
         bucket.blob.assert_not_called()
         evil.reference.delete.assert_not_called()
+
+    def test_failed_byte_delete_keeps_the_doc(self):
+        snap = self._snap("rec1", {"uid": "uA", "consent": "deleted",
+                                   "storagePath": "afd/uA/rec1.webm"})
+        bucket = mock.MagicMock()
+        bucket.blob.return_value.delete.side_effect = RuntimeError("503 backend error")
+        self._run([snap], bucket)
+        snap.reference.delete.assert_not_called()
+
+    def test_already_gone_bytes_still_purge_the_doc(self):
+        snap = self._snap("rec1", {"uid": "uA", "consent": "deleted",
+                                   "storagePath": "afd/uA/rec1.webm"})
+        bucket = mock.MagicMock()
+        bucket.blob.return_value.delete.side_effect = sys.modules["google.api_core.exceptions"].NotFound()
+        self._run([snap], bucket)
+        snap.reference.delete.assert_called_once()
 
     def test_own_path_is_purged(self):
         ok = self._snap("rec1", {"uid": "uA", "consent": "deleted",
@@ -166,6 +195,13 @@ class EmbedTrigger(unittest.TestCase):
         ref.update.assert_called_once()
         ref.set.assert_not_called()
         self.assertEqual(ref.update.call_args[0][0]["embedding"], [1.0, 0.0])
+
+    def test_sends_an_id_token_for_the_service_url(self):
+        fetch = sys.modules["google.oauth2.id_token"].fetch_id_token
+        fetch.reset_mock()
+        _, post = self._run({"uid": "uA", "storagePath": self.NAME})
+        self.assertEqual(fetch.call_args[0][1], "https://embed.invalid")
+        self.assertEqual(post.call_args.kwargs["headers"]["Authorization"], "Bearer id-tok")
 
     def test_missing_doc_raises_for_retry_and_never_creates(self):
         with mock.patch.object(trigger, "_db") as db, \
@@ -236,6 +272,91 @@ class SearchCorpus(unittest.TestCase):
         self.assertFalse(c.stale())
         c.loaded_at -= service.CORPUS_MAX_AGE_S + 1
         self.assertTrue(c.stale())
+
+
+# ------------------------------------------------------- embed service limits
+class EmbedServiceGuards(unittest.TestCase):
+    def setUp(self):
+        from fastapi.testclient import TestClient
+        self.client = TestClient(service.app)
+        self.verify = sys.modules["google.oauth2.id_token"].verify_oauth2_token
+        self.verify.reset_mock(side_effect=True, return_value=True)
+
+    def _caller_env(self, audience="https://svc", callers=("trigger@sa",)):
+        return mock.patch.multiple(service, EMBED_AUDIENCE=audience, EMBED_CALLERS=set(callers))
+
+    def test_embed_refused_when_unconfigured(self):
+        with self._caller_env(audience="", callers=()):
+            r = self.client.post("/embed", files={"file": ("a.webm", b"x")})
+        self.assertEqual(r.status_code, 503)
+
+    def test_embed_needs_a_valid_token_from_an_allowed_caller(self):
+        with self._caller_env():
+            self.assertEqual(self.client.post("/embed", files={"file": ("a", b"x")}).status_code, 401)
+            self.verify.side_effect = ValueError("bad signature")
+            r = self.client.post("/embed", files={"file": ("a", b"x")}, headers={"Authorization": "Bearer t"})
+            self.assertEqual(r.status_code, 401)
+            self.verify.side_effect = None
+            self.verify.return_value = {"email": "someone@else"}
+            r = self.client.post("/embed", files={"file": ("a", b"x")}, headers={"Authorization": "Bearer t"})
+            self.assertEqual(r.status_code, 403)
+            self.verify.return_value = {"email": "trigger@sa"}
+            service.require_embed_caller("Bearer t")          # allowed: no exception
+            self.assertEqual(self.verify.call_args.kwargs["audience"], "https://svc")
+
+    def test_reindex_fails_closed(self):
+        with mock.patch.object(service, "ADMIN_TOKEN", ""):
+            self.assertEqual(self.client.post("/reindex").status_code, 403)
+        with mock.patch.object(service, "ADMIN_TOKEN", "s3cret"), \
+             mock.patch.object(service._corpus, "load_from_firestore", return_value=0) as load:
+            self.assertEqual(self.client.post("/reindex", headers={"X-Admin-Token": "nope"}).status_code, 403)
+            load.assert_not_called()
+            self.assertEqual(self.client.post("/reindex", headers={"X-Admin-Token": "s3cret"}).status_code, 200)
+
+    def test_oversize_upload_is_refused_before_any_work(self):
+        with mock.patch.object(service, "MAX_UPLOAD_BYTES", 10), \
+             mock.patch.object(service._corpus, "ensure_fresh") as fresh:
+            r = self.client.post("/search", files={"file": ("a.webm", b"x" * 11)})
+        self.assertEqual(r.status_code, 413)
+        fresh.assert_not_called()
+
+    def test_long_audio_is_refused(self):
+        import subprocess
+        wav = subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "anullsrc=r=16000:cl=mono",
+                              "-t", "3", "-f", "wav", "pipe:1"], stdout=subprocess.PIPE, check=True).stdout
+        with mock.patch.object(service, "MAX_AUDIO_S", 2.0):
+            with self.assertRaises(service.HTTPException) as cm:
+                service.decode_to_16k_mono(wav)
+            self.assertEqual(cm.exception.status_code, 413)
+        with mock.patch.object(service, "MAX_AUDIO_S", 5.0):
+            self.assertEqual(service.decode_to_16k_mono(wav).size, 3 * 16000)
+
+    def test_handlers_run_in_the_threadpool(self):
+        import inspect
+        for f in (service.embed, service.search, service.reindex):
+            self.assertFalse(inspect.iscoroutinefunction(f), f.__name__)
+
+    def test_top_k_is_capped(self):
+        with mock.patch.object(service, "embed_waveform", return_value={"embedding": None, "n_reps": 1}), \
+             mock.patch.object(service, "decode_to_16k_mono"), \
+             mock.patch.object(service._corpus, "ensure_fresh"), \
+             mock.patch.object(service._corpus, "search", return_value=[]) as search:
+            self.client.post("/search?top_k=100000", files={"file": ("a", b"x")})
+        self.assertEqual(search.call_args.kwargs["top_k"], service.MAX_TOP_K)
+
+    def test_concurrent_stale_searches_reload_once(self):
+        import threading
+        c = service.Corpus()
+        calls = []
+        def slow_load():
+            calls.append(1)
+            service.time.sleep(0.05)
+            c.loaded, c.loaded_at = True, service.time.monotonic()
+        with mock.patch.object(c, "load_from_firestore", side_effect=slow_load):
+            ts = [threading.Thread(target=c.ensure_fresh) for _ in range(8)]
+            for t in ts: t.start()
+            for t in ts: t.join()
+        self.assertEqual(len(calls), 1)
 
 
 # ------------------------------------------------------------------ revoke

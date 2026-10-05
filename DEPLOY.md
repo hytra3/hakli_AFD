@@ -14,7 +14,7 @@ Then pick one:
 | **AFD: Deploy trigger** | After editing `embed_trigger/main.py`. Redeploys the auto-embed function. |
 | **AFD: Deploy revoke** | After editing `revoke/main.py`. Redeploys the function that kills old playback links when a take is withdrawn. |
 | **AFD: Health check the service** | Any time, to confirm the matcher is alive. |
-| **AFD: Reindex search cache** | After new recordings, if search doesn't find them yet. |
+| **AFD: Reindex search cache** | Rarely needed — search reloads itself every 5 minutes. Use it to pick up new recordings immediately. First time only: `bash scripts/reindex.sh --setup` gives the service its admin token. |
 
 After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
 (the plain refresh keeps the old cached copy).

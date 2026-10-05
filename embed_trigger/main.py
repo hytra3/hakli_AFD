@@ -28,9 +28,13 @@ Firestore write and permission to invoke the Cloud Run service.
 import os
 import functions_framework
 import requests
+from google.auth.transport.requests import Request as GoogleAuthRequest
 from google.cloud import firestore, storage
+from google.oauth2 import id_token
 
 EMBED_URL = os.environ["EMBED_URL"]          # e.g. https://afd-embed-xxx.run.app/embed
+# /embed only accepts a Google ID token minted for the service's own URL.
+EMBED_AUDIENCE = os.environ.get("EMBED_AUDIENCE") or EMBED_URL.rsplit("/embed", 1)[0]
 _db = firestore.Client()
 _gcs = storage.Client()
 
@@ -84,12 +88,14 @@ def on_finalize(cloud_event):
         return
 
     audio = blob.download_as_bytes()
-    resp = requests.post(EMBED_URL, files={"file": (name, audio)}, timeout=120)
+    token = id_token.fetch_id_token(GoogleAuthRequest(), EMBED_AUDIENCE)
+    resp = requests.post(EMBED_URL, files={"file": (name, audio)},
+                         headers={"Authorization": f"Bearer {token}"}, timeout=120)
     if resp.status_code == 400:
         # undecodable / empty audio — retrying won't help
         print(f"embed service rejected {name}: {resp.text[:200]}")
         return
-    resp.raise_for_status()                  # 5xx / cold service -> retried
+    resp.raise_for_status()                  # 5xx / cold service / auth -> retried
     r = resp.json()
     embedding = r["embedding"]
 

@@ -5,8 +5,10 @@ Audio First Dictionary — embedding & match service
 One warm service that turns Hakli audio into a vector, exposed two ways:
 
   POST /embed    audio bytes  -> { embedding, vectors, n_reps, rep_distance, rep_offsets, dim, layer }
-  POST /search   audio bytes  -> { results: [ {entryId, gloss, distance}, ... ] }
+                 (callers: the embed trigger only — Google ID token, see EMBED_CALLERS)
+  POST /search   audio bytes  -> { results: [ {entryId, gloss, distance}, ... ] }   (public)
   POST /reindex  (admin)      -> reloads the corpus embedding cache from Firestore
+                 (needs X-Admin-Token == ADMIN_TOKEN; refused while ADMIN_TOKEN is unset)
   GET  /healthz               -> readiness (also reports whether the model is warm)
 
 Why this shape
@@ -51,6 +53,7 @@ and takes the nearest rep per entry — same policy as nearest-recording-
 per-entry, one level down. The atom in Storage is untouched.
 """
 
+import hmac
 import io
 import os
 import subprocess
@@ -68,11 +71,25 @@ from transformers import Wav2Vec2Model
 MODEL_ID      = os.environ.get("EMBED_MODEL", "facebook/mms-300m")
 EMBED_LAYER   = int(os.environ.get("EMBED_LAYER", "12"))   # notebook's best-ish, flat curve
 TARGET_SR     = 16000                                       # wav2vec2 / MMS expects 16 kHz
-ADMIN_TOKEN   = os.environ.get("ADMIN_TOKEN", "")           # gate /reindex if set
+ADMIN_TOKEN   = os.environ.get("ADMIN_TOKEN", "")           # /reindex is refused unless set
 TORCH_THREADS = int(os.environ.get("TORCH_THREADS", "0"))   # 0 = leave default
 # A withdrawal must reach search without anyone remembering to /reindex: the
 # corpus cache reloads on the next search once it is older than this.
 CORPUS_MAX_AGE_S = float(os.environ.get("CORPUS_MAX_AGE_S", "300"))
+
+# Abuse limits. /search is open to the world (the browser calls it), so a
+# request must stay cheap: bounded upload, bounded audio length, and a cap on
+# how many clips go through the model at once (each pass holds GBs of RAM).
+MAX_UPLOAD_BYTES    = int(os.environ.get("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))  # = Storage rule cap
+MAX_AUDIO_S         = float(os.environ.get("MAX_AUDIO_S", "60"))    # corpus takes stop at 12 s
+MAX_PARALLEL_EMBEDS = int(os.environ.get("MAX_PARALLEL_EMBEDS", "2"))
+MAX_TOP_K           = 20
+
+# /embed is only for the embed trigger. It must present a Google-signed ID
+# token minted for THIS service's URL (EMBED_AUDIENCE) by one of the service
+# accounts in EMBED_CALLERS (comma-separated). Unset → /embed is refused.
+EMBED_AUDIENCE = os.environ.get("EMBED_AUDIENCE", "")
+EMBED_CALLERS  = {e.strip() for e in os.environ.get("EMBED_CALLERS", "").split(",") if e.strip()}
 
 # Energy VAD for rep-splitting. All tunable; defaults chosen for citation-form
 # single words with a deliberate pause between reps. Revisit once we have the
@@ -113,6 +130,8 @@ app.add_middleware(
 # ------------------------------------------------------------------ model (warm)
 _model: Optional[Wav2Vec2Model] = None
 _model_lock = threading.Lock()
+# Handlers run in FastAPI's threadpool; this bounds concurrent model passes.
+_infer_slots = threading.BoundedSemaphore(MAX_PARALLEL_EMBEDS)
 
 
 def get_model() -> Wav2Vec2Model:
@@ -127,19 +146,36 @@ def get_model() -> Wav2Vec2Model:
 
 
 # ------------------------------------------------------------------ audio in
+def read_upload(file: UploadFile) -> bytes:
+    """The upload's bytes, refusing anything over MAX_UPLOAD_BYTES without
+    reading the rest of it into memory."""
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"audio over {MAX_UPLOAD_BYTES} bytes")
+    return raw
+
+
 def decode_to_16k_mono(raw: bytes) -> np.ndarray:
-    """Any container ffmpeg understands (webm/opus, wav, m4a, amr...) -> float32 mono @16k."""
-    proc = subprocess.run(
-        ["ffmpeg", "-v", "error", "-i", "pipe:0",
-         "-ac", "1", "-ar", str(TARGET_SR), "-f", "f32le", "pipe:1"],
-        input=raw, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
+    """Any container ffmpeg understands (webm/opus, wav, m4a, amr...) -> float32 mono @16k.
+
+    ffmpeg stops decoding just past MAX_AUDIO_S (-t), so a small, highly
+    compressed upload can't expand into hours of audio; longer clips are refused."""
+    try:
+        proc = subprocess.run(
+            ["ffmpeg", "-v", "error", "-i", "pipe:0", "-t", f"{MAX_AUDIO_S + 0.5:.1f}",
+             "-ac", "1", "-ar", str(TARGET_SR), "-f", "f32le", "pipe:1"],
+            input=raw, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=400, detail="could not decode audio: timed out")
     if proc.returncode != 0:
         raise HTTPException(status_code=400,
                             detail=f"could not decode audio: {proc.stderr.decode()[:200]}")
     audio = np.frombuffer(proc.stdout, dtype=np.float32).copy()
     if audio.size == 0:
         raise HTTPException(status_code=400, detail="empty audio after decode")
+    if audio.size > MAX_AUDIO_S * TARGET_SR:
+        raise HTTPException(status_code=413, detail=f"audio longer than {MAX_AUDIO_S:g} s")
     return audio
 
 
@@ -232,7 +268,7 @@ def embed_waveform(audio: np.ndarray) -> Dict[str, Any]:
     norm = (audio - audio.mean()) / (audio.std() + 1e-7)
     x = torch.from_numpy(norm).unsqueeze(0)         # [1, T]
     model = get_model()
-    with torch.no_grad():
+    with _infer_slots, torch.no_grad():
         out = model(x, output_hidden_states=True)
     hs = out.hidden_states[EMBED_LAYER][0]          # [T', H]
     n_frames = hs.shape[0]
@@ -282,14 +318,27 @@ class Corpus:
     recordings, so pronunciation variants under one entry all count."""
 
     def __init__(self):
-        self.vecs: np.ndarray = np.zeros((0, 0), dtype=np.float32)   # [N, H]
-        self.entry_ids: List[str] = []
-        self.glosses: List[str] = []
+        # (vecs [N, H], entry_ids, glosses) — swapped as ONE tuple on reload, so
+        # a search running in another thread never sees a half-updated corpus.
+        self._snap: Tuple[np.ndarray, List[str], List[str]] = (
+            np.zeros((0, 0), dtype=np.float32), [], [])
+        self._reload_lock = threading.Lock()
         self.loaded = False
         self.loaded_at = 0.0
 
+    @property
+    def entry_ids(self) -> List[str]:
+        return self._snap[1]
+
     def stale(self) -> bool:
         return not self.loaded or time.monotonic() - self.loaded_at > CORPUS_MAX_AGE_S
+
+    def ensure_fresh(self):
+        """Reload if stale — once, even when several searches notice together."""
+        if self.stale():
+            with self._reload_lock:
+                if self.stale():
+                    self.load_from_firestore()
 
     def load_from_firestore(self):
         from google.cloud import firestore
@@ -313,25 +362,25 @@ class Corpus:
                 vecs.append(np.asarray(emb, dtype=np.float32))
                 entry_ids.append(eid)
                 glosses.append(d.get("gloss", ""))
-        self.vecs = np.vstack(vecs) if vecs else np.zeros((0, 0), dtype=np.float32)
-        self.entry_ids = entry_ids
-        self.glosses = glosses
+        self._snap = (np.vstack(vecs) if vecs else np.zeros((0, 0), dtype=np.float32),
+                      entry_ids, glosses)
         self.loaded = True
         self.loaded_at = time.monotonic()
         return len(entry_ids)
 
     def search(self, q: np.ndarray, top_k: int = 5):
-        if self.vecs.shape[0] == 0:
+        vecs, entry_ids, glosses = self._snap     # one consistent snapshot
+        if vecs.shape[0] == 0:
             return []
         # cosine distance on unit vectors = 1 - dot
-        sims = self.vecs @ q                      # [N]
+        sims = vecs @ q                           # [N]
         dists = 1.0 - sims
         # best (smallest) distance per entry
         best = {}
-        for i, eid in enumerate(self.entry_ids):
+        for i, eid in enumerate(entry_ids):
             di = float(dists[i])
             if eid not in best or di < best[eid][0]:
-                best[eid] = (di, self.glosses[i])
+                best[eid] = (di, glosses[i])
         ranked = sorted(best.items(), key=lambda kv: kv[1][0])[:top_k]
         return [{"entryId": eid, "gloss": g, "distance": round(d, 4)}
                 for eid, (d, g) in ranked]
@@ -340,7 +389,36 @@ class Corpus:
 _corpus = Corpus()
 
 
+# ------------------------------------------------------------------ callers
+def require_embed_caller(authorization: str):
+    """/embed is for the embed trigger only: a Google ID token minted for this
+    service's URL by an allowed service account. Fails closed when unconfigured."""
+    if not EMBED_AUDIENCE or not EMBED_CALLERS:
+        raise HTTPException(status_code=503, detail="/embed callers not configured")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="missing bearer token")
+    try:
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as g_requests
+        claims = id_token.verify_oauth2_token(authorization[7:], g_requests.Request(),
+                                              audience=EMBED_AUDIENCE)
+    except Exception:
+        raise HTTPException(status_code=401, detail="invalid token")
+    if claims.get("email") not in EMBED_CALLERS:
+        raise HTTPException(status_code=403, detail="caller not allowed")
+
+
+def require_admin(token: str):
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="reindex disabled: ADMIN_TOKEN not set")
+    if not hmac.compare_digest(token.encode(), ADMIN_TOKEN.encode()):
+        raise HTTPException(status_code=403, detail="bad admin token")
+
+
 # ------------------------------------------------------------------ routes
+# Plain `def` handlers on purpose: FastAPI runs them in its threadpool, so a
+# clip going through ffmpeg + the model doesn't freeze every other request
+# (an `async def` doing blocking work holds the one event loop).
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "model_warm": _model is not None,
@@ -349,9 +427,9 @@ def healthz():
 
 
 @app.post("/embed")
-async def embed(file: UploadFile = File(...)):
-    raw = await file.read()
-    r = embed_waveform(decode_to_16k_mono(raw))
+def embed(file: UploadFile = File(...), authorization: str = Header(default="")):
+    require_embed_caller(authorization)
+    r = embed_waveform(decode_to_16k_mono(read_upload(file)))
     return {"embedding": r["embedding"].tolist(),
             "vectors": [v.tolist() for v in r["vectors"]],
             "n_reps": r["n_reps"],
@@ -361,12 +439,13 @@ async def embed(file: UploadFile = File(...)):
 
 
 @app.post("/search")
-async def search(file: UploadFile = File(...), top_k: int = 5):
-    if _corpus.stale():
-        _corpus.load_from_firestore()
+def search(file: UploadFile = File(...), top_k: int = 5):
+    raw = read_upload(file)
+    _corpus.ensure_fresh()
     # query = disposable single utterance; if the searcher repeats anyway, the
     # voiced-only pool still ≈ one word (order-invariant), so no split needed
-    r = embed_waveform(decode_to_16k_mono(await file.read()))
+    r = embed_waveform(decode_to_16k_mono(raw))
+    top_k = max(1, min(top_k, MAX_TOP_K))
     return {"results": _corpus.search(r["embedding"], top_k=top_k),
             "corpus_n": len(_corpus.entry_ids),
             "n_reps": r["n_reps"]}
@@ -374,9 +453,9 @@ async def search(file: UploadFile = File(...), top_k: int = 5):
 
 @app.post("/reindex")
 def reindex(x_admin_token: str = Header(default="")):
-    if ADMIN_TOKEN and x_admin_token != ADMIN_TOKEN:
-        raise HTTPException(status_code=403, detail="bad admin token")
-    n = _corpus.load_from_firestore()
+    require_admin(x_admin_token)
+    with _corpus._reload_lock:
+        n = _corpus.load_from_firestore()
     return {"reindexed": True, "corpus_n": n}
 
 
