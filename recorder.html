@@ -1019,6 +1019,40 @@ window.AFD.speakerState = async (speakerId)=>{
        return sn.exists() ? ((sn.data()||{}).consent || "public") : null; }
   catch(e){ console.warn("[AFD] speakerState", e); return null; }
 };
+// New speaker codes live in this account's own namespace, spk_<uid6>_…, which
+// the rules require for a NEW card — so nobody can claim a steward's next code
+// (visible on public recording docs) before the steward does. A code that is
+// already ours is kept as typed: one with our prefix, or a legacy card (e.g.
+// "spk_01") this account already stewards, or one with takes on this phone.
+window.AFD.settleSpeakerCode = async (code)=>{
+  code = String(code||"").trim();
+  if(!currentUser) return code;
+  const prefix = "spk_"+currentUser.uid.slice(0,6)+"_";
+  if(code.startsWith(prefix)) return code;
+  if(code){
+    try{
+      const sn = await getDoc(doc(db,"afd_speakers",code));
+      if(sn.exists() && (sn.data()||{}).stewardUid===currentUser.uid) return code;
+    }catch(_){
+      // offline: can't ask the card — keep a code this phone already records under
+      if(typeof myClips==="function" && myClips().some(k=>k.speakerId===code)) return code;
+    }
+  }
+  // Keep letters in any script (an Arabic name stays Arabic); anything that
+  // leaves nothing usable gets a fresh suffix rather than colliding with _01.
+  const bare = code.replace(/^spk_/,"").replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^_+|_+$/g,"");
+  return prefix + (bare || (code ? Date.now().toString(36) : "01"));
+};
+async function settleSpeakerField(){
+  const el=$("spkId");
+  if(!el) return;
+  const fixed = await window.AFD.settleSpeakerCode(el.value);
+  if(fixed && fixed!==(el.value||"").trim()){
+    el.value = fixed;
+    try{ renderRoster(); }catch(_){}
+  }
+}
+window.AFD.settleSpeakerField = settleSpeakerField;
 window.AFD.getEntry = async (entryId)=>{
   // Firestore lookup for a deep-linked entry. Lives here in the module because
   // the plain script (where applyDeepLink runs) has no Firestore access at all.
@@ -1538,7 +1572,9 @@ $("grantRecordBtn").onclick=()=>{
   if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
   openGrantProof(uid, spk);
 };
-$("toMic").onclick=()=>{
+$("toMic").onclick=async ()=>{
+  // a new code goes into this account's own namespace before any take uses it
+  if(window.AFD && window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
   if(switchingSpeaker){
     saveSpeaker();                       // the form is the live speaker; persist for reload
     switchingSpeaker=false;
@@ -1628,6 +1664,7 @@ async function maybeFastPath(){
   if(!hasSavedSpeaker) return;                               // wait for / require a saved speaker
   if($("setup").classList.contains("hidden")) return;        // user already moved past setup
   fastPathTried=true;
+  if(window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
   let granted=false;
   try{ const p=await navigator.permissions.query({name:"microphone"}); granted=(p.state==="granted"); }catch(_){}
   if(granted){

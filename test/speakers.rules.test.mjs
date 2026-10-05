@@ -32,15 +32,15 @@ let testEnv;
 const card    = (db, sid) => doc(db, "afd_speakers", sid);
 const priv    = (db, sid) => doc(db, "afd_speakers", sid, "private", "profile");
 
-// uSelf — the steward; uOther — a stranger; uAnon — anonymous (prompt tool).
-const asSelf   = () => testEnv.authenticatedContext("uSelf").firestore();
+// uSelf0xyz — the steward (its codes are spk_uSelf0_…); uOther — a stranger; uAnon — anonymous.
+const asSelf   = () => testEnv.authenticatedContext("uSelf0xyz").firestore();
 const asOther  = () => testEnv.authenticatedContext("uOther").firestore();
 const asAnon   = () => testEnv.authenticatedContext("uAnon", { firebase: { sign_in_provider: "anonymous" } }).firestore();
 const asPublic = () => testEnv.unauthenticatedContext().firestore();
 
 // A well-formed public card owned by uSelf (exactly the writer's field set).
 const cleanCard = {
-  uid: "uSelf", stewardUid: "uSelf", speakerId: "spk_uSelf0_01",
+  uid: "uSelf0xyz", stewardUid: "uSelf0xyz", speakerId: "spk_uSelf0_01",
   viaAgent: false, masked: false, consent: "public",
   grant: { archivalDeposit: true, mlTraining: true, publicPlayback: true },
   updatedAt: 1,
@@ -62,8 +62,8 @@ describe("public speaker card — create", () => {
 
   it("the grant stub (steward, speakerId, consent, grant) is accepted", async () => {
     await assertSucceeds(setDoc(card(asSelf(), "spk_uSelf0_01"), {
-      stewardUid: "uSelf", speakerId: "spk_uSelf0_01", consent: "withdrawn",
-      grant: { audioPath: "afd_consents/uSelf/gr_x.webm", grantedAt: 1 },
+      stewardUid: "uSelf0xyz", speakerId: "spk_uSelf0_01", consent: "withdrawn",
+      grant: { audioPath: "afd_consents/uSelf0xyz/gr_x.webm", grantedAt: 1 },
     }));
   });
 

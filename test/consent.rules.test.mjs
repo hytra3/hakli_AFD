@@ -183,8 +183,30 @@ describe("recording create — speaker card is honoured (late / offline uploads)
   it("cannot attach a take to a speaker another account stewards", async () => {
     await assertFails(setDoc(rec(asSelf(), "rec_x"), baseRec({ speakerId: "spk_elder" })));
   });
-  it("may create for a brand-new speaker code (no card yet)", async () => {
-    await assertSucceeds(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_self_02" })));
+  it("may create for a brand-new speaker code (no card yet) in its own namespace", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_uSelf_02" })));
+  });
+  it("a code in its own namespace may use Arabic letters", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_ar"), baseRec({ speakerId: "spk_uSelf_فاطمة" })));
+  });
+  it("can't start a new speaker code outside its own namespace", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_02" })));
+    await assertFails(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_uOther_02" })));
+  });
+  it("a stranger can't claim a steward's next code first", async () => {
+    await assertFails(setDoc(spk(asOther(), "spk_uSelf_02"),
+      { stewardUid: "uOther", speakerId: "spk_uSelf_02", consent: "public" }));
+    await assertFails(setDoc(rec(asOther(), "rec_squat"),
+      baseRec({ uid: "uOther", speakerId: "spk_uSelf_02" })));
+  });
+  it("a steward creates its own next card; a mismatched speakerId field is refused", async () => {
+    await assertSucceeds(setDoc(spk(asSelf(), "spk_uSelf_02"),
+      { stewardUid: "uSelf", speakerId: "spk_uSelf_02", consent: "public" }));
+    await assertFails(setDoc(spk(asSelf(), "spk_uSelf_03"),
+      { stewardUid: "uSelf", speakerId: "spk_uSelf_99", consent: "public" }));
+  });
+  it("legacy codes keep working for the account that already stewards them", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_legacy"), baseRec()));   // spk_self, seeded card
   });
   it("withdrawn card: a PUBLIC new take is refused", async () => {
     await hide("spk_self", "withdrawn");
