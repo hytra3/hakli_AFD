@@ -9,16 +9,57 @@ rules_version = '2';
  *    afd_withdrawals/{uid}/{fileName}  — spoken-Hakli consent-withdrawal proof
  *    afd_ui/{fileName}                 — the app's spoken Hakli interface
  *
+ *  Corpus audio is readable only while its recording doc is public, and
+ *  afd_ui/ writes follow the Firestore recording window — both via
+ *  cross-service firestore.get(). Run scripts/audit-recording-paths.mjs
+ *  before deploying, so older takes don't go silent.
+ *
  *  Anonymous sign-in exists ONLY for the UI-prompt recorder and is
- *  boxed into afd_ui/. It cannot write corpus audio.
+ *  boxed into afd_ui/ (and only while the recording window is open).
+ *  It cannot write corpus audio.
  *
  *  Deploy:   firebase deploy --only storage
  */
 service firebase.storage {
   match /b/{bucket}/o {
+    // Cross-service lookups into Firestore (billed reads). On first deploy the
+    // CLI asks to let Storage read Firestore — say yes.
+    function isSteward() {
+      return request.auth != null
+             && request.auth.token.firebase.sign_in_provider != 'anonymous'
+             && firestore.exists(/databases/(default)/documents/afd_admins/$(request.auth.uid));
+    }
+    function uiRecordingOpen() {
+      return firestore.exists(/databases/(default)/documents/afd_ui_config/recording)
+             && firestore.get(/databases/(default)/documents/afd_ui_config/recording).data.openUntil > request.time;
+    }
+    function publicTake(uid, fileName) {
+      return resource.metadata != null
+             && resource.metadata.get('entryId', null) is string
+             && resource.metadata.get('recordingId', null) is string
+             && publicTakeDoc(
+                  firestore.get(/databases/(default)/documents/afd_entries/$(resource.metadata.entryId)/recordings/$(resource.metadata.recordingId)),
+                  'afd/' + uid + '/' + fileName);
+    }
+    function publicTakeDoc(d, path) {
+      return d != null
+             && d.data.allowPlayback == true
+             && d.data.get('storagePath', '') == path;
+    }
+
     match /afd/{uid}/{fileName} {
-      // anyone may listen to contributed audio
-      allow read: if true;
+      // Listening follows consent: anyone may fetch a take whose recording doc
+      // is public RIGHT NOW (allowPlayback), and the uploader may always fetch
+      // their own. The doc is found from the entryId/recordingId the recorder
+      // stamps into the object's metadata; requiring the doc's storagePath to be
+      // THIS file stops metadata from borrowing another take's public doc.
+      // (Rules gate getDownloadURL/getBytes. A link already handed out carries a
+      // token that bypasses rules — the afd-revoke Function rotates that token
+      // when a take is withdrawn.) Billed: one Firestore read per fetch.
+      allow read: if (request.auth != null
+                      && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                      && request.auth.uid == uid)
+                  || publicTake(uid, fileName);
       // only the signed-in, NON-anonymous owner may upload, audio only, 10 MB cap.
       // resource == null makes recordings write-once: a content overwrite is
       // evaluated as create (not update) in Storage rules, so immutability is
@@ -81,11 +122,13 @@ service firebase.storage {
     // 25 MB cap — the consent narration is a longer connected phrase.
     match /afd_ui/{fileName} {
       allow read: if true;
-      allow create: if request.auth != null
-                    && request.resource.size < 25 * 1024 * 1024
-                    && request.resource.contentType.matches('audio/.*');
-      // let the designated speaker re-record a prompt in place
-      allow update: if request.auth != null
+      // Writes follow the SAME recording window as the afd_ui_prompts doc in
+      // Firestore (afd_ui_config/recording, set from prompts/admin.html): while
+      // it is open, the anonymous prompt-tool session may record; once it lapses
+      // only a steward (afd_admins) can. Replaces the old hand-deployed
+      // afd-storage.rules.frozen — the window now closes Storage by itself.
+      allow create, update: if request.auth != null
+                    && (uiRecordingOpen() || isSteward())
                     && request.resource.size < 25 * 1024 * 1024
                     && request.resource.contentType.matches('audio/.*');
       allow delete: if false;

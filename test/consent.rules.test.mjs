@@ -140,6 +140,42 @@ describe("recording create — archival gate + ownership", () => {
   });
 });
 
+describe("recording create — storagePath and fields can't be forged", () => {
+  // The full doc uploadClip() in recorder.html writes — must keep passing.
+  const fullRec = (id, over = {}) => baseRec({
+    recordingId: id, phase: "word", type: "word", promptTier: "auto",
+    repetitionIndex: 0, qc: { peak: 0.5 }, envelope: [0.1, 0.2],
+    storagePath: `afd/uSelf/${id}.webm`, recordedAt: 1, viaAgent: false,
+    uploadedAt: 1, ...over,
+  });
+  it("the recorder's real upload doc is accepted (webm and m4a)", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_full"), fullRec("rec_full")));
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_m4a"),
+      fullRec("rec_m4a", { storagePath: "afd/uSelf/rec_m4a.m4a" })));
+  });
+  it("storagePath pointing at another account's audio is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { storagePath: "afd/uAgent/rec_elder.webm" })));
+  });
+  it("storagePath naming a different recording of your own is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { storagePath: "afd/uSelf/rec_self.webm" })));
+  });
+  it("storagePath outside the corpus folder is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { storagePath: "afd_ui/find_hint.webm" })));
+  });
+  it("entryId / recordingId must match the doc's own path", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { entryId: "ent_moon" })));
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { recordingId: "rec_self" })));
+  });
+  it("server-owned fields (embedding, reps) can't be planted by a client", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { embedding: [1, 0] })));
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"),
+      fullRec("rec_evil", { reps: [{ start: 0, end: 1, vector: [1, 0] }] })));
+  });
+});
+
 describe("recording create — speaker card is honoured (late / offline uploads)", () => {
   const hide = (id, consent) => testEnv.withSecurityRulesDisabled(async (ctx) => {
     await updateDoc(spk(ctx.firestore(), id), { consent });
@@ -147,8 +183,30 @@ describe("recording create — speaker card is honoured (late / offline uploads)
   it("cannot attach a take to a speaker another account stewards", async () => {
     await assertFails(setDoc(rec(asSelf(), "rec_x"), baseRec({ speakerId: "spk_elder" })));
   });
-  it("may create for a brand-new speaker code (no card yet)", async () => {
-    await assertSucceeds(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_self_02" })));
+  it("may create for a brand-new speaker code (no card yet) in its own namespace", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_uSelf_02" })));
+  });
+  it("a code in its own namespace may use Arabic letters", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_ar"), baseRec({ speakerId: "spk_uSelf_فاطمة" })));
+  });
+  it("can't start a new speaker code outside its own namespace", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_02" })));
+    await assertFails(setDoc(rec(asSelf(), "rec_new_spk"), baseRec({ speakerId: "spk_uOther_02" })));
+  });
+  it("a stranger can't claim a steward's next code first", async () => {
+    await assertFails(setDoc(spk(asOther(), "spk_uSelf_02"),
+      { stewardUid: "uOther", speakerId: "spk_uSelf_02", consent: "public" }));
+    await assertFails(setDoc(rec(asOther(), "rec_squat"),
+      baseRec({ uid: "uOther", speakerId: "spk_uSelf_02" })));
+  });
+  it("a steward creates its own next card; a mismatched speakerId field is refused", async () => {
+    await assertSucceeds(setDoc(spk(asSelf(), "spk_uSelf_02"),
+      { stewardUid: "uSelf", speakerId: "spk_uSelf_02", consent: "public" }));
+    await assertFails(setDoc(spk(asSelf(), "spk_uSelf_03"),
+      { stewardUid: "uSelf", speakerId: "spk_uSelf_99", consent: "public" }));
+  });
+  it("legacy codes keep working for the account that already stewards them", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_legacy"), baseRec()));   // spk_self, seeded card
   });
   it("withdrawn card: a PUBLIC new take is refused", async () => {
     await hide("spk_self", "withdrawn");
@@ -161,6 +219,35 @@ describe("recording create — speaker card is honoured (late / offline uploads)
   it("erased card: a public new take is refused", async () => {
     await hide("spk_self", "deleted");
     await assertFails(setDoc(rec(asSelf(), "rec_late"), baseRec()));
+  });
+});
+
+describe("recording update — playback can't contradict consent or the card", () => {
+  const hideCard = (id) => testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(spk(ctx.firestore(), id), { consent: "withdrawn" });
+  });
+  it("a withdrawn take can't be left playable", async () => {
+    await assertFails(updateDoc(rec(asSelf(), "rec_self"), { consent: "withdrawn", allowPlayback: true }));
+  });
+  it("an erased take can't be left playable", async () => {
+    await assertFails(updateDoc(rec(asSelf(), "rec_self"), { consent: "deleted", allowPlayback: true }));
+  });
+  it("public-but-not-playable is still allowed (no public-playback consent)", async () => {
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: false }));
+  });
+  it("withdrawn card: one take can't be made playable again behind its back", async () => {
+    await hideCard("spk_self");
+    await assertFails(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: true }));
+  });
+  it("roster 'share again': card first, then its takes", async () => {
+    await hideCard("spk_self");
+    await assertSucceeds(updateDoc(spk(asSelf(), "spk_self"), { consent: "public" }));
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "public", allowPlayback: true }));
+  });
+  it("withdrawn card: takes can still be withdrawn or erased", async () => {
+    await hideCard("spk_self");
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_self"), WITHDRAW));
+    await assertSucceeds(updateDoc(rec(asSelf(), "rec_hidden"), { consent: "deleted", allowPlayback: false }));
   });
 });
 

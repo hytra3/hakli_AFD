@@ -92,8 +92,10 @@ The right entry should come back at the top with a small distance
 
 - MMS wants 16 kHz; the service resamples from your 48 kHz capture with ffmpeg.
 - `/search` caches corpus vectors in memory. New recordings appear after the
-  cache refreshes — call `POST /reindex` (or it reloads on cold start). For a
-  live corpus we'll wire the trigger to also bump the cache; fine to do by hand
-  while the corpus is small.
+  cache refreshes: on the first search after it is `CORPUS_MAX_AGE_S` old
+  (default 300 s), on cold start, or right away with `POST /reindex`.
+- Only recordings that are public right now (`allowPlayback` and
+  `consent == "public"`) are searchable, so a withdrawn or erased voice drops
+  out of search within that window.
 - Layer is env-configurable (`EMBED_LAYER`) if a re-sweep on clean 48 kHz data
   moves the optimum off 12.
