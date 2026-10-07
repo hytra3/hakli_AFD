@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>Hakli — find</title>
+<link rel="icon" href="favicon.svg?v=b1007j" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1007j" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1007j">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1007j">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1007j">
+<link rel="manifest" href="manifest.webmanifest?v=b1007j">
+<meta name="theme-color" content="#17241F">
+<script>
+  /* find.html is now index.html (old links, bookmarks and shared #ent_ links
+     still point here). The dictionary is index.html — one surface: browse every entry, speak to
+     find, and open any entry in place. This page just forwards, preserving any
+     #ent_xxx deep-link, and uses replace() so Back doesn't bounce here. */
+  location.replace("index.html" + (location.hash || ""));
+</script>
+<noscript><meta http-equiv="refresh" content="0; url=index.html"></noscript>
+<style>
+  body{background:#EAF0EE;font-family:system-ui,-apple-system,sans-serif;color:#1F3A34;
+       display:grid;place-items:center;height:100vh;margin:0}
+  a{color:#3E6B57}
+</style>
+</head>
+<body>
+  <p>The dictionary now lives in <a href="index.html">Hakli — find</a>…</p>
+</body>
+</html>
