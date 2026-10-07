@@ -24,6 +24,7 @@
 <link rel="manifest" href="manifest.webmanifest?v=b1007e">
 <meta name="theme-color" content="#17241F">
 <script src="afd-core.js?v=b1007e"></script>
+<script src="afd-words.js?v=b1007e"></script>
 <style>/* Same khareef tokens as index.html, so this reads as the same app. */
   :root{
     --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --mist:#8CA39B; --mist-2:#C4D2CC;
@@ -245,6 +246,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 
     <div class="card">
       <label class="check"><input type="checkbox" id="cPlay"><span data-k="consent.play"></span></label>
+      <p class="note hidden" id="hiddenNote" data-k="add.share.hidden" style="margin:-4px 0 6px 36px"></p>
       <label class="check"><input type="checkbox" id="cArchive"><span data-k="consent.archive"></span></label>
       <label class="check"><input type="checkbox" id="cML"><span data-k="consent.ml"></span></label>
     </div>
@@ -320,6 +322,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
 import { getStorage, ref, uploadBytes, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip } from "./afd-upload.js?v=b1007e";
+import { initCard, withdrawSpeaker } from "./afd-card.js?v=b1007e";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -333,6 +336,8 @@ const app   = initializeApp(firebaseConfig);
 const auth  = getAuth(app);
 const db    = getFirestore(app);
 const store = getStorage(app);
+initCard({ db, store, user:()=>{ const u = auth.currentUser; return (u && !u.isAnonymous) ? u : null; },
+           mode:()=>"auto", banner:(m)=>console.warn("[AFD add]", m) });
 
 const $ = id => document.getElementById(id);
 const C = window.AFDCore;
@@ -772,17 +777,41 @@ function paintAuth(){
   if(u) $("whoAmI").textContent = plain("add.share.as", { who: u.displayName || u.email || "" });
 }
 
+/* The speaker this account records as ITSELF — one of its own-voice cards
+   (viaAgent false; never one it keeps for someone else it records). A public
+   card first, newest first; else a withdrawn one; never an erased one (that
+   voice is gone for good). With none, a new code in the account's own
+   namespace (spk_<uid6>_…, which the rules require). */
+async function findSelfCard(uid){
+  const snap = await getDocs(query(collection(db,"afd_speakers"),
+    where("stewardUid","==",uid), where("viaAgent","==",false), limit(20)));
+  const t = c => (c.updatedAt && c.updatedAt.toMillis) ? c.updatedAt.toMillis() : 0;
+  const cards = snap.docs.map(d=>({ id:d.id, ...(d.data()||{}) })).filter(c=>c.consent!=="deleted");
+  cards.sort((a,b)=> ((b.consent==="public") - (a.consent==="public")) || (t(b) - t(a)));
+  return cards[0] || null;
+}
+async function selfSpeaker(uid){
+  const c = await findSelfCard(uid);
+  if(c) return c.id;
+  const base = "spk_"+uid.slice(0,6)+"_";
+  // _01 may already be a card this account keeps for someone else, or erased.
+  return (await getDoc(doc(db,"afd_speakers",base+"01"))).exists() ? base+Date.now().toString(36) : base+"01";
+}
+
 // A returning contributor already chose their permissions once (in the
 // recorder or here). Start from those rather than blank boxes — sharing writes
 // the speaker card, so a blank box here would quietly change their earlier choice.
+// Also say so when their voice is currently hidden: ticking "let others listen"
+// then means sharing it again, and they should know that before they tap.
+let selfCard = null;
 async function prefillConsent(){
   const u = realUser();
-  if(!u || draft.consent.touched) return;
+  $("hiddenNote").classList.add("hidden");
+  if(!u) return;
   try{
-    const code = await findSelfSpeaker(u.uid);
-    if(!code) return;
-    const sn = await getDoc(doc(db, "afd_speakers", code));
-    const c = sn.exists() ? (sn.data()||{}) : null;
+    selfCard = await findSelfCard(u.uid);
+    const c = selfCard;
+    $("hiddenNote").classList.toggle("hidden", !(c && c.consent==="withdrawn"));
     if(!c || !c.grant || draft.consent.touched) return;
     draft.consent = { play: c.grant.publicPlayback===true && c.consent==="public",
                       archive: c.grant.archivalDeposit===true, ml: c.grant.mlTraining===true, touched:false };
@@ -790,30 +819,6 @@ async function prefillConsent(){
     $("cArchive").checked = draft.consent.archive;
     $("cML").checked = draft.consent.ml;
   }catch(e){ console.warn("[AFD add] prefill", e); }
-}
-
-/* The speaker this account records as ITSELF. One per account: remembered on
-   this phone, else the account's existing self card (not one it keeps for
-   someone else it records), else a new code in the account's own namespace
-   (spk_<uid6>_…, which the rules require). */
-async function findSelfSpeaker(uid){
-  const k = "afd_add_spk:"+uid;
-  try{ const s = localStorage.getItem(k); if(s) return s; }catch(_){}
-  const snap = await getDocs(query(collection(db,"afd_speakers"),
-    where("stewardUid","==",uid), where("viaAgent","==",false), limit(1)));
-  const id = snap.empty ? null : snap.docs[0].id;
-  if(id){ try{ localStorage.setItem(k, id); }catch(_){} }
-  return id;
-}
-async function selfSpeaker(uid){
-  const found = await findSelfSpeaker(uid);
-  if(found) return found;
-  const base = "spk_"+uid.slice(0,6)+"_";
-  let code = base+"01";
-  // _01 may already be a card this account keeps for someone else.
-  if((await getDoc(doc(db,"afd_speakers",code))).exists()) code = base+Date.now().toString(36);
-  try{ localStorage.setItem("afd_add_spk:"+uid, code); }catch(_){}
-  return code;
 }
 
 function speakerSnapshot(speakerId){
@@ -858,9 +863,21 @@ async function share(){
       if(!up.word) up.wordId = null;
       if(!up.meaning) up.meaningId = null;
       up.speakerId = null; up.uid = uid;
+      delete up.reopen; delete up.public; delete up.reopened;   // that account's card, that account's answer
     }
     step = "speaker";
     if(!up.speakerId) up.speakerId = await selfSpeaker(uid);
+    // Withdrawal is the speaker's own act and wins: new takes under a withdrawn
+    // card upload hidden. If they ticked "let others listen", ask — the same
+    // deliberate "share again" the recorder offers — rather than either
+    // overriding the withdrawal or silently ignoring the tick.
+    const cardSn = await getDoc(doc(db, "afd_speakers", up.speakerId));
+    const cardState = cardSn.exists() ? ((cardSn.data()||{}).consent || "public") : null;
+    if(draft.consent.play && cardState==="withdrawn" && up.reopen===undefined){
+      const x = C.STRINGS["add.share.reopen"];
+      up.reopen = confirm(MODE==="auto" ? x.ar+"\n\n"+x.en : x.ar);
+    }
+    up.public = !!draft.consent.play && (cardState!=="withdrawn" || up.reopen===true);
     await saveDraft();
 
     // photo → entry → word → meaning. Each is write-once on the server, so a
@@ -905,8 +922,15 @@ async function share(){
       up.meaning = true; await saveDraft();
     }
 
+    if(up.reopen===true && !up.reopened){
+      step = "reshare";
+      await withdrawSpeaker(uid, up.speakerId, "public");   // card first, then every take of theirs
+      up.reopened = true; await saveDraft();
+    }
+
     // Shared. The done screen still shows this word; the draft itself goes.
-    $("doneMsg").innerHTML = bi(draft.consent.play ? "add.done.public" : "add.done.private");
+    // It says what actually happened — a hidden voice is told it's hidden.
+    $("doneMsg").innerHTML = bi(up.public ? "add.done.public" : "add.done.private");
     $("doneSee").href = "index.html#"+encodeURIComponent(draft.entryId);
     show("done");
     await clearDraft();
