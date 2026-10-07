@@ -620,42 +620,104 @@ async function shareEntry(entryId, meta, heard, mode, voice){
   window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");
 }
 
-/* A voice as a file anyone's phone can play. Takes are .webm (Android) or .m4a
-   (iPhone), and an iPhone can't play webm — so decode it here and re-encode as
-   a small mono WAV (22.05 kHz, 16-bit: ~45 KB a second), which every phone and
-   WhatsApp plays. `src` is a URL (a public take; the bucket's CORS must allow
-   this site — cors.json) or a Blob (add.html's own just-recorded take).
-   Resolves null when the phone can't share files, so callers fall back to the
-   link. Built AHEAD of the tap: Safari only shares in direct answer to a tap,
-   and a download in between would spend that permission. */
+/* A voice as a file WhatsApp will take. WhatsApp plays AAC (.m4a), MP3, AMR and
+   Ogg/Opus — its own voice-note format — but NOT .wav or .webm ("Couldn't process
+   audio"). So:
+     • an iPhone take is already .m4a (AAC): shared as it is, untouched;
+     • anything else (Android .webm, imported voice-note .wav) is decoded and
+       re-encoded on the phone as Ogg/Opus (WebCodecs' Opus encoder, packed into
+       Ogg pages below), 48 kHz mono ~32 kbps — a few KB a second;
+     • where the browser has no Opus encoder, null → the caller shares the link.
+   `src` is a URL (a public take; the bucket's CORS must allow this site —
+   cors.json) or a Blob (add.html's own just-recorded take). Built AHEAD of the
+   tap: Safari only shares in direct answer to a tap, and a download or encode in
+   between would spend that permission. */
 function canShareFiles(){
-  try{ return !!(navigator.canShare && navigator.canShare({ files:[new File([""], "x.wav", { type:"audio/wav" })] })); }
+  try{ return !!(navigator.canShare && navigator.canShare({ files:[new File([""], "x.m4a", { type:"audio/mp4" })] })); }
   catch(_){ return false; }
 }
 async function voiceFile(src, name){
   if(!canShareFiles()) return null;
+  const slug = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const base = "hakli" + (slug ? "-" + slug : "");
   try{
-    const bytes = typeof src === "string" ? await (await fetch(src)).arrayBuffer() : await src.arrayBuffer();
-    const AC = window.AudioContext || window.webkitAudioContext;
-    const ac = new AC();
-    let buf; try{ buf = await ac.decodeAudioData(bytes); } finally { try{ ac.close(); }catch(_){} }
-    const RATE = 22050, n = Math.max(1, Math.ceil(buf.duration * RATE));
-    const off = new OfflineAudioContext(1, n, RATE);
-    const node = off.createBufferSource(); node.buffer = buf; node.connect(off.destination); node.start();
-    const pcm = (await off.startRendering()).getChannelData(0);
-    const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
-    const str = (o, t) => { for(let i = 0; i < t.length; i++) wav.setUint8(o + i, t.charCodeAt(i)); };
-    str(0, "RIFF"); wav.setUint32(4, 36 + pcm.length * 2, true); str(8, "WAVE");
-    str(12, "fmt "); wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
-    wav.setUint32(24, RATE, true); wav.setUint32(28, RATE * 2, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true);
-    str(36, "data"); wav.setUint32(40, pcm.length * 2, true);
-    for(let i = 0; i < pcm.length; i++){
-      const v = Math.max(-1, Math.min(1, pcm[i]));
-      wav.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+    const blob = typeof src === "string" ? await (await fetch(src)).blob() : src;
+    if(/mp4|m4a|aac/i.test(blob.type || "")){
+      return new File([blob], base + ".m4a", { type:"audio/mp4" });
     }
-    const slug = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    return new File([wav.buffer], "hakli" + (slug ? "-" + slug : "") + ".wav", { type:"audio/wav" });
+    const ogg = await toOggOpus(await blob.arrayBuffer());
+    return ogg ? new File([ogg], base + ".ogg", { type:"audio/ogg" }) : null;
   }catch(e){ console.warn("[AFD] voice file", e); return null; }
+}
+
+// Decode anything the browser can read → 48 kHz mono → Opus (WebCodecs) → Ogg.
+async function toOggOpus(bytes){
+  if(typeof AudioEncoder === "undefined" || typeof AudioData === "undefined") return null;
+  const RATE = 48000;
+  const cfg = { codec:"opus", sampleRate:RATE, numberOfChannels:1, bitrate:32000 };
+  try{ if(!(await AudioEncoder.isConfigSupported(cfg)).supported) return null; }catch(_){ return null; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const ac = new AC();
+  let buf; try{ buf = await ac.decodeAudioData(bytes); } finally { try{ ac.close(); }catch(_){} }
+  const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration * RATE)), RATE);
+  const node = off.createBufferSource(); node.buffer = buf; node.connect(off.destination); node.start();
+  const pcm = (await off.startRendering()).getChannelData(0);
+
+  const packets = [];
+  let failed = null;
+  const enc = new AudioEncoder({
+    output: (chunk) => { const b = new Uint8Array(chunk.byteLength); chunk.copyTo(b);
+                         packets.push({ b, n: Math.round((chunk.duration || 20000) * RATE / 1e6) }); },
+    error: (e) => { failed = e; }
+  });
+  enc.configure(cfg);
+  enc.encode(new AudioData({ format:"f32-planar", sampleRate:RATE, numberOfFrames:pcm.length,
+                             numberOfChannels:1, timestamp:0, data:pcm }));
+  await enc.flush(); enc.close();
+  if(failed || !packets.length) return null;
+  return oggOpus(packets, pcm.length);
+}
+
+/* Ogg/Opus container (RFC 7845): page 0 = OpusHead, page 1 = OpusTags, then the
+   audio packets, one per page, granule = 48 kHz samples decoded so far (pre-skip
+   included, from each packet's own duration); the last page carries EOS and
+   the true end. */
+const OGG_CRC = (() => {
+  const t = new Uint32Array(256);
+  for(let i = 0; i < 256; i++){ let r = i << 24; for(let j = 0; j < 8; j++) r = (r & 0x80000000) ? (r << 1) ^ 0x04c11db7 : r << 1; t[i] = r >>> 0; }
+  return t;
+})();
+function oggOpus(packets, samples){
+  const PRESKIP = 312, serial = (Math.random() * 0xffffffff) >>> 0;
+  const head = new Uint8Array(19), hv = new DataView(head.buffer);
+  head.set([79,112,117,115,72,101,97,100]);                     // "OpusHead"
+  head[8] = 1; head[9] = 1; hv.setUint16(10, PRESKIP, true); hv.setUint32(12, 48000, true);
+  const vendor = new TextEncoder().encode("hakli");
+  const tags = new Uint8Array(8 + 4 + vendor.length + 4), tv = new DataView(tags.buffer);
+  tags.set([79,112,117,115,84,97,103,115]); tv.setUint32(8, vendor.length, true); tags.set(vendor, 12);
+  const pages = []; let seq = 0;
+  const page = (data, granule, flags) => {
+    const lace = []; let n = data.length;
+    while(n >= 255){ lace.push(255); n -= 255; } lace.push(n);
+    const p = new Uint8Array(27 + lace.length + data.length), v = new DataView(p.buffer);
+    p.set([79,103,103,83]); p[5] = flags;                        // "OggS", version 0
+    v.setUint32(6, granule % 0x100000000, true); v.setUint32(10, Math.floor(granule / 0x100000000), true);
+    v.setUint32(14, serial, true); v.setUint32(18, seq++, true);
+    p[26] = lace.length; p.set(lace, 27); p.set(data, 27 + lace.length);
+    let crc = 0; for(let i = 0; i < p.length; i++) crc = ((crc << 8) ^ OGG_CRC[((crc >>> 24) ^ p[i]) & 0xff]) >>> 0;
+    v.setUint32(22, crc, true);
+    pages.push(p);
+  };
+  page(head, 0, 0x02);                                           // beginning of stream
+  page(tags, 0, 0);
+  const end = PRESKIP + samples;
+  let at = PRESKIP;
+  packets.forEach((pk, i) => {
+    const last = i === packets.length - 1;
+    at += pk.n;
+    page(pk.b, last ? end : Math.min(end, at), last ? 0x04 : 0);
+  });
+  return new Blob(pages, { type:"audio/ogg" });
 }
 
 /* ---- "your voice mattered" — in-app, nothing tracked --------------------------
