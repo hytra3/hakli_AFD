@@ -2254,9 +2254,21 @@ function downsampleEnvelope(frames, n){
 }
 
 /* ================= quality checks ================= */
+/* Real clipping, not one stray sample. The browser's Opus/AAC codec can
+   overshoot full scale for a sample or two on a loud but clean take, so
+   "peak >= 0.99" flagged good recordings as too loud. A take that actually
+   distorts has a stretch of samples pinned at full scale: call it clipped
+   when at least 0.2% of the clip (and CLIP_MIN_SAMPLES) sits at or above
+   CLIP_LEVEL — about 4 ms per 2 s take. Measured through an Opus round-trip:
+   clean-but-hot audio stays well under that; clipped audio is 10-50%. */
+const CLIP_LEVEL=0.98, CLIP_MIN_SAMPLES=48, CLIP_MIN_FRACTION=0.002;
+function isClipped(q){
+  return (q.clipped||0) >= Math.max(CLIP_MIN_SAMPLES, CLIP_MIN_FRACTION*(q.samples||0));
+}
+
 async function analyse(blob){
   const out={sampleRate:(actualSettings&&actualSettings.sampleRate)||0,
-             durationMs:0,peak:0,speechRatio:0,bursts:0,burstBalance:null};
+             durationMs:0,peak:0,clipped:0,speechRatio:0,bursts:0,burstBalance:null};
   try{
     const ac=new (window.AudioContext||window.webkitAudioContext)();
     const buf=await ac.decodeAudioData(await blob.arrayBuffer());
@@ -2265,15 +2277,17 @@ async function analyse(blob){
 
     // frame energy at ~20 ms
     const fr=Math.floor(buf.sampleRate*0.02), frames=[];
-    let peak=0;
+    let peak=0, clipped=0;
     for(let i=0;i<ch.length;i+=fr){
       let e=0,n=0;
       for(let j=i;j<Math.min(i+fr,ch.length);j++){
-        const a=Math.abs(ch[j]); e+=a*a; if(a>peak)peak=a; n++;
+        const a=Math.abs(ch[j]); e+=a*a; if(a>peak)peak=a; if(a>=CLIP_LEVEL)clipped++; n++;
       }
       frames.push(Math.sqrt(e/Math.max(n,1)));
     }
     out.peak=peak;
+    out.clipped=clipped;
+    out.samples=ch.length;
     out.envelope=downsampleEnvelope(frames,48);
 
     const mx=Math.max.apply(null,frames)||1e-9;
@@ -2317,8 +2331,8 @@ function renderQC(q){
   if(q.durationMs<500) fails.push(isWord?"That was very short — hold and say it twice":"That was very short — hold a little longer");
   else if(q.durationMs>maxLen && !softNote) softNote="A little long — fine to keep";
 
-  const levelOk=q.peak<0.99;
-  rows.push(row(levelOk,"Level",q.peak.toFixed(2),
+  const levelOk=!isClipped(q);
+  rows.push(row(levelOk,"Level",q.peak.toFixed(2)+(q.clipped?" · "+q.clipped+" clipped":""),
     levelOk?"":"too loud — hold the phone further away"));
   if(!levelOk) fails.push("A bit too loud — hold the phone a little further away");
 
@@ -2395,12 +2409,13 @@ $("keepBtn").onclick=async ()=>{
     },
     qc:{
       peak:+lastQC.peak.toFixed(3),
+      clipped:lastQC.clipped||0,
       speechRatio:+lastQC.speechRatio.toFixed(3),
       bursts:lastQC.bursts,
       burstBalance:lastQC.burstBalance===null?null:+lastQC.burstBalance.toFixed(3),
       passed: recType==="word"
-        ? (lastQC.sampleRate>=44100 && lastQC.bursts>=2 && lastQC.peak<0.99)
-        : (lastQC.sampleRate>=44100 && lastQC.peak<0.99 && lastQC.speechRatio>=0.1)
+        ? (lastQC.sampleRate>=44100 && lastQC.bursts>=2 && !isClipped(lastQC))
+        : (lastQC.sampleRate>=44100 && !isClipped(lastQC) && lastQC.speechRatio>=0.1)
     },
     envelope:lastQC.envelope||[],
     recordedAt:new Date().toISOString(),
