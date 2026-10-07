@@ -13,6 +13,7 @@ Then pick one:
 | **AFD: Deploy embed service** | After editing `embed_service/app.py`. Rebuilds the matcher on Cloud Run (slow — bakes in the model). |
 | **AFD: Deploy trigger** | After editing `embed_trigger/main.py`. Redeploys the auto-embed function. |
 | **AFD: Deploy revoke** | After editing `revoke/main.py`. Redeploys the function that kills old playback links when a take is withdrawn. |
+| **AFD: Deploy purge** | After editing `purge/main.py`. Redeploys the nightly clean-up (erased voices, then removed or empty contributed words and their photos). Keeps its settings and prints them, so you can see whether it really deletes (`PURGE_DRY_RUN=0`). |
 | **AFD: Health check the service** | Any time, to confirm the matcher is alive. |
 | **AFD: Reindex search cache** | Rarely needed — search reloads itself every 5 minutes. Use it to pick up new recordings immediately. First time only: `bash scripts/reindex.sh --setup` gives the service its admin token. |
 
