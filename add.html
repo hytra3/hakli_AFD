@@ -134,6 +134,8 @@ details summary::-webkit-details-marker{display:none}
 .err{color:var(--danger); font-size:14px; text-align:center; margin:0; min-height:1em}
 a{color:var(--mountain)}
 a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-content:center; text-decoration:none; text-align:center}
+.buildstamp{text-align:center; padding:28px 0 0; font-size:11px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--mist)}
 .big-thanks{font-size:56px; text-align:center; line-height:1}
 </style>
 </head>
@@ -284,6 +286,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <button class="btn ghost" id="doneInvite" type="button" data-k="add.done.invite"></button>
   </section>
 
+  <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 </main>
 
 <script type="module">
@@ -349,6 +352,12 @@ function plain(key, vars){
 }
 function paintStrings(root){ (root||document).querySelectorAll("[data-k]").forEach(el=>{ el.innerHTML = bi(el.dataset.k); }); }
 paintStrings();
+// Build stamp: the ?v= that sync-stamp.sh writes on every publish, read back off
+// this page's own afd-core.js tag, so it can never disagree with what's loaded.
+try{
+  const v = new URL(document.querySelector('script[src*="afd-core.js"]').src).searchParams.get("v");
+  if(v) $("buildStamp").textContent = "build " + v;
+}catch(_){}
 $("whoNote").innerHTML = bi("add.share.who");
 $("notYou").innerHTML = bi("add.share.notyou");
 $("draftText").innerHTML = bi("add.draft");
