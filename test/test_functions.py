@@ -80,6 +80,8 @@ class OwnedStoragePath(unittest.TestCase):
         self.assertEqual(purge.owned_storage_path(d, "rec1"), "afd/uA/rec1.webm")
         d = {"uid": "uA", "storagePath": "afd/uA/rec1.m4a"}
         self.assertEqual(purge.owned_storage_path(d, "rec1"), "afd/uA/rec1.m4a")
+        d = {"uid": "uA", "storagePath": "afd/uA/rec1.wav"}      # imported voice note
+        self.assertEqual(purge.owned_storage_path(d, "rec1"), "afd/uA/rec1.wav")
 
     def test_no_path_means_no_bytes(self):
         self.assertIsNone(purge.owned_storage_path({"uid": "uA"}, "rec1"))
@@ -90,7 +92,7 @@ class OwnedStoragePath(unittest.TestCase):
             "afd/uA/recOther.webm",        # another recording of mine
             "afd_ui/find_hint.webm",       # outside the corpus
             "afd/uA/rec1.webm/../x",       # traversal-ish suffix
-            "afd/uA/rec1.wav",             # unexpected extension
+            "afd/uA/rec1.mp3",             # unexpected extension
         ]
         for p in bad:
             with self.subTest(p=p), self.assertRaises(ValueError):

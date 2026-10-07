@@ -512,6 +512,9 @@ window.AFDCore = (function(){
     "card.fb.othersN":      { en:"{n} other people have said this word too", ar:"قالها {n} أشخاص آخرين أيضًا" },
     "card.fb.first":        { en:"You were the first to say this word — share it so others say it too", ar:"كنت أوّل من قالها — شاركها ليقولها غيرك" },
     "card.fb.new":          { en:"New voices since you last looked", ar:"أصوات جديدة منذ آخر مرة" },
+    "import.btn":           { en:"Load a voice note instead", ar:"أو حمّل رسالة صوتية" },
+    "import.loaded":        { en:"Voice note loaded — listen, then keep it", ar:"حُمّلت الرسالة الصوتية — استمع ثم احفظها" },
+    "import.fail":          { en:"Couldn't read that file. In WhatsApp, share the voice note to this phone's Files, then load it from there.", ar:"تعذّرت قراءة الملف. في واتساب شارك الرسالة الصوتية إلى «الملفات» في هذا الهاتف ثم حمّلها من هناك." },
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." }
   };
   function t(key, mode){

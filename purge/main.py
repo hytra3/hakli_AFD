@@ -74,7 +74,7 @@ _gcs = storage.Client()
 
 def owned_storage_path(data, recording_id):
     """The doc's storagePath, but ONLY if it is this recording's own corpus file:
-    afd/{doc uid}/{recording id}.webm|.m4a — exactly what the recorder writes and
+    afd/{doc uid}/{recording id}.webm|.m4a|.wav — exactly what the recorder writes and
     the Firestore rules allow. Returns None when the doc has no path, and raises
     ValueError for any other path: storagePath is client-written, and the purge
     runs with admin rights, so trusting it blindly would let a doc point at
@@ -84,7 +84,7 @@ def owned_storage_path(data, recording_id):
         return None
     uid = data.get("uid")
     if (isinstance(uid, str) and uid and isinstance(path, str)
-            and re.fullmatch(rf"afd/{re.escape(uid)}/{re.escape(recording_id)}\.(webm|m4a)", path)):
+            and re.fullmatch(rf"afd/{re.escape(uid)}/{re.escape(recording_id)}\.(webm|m4a|wav)", path)):
         return path
     raise ValueError(f"storagePath {path!r} is not afd/{uid}/{recording_id}.*")
 

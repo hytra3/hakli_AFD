@@ -603,6 +603,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   </div>
 
   <button class="rec" id="recBtn"><span class="dot"></span>Hold to record</button>
+  <!-- Recording for someone else (agent mode) only: a WhatsApp voice note they
+       sent, filed under them as a flagged lower-quality take (see importVoiceNote) -->
+  <button class="btn ghost hidden" id="importBtn" type="button"></button>
+  <input type="file" id="importFile" accept="audio/*,.opus,.ogg,.oga,.m4a,.aac,.mp3,.wav,.amr" hidden>
 
   <div class="card hidden" id="compareCard">
     <p class="eyebrow" id="compareEyebrow">How others said it</p>
@@ -1955,7 +1959,7 @@ function setRecIdle(){
 function paintChrome(){
   const set=(id,key)=>{ const el=$(id); if(el) el.innerHTML=AFDCore.tHTML(key,dispMode); };
   set("hearOthers","action.hear.others");
-  set("redoBtn","review.redo"); set("keepBtn","review.keep");
+  set("redoBtn","review.redo"); set("keepBtn","review.keep"); set("importBtn","import.btn");
   set("compareNext","nav.next"); set("nextWord","nav.next"); set("prevWord","nav.prev");
   set("compareEyebrow","compare.title");
   set("skipBtn","record.skip"); set("switchSpeaker","speaker.switch");
@@ -2137,8 +2141,12 @@ const isRepType = t => (t||"word")==="word";
 
 async function onRecStop(){
   lastBlob=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});
+  lastImported=false;
   $("player").src=URL.createObjectURL(lastBlob);
   lastQC=await analyse(lastBlob);
+  showReview();
+}
+function showReview(){
   renderQC(lastQC);
   $("reviewCard").classList.remove("hidden");
   try{ $("reviewCard").scrollIntoView({behavior:"smooth", block:"center"}); }catch(_){}
@@ -2148,7 +2156,54 @@ async function onRecStop(){
     ? (dispMode==="auto" ? lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard"
                          : lastQC.bursts+" "+AFDCore.t("unit.reps",dispMode))
     : AFDCore.t("status.recorded",dispMode);
+  if(lastImported) $("silLabel").textContent=AFDCore.t("import.loaded",dispMode);
 }
+
+/* ---- import a WhatsApp voice note (agent mode) ------------------------------
+   For speakers who will only ever send a voice note. The steward, recording on
+   their behalf, loads the file here: it is decoded on the phone and re-encoded
+   as 16 kHz mono WAV (opus/ogg, m4a, mp3… in; a format every browser and the
+   matcher read out), then goes through the same check and review as a live
+   take. Kept, it carries source:"voicenote" — the rules accept a take under
+   44.1 kHz only with that flag and only by proxy, so research can filter it. */
+let lastImported=false;
+function syncImport(){
+  const b=$("importBtn"); if(!b) return;
+  b.classList.toggle("hidden", recBtn.classList.contains("hidden") || !($("agentMode") && $("agentMode").checked));
+}
+new MutationObserver(syncImport).observe(recBtn,{attributes:true, attributeFilter:["class"]});
+$("agentMode") && $("agentMode").addEventListener("change", syncImport);
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=async ()=>{
+  const f=$("importFile").files && $("importFile").files[0];
+  $("importFile").value="";
+  if(!f) return;
+  $("silLabel").textContent=AFDCore.t("status.checking",dispMode);
+  try{
+    const RATE=16000;
+    const ac=new (window.AudioContext||window.webkitAudioContext)();
+    let buf; try{ buf=await ac.decodeAudioData(await f.arrayBuffer()); } finally { try{ ac.close(); }catch(_){} }
+    const off=new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration*RATE)), RATE);
+    const src=off.createBufferSource(); src.buffer=buf; src.connect(off.destination); src.start();
+    const pcm=(await off.startRendering()).getChannelData(0);
+    const v=new DataView(new ArrayBuffer(44+pcm.length*2));
+    const str=(o,t)=>{ for(let i=0;i<t.length;i++) v.setUint8(o+i,t.charCodeAt(i)); };
+    str(0,"RIFF"); v.setUint32(4,36+pcm.length*2,true); str(8,"WAVE"); str(12,"fmt ");
+    v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,RATE,true);
+    v.setUint32(28,RATE*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); str(36,"data"); v.setUint32(40,pcm.length*2,true);
+    for(let i=0;i<pcm.length;i++){ const x=Math.max(-1,Math.min(1,pcm[i])); v.setInt16(44+i*2, x<0?x*0x8000:x*0x7fff, true); }
+    lastBlob=new Blob([v.buffer],{type:"audio/wav"});
+    lastImported=true;
+    $("player").src=URL.createObjectURL(lastBlob);
+    lastQC=await analyse(lastBlob);
+    lastQC.sampleRate=RATE;            // analyse() reports the MIC's rate; this take is 16 kHz
+    showReview();
+  }catch(e){
+    console.warn("[AFD] import voice note", e);
+    $("silLabel").textContent=AFDCore.t("status.ready",dispMode);
+    alert(AFDCore.t("import.fail",dispMode));
+  }
+};
 
 /* Wake the audio graph before drawing. Browsers suspend the AudioContext under
    their autoplay policy; iOS reports state "interrupted" rather than "suspended",
@@ -2375,6 +2430,7 @@ function row(ok,label,val,msg,forceClass){
 
 /* ================= keep / redo / skip ================= */
 $("redoBtn").onclick=()=>{
+  lastImported=false;
   $("reviewCard").classList.add("hidden");
   recBtn.classList.remove("hidden");
   $("skipBtn").classList.remove("hidden");
@@ -2391,7 +2447,7 @@ $("keepBtn").onclick=async ()=>{
     repetitionIndex:"both", skipped:false,
     capture:{
       sampleRate:lastQC.sampleRate,
-      codec:(recorder&&recorder.mimeType)||"",
+      codec:lastImported ? "audio/wav" : ((recorder&&recorder.mimeType)||""),
       durationMs:lastQC.durationMs,
       device:navigator.userAgent,
       bluetoothDetected:false
@@ -2415,8 +2471,10 @@ $("keepBtn").onclick=async ()=>{
     // never whoever happens to be in the form at retry time. Device-only: the
     // uploadClip allowlist never copies this onto the public recording doc.
     speaker:speakerRecord(),
+    ...(lastImported ? { source:"voicenote" } : {}),
     blob:lastBlob
   };
+  lastImported=false;
   kept.push(rec);
   try{ await idbPut(STORE,rec); await saveSpeaker(); }
   catch(e){ alert(tMsg("save.failed")+" "+e); }

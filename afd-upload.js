@@ -44,7 +44,7 @@ export async function uploadClip({ db, store, uid }, rec, speaker){
   // signal dropped) would otherwise fail every retry forever. On a refused
   // write, check whether the earlier attempt already landed and carry on.
   if(rec.blob){
-    const ext = /mp4/.test(rec.capture.codec) ? "m4a" : "webm";
+    const ext = /wav/.test(rec.capture.codec) ? "wav" : /mp4/.test(rec.capture.codec) ? "m4a" : "webm";
     const path = `afd/${uid}/${rec.recordingId}.${ext}`;
     try{
       await uploadBytes(ref(store, path), rec.blob, {
@@ -93,6 +93,9 @@ export async function uploadClip({ db, store, uid }, rec, speaker){
         // rather than writing undefined (which Firestore rejects).
         ...(rec.storagePath ? { storagePath: rec.storagePath } : {}),
         recordedAt:      rec.recordedAt,
+        // an imported WhatsApp voice note (recorder, by proxy): lower quality, so
+        // flagged — the rules accept a sub-44.1 kHz take only with this flag
+        ...(rec.source === "voicenote" ? { source: "voicenote" } : {}),
         uid,
         // Three-state per-recording consent label; withdrawal flips this to
         // "withdrawn"/"deleted". Public at create — the recording isn't withdrawn.

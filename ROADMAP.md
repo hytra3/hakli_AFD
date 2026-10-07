@@ -57,6 +57,28 @@ within each group.
   links still open the word. `entryCounts` is memoised for 15 s so this adds no
   read. Also: `find.html` is back as a forwarder to `index.html` (old links 404'd).
 
+- **Lowering the contribution bar (10-07)** — five pieces:
+  1. *Share the voice itself.* "Share this word" attaches the first public voice as a
+     small WAV (re-encoded on the phone; iPhones can't play .webm), so it plays inside
+     WhatsApp; add.html's done screen shares the person's own take. Prepared when the
+     card opens (Safari only shares in direct answer to a tap). Needs `cors.json`
+     applied to the bucket (now lists https://hakli.app); falls back to the link.
+  2. *Phone-number and email-link sign-in* on add.html, beside Google and email +
+     password. The phone code is typed on the page, so it works inside WhatsApp's own
+     browser. Email link: the draft lives in the browser it was made in, so the note
+     says to come back there if the email app opens the link elsewhere.
+  3. *Import a WhatsApp voice note* (recorder, "recording someone else" only): decoded
+     on the phone to 16 kHz mono WAV, reviewed like a live take, kept with
+     `source:"voicenote"`. Rules accept a sub-44.1 kHz take only with that flag and
+     `viaAgent`; `.wav` paths are allowed (purge, revoke, audit, backfill updated).
+     Research can filter `source == "voicenote"`.
+  4. *Ask someone for these words* — the "Needs a voice" view shares five unvoiced
+     words at random, each with its link.
+  5. *Your voice mattered* — on a word you've said, the open card says how many other
+     people said it too (or, on your own word nobody else has said, nudges a share);
+     a collapsed card shows "+n 🔊" for voices added since you last opened it on this
+     phone (localStorage only; nothing tracked or sent).
+
 - **Shared core** — `afd-core.js` (entry identity, display tiers, the one mic-capture
   protocol) and `afd-words.js` (the 40-entry wordlist). Both `index.html` and
   `find.html` load them; `seed-entries.mjs` reads the wordlist from `afd-words.js`.
