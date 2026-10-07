@@ -31,7 +31,7 @@
 const CACHE = "afd-shell-v1";
 const NAV_TIMEOUT_MS = 4000;
 // Opened once at install so a phone that visited any page can open these offline.
-const CORE = ["./", "index.html", "recorder.html", "welcome.html", "manifest.webmanifest", "favicon.svg"];
+const CORE = ["./", "index.html", "recorder.html", "add.html", "welcome.html", "manifest.webmanifest", "favicon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil((async () => {

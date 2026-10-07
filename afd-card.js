@@ -533,7 +533,9 @@ async function entryCard(res, lead){
 
   // Collapsed header shows the entry's IDENTITY (emoji / identicon / script word).
   // The sound-shape (waveform, in sound tier) is painted when the detail loads.
-  if(meta.pic) thumbEl.textContent = meta.pic;   // picture first in every tier
+  // A contributor's photo (add.html "show it") outranks the emoji.
+  if(meta.image) thumbEl.innerHTML = `<img src="${escapeHtml(meta.image)}" alt="">`;
+  else if(meta.pic) thumbEl.textContent = meta.pic;   // picture first in every tier
   else if(CFG.mode()==="script" && scriptLabel) thumbEl.textContent = scriptLabel;
   else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
   // compact voice counts on the collapsed header (wordless icons, tier-safe)
