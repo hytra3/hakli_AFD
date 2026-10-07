@@ -358,6 +358,12 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags){
       return;
     }
     rb.onclick=async ()=>{
+      const gone=()=>{ cardEl.remove(); CFG.banner(AFDCore.t("card.removed", m)); };
+      // Removed already (e.g. from another device while this page sat open)?
+      // Then there's nothing left to do — say so, rather than fail on the
+      // rules' "only once".
+      try{ const sn=await getDoc(doc(CFG.db,"afd_entries",entryId));
+           if(!sn.exists() || (sn.data()||{}).removedAt){ gone(); return; } }catch(_){}
       if(!confirm(AFDCore.t("card.remove.confirm", m))) return;
       rb.disabled=true;
       try{
@@ -369,8 +375,7 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags){
           await updateDoc(r.ref, { consent:"deleted", allowPlayback:false });
         }
         await updateDoc(doc(CFG.db,"afd_entries",entryId), { removedAt: serverTimestamp() });
-        cardEl.remove();
-        CFG.banner(AFDCore.t("card.removed", m));
+        gone();
       }catch(e){
         console.warn("[AFD] remove word", e);
         rb.disabled=false;

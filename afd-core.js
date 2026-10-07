@@ -491,6 +491,7 @@ window.AFDCore = (function(){
     "card.remove.confirm":  { en:"Remove this word? Your voices on it are erased for good, and the word leaves the dictionary.", ar:"حذف هذه الكلمة؟ تُمحى تسجيلاتك عليها نهائيًّا، وتخرج الكلمة من القاموس." },
     "card.remove.others":   { en:"Other people have recorded this word too, so it can't be removed from here. A tag can say what it is.", ar:"سجّل آخرون هذه الكلمة أيضًا، فلا يمكن حذفها من هنا. يمكن لوسمٍ أن يوضّح ما هي." },
     "card.removed":         { en:"Word removed.", ar:"حُذفت الكلمة." },
+    "card.removed.gone":    { en:"This word was removed.", ar:"حُذفت هذه الكلمة." },
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." }
   };
   function t(key, mode){
