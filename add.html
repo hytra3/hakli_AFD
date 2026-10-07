@@ -301,6 +301,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <div class="titlerow"><h2 data-k="add.done.title"></h2><button class="hear" type="button" hidden aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
     <p class="hint" id="doneMsg"></p>
     <a class="btn linkish" id="doneSee" href="index.html" data-k="add.done.see"></a>
+    <button class="btn secondary" id="doneShare" type="button" data-k="card.share" hidden></button>
     <button class="btn secondary" id="doneAnother" type="button" data-k="add.done.another"></button>
     <button class="btn ghost" id="doneInvite" type="button" data-k="add.done.invite"></button>
   </section>
@@ -339,7 +340,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip } from "./afd-upload.js?v=b1007k";
-import { initCard, withdrawSpeaker } from "./afd-card.js?v=b1007k";
+import { initCard, withdrawSpeaker, shareEntry } from "./afd-card.js?v=b1007k";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1009,6 +1010,11 @@ async function share(){
     // It says what actually happened — a hidden voice is told it's hidden.
     $("doneMsg").innerHTML = bi(up.public ? "add.done.public" : "add.done.private");
     $("doneSee").href = "index.html#"+encodeURIComponent(draft.entryId);
+    // Send this very word to family. Only once others can hear it: a hidden
+    // word's link would show them nothing. Captured now — the draft goes below.
+    const shareArgs = [draft.entryId, { pic: draft.pic, glossAr: draft.glossAr.trim() }, true];
+    $("doneShare").hidden = !up.public;
+    $("doneShare").onclick = ()=> shareEntry(...shareArgs, MODE);
     show("done");
     await clearDraft();
   }catch(e){

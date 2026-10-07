@@ -492,6 +492,10 @@ window.AFDCore = (function(){
     "card.remove.others":   { en:"Other people have recorded this word too, so it can't be removed from here. A tag can say what it is.", ar:"سجّل آخرون هذه الكلمة أيضًا، فلا يمكن حذفها من هنا. يمكن لوسمٍ أن يوضّح ما هي." },
     "card.removed":         { en:"Word removed.", ar:"حُذفت الكلمة." },
     "card.removed.gone":    { en:"This word was removed.", ar:"حُذفت هذه الكلمة." },
+    "card.share":           { en:"Share this word", ar:"شارك هذه الكلمة" },
+    "card.share.heard":     { en:"Listen to “{w}” in Hakli — and say it your way:", ar:"استمع إلى «{w}» بالحكلي — وقلها بطريقتك:" },
+    "card.share.heard0":    { en:"Listen to this word in Hakli — and say it your way:", ar:"استمع إلى هذه الكلمة بالحكلي — وقلها بطريقتك:" },
+    "card.share.unheard":   { en:"Nobody has said “{w}” in Hakli yet — be the first:", ar:"لم يقل أحدٌ «{w}» بالحكلي بعد — كن أوّل من يقولها:" },
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." }
   };
   function t(key, mode){

@@ -591,6 +591,28 @@ function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, se
   return s;
 }
 
+/* ---- share a word (to recruit speakers) ----------------------------------
+   A word is already a link (index.html#ent_…), so sharing is just a message
+   around it: the phone's share sheet where there is one (WhatsApp, SMS…),
+   else straight to WhatsApp — the same pattern as add.html's "Invite a
+   friend". The words of the message follow the reader's tier: auto sends
+   Arabic then English, script and sound send Arabic. A word nobody can hear
+   yet asks for a first voice instead. (The link preview is the site's own
+   og image: static hosting never sees the #ent_ part, so it can't be per-word.) */
+async function shareEntry(entryId, meta, heard, mode){
+  const url = new URL("index.html#" + encodeURIComponent(entryId), location.href).href;
+  const pic = meta.pic ? meta.pic + " " : "";
+  const line = (lang) => {
+    const w = lang === "ar" ? (meta.glossAr || meta.gloss) : (meta.gloss || meta.glossAr);
+    const key = !w ? "card.share.heard0" : heard ? "card.share.heard" : "card.share.unheard";
+    return AFDCore.STRINGS[key][lang].split("{w}").join(w || "");
+  };
+  const text = pic + (mode === "auto" ? line("ar") + "\n" + line("en") : line("ar"));
+  try{ if(navigator.share){ await navigator.share({ text, url }); return; } }
+  catch(e){ if(e && e.name === "AbortError") return; }
+  window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");
+}
+
 async function entryCard(res, lead){
   const el = document.createElement("div");
   el.className = "card" + (lead ? " lead open" : "");
@@ -682,6 +704,15 @@ async function entryCard(res, lead){
     say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
     ${CFG.mode()==="auto" ? 'Say it yourself <span class="ar">\u0633\u062c\u0651\u0644 \u0635\u0648\u062a\u0643</span>' : escapeHtml(AFDCore.t("result.sayityourself", CFG.mode()))}`;
     detail.appendChild(say);
+    // Share — any word, any reader: a heard word invites "say it your way",
+    // an unheard one asks for the first voice.
+    const share=document.createElement("button");
+    share.type="button"; share.className="sayit shareit";
+    share.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
+    ${CFG.mode()==="auto" ? 'Share this word <span class="ar">\u0634\u0627\u0631\u0643 \u0647\u0630\u0647 \u0627\u0644\u0643\u0644\u0645\u0629</span>' : escapeHtml(AFDCore.t("card.share", CFG.mode()))}`;
+    share.addEventListener("click", (e)=>{ e.stopPropagation();
+      shareEntry(res.entryId, meta, recs.some(r => r.consent==="public"), CFG.mode()); });
+    detail.appendChild(share);
     wordTools(res.entryId, meta, recs, el, detail, paintTags);
     return firstPlayable;
   }
@@ -720,4 +751,4 @@ async function entryCard(res, lead){
   return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { entryCard, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { entryCard, shareEntry, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
