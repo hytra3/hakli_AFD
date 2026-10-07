@@ -130,27 +130,31 @@ within each group.
   closed to all clients and written only by `scripts/grant-steward.mjs` (Admin SDK).
   `afd_ui_config` writes are also shape-locked to `{ openUntil: timestamp }`.
   Tests: `test/ui-steward.rules.test.mjs`. **Deploy order: grant first, then rules.**
-- **Recording-create provenance (designed, not built — trace the create order first).**
-  The recording create rule checks who you are and which speaker, but not *what the
-  doc points at*. Four gaps, most serious first:
-  1. `storagePath` is unchecked — a doc can point at **another person's audio** (all
-     `afd/` audio is public-read, so paths are discoverable). A voice whose own take
-     was withdrawn could be re-surfaced as public under someone else's speaker card.
-     Fix: require `storagePath == 'afd/' + uid + '/' + recordingId + '.(webm|m4a)'`.
-  2. The embed trigger trusts uploader-stamped metadata — anyone can upload their own
-     clip with metadata naming someone else's `entryId/recordingId`, and the trigger
-     (Admin SDK, bypasses rules) overwrites that recording's embedding, or creates a
-     stray doc. Fix in `embed_trigger/main.py`: read the recording doc first; proceed
-     only if it exists, its `storagePath == name`, and its `uid` matches the folder.
-  3. `entryId` / `recordingId` fields aren't required to equal the doc path — a take
-     filed under one word can claim another. Integrity only; one-line rule each.
-  4. First-take window: the recording is created BEFORE its speaker card, so the rule
-     allows "no card yet". Speaker codes default to `spk_<uid6>_NN` but are editable,
-     so binding the code to the account needs a decision (enforce the prefix, or
-     create the card first — which changes the retry/consent order in `uploadClip`).
-  Create order today: Storage bytes → recording doc → speaker card → private profile
-  (the consent-grant stub can create the card earlier). Idempotent retries rely on
-  "refused, then check it landed", so each new check must accept a genuine retry.
+- **✅ Recording-create provenance (10-05, commits 95bed74 + 03a30f3; verified 10-07).**
+  The recording create rule used to check who you are and which speaker, but not
+  *what the doc points at*. All four gaps are closed:
+  1. *`storagePath`* must be `afd/{uid}/{recordingId}.webm|m4a` — this account's own
+     copy of THIS recording (`storagePathOK()`). The purge Function also refuses to
+     delete any other path, and Storage read rules require the doc's `storagePath` to
+     name the very file, so metadata can't borrow another take's public doc.
+  2. *Embed trigger* reads the recording doc first: it must exist, its `uid` must match
+     the upload folder and its `storagePath` must name the upload — else refused and
+     logged. It never creates the doc; a doc not written yet raises for redelivery
+     (deploy with `--retry`).
+  3. *`entryId` / `recordingId`* must equal the doc path, and creates are held to a
+     field allowlist, so server fields (`embedding`, `reps`, …) can't be planted.
+  4. *First-take window* — decided: **enforce the prefix**. A brand-new speaker code
+     must be `spk_<uid6>_…` (`ownSpeakerCode()`), checked on both the recording and the
+     card create, so the create order in `uploadClip` (bytes → doc → card → private)
+     and its idempotent retries stay unchanged. Existing (legacy) codes are unaffected.
+  Tests: `test/consent.rules.test.mjs` (paths, ids, speaker codes) and
+  `test/test_functions.py` (purge + trigger refusals). All 163 rules tests + 35 Python
+  tests pass. **Before deploying storage rules run `scripts/audit-recording-paths.mjs`**
+  so older takes don't go silent (see DEPLOY.md).
+  *Running the rules tests in a proxied sandbox:* the Storage emulator's cross-service
+  `firestore.get()` silently fails behind an HTTPS proxy (every Storage allow that
+  reads Firestore is denied — 4 false failures). Unset `HTTPS_PROXY`/`https_proxy`
+  (and `JAVA_TOOL_OPTIONS` if it's set) for the `firebase emulators:exec` run.
 
 ## Matcher warm-up (2026-09-26)
 
