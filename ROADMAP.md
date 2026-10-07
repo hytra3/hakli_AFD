@@ -346,10 +346,12 @@ within each group.
   (nature/wildlife combinatorial) avatar, changeable to a chosen/uploaded one. Pairs
   with the speaker-profile screen above (that's the *setup*; this is the *card* others
   and the contributor see). Keep masking/consent front-and-centre.
-- **Share an entry (to recruit new users)** — the infrastructure already exists: an
-  entry is a shareable URL (`find.html#ent_xxx`). Add a share affordance (copy link /
-  native share sheet), ideally with a friendly preview, so a speaker can send "here's
-  *sun* in Hakli" to family. Directly serves the diaspora-reach goal.
+- **✅ Share a word (10-07)** — "Share this word" under "Say it yourself" on every open
+  card (any word, any reader), and on `add.html`'s done screen once the new word is
+  public. Opens the phone's share sheet (else WhatsApp) with the word's link and a
+  message in the reader's tier: a heard word says "listen — and say it your way", an
+  unheard one asks for the first voice. Link preview is the site's og image — static
+  hosting never sees `#ent_…`, so a per-word preview would need a server.
 - **Bulk withdraw** at word/speaker level, and a **proxy/speaker roster** (one device,
   many speakers) — the roster also makes speaker-level bulk actions possible.
 - **Immediate purge** (optional) — a Firestore-onUpdate trigger variant if the daily
