@@ -1,12 +1,21 @@
 [
   {
     "origin": [
+      "https://hakli.app",
+      "https://www.hakli.app",
       "https://hytra3.github.io",
       "http://localhost:8099",
       "http://127.0.0.1:8099"
     ],
-    "method": ["GET"],
-    "responseHeader": ["Content-Type", "Content-Length", "Content-Range", "Range"],
+    "method": [
+      "GET"
+    ],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Range"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

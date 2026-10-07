@@ -58,7 +58,7 @@ def owned_storage_path(data, recording_id):
     """storagePath only if it is this recording's own file (same check as purge)."""
     path, uid = data.get("storagePath"), data.get("uid")
     if (isinstance(uid, str) and uid and isinstance(path, str)
-            and re.fullmatch(rf"afd/{re.escape(uid)}/{re.escape(recording_id)}\.(webm|m4a)", path)):
+            and re.fullmatch(rf"afd/{re.escape(uid)}/{re.escape(recording_id)}\.(webm|m4a|wav)", path)):
         return path
     return None
 

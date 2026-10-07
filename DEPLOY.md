@@ -44,6 +44,13 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   while its recording is public. Before deploying them, run
   `node scripts/audit-recording-paths.mjs` (add `--fix` to repair missing
   metadata) so no older take goes silent.
+- **Bucket CORS** (`cors.json`) — which sites may download audio bytes (sharing a
+  voice as a file needs it; plain playback doesn't). After editing it:
+  `gsutil cors set cors.json gs://afd-dev.firebasestorage.app`
+- **Sign-in methods** (Firebase console → Authentication → Sign-in method) — Google,
+  Email/Password **with "Email link (passwordless sign-in)" on**, and **Phone**. Phone
+  needs the Blaze plan and Settings → SMS region policy allowing Oman (+968) and any
+  other countries speakers live in. `hakli.app` must be under Authorized domains.
 
 ## Key facts (baked into the scripts — you don't need to type these)
 

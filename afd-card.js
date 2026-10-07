@@ -599,7 +599,7 @@ function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, se
    Arabic then English, script and sound send Arabic. A word nobody can hear
    yet asks for a first voice instead. (The link preview is the site's own
    og image: static hosting never sees the #ent_ part, so it can't be per-word.) */
-async function shareEntry(entryId, meta, heard, mode){
+async function shareEntry(entryId, meta, heard, mode, voice){
   const url = new URL("index.html#" + encodeURIComponent(entryId), location.href).href;
   const pic = meta.pic ? meta.pic + " " : "";
   const line = (lang) => {
@@ -608,9 +608,91 @@ async function shareEntry(entryId, meta, heard, mode){
     return AFDCore.STRINGS[key][lang].split("{w}").join(w || "");
   };
   const text = pic + (mode === "auto" ? line("ar") + "\n" + line("en") : line("ar"));
-  try{ if(navigator.share){ await navigator.share({ text, url }); return; } }
-  catch(e){ if(e && e.name === "AbortError") return; }
+  try{
+    // The voice itself, as a playable file, where the phone can share files:
+    // it lands in WhatsApp as audio that plays in the chat — no link to open
+    // first. The link rides in the text (some apps drop `url` beside files).
+    if(voice && navigator.canShare && navigator.canShare({ files:[voice] })){
+      await navigator.share({ files:[voice], text: text + "\n" + url }); return;
+    }
+    if(navigator.share){ await navigator.share({ text, url }); return; }
+  }catch(e){ if(e && e.name === "AbortError") return; }
   window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");
+}
+
+/* A voice as a file anyone's phone can play. Takes are .webm (Android) or .m4a
+   (iPhone), and an iPhone can't play webm — so decode it here and re-encode as
+   a small mono WAV (22.05 kHz, 16-bit: ~45 KB a second), which every phone and
+   WhatsApp plays. `src` is a URL (a public take; the bucket's CORS must allow
+   this site — cors.json) or a Blob (add.html's own just-recorded take).
+   Resolves null when the phone can't share files, so callers fall back to the
+   link. Built AHEAD of the tap: Safari only shares in direct answer to a tap,
+   and a download in between would spend that permission. */
+function canShareFiles(){
+  try{ return !!(navigator.canShare && navigator.canShare({ files:[new File([""], "x.wav", { type:"audio/wav" })] })); }
+  catch(_){ return false; }
+}
+async function voiceFile(src, name){
+  if(!canShareFiles()) return null;
+  try{
+    const bytes = typeof src === "string" ? await (await fetch(src)).arrayBuffer() : await src.arrayBuffer();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ac = new AC();
+    let buf; try{ buf = await ac.decodeAudioData(bytes); } finally { try{ ac.close(); }catch(_){} }
+    const RATE = 22050, n = Math.max(1, Math.ceil(buf.duration * RATE));
+    const off = new OfflineAudioContext(1, n, RATE);
+    const node = off.createBufferSource(); node.buffer = buf; node.connect(off.destination); node.start();
+    const pcm = (await off.startRendering()).getChannelData(0);
+    const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+    const str = (o, t) => { for(let i = 0; i < t.length; i++) wav.setUint8(o + i, t.charCodeAt(i)); };
+    str(0, "RIFF"); wav.setUint32(4, 36 + pcm.length * 2, true); str(8, "WAVE");
+    str(12, "fmt "); wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
+    wav.setUint32(24, RATE, true); wav.setUint32(28, RATE * 2, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true);
+    str(36, "data"); wav.setUint32(40, pcm.length * 2, true);
+    for(let i = 0; i < pcm.length; i++){
+      const v = Math.max(-1, Math.min(1, pcm[i]));
+      wav.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7fff, true);
+    }
+    const slug = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return new File([wav.buffer], "hakli" + (slug ? "-" + slug : "") + ".wav", { type:"audio/wav" });
+  }catch(e){ console.warn("[AFD] voice file", e); return null; }
+}
+
+/* ---- "your voice mattered" — in-app, nothing tracked --------------------------
+   On a word the viewer has a voice on, a quiet line at the top of the open card:
+   how many OTHER people (distinct speakers) have said it too, or — on their own
+   word that nobody else has said yet — a nudge to share it. Then the count of
+   public voices is remembered on THIS phone (localStorage, nowhere else), so the
+   collapsed card can show "+n" when more voices arrive. Uses only what the
+   card already loaded; no listen counting, no messages sent. */
+function seenCount(entryId){
+  try{ const v = localStorage.getItem("afd.seen." + entryId); return v == null ? null : +v; }catch(_){ return null; }
+}
+function feedback(entryId, meta, recs, detail, hc){
+  const mine = recs.filter(r => r.mine);
+  if(!mine.length) return;
+  const others = new Set(recs.filter(r => !r.mine && r.consent==="public")
+                             .map(r => (r.uid||"") + "|" + (r.speakerId||"")));
+  const creator = meta.source==="user" && CFG.user() && meta.createdBy===CFG.user().uid;
+  const m = CFG.mode();
+  // in the reader's tier, like the rest of the card (tHTML: auto = Arabic over English)
+  let html = null;
+  if(others.size === 1) html = AFDCore.tHTML("card.fb.others1", m);
+  else if(others.size > 1){
+    const x = AFDCore.STRINGS["card.fb.othersN"], n = String(others.size);
+    const ar = `<span class="bi-ar" dir="rtl">${escapeHtml(x.ar.split("{n}").join(n))}</span>`;
+    html = m==="auto" ? ar + `<small class="sub">${escapeHtml(x.en.split("{n}").join(n))}</small>` : ar;
+  }
+  else if(creator && mine.some(r => r.consent==="public")) html = AFDCore.tHTML("card.fb.first", m);
+  if(html){
+    const n=document.createElement("div"); n.className="fb-note"; n.setAttribute("role","status");
+    n.innerHTML = html;
+    detail.insertBefore(n, detail.firstChild);
+  }
+  entryCounts(entryId).then(c => {
+    try{ localStorage.setItem("afd.seen." + entryId, String(c.word + c.context + c.definition)); }catch(_){}
+    hc && hc.querySelector(".fb-new")?.remove();
+  });
 }
 
 async function entryCard(res, lead){
@@ -675,8 +757,18 @@ async function entryCard(res, lead){
   const paintTags=(ts)=>{ tagsEl.innerHTML=(CFG.mode()==="sound"?[]:(ts||[])).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join(""); };
   paintTags(meta.tags);
   if(gc) gc.appendChild(tagsEl);
-  if(gc){ const hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
-    entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`; }); }
+  let hc=null;
+  if(gc){ hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
+    entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`;
+      // a word this phone has a voice on, with voices added since it was last
+      // opened here: a small "+n" so the contributor sees they were answered
+      const was = seenCount(res.entryId), now = c.word + c.context + c.definition;
+      if(was != null && now > was){
+        const nb=document.createElement("span"); nb.className="fb-new";
+        nb.textContent="+"+(now-was)+" \u{1F50A}"; nb.title=AFDCore.t("card.fb.new", CFG.mode());
+        nb.setAttribute("aria-label", nb.title); hc.appendChild(nb);
+      }
+    }); }
 
   let currentUrl=null, firstPlayable=null, detailP=null;
   const setUrl = (u)=>{ currentUrl = u; };
@@ -696,6 +788,7 @@ async function entryCard(res, lead){
     firstPlayable = (wordRecs[0]||recs[0])?.url || null;
     if(currentUrl==null) currentUrl = firstPlayable;
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
+    feedback(res.entryId, meta, recs, detail, hc);
     detail.appendChild(slotSection("the word","\u0627\u0644\u0643\u0644\u0645\u0629","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
     detail.appendChild(slotSection("used in a sentence","\u0645\u062b\u0627\u0644 \u0641\u064a \u062c\u0645\u0644\u0629","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
     detail.appendChild(slotSection("what it means","\u0627\u0644\u0645\u0639\u0646\u0649","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
@@ -710,8 +803,13 @@ async function entryCard(res, lead){
     share.type="button"; share.className="sayit shareit";
     share.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
     ${CFG.mode()==="auto" ? 'Share this word <span class="ar">\u0634\u0627\u0631\u0643 \u0647\u0630\u0647 \u0627\u0644\u0643\u0644\u0645\u0629</span>' : escapeHtml(AFDCore.t("card.share", CFG.mode()))}`;
+    // Get the first public voice ready as a file now (see voiceFile), so a
+    // tap can hand it straight to the share sheet.
+    const pubVoice = wordRecs.find(r => r.consent==="public");
+    let voiceReady = null;
+    if(pubVoice) voiceFile(pubVoice.url, meta.gloss).then(f => { voiceReady = f; });
     share.addEventListener("click", (e)=>{ e.stopPropagation();
-      shareEntry(res.entryId, meta, recs.some(r => r.consent==="public"), CFG.mode()); });
+      shareEntry(res.entryId, meta, recs.some(r => r.consent==="public"), CFG.mode(), voiceReady); });
     detail.appendChild(share);
     wordTools(res.entryId, meta, recs, el, detail, paintTags);
     return firstPlayable;
@@ -751,4 +849,4 @@ async function entryCard(res, lead){
   return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { entryCard, shareEntry, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { entryCard, shareEntry, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

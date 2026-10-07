@@ -209,7 +209,9 @@ service cloud.firestore {
           return !('storagePath' in request.resource.data)
                  || request.resource.data.storagePath
                       in ['afd/' + request.auth.uid + '/' + recordingId + '.webm',
-                          'afd/' + request.auth.uid + '/' + recordingId + '.m4a'];
+                          'afd/' + request.auth.uid + '/' + recordingId + '.m4a',
+                          // an imported voice note, re-encoded on the phone
+                          'afd/' + request.auth.uid + '/' + recordingId + '.wav'];
         }
 
         allow create: if notAnon()
@@ -221,7 +223,7 @@ service cloud.firestore {
                            ['recordingId','entryId','gloss','domain','speakerId',
                             'phase','type','promptTier','repetitionIndex','capture',
                             'qc','envelope','storagePath','recordedAt','uid',
-                            'consent','viaAgent','allowPlayback','uploadedAt'])
+                            'consent','viaAgent','allowPlayback','uploadedAt','source'])
                       && request.resource.data.uid == request.auth.uid
                       // the doc's own ids must match its place in the tree
                       && request.resource.data.entryId == entryId
@@ -229,7 +231,16 @@ service cloud.firestore {
                           || request.resource.data.recordingId == recordingId)
                       && storagePathOK()
                       && request.resource.data.speakerId is string
-                      && request.resource.data.capture.sampleRate >= 44100
+                      // Studio protocol: 44.1 kHz+. One exception, flagged so research
+                      // can filter it: a WhatsApp voice note (compressed, ~16 kHz) that
+                      // a steward imports on a speaker's behalf (viaAgent) — for
+                      // speakers who will only ever send a voice note.
+                      && (!('source' in request.resource.data)
+                          || request.resource.data.source == 'voicenote')
+                      && (request.resource.data.capture.sampleRate >= 44100
+                          || (request.resource.data.get('source', '') == 'voicenote'
+                              && request.resource.data.viaAgent == true
+                              && request.resource.data.capture.sampleRate >= 8000))
                       && request.resource.data.gloss is string
                       && request.resource.data.consent == 'public'
                       && request.resource.data.allowPlayback is bool

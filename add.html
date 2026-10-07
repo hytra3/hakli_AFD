@@ -134,7 +134,7 @@ h2 .sub{font-size:14px}
 .emojis{display:grid; grid-template-columns:repeat(auto-fill, minmax(48px, 1fr)); gap:6px}
 .emojis button{height:48px; border-radius:12px; border:0; background:#F3F7F5; font-size:28px; cursor:pointer}
 .emojis button.on{box-shadow:inset 0 0 0 2px var(--mountain); background:var(--resin-soft)}
-input[type=text], input[type=email], input[type=password]{width:100%; min-height:48px; border-radius:12px;
+input[type=text], input[type=email], input[type=password], input[type=tel]{width:100%; min-height:48px; border-radius:12px;
   border:1.5px solid var(--mist-2); padding:10px 12px; font:inherit; font-size:17px; background:#fff; color:var(--ink)}
 input.ar{direction:rtl; font-size:20px}
 
@@ -272,6 +272,19 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <div class="stack" id="authOut">
       <p class="note" style="text-align:center" data-k="add.share.signin"></p>
       <button class="btn" id="googleBtn" type="button" data-k="setup.google"></button>
+      <!-- Phone: the code is typed right here, so it works even inside WhatsApp's
+           own browser, where Google sign-in often won't open. -->
+      <div class="stack" id="phoneBox">
+        <p class="note" style="text-align:center" data-k="add.auth.phone"></p>
+        <input type="tel" id="authPhone" placeholder="+968 9123 4567" autocomplete="tel" inputmode="tel" dir="ltr">
+        <button class="btn secondary" id="phoneBtn" type="button" data-k="add.auth.phone.send"></button>
+        <div class="stack hidden" id="codeBox">
+          <p class="note" style="text-align:center" data-k="add.auth.code"></p>
+          <input type="text" id="authCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" dir="ltr">
+          <button class="btn" id="codeBtn" type="button" data-k="add.auth.code.go"></button>
+        </div>
+        <div id="recaptcha"></div>
+      </div>
       <details id="emailBox">
         <summary data-k="setup.oremail"></summary>
         <div class="stack">
@@ -281,6 +294,8 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
             <button class="btn secondary" id="signupBtn" type="button" data-k="setup.signup"></button>
             <button class="btn" id="emailBtn" type="button" data-k="setup.signin"></button>
           </div>
+          <button class="btn ghost" id="linkBtn" type="button" data-k="add.auth.link"></button>
+          <p class="note hidden" id="linkSent" data-k="add.auth.link.sent"></p>
         </div>
       </details>
       <p class="note hidden" id="browserHint" style="text-align:center"></p>
@@ -332,7 +347,9 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 ================================================================*/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
-         signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
+         signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
+         RecaptchaVerifier, signInWithPhoneNumber,
+         sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs }
@@ -340,7 +357,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip } from "./afd-upload.js?v=b1007l";
-import { initCard, withdrawSpeaker, shareEntry } from "./afd-card.js?v=b1007l";
+import { initCard, withdrawSpeaker, shareEntry, voiceFile } from "./afd-card.js?v=b1007l";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -852,7 +869,7 @@ function paintAuth(){
   const u = realUser();
   $("authOut").classList.toggle("hidden", !!u);
   $("authIn").classList.toggle("hidden", !u);
-  if(u) $("whoAmI").textContent = plain("add.share.as", { who: u.displayName || u.email || "" });
+  if(u) $("whoAmI").textContent = plain("add.share.as", { who: u.displayName || u.email || u.phoneNumber || "" });
 }
 
 /* The speaker this account records as ITSELF — one of its own-voice cards
@@ -1014,7 +1031,10 @@ async function share(){
     // word's link would show them nothing. Captured now — the draft goes below.
     const shareArgs = [draft.entryId, { pic: draft.pic, glossAr: draft.glossAr.trim() }, true];
     $("doneShare").hidden = !up.public;
-    $("doneShare").onclick = ()=> shareEntry(...shareArgs, MODE);
+    // their own voice, from the phone, ready before the tap (see voiceFile)
+    let voiceReady = null;
+    if(up.public && draft.word && draft.word.blob) voiceFile(draft.word.blob).then(f => { voiceReady = f; });
+    $("doneShare").onclick = ()=> shareEntry(...shareArgs, MODE, voiceReady);
     show("done");
     await clearDraft();
   }catch(e){
@@ -1064,6 +1084,71 @@ $("signupBtn").onclick = async ()=>{
   catch(e){ wantShare = false; authFailed(e); }
 };
 $("notYou").onclick = ()=> signOut(auth);
+
+/* ---- phone number: a texted code, typed right here ----
+   Works inside in-app browsers (no popup, no redirect). Firebase needs an
+   invisible reCAPTCHA to send the text; it's made on the first tap and reused. */
+let recaptcha = null, phoneConfirm = null;
+function phoneFailed(e){
+  console.warn("[AFD add] phone", e);
+  const c = (e && e.code) || "";
+  $("shareErr").innerHTML = bi(c.includes("too-many") || c.includes("quota") ? "add.auth.toomany"
+                             : c.includes("code") ? "add.auth.code.bad" : "add.auth.phone.bad");
+}
+function phoneNumber(){
+  let n = $("authPhone").value.replace(/[^\d+]/g, "");
+  if(n.startsWith("00")) n = "+" + n.slice(2);
+  if(!n.startsWith("+") && n.length === 8) n = "+968" + n;     // a local Omani number
+  return n;
+}
+$("phoneBtn").onclick = async ()=>{
+  $("shareErr").textContent = "";
+  const n = phoneNumber();
+  if(!/^\+\d{8,15}$/.test(n)){ $("shareErr").innerHTML = bi("add.auth.phone.bad"); return; }
+  $("phoneBtn").disabled = true;
+  try{
+    if(!recaptcha) recaptcha = new RecaptchaVerifier(auth, "recaptcha", { size:"invisible" });
+    phoneConfirm = await signInWithPhoneNumber(auth, n, recaptcha);
+    $("codeBox").classList.remove("hidden");
+    $("authCode").focus();
+  }catch(e){
+    phoneFailed(e);
+    try{ recaptcha && recaptcha.clear(); }catch(_){} recaptcha = null;     // a fresh one next time
+  }finally{ $("phoneBtn").disabled = false; }
+};
+$("codeBtn").onclick = async ()=>{
+  if(!phoneConfirm) return;
+  $("shareErr").textContent = ""; wantShare = true;
+  try{ await phoneConfirm.confirm($("authCode").value.trim()); }
+  catch(e){ wantShare = false; phoneFailed(e); }
+};
+$("authCode").addEventListener("keydown", e=>{ if(e.key === "Enter") $("codeBtn").click(); });
+
+/* ---- email link: no password. The link comes back to this page; the draft is
+   in THIS browser's storage, so the note says to return here if the email app
+   opens the link somewhere else. ---- */
+$("linkBtn").onclick = async ()=>{
+  $("shareErr").textContent = "";
+  const email = $("authEmail").value.trim();
+  if(!email){ $("authEmail").focus(); return; }
+  try{
+    await sendSignInLinkToEmail(auth, email, { url: location.origin + location.pathname, handleCodeInApp: true });
+    try{ localStorage.setItem("afd.linkEmail", email); }catch(_){}
+    $("linkSent").classList.remove("hidden");
+  }catch(e){ authFailed(e); }
+};
+if(isSignInWithEmailLink(auth, location.href)){
+  (async ()=>{
+    let email = null; try{ email = localStorage.getItem("afd.linkEmail"); }catch(_){}
+    if(!email) email = window.prompt(plain("add.auth.link.email")) || "";
+    try{
+      wantShare = true;
+      await signInWithEmailLink(auth, email.trim(), location.href);
+      try{ localStorage.removeItem("afd.linkEmail"); }catch(_){}
+    }catch(e){ wantShare = false; authFailed(e); }
+    history.replaceState(null, "", location.pathname);           // drop the one-time code from the address
+  })();
+}
 
 onAuthStateChanged(auth, ()=>{
   if($("share").hidden) return;

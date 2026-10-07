@@ -10,7 +10,7 @@
  *
  *    · no-uid       doc with no uid — created by the old embed trigger before
  *                   the recorder's own write, which was then refused forever
- *    · foreign-path storagePath that isn't afd/{uid}/{recordingId}.webm|m4a
+ *    · foreign-path storagePath that isn't afd/{uid}/{recordingId}.webm|m4a|wav
  *                   (the purge now refuses these; look at them by hand)
  *    · no-object    storagePath names a file that doesn't exist
  *    · no-meta      object lacks entryId/recordingId metadata, or they don't
@@ -65,7 +65,7 @@ for (const snap of snaps.docs) {
 
   if (!d.uid) { report("no-uid", `${where}`); continue; }
   if (!d.storagePath) { counts.ok++; continue; }           // text-only take, no audio
-  const own = new RegExp(`^afd/${escapeRe(d.uid)}/${escapeRe(snap.id)}\\.(webm|m4a)$`);
+  const own = new RegExp(`^afd/${escapeRe(d.uid)}/${escapeRe(snap.id)}\\.(webm|m4a|wav)$`);
   if (!own.test(d.storagePath)) { report("foreign-path", `${where} → ${d.storagePath}`); continue; }
   claimed.add(d.storagePath);
 

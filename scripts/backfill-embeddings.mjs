@@ -67,7 +67,7 @@ for (const snap of snaps.docs) {
   const skip = (why) => { counts.skipped++; console.log(`  skip    ${where}  (${why})`); };
 
   if (d.consent === "deleted") { skip("erased — awaiting purge"); continue; }
-  const own = d.uid && new RegExp(`^afd/${escapeRe(d.uid)}/${escapeRe(snap.id)}\\.(webm|m4a)$`).test(d.storagePath);
+  const own = d.uid && new RegExp(`^afd/${escapeRe(d.uid)}/${escapeRe(snap.id)}\\.(webm|m4a|wav)$`).test(d.storagePath);
   if (!own) { skip(`storagePath ${d.storagePath} isn't its own file`); continue; }
 
   const file = bucket.file(d.storagePath);

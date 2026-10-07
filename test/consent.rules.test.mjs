@@ -153,6 +153,26 @@ describe("recording create — storagePath and fields can't be forged", () => {
     await assertSucceeds(setDoc(rec(asSelf(), "rec_m4a"),
       fullRec("rec_m4a", { storagePath: "afd/uSelf/rec_m4a.m4a" })));
   });
+  // Imported WhatsApp voice notes (recorder: "Load a voice note")
+  const voiceNote = (id, over = {}) => fullRec(id, {
+    storagePath: `afd/uSelf/${id}.wav`, viaAgent: true, source: "voicenote",
+    capture: { sampleRate: 16000 }, ...over,
+  });
+  it("a steward's imported voice note (16 kHz, .wav, flagged, by proxy) is accepted", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_vn"), voiceNote("rec_vn")));
+  });
+  it("…but not unflagged, not self-recorded, and not below 8 kHz", async () => {
+    const { source, ...unflagged } = voiceNote("rec_vn");
+    await assertFails(setDoc(rec(asSelf(), "rec_vn"), unflagged));
+    await assertFails(setDoc(rec(asSelf(), "rec_vn"), voiceNote("rec_vn", { viaAgent: false })));
+    await assertFails(setDoc(rec(asSelf(), "rec_vn"), voiceNote("rec_vn", { capture: { sampleRate: 4000 } })));
+  });
+  it("a normal take still needs 44.1 kHz", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_lo"), fullRec("rec_lo", { capture: { sampleRate: 16000 } })));
+  });
+  it("source can only be 'voicenote'", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_x"), fullRec("rec_x", { source: "scraped" })));
+  });
   it("storagePath pointing at another account's audio is refused", async () => {
     await assertFails(setDoc(rec(asSelf(), "rec_evil"),
       fullRec("rec_evil", { storagePath: "afd/uAgent/rec_elder.webm" })));
