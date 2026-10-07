@@ -56,6 +56,9 @@ header h1 .sub{font-size:12px}
   background:var(--cloud); color:var(--mountain); display:grid; place-items:center; cursor:pointer;
   box-shadow:0 2px 8px rgba(31,58,52,.10); margin-bottom:12px}
 .skin svg{width:20px; height:20px}
+.acct{font:600 17px/1 system-ui,-apple-system,sans-serif}
+.acct.in{background:var(--mountain); color:#fff; border-color:var(--mountain)}
+.acct:not(.in){color:var(--mist-2); box-shadow:none}
 .skin .lbl{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:18px; line-height:1}
 .capd{position:relative}
 .capd::after{content:attr(data-cap); position:absolute; top:calc(100% + 4px); left:50%; transform:translateX(-50%);
@@ -162,6 +165,8 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
   <a class="home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
   <h1 data-k="add.title"></h1>
   <button class="skin capd" id="skin" type="button" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
+  <!-- who's signed in, at a glance (the dictionary's "حسابي" button) -->
+  <button class="skin capd acct" id="acct" type="button" data-cap="حسابي" aria-label="Account"></button>
 </header>
 <ol class="steps" aria-hidden="true">
   <li data-step="say">🎙️</li><li data-step="show">🖼️</li><li data-step="share">📤</li>
@@ -1151,7 +1156,30 @@ if(isSignInWithEmailLink(auth, location.href)){
   })();
 }
 
+/* ---- the account badge in the header: a filled initial (☎ for a phone-only
+   account) when signed in, a faint outline when not. Tap: who, and sign out —
+   or, signed out, that sign-in comes at the end. ---- */
+const PERSON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+function whoLabel(u){ return u.displayName || u.email || u.phoneNumber || ""; }
+function paintAcct(){
+  const u = realUser(), b = $("acct");
+  b.classList.toggle("in", !!u);
+  if(u){
+    const w = (u.displayName || u.email || "").trim();
+    b.textContent = w ? w[0].toUpperCase() : "\u260E";
+    b.title = plain("add.share.as", { who: whoLabel(u) });
+  }else{ b.innerHTML = PERSON_SVG; b.title = plain("add.acct.out"); }
+  b.setAttribute("aria-label", b.title);
+}
+$("acct").onclick = ()=>{
+  const u = realUser();
+  if(!u){ alert(plain("add.acct.out")); return; }
+  if(confirm(plain("add.acct.signout", { who: whoLabel(u) }))) signOut(auth);
+};
+paintAcct();
+
 onAuthStateChanged(auth, ()=>{
+  paintAcct();
   if($("share").hidden) return;
   paintAuth();
   prefillConsent();
