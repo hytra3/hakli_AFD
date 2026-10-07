@@ -874,7 +874,7 @@ function paintAuth(){
   const u = realUser();
   $("authOut").classList.toggle("hidden", !!u);
   $("authIn").classList.toggle("hidden", !u);
-  if(u) $("whoAmI").textContent = plain("add.share.as", { who: u.displayName || u.email || u.phoneNumber || "" });
+  if(u) $("whoAmI").textContent = signedInAs(u);
 }
 
 /* The speaker this account records as ITSELF — one of its own-voice cards
@@ -1164,20 +1164,23 @@ if(isSignInWithEmailLink(auth, location.href)){
    or, signed out, that sign-in comes at the end. ---- */
 const PERSON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
 function whoLabel(u){ return u.displayName || u.email || u.phoneNumber || ""; }
+// "Signed in as · مسجَّل الدخول باسم +1…": the account once, after the label in
+// both languages — a {who} inside each sentence printed it twice in auto mode
+function signedInAs(u){ return plain("add.share.as") + " " + whoLabel(u); }
 function paintAcct(){
   const u = realUser(), b = $("acct");
   b.classList.toggle("in", !!u);
   if(u){
     const w = (u.displayName || u.email || "").trim();
     b.textContent = w ? w[0].toUpperCase() : "\u260E";
-    b.title = plain("add.share.as", { who: whoLabel(u) });
+    b.title = signedInAs(u);
   }else{ b.innerHTML = PERSON_SVG; b.title = plain("add.acct.out"); }
   b.setAttribute("aria-label", b.title);
 }
 $("acct").onclick = ()=>{
   const u = realUser();
   if(!u){ alert(plain("add.acct.out")); return; }
-  if(confirm(plain("add.acct.signout", { who: whoLabel(u) }))) signOut(auth);
+  if(confirm(signedInAs(u) + "\n" + plain("add.acct.signout"))) signOut(auth);
 };
 paintAcct();
 
