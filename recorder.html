@@ -245,7 +245,11 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
    it in reach while you scroll the card, and it settles back into its own
    place once you scroll down to it (so it never covers the session card).
    Hidden while the review card is up, exactly as before. */
-#recBtn.rec{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30}
+#recBtn.rec{position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30;
+  /* A hold must not turn into a page scroll: with panning allowed, a finger
+     drifting a few pixels makes Android Chrome fire pointercancel, which ends
+     the take mid-word. */
+  touch-action:none}
 .rec .timer{
   display:block;font-family:var(--mono);font-size:13px;font-weight:400;
   opacity:.85;margin-top:3px
@@ -312,6 +316,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
      (afd-card.css "rise", which starts at opacity:0) — don't override it here,
      or the card stays invisible. */
   #entryCardHost.swapping{ opacity:.3; }
+  /* Hold the card's place while it loads (it can take a few seconds on a slow
+     connection), so the instruction and record button don't jump down under
+     the speaker's thumb when it arrives. */
+  #entryCardHost:empty{ min-height:320px; border-radius:22px; background:rgba(255,255,255,.45); }
   @media (prefers-reduced-motion:reduce){ .btn:active{ transform:none; } }
   #entryCardHost .card.lead .thumb::after{ display:none; }   /* no "closest match" pin here */
   /* "Say it yourself" links back to this very page — here it only competes with
@@ -1071,6 +1079,9 @@ window.AFD.renderCard = async (entryId, mount)=>{
   try{
     const c = await entryCard({ entryId }, true);
     if(my !== _cardSeq) return null;   // a newer render started while we awaited — drop this stale one
+    // mid-take? swap the card in once the finger lifts, not under it
+    if(window.__afdWhenNotRecording) await window.__afdWhenNotRecording();
+    if(my !== _cardSeq) return null;
     mount.replaceChildren(c.el);
     return c;
   }catch(e){ console.warn("[AFD] renderCard", e); return null; }
@@ -1212,6 +1223,10 @@ const WORDS=window.AFDWords;   // canonical entry list — shared via afd-words.
 const $=id=>document.getElementById(id);
 let stream=null, actualSettings=null, ctx=null, analyser=null, source=null;
 let recorder=null, chunks=[], recording=false;
+// Anything that would reflow the page (the word card arriving late) waits for
+// the take to end, so the record button never moves under a held finger.
+let notRecordingWaiters=[];
+window.__afdWhenNotRecording = ()=> recording ? new Promise(r=>notRecordingWaiters.push(r)) : Promise.resolve();
 let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
@@ -2117,6 +2132,7 @@ function startRec(){
 function stopRec(){
   if(!recording) return;
   recording=false; mode=null;
+  notRecordingWaiters.splice(0).forEach(r=>{ try{ r(); }catch(_){} });
   if(timerId){ clearInterval(timerId); timerId=null; }
   recBtn.classList.remove("recording");
   setRecIdle();
