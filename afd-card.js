@@ -644,14 +644,17 @@ async function entryCard(res, lead){
   if(gc){ const hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
     entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`; }); }
 
-  let currentUrl=null, firstPlayable=null, loaded=false;
+  let currentUrl=null, firstPlayable=null, detailP=null;
   const setUrl = (u)=>{ currentUrl = u; };
 
   // Detail (voices, slots, playback) is EXPENSIVE — listPlayable resolves a Storage
   // URL per recording — so it loads lazily, only when the card opens. This is what
   // lets the dictionary render 40 cards without hundreds of Storage calls up front.
-  async function loadDetail(){
-    if(loaded) return firstPlayable; loaded=true;
+  // Every caller shares the ONE load: a play tap that lands while the open-tap's
+  // load is still in flight must wait for it, not read "no voice yet" from a
+  // half-loaded card (seen on a slow phone: the note, then the voice under it).
+  function loadDetail(){ return detailP || (detailP = buildDetail()); }
+  async function buildDetail(){
     const recs = await (playable || listPlayable(res.entryId));
     const wordRecs    = recs.filter(r => (r.type||"word")==="word");
     const contextRecs = recs.filter(r => r.type==="context");
