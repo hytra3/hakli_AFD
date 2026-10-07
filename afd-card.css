@@ -119,6 +119,13 @@
 .afdcard .slot-body:empty{display:none}
 .afdcard .head-counts{display:flex;gap:10px;margin-top:5px;font:600 11px/1 var(--sans);color:var(--mist)}
 .afdcard .card.open .head-counts{display:none}
+/* "your voice mattered": +n new voices on a collapsed card of yours, and a quiet
+   line at the top of the open card */
+.afdcard .head-counts .fb-new{color:var(--resin); font-weight:700}
+.afdcard .fb-note{margin:2px 0 12px; padding:10px 12px; border-radius:12px; background:var(--resin-soft, #f6ead9);
+         color:var(--mountain); font:500 14px/1.35 var(--sans)}
+.afdcard .fb-note .bi-ar{display:block}
+.afdcard .fb-note .sub{display:block; color:var(--mist); font-size:12px; margin-top:2px}
 .afdcard .voices-list.hidden{ display:none; }
 
 /* "no voice yet" — shown when play is tapped on a word nobody has recorded.

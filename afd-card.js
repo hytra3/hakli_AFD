@@ -658,6 +658,43 @@ async function voiceFile(src, name){
   }catch(e){ console.warn("[AFD] voice file", e); return null; }
 }
 
+/* ---- "your voice mattered" — in-app, nothing tracked --------------------------
+   On a word the viewer has a voice on, a quiet line at the top of the open card:
+   how many OTHER people (distinct speakers) have said it too, or — on their own
+   word that nobody else has said yet — a nudge to share it. Then the count of
+   public voices is remembered on THIS phone (localStorage, nowhere else), so the
+   collapsed card can show "+n" when more voices arrive. Uses only what the
+   card already loaded; no listen counting, no messages sent. */
+function seenCount(entryId){
+  try{ const v = localStorage.getItem("afd.seen." + entryId); return v == null ? null : +v; }catch(_){ return null; }
+}
+function feedback(entryId, meta, recs, detail, hc){
+  const mine = recs.filter(r => r.mine);
+  if(!mine.length) return;
+  const others = new Set(recs.filter(r => !r.mine && r.consent==="public")
+                             .map(r => (r.uid||"") + "|" + (r.speakerId||"")));
+  const creator = meta.source==="user" && CFG.user() && meta.createdBy===CFG.user().uid;
+  const m = CFG.mode();
+  // in the reader's tier, like the rest of the card (tHTML: auto = Arabic over English)
+  let html = null;
+  if(others.size === 1) html = AFDCore.tHTML("card.fb.others1", m);
+  else if(others.size > 1){
+    const x = AFDCore.STRINGS["card.fb.othersN"], n = String(others.size);
+    const ar = `<span class="bi-ar" dir="rtl">${escapeHtml(x.ar.split("{n}").join(n))}</span>`;
+    html = m==="auto" ? ar + `<small class="sub">${escapeHtml(x.en.split("{n}").join(n))}</small>` : ar;
+  }
+  else if(creator && mine.some(r => r.consent==="public")) html = AFDCore.tHTML("card.fb.first", m);
+  if(html){
+    const n=document.createElement("div"); n.className="fb-note"; n.setAttribute("role","status");
+    n.innerHTML = html;
+    detail.insertBefore(n, detail.firstChild);
+  }
+  entryCounts(entryId).then(c => {
+    try{ localStorage.setItem("afd.seen." + entryId, String(c.word + c.context + c.definition)); }catch(_){}
+    hc && hc.querySelector(".fb-new")?.remove();
+  });
+}
+
 async function entryCard(res, lead){
   const el = document.createElement("div");
   el.className = "card" + (lead ? " lead open" : "");
@@ -720,8 +757,18 @@ async function entryCard(res, lead){
   const paintTags=(ts)=>{ tagsEl.innerHTML=(CFG.mode()==="sound"?[]:(ts||[])).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join(""); };
   paintTags(meta.tags);
   if(gc) gc.appendChild(tagsEl);
-  if(gc){ const hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
-    entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`; }); }
+  let hc=null;
+  if(gc){ hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
+    entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`;
+      // a word this phone has a voice on, with voices added since it was last
+      // opened here: a small "+n" so the contributor sees they were answered
+      const was = seenCount(res.entryId), now = c.word + c.context + c.definition;
+      if(was != null && now > was){
+        const nb=document.createElement("span"); nb.className="fb-new";
+        nb.textContent="+"+(now-was)+" \u{1F50A}"; nb.title=AFDCore.t("card.fb.new", CFG.mode());
+        nb.setAttribute("aria-label", nb.title); hc.appendChild(nb);
+      }
+    }); }
 
   let currentUrl=null, firstPlayable=null, detailP=null;
   const setUrl = (u)=>{ currentUrl = u; };
@@ -741,6 +788,7 @@ async function entryCard(res, lead){
     firstPlayable = (wordRecs[0]||recs[0])?.url || null;
     if(currentUrl==null) currentUrl = firstPlayable;
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
+    feedback(res.entryId, meta, recs, detail, hc);
     detail.appendChild(slotSection("the word","\u0627\u0644\u0643\u0644\u0645\u0629","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
     detail.appendChild(slotSection("used in a sentence","\u0645\u062b\u0627\u0644 \u0641\u064a \u062c\u0645\u0644\u0629","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
     detail.appendChild(slotSection("what it means","\u0627\u0644\u0645\u0639\u0646\u0649","definition",res.entryId, defRecs, null, playBtn, ()=>{}));

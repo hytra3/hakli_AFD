@@ -498,6 +498,10 @@ window.AFDCore = (function(){
     "card.share.unheard":   { en:"Nobody has said “{w}” in Hakli yet — be the first:", ar:"لم يقل أحدٌ «{w}» بالحكلي بعد — كن أوّل من يقولها:" },
     "needs.ask":            { en:"Ask someone for these words", ar:"اطلب هذه الكلمات من أحد" },
     "needs.ask.text":       { en:"Nobody has said these words in Hakli yet — can you say one?", ar:"لم يقل أحدٌ هذه الكلمات بالحكلي بعد — هل تقول واحدة منها؟" },
+    "card.fb.others1":      { en:"Someone else has said this word too", ar:"قالها شخصٌ آخر أيضًا" },
+    "card.fb.othersN":      { en:"{n} other people have said this word too", ar:"قالها {n} أشخاص آخرين أيضًا" },
+    "card.fb.first":        { en:"You were the first to say this word — share it so others say it too", ar:"كنت أوّل من قالها — شاركها ليقولها غيرك" },
+    "card.fb.new":          { en:"New voices since you last looked", ar:"أصوات جديدة منذ آخر مرة" },
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." }
   };
   function t(key, mode){
