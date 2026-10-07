@@ -35,9 +35,19 @@ within each group.
     An account may now read its OWN `afd_admins` doc so the app can show steward controls.
   - Next, if wanted: "Flag this word" for anyone + a steward queue; a dictionary filter
     by tag.
-  - Open: a steward review/takedown view for new words and photos (today: delete the
-    photo object as a steward in the console). Erasing every voice on a contributed
-    word lets the daily purge reap it after 24h — and, since 10-07, its photo too.
+  - **✅ Steward review view (10-07) — `steward.html`.** Not linked from the app (like
+    `prompts/admin.html`); the steward signs in with the steward account. Lists
+    contributed words newest first under *To review / Hidden / All*, with picture,
+    meanings, tags, creator (uid prefix), a link to open it, and its public voices to
+    play. Actions, each one narrow write the rules allow a steward on a contributed
+    word only: **Looks fine** (`reviewedAt`), **Hide word / Show again** (`hiddenAt` —
+    reversible; the dictionary, search and old links treat it like a removed word),
+    **Take down photo** (clears `image`, then deletes `afd_pics/{createdBy}/{id}.jpg`)
+    and **Remove emoji** (clears `pic`). Acting on a word also marks it reviewed. No
+    voice is touched — withdrawing stays the speaker's. Tests: 15 new cases in
+    `test/entries.rules.test.mjs`. **Deploy the Firestore rules before using it.**
+    Erasing every voice on a contributed word still lets the daily purge reap it (and
+    its photo) after 24h. Next, if wanted: "Flag this word" for anyone feeding this queue.
 
 - **Shared core** — `afd-core.js` (entry identity, display tiers, the one mic-capture
   protocol) and `afd-words.js` (the 40-entry wordlist). Both `index.html` and

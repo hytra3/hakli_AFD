@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Hakli words — steward</title>
+<link rel="icon" href="favicon.svg?v=b1007j" type="image/svg+xml" />
+<!--
+  Steward review of contributed words (the ones people add from add.html).
+  Not linked from the app — like prompts/admin.html, the steward opens it
+  directly and signs in with the steward account (scripts/grant-steward.mjs).
+
+  What it can do is exactly what afd-firestore.rules lets a steward do to a
+  contributed word, nothing more:
+    • Looks fine        → reviewedAt (out of the "to review" queue)
+    • Hide / Show again → hiddenAt (reversible; the word leaves the dictionary,
+                          search and old links; nobody's voice is touched)
+    • Take down photo   → clears the entry's image, then deletes
+                          afd_pics/{createdBy}/{entryId}.jpg (can't be undone)
+    • Remove emoji      → clears the entry's pic
+  Voices stay their speakers' to withdraw; a steward can't do that from here.
+-->
+<style>
+  :root{
+    --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
+    --line:#e7e0d5; --warm:#b06a2c; --warm-bg:#f6ead9;
+    --go:#2f7d5b; --go-bg:#e3f2ea; --stop:#b23b3b; --stop-bg:#f8e4e2;
+    --accent:#3a6ea5; --accent-bg:#e7f0f8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1a1713; --card:#241f19; --ink:#efe8dd; --muted:#a49a8c;
+      --line:#3a332a; --warm:#e0a163; --warm-bg:#33281c;
+      --go:#5bbd8e; --go-bg:#1d3329; --stop:#e2726f; --stop-bg:#3a2121;
+      --accent:#7fb0e0; --accent-bg:#1e2b3a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:640px; margin:0 auto; padding:16px 16px 48px;}
+  h1{font-size:18px; margin:8px 0 4px;}
+  .sub{font-size:13px; color:var(--muted); margin-bottom:14px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:12px;}
+  .card h2{font-size:15px; margin:0 0 2px;}
+  .btnrow{display:flex; flex-wrap:wrap; gap:8px;}
+  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:9px 13px; font-size:14px; cursor:pointer;}
+  .btn.primary{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
+  .btn.danger{border-color:var(--stop); color:var(--stop);}
+  .btn:disabled{opacity:.5; cursor:default;}
+  input{width:100%; font:inherit; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-top:8px;}
+  .note{background:var(--warm-bg); color:var(--warm); border-radius:12px; padding:12px 14px; font-size:13px; margin-top:14px;}
+  .msg{font-size:12px; color:var(--muted); margin-top:10px; min-height:16px;}
+  .hidden{display:none !important;}
+  .top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .who{font-size:12px; color:var(--muted); text-align:right;}
+  a.small{font-size:12px; color:var(--accent);}
+
+  .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;}
+  .tab{border:1px solid var(--line); background:var(--card); color:var(--muted); border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer;}
+  .tab.on{background:var(--accent-bg); border-color:var(--accent); color:var(--accent); font-weight:600;}
+  .tab .n{font-variant-numeric:tabular-nums; opacity:.8; margin-left:4px;}
+
+  .word{display:grid; grid-template-columns:88px 1fr; gap:14px; align-items:start;}
+  .word.is-hidden{border-style:dashed;}
+  .thumb{width:88px; height:88px; border-radius:18px; overflow:hidden; background:var(--bg); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:44px; color:var(--muted);}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .gloss{font-size:16px; font-weight:600; overflow-wrap:anywhere;}
+  .gloss .ar{font-weight:500; margin-left:8px;}
+  .meta{font-size:12px; color:var(--muted); margin-top:2px; overflow-wrap:anywhere;}
+  .badges{display:flex; flex-wrap:wrap; gap:5px; margin-top:6px;}
+  .badge{font-size:11px; border-radius:10px; padding:2px 8px; border:1px solid var(--line); color:var(--muted);}
+  .badge.new{border-color:var(--warm); color:var(--warm); background:var(--warm-bg);}
+  .badge.hid{border-color:var(--stop); color:var(--stop); background:var(--stop-bg);}
+  .badge.ok{border-color:var(--go); color:var(--go); background:var(--go-bg);}
+  .voices{margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; color:var(--muted);}
+  .voices .btn{padding:5px 10px; font-size:13px;}
+  .actions{margin-top:10px;}
+  .actions .btn{padding:7px 11px; font-size:13px;}
+  .empty{font-size:13px; color:var(--muted); padding:18px 4px;}
+  @media (max-width:420px){
+    .word{grid-template-columns:64px 1fr; gap:10px;}
+    .thumb{width:64px; height:64px; font-size:32px; border-radius:14px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Contributed words</h1></div>
+    <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden">sign out</a></div>
+  </div>
+  <div class="sub">Words people add from the “add a word” page. Look, listen, and take down what shouldn’t be there.</div>
+
+  <!-- sign in -->
+  <div id="signin" class="card">
+    <h2>Steward sign-in</h2>
+    <div class="msg" id="authmsg">Sign in with the steward account.</div>
+    <input id="email" type="email" placeholder="email" autocomplete="username" />
+    <input id="pass" type="password" placeholder="password" autocomplete="current-password" />
+    <div class="btnrow" style="margin-top:12px;"><button class="btn primary" id="dosignin">Sign in</button></div>
+  </div>
+
+  <!-- panel -->
+  <div id="panel" class="hidden">
+    <div class="top">
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-tab="review">To review<span class="n" id="n-review"></span></button>
+        <button class="tab" data-tab="hidden">Hidden<span class="n" id="n-hidden"></span></button>
+        <button class="tab" data-tab="all">All<span class="n" id="n-all"></span></button>
+      </div>
+      <a href="#" id="refresh" class="small">refresh</a>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div id="list"><div class="empty">loading…</div></div>
+    <div class="note">
+      <b>Hide</b> takes a word out of the dictionary, search and shared links for everyone, and can be undone with <b>Show again</b>.
+      <b>Take down photo</b> deletes the picture for good. Neither touches anyone’s voice: withdrawing a voice stays the speaker’s own choice.
+      A word whose creator removed it is purged by the daily sweep once its voices are gone.
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, where, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
+  authDomain:        "afd-dev.firebaseapp.com",
+  projectId:         "afd-dev",
+  storageBucket:     "afd-dev.firebasestorage.app",
+  messagingSenderId: "454829954488",
+  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
+};
+
+const $ = id => document.getElementById(id);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const store = getStorage(app);
+
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const ms = t => (t && typeof t.toMillis === "function") ? t.toMillis() : (typeof t === "number" ? t : 0);
+const when = t => { const m = ms(t); return m ? new Date(m).toLocaleString() : ""; };
+const notAllowed = e => e && e.code === "permission-denied";
+const NOT_STEWARD = "This account isn’t listed as the steward. On the laptop: node scripts/grant-steward.mjs <this email>";
+
+let words = [];            // [{ id, d }]
+let tab = "review";
+
+/* ---- auth ---------------------------------------------------------------- */
+$("dosignin").onclick = async ()=>{
+  $("authmsg").textContent = "signing in…";
+  try{ await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch(e){ $("authmsg").textContent = "Couldn’t sign in (" + (e.code||e.message||"error") + ")"; }
+};
+$("pass").addEventListener("keydown", e=>{ if(e.key === "Enter") $("dosignin").click(); });
+$("signout").onclick = e=>{ e.preventDefault(); signOut(auth); };
+
+onAuthStateChanged(auth, async user=>{
+  const named = user && !user.isAnonymous;
+  $("who").textContent = named ? (user.email || user.uid) : "";
+  $("signout").classList.toggle("hidden", !named);
+  if(!named){ $("signin").classList.remove("hidden"); $("panel").classList.add("hidden"); return; }
+  // An account may read its own afd_admins doc — that's how we know.
+  let steward = false;
+  try{ steward = (await getDoc(doc(db, "afd_admins", user.uid))).exists(); }catch(_){}
+  if(!steward){
+    $("signin").classList.remove("hidden"); $("panel").classList.add("hidden");
+    $("authmsg").textContent = NOT_STEWARD;
+    return;
+  }
+  $("signin").classList.add("hidden"); $("panel").classList.remove("hidden");
+  load();
+});
+
+/* ---- data ---------------------------------------------------------------- */
+async function load(){
+  $("list").innerHTML = '<div class="empty">loading…</div>';
+  try{
+    // The same query the dictionary runs (no composite index needed); newest first here.
+    const snap = await getDocs(query(collection(db, "afd_entries"), where("source", "==", "user")));
+    words = snap.docs.map(s => ({ id: s.id, d: s.data() || {} }))
+                     .sort((a, b) => ms(b.d.createdAt) - ms(a.d.createdAt));
+    paint();
+  }catch(e){
+    $("list").innerHTML = '<div class="empty">Couldn’t load (' + esc(e.code||e.message||"error") + ').</div>';
+  }
+}
+$("refresh").onclick = e=>{ e.preventDefault(); $("msg").textContent = ""; load(); };
+
+const inReview = w => !w.d.reviewedAt && !w.d.hiddenAt && !w.d.removedAt;
+const inHidden = w => !!w.d.hiddenAt;
+const FILTER = { review: inReview, hidden: inHidden, all: () => true };
+const EMPTY  = { review: "Nothing new to review.", hidden: "No hidden words.", all: "No contributed words yet." };
+
+document.querySelectorAll("#tabs .tab").forEach(b=>{
+  b.onclick = ()=>{ tab = b.dataset.tab; paint(); };
+});
+
+function paint(){
+  document.querySelectorAll("#tabs .tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  $("n-review").textContent = words.filter(inReview).length;
+  $("n-hidden").textContent = words.filter(inHidden).length;
+  $("n-all").textContent    = words.length;
+  const shown = words.filter(FILTER[tab]);
+  const list = $("list"); list.innerHTML = "";
+  if(!shown.length){ list.innerHTML = '<div class="empty">' + EMPTY[tab] + '</div>'; return; }
+  shown.forEach(w => list.appendChild(row(w)));
+}
+
+/* ---- one word ------------------------------------------------------------ */
+function row(w){
+  const { id, d } = w;
+  const el = document.createElement("div");
+  el.className = "card word" + (d.hiddenAt ? " is-hidden" : "");
+
+  const face = d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy">` : esc(d.pic || "?");
+  const gloss = d.gloss || (d.glossAr ? "" : "(no meaning written)");
+  const badges = [];
+  if(d.removedAt)        badges.push(`<span class="badge hid">removed by its creator · ${esc(when(d.removedAt))}</span>`);
+  else if(d.hiddenAt)    badges.push(`<span class="badge hid">hidden · ${esc(when(d.hiddenAt))}</span>`);
+  if(!d.reviewedAt && !d.removedAt) badges.push(`<span class="badge new">new</span>`);
+  else if(d.reviewedAt)  badges.push(`<span class="badge ok">reviewed · ${esc(when(d.reviewedAt))}</span>`);
+  (d.tags || []).forEach(t => badges.push(`<span class="badge">${esc(t)}</span>`));
+
+  el.innerHTML =
+    `<div class="thumb">${face}</div>` +
+    `<div>` +
+      `<div class="gloss">${esc(gloss)}${d.glossAr ? `<span class="ar" dir="rtl">${esc(d.glossAr)}</span>` : ""}</div>` +
+      `<div class="meta">${d.domain ? esc(d.domain) + " · " : ""}added ${esc(when(d.createdAt))} · by ` +
+        `<span title="${esc(d.createdBy)}">${esc(String(d.createdBy||"?").slice(0,6))}</span> · ` +
+        `<a class="small" href="index.html#${encodeURIComponent(id)}" target="_blank" rel="noopener">open</a></div>` +
+      `<div class="badges">${badges.join("")}</div>` +
+      `<div class="voices"><button class="btn" data-a="listen">▶ Voices</button></div>` +
+      `<div class="actions btnrow"></div>` +
+    `</div>`;
+
+  el.querySelector('[data-a="listen"]').onclick = e => voices(e.currentTarget, id);
+
+  const acts = el.querySelector(".actions");
+  const add = (label, cls, fn) => {
+    const b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label;
+    b.onclick = async ()=>{
+      acts.querySelectorAll("button").forEach(x => x.disabled = true);
+      $("msg").textContent = "saving…";
+      try{ await fn(); $("msg").textContent = "Saved."; }
+      catch(e){ $("msg").textContent = notAllowed(e) ? NOT_STEWARD : "Couldn’t save (" + (e.code||e.message||"error") + ")"; }
+      paint();
+    };
+    acts.appendChild(b);
+  };
+
+  if(!d.removedAt){
+    if(!d.reviewedAt && !d.hiddenAt) add("Looks fine", "primary", () => markReviewed(w));
+    if(d.hiddenAt) add("Show again", "", () => setHidden(w, false));
+    else           add("Hide word", "danger", () => setHidden(w, true));
+  }
+  if(d.image) add("Take down photo", "danger", () => takeDownPhoto(w));
+  if(d.pic)   add("Remove emoji", "danger", () => clearField(w, "pic"));
+  return el;
+}
+
+/* ---- actions (each is one write the rules allow on its own) -------------- */
+async function markReviewed(w){
+  await updateDoc(doc(db, "afd_entries", w.id), { reviewedAt: serverTimestamp() });
+  w.d.reviewedAt = Date.now();
+}
+// Acting on a word counts as having looked at it, so it also leaves the queue.
+async function alsoReviewed(w){
+  if(w.d.reviewedAt) return;
+  try{ await markReviewed(w); }catch(e){ console.warn("[steward] reviewedAt", e); }
+}
+async function setHidden(w, hide){
+  if(hide && !confirm("Hide this word from the dictionary, search and shared links? You can show it again later.")) return;
+  await updateDoc(doc(db, "afd_entries", w.id), { hiddenAt: hide ? serverTimestamp() : deleteField() });
+  if(hide) w.d.hiddenAt = Date.now(); else delete w.d.hiddenAt;
+  await alsoReviewed(w);
+}
+async function clearField(w, key){
+  await updateDoc(doc(db, "afd_entries", w.id), { [key]: deleteField() });
+  delete w.d[key];
+  await alsoReviewed(w);
+}
+// Clear the entry's image FIRST, so the dictionary never points at a deleted
+// file; then delete the bytes. The path comes from the entry's creator and id
+// (the only path the rules let a word's photo have), never from the stored URL.
+// "Already gone" counts as done, so a retry after a half-finished attempt works.
+async function takeDownPhoto(w){
+  if(!confirm("Delete this photo for good? The word keeps its emoji (if any) or gets its pattern face.")) return;
+  await clearField(w, "image");
+  try{ await deleteObject(ref(store, `afd_pics/${w.d.createdBy}/${w.id}.jpg`)); }
+  catch(e){ if(e.code !== "storage/object-not-found") throw e; }
+}
+
+/* ---- listen -------------------------------------------------------------- */
+// Only currently-public voices — the same ones anyone can hear in the app.
+let player = null;
+async function voices(btn, entryId){
+  const box = btn.parentElement;
+  btn.disabled = true; btn.textContent = "loading…";
+  try{
+    const snap = await getDocs(query(collection(db, "afd_entries", entryId, "recordings"),
+                                     where("allowPlayback", "==", true)));
+    const recs = snap.docs.map(s => s.data() || {}).filter(r => r.storagePath)
+                     .sort((a, b) => ms(a.recordedAt) - ms(b.recordedAt));
+    btn.remove();
+    if(!recs.length){ box.insertAdjacentHTML("beforeend", "<span>no public voices</span>"); return; }
+    recs.forEach((r, i)=>{
+      const b = document.createElement("button"); b.className = "btn";
+      b.textContent = "▶ " + (r.type || "voice") + " " + (i + 1);
+      b.title = (r.speakerId || "") + (r.recordedAt ? " · " + when(r.recordedAt) : "");
+      b.onclick = async ()=>{
+        try{
+          if(player) player.pause();
+          player = new Audio(await getDownloadURL(ref(store, r.storagePath)));
+          await player.play();
+        }catch(e){ $("msg").textContent = "Couldn’t play (" + (e.code||e.message||"error") + ")"; }
+      };
+      box.appendChild(b);
+    });
+  }catch(e){
+    btn.disabled = false; btn.textContent = "▶ Voices";
+    $("msg").textContent = "Couldn’t load voices (" + (e.code||e.message||"error") + ")";
+  }
+}
+</script>
+</body>
+</html>

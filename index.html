@@ -621,8 +621,10 @@ async function renderBrowse(){
   try{
     const snap = await getDocs(query(collection(db,"afd_entries"), where("source","==","user")));
     if(my!==renderToken) return;
-    // a word its creator removed leaves the list at once (the purge deletes it later)
-    userDocs = snap.docs.filter(d=>!seen.has(d.id) && !(d.data()||{}).removedAt);
+    // a word its creator removed leaves the list at once (the purge deletes it
+    // later); one a steward hid (steward.html) stays out until shown again
+    userDocs = snap.docs.filter(d=>{ const x=d.data()||{};
+      return !seen.has(d.id) && !x.removedAt && !x.hiddenAt; });
   }catch(e){ console.warn("[AFD] browse: user entries", e); }
   const userCards = await Promise.all(userDocs.map(d =>
     entryCard({entryId: d.id}, false).catch(()=>null)));

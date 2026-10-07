@@ -22,7 +22,7 @@ import {
   assertFails,
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
-import { doc, setDoc, updateDoc, deleteDoc, serverTimestamp, setLogLevel } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, deleteField, serverTimestamp, setLogLevel } from "firebase/firestore";
 import { ref, uploadBytes, getBytes, deleteObject } from "firebase/storage";
 
 setLogLevel("error");
@@ -132,7 +132,7 @@ describe("entry — immutable once added, except remove-my-word and tags", () =>
   it("someone else cannot remove it", async () => {
     await assertFails(updateDoc(entry(fsAs("uB")), { removedAt: serverTimestamp() }));
   });
-  it("not even a steward (that's the creator's call; stewards act in the console)", async () => {
+  it("not even a steward (that's the creator's call; a steward hides instead)", async () => {
     await assertFails(updateDoc(entry(fsAs("uSteward")), { removedAt: serverTimestamp() }));
   });
   it("a seeded word can't be removed", async () => {
@@ -163,6 +163,74 @@ describe("entry — immutable once added, except remove-my-word and tags", () =>
   });
   it("tags ride alone — no sneaking other fields in", async () => {
     await assertFails(updateDoc(entry(fsAs("uA")), { tags: ["Mehri"], pic: "🐐" }));
+  });
+});
+
+describe("entry — steward review (steward.html)", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await setDoc(entry(c.firestore()),
+        { source: "user", createdBy: "uA", createdAt: 1, pic: "🐐", image: imageUrl("uA") });
+      await setDoc(entry(c.firestore(), "ent_sun"), { gloss: "sun", pic: "☀️" });   // a seeded word
+    });
+  });
+  const steward = () => entry(fsAs("uSteward"));
+
+  // reviewed
+  it("a steward can mark a word reviewed, to now", async () => {
+    await assertSucceeds(updateDoc(steward(), { reviewedAt: serverTimestamp() }));
+  });
+  it("…not to a chosen time", async () => {
+    await assertFails(updateDoc(steward(), { reviewedAt: 5 }));
+  });
+  it("the creator can't mark their own word reviewed", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { reviewedAt: serverTimestamp() }));
+  });
+  it("a new word can't arrive already reviewed or hidden", async () => {
+    await assertFails(setDoc(entry(fsAs("uB"), "ent_u_new"), { ...base("uB"), reviewedAt: serverTimestamp() }));
+    await assertFails(setDoc(entry(fsAs("uB"), "ent_u_new"), { ...base("uB"), hiddenAt: serverTimestamp() }));
+  });
+
+  // hide / show again
+  it("a steward can hide a word, and show it again", async () => {
+    await assertSucceeds(updateDoc(steward(), { hiddenAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(steward(), { hiddenAt: deleteField() }));
+  });
+  it("…hidden only to now, and only once", async () => {
+    await assertFails(updateDoc(steward(), { hiddenAt: 5 }));
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(entry(c.firestore()), { hiddenAt: 1 });
+    });
+    await assertFails(updateDoc(steward(), { hiddenAt: serverTimestamp() }));
+  });
+  it("nobody else can hide or unhide", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { hiddenAt: serverTimestamp() }));
+    await assertFails(updateDoc(entry(fsAs("uB")), { hiddenAt: serverTimestamp() }));
+  });
+  it("seeded words aren't hidden from here", async () => {
+    await assertFails(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { hiddenAt: serverTimestamp() }));
+  });
+
+  // picture takedown
+  it("a steward can take the picture down (photo and emoji)", async () => {
+    await assertSucceeds(updateDoc(steward(), { image: deleteField(), pic: deleteField() }));
+  });
+  it("…or just the photo", async () => {
+    await assertSucceeds(updateDoc(steward(), { image: deleteField() }));
+  });
+  it("…but never put a different picture up", async () => {
+    await assertFails(updateDoc(steward(), { image: imageUrl("uSteward") }));
+    await assertFails(updateDoc(steward(), { pic: "🙂" }));
+  });
+  it("the creator can't take their picture off (or change it) this way", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { image: deleteField() }));
+  });
+  it("seeded pictures aren't taken down from here", async () => {
+    await assertFails(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { pic: deleteField() }));
+  });
+  it("each action rides alone", async () => {
+    await assertFails(updateDoc(steward(), { hiddenAt: serverTimestamp(), reviewedAt: serverTimestamp() }));
+    await assertFails(updateDoc(steward(), { image: deleteField(), gloss: "x" }));
   });
 });
 

@@ -700,7 +700,9 @@ async function entryCard(res, lead){
   });
 
   if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
-  return { el, playBtn, removed: !!meta.removedAt, get firstPlayable(){ return firstPlayable; } };
+  // removed by its creator, or hidden by a steward (steward.html): either way it
+  // stays out of the dictionary, search and old links
+  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt), get firstPlayable(){ return firstPlayable; } };
 }
 
 export { entryCard, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
