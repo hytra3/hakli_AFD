@@ -557,7 +557,11 @@ async function openEntry(entryId){
   if(my!==renderToken) return;                 // superseded by a newer render/open
   resultsEl.innerHTML="";                       // clear again in case of a race
   resultsEl.appendChild(backToAll());
-  resultsEl.appendChild(lead.el);
+  if(lead.removed){
+    // an old link to a word its creator removed: say so, not the stale card
+    const g=AFDCore.STRINGS["card.removed.gone"];
+    setHint(g.en, g.ar);
+  }else resultsEl.appendChild(lead.el);
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 }
 function applyEntryDeepLink(){
