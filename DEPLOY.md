@@ -33,6 +33,12 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
 - **Link revoker** (`revoke/`) — a Cloud Function that rotates a take's
   download token the moment it's withdrawn or erased, so links people already
   have stop working. Updated by the **Deploy revoke** task.
+- **Embedding backfill** — if a take uploaded its audio but its phone stayed
+  offline more than a day before saving the take, it never got an embedding
+  (speak-to-find can't match it). `node scripts/backfill-embeddings.mjs` lists
+  them; `--apply` re-runs the embed trigger for each.
+- **Tests** run on every pull request (GitHub → the PR's "Checks"): the
+  Firestore/Storage rules in the emulators, and the Python services.
 - **Storage rules** (`afd-storage.rules`) — corpus audio is playable only
   while its recording is public. Before deploying them, run
   `node scripts/audit-recording-paths.mjs` (add `--fix` to repair missing
