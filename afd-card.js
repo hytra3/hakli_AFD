@@ -186,7 +186,7 @@ async function listPlayable(entryId){
     if(v.consent==="deleted") return;   // erased: awaiting server purge, shown to no one — not even its owner
     let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }catch(_){ return; }
     seen.add(d.id);
-    out.push({ url, recordingId:d.id, entryId, uid:v.uid, viaAgent: v.viaAgent===true,
+    out.push({ url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
                type: v.type || v.phase || "word",
                consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
                mine: !!(CFG.user() && v.uid===CFG.user().uid),
@@ -283,6 +283,19 @@ async function withdrawSpeaker(uid, speakerId, state, withdrawal){
 
 async function setConsent(rec, state){
   try{
+    // The rules only let a take become playable while its speaker card is
+    // public. Restoring one take of a withdrawn speaker is the steward choosing
+    // to share again, so reopen the card first — the same act as the roster's
+    // "share again", just started from a single voice. (A card whose speaker
+    // never ticked public playback also reads "withdrawn".)
+    if(state==="public" && rec.speakerId && CFG.user()){
+      try{
+        const sref=doc(CFG.db,"afd_speakers",rec.speakerId), sn=await getDoc(sref);
+        const card=sn.exists() ? (sn.data()||{}) : null;
+        if(card && card.consent!=="public" && card.stewardUid===CFG.user().uid)
+          await updateDoc(sref, { consent:"public" });
+      }catch(e){ console.warn("[AFD] reopen speaker card", e); }
+    }
     await updateDoc(doc(CFG.db,"afd_entries",rec.entryId,"recordings",rec.recordingId),
       { consent: state, allowPlayback: state==="public" });
     rec.consent = state; return true;
