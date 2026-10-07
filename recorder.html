@@ -91,6 +91,14 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
 .spkchip-main{flex:1;min-width:0;font-weight:600;font-size:13px;color:var(--ink,#16241d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .spkchip-code{flex:0 0 auto;font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
 .spkchip-sw{flex:0 0 auto;color:var(--ink-soft);font-size:15px}
+/* Will these takes be heard by others? Green when public; amber (tappable) when
+   not, so a whole session can't quietly end up unheard. */
+.sharechip{display:flex;align-items:center;gap:8px;padding:7px 12px;margin:-6px 0 14px;font-size:12.5px;
+  border-radius:12px;border:1px solid var(--hairline);background:var(--paper);color:var(--ink-soft)}
+.sharechip.pub{color:#2E6B4F;border-color:#B9D8C6;background:#EEF6F1}
+.sharechip.priv{color:#8A5A1E;border-color:var(--frank-soft);background:#FBF3E8;cursor:pointer}
+.sharechip .bi-ar{font-size:13px}
+.sharechip .sub{font-size:11px}
 .topbtns{display:flex;gap:8px;align-items:center}
 /* Small Arabic captions under the round header icons — a first-time visitor
    couldn't tell what the page / waveform / person icons did. Arabic in every
@@ -544,6 +552,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <div id="micResult" class="hidden">
       <div id="verdict" class="verdict"></div>
       <div class="readout" id="readout"></div>
+      <button class="btn ghost hidden" id="levelBtn"><span class="bi-ar" dir="rtl" data-str="mic.level.btn">اختبر مستوى الصوت — قل كلمة</span><small class="sub">Test the level — say a word</small></button>
+      <div id="levelResult" class="verdict hidden" aria-live="polite"></div>
       <button class="btn" id="toRecord"><span class="bi-ar" dir="rtl" data-str="mic.torecord">ابدأ تسجيل الكلمات</span><small class="sub">Start recording words</small></button>
       <button class="btn ghost" id="retryMic"><span class="bi-ar" dir="rtl" data-str="mic.retry">افحص مرّة أخرى</span><small class="sub">Check again</small></button>
     </div>
@@ -555,6 +565,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 <section id="recorder" class="hidden">
 
   <div id="recChip" class="spkchip hidden" role="button" tabindex="0" title="Tap to change speaker"></div>
+  <div id="shareChip" class="sharechip hidden" aria-live="polite"></div>
 
   <div class="rectype" id="rectype">
     <button class="rt active" data-type="word">كلمة <span class="ar">Word</span></button>
@@ -1615,6 +1626,7 @@ function speakerChipHTML(){
   return ic+'<span class="spkchip-main">'+rosterEsc(label)+'</span><span class="spkchip-code">'+rosterEsc(code)+'</span><span class="spkchip-sw" aria-hidden="true">\u21c4</span>';
 }
 function renderSpeakerChip(){
+  renderShareChip();
   const on = !!($("agentMode") && $("agentMode").checked) || (speakerRoster().length > 1);
   const html = on ? speakerChipHTML() : "";
   ["micChip","recChip"].forEach(id=>{
@@ -1627,6 +1639,63 @@ function renderSpeakerChip(){
     }
   });
 }
+/* ---- sharing status: are this speaker's takes heard by other people? ------
+   Two switches decide it: the speaker form's "Let other people listen" box, and
+   the speaker card (a withdrawn card — including one whose speaker never ticked
+   the box — keeps new takes hidden). Spell the outcome out on the recording
+   screen, and let a tap fix it. */
+let _shareSeq=0;
+async function renderShareChip(){
+  const el=$("shareChip"); if(!el) return;
+  const my=++_shareSeq;
+  const u=(window.AFD && window.AFD.user) ? window.AFD.user() : null;
+  const code=($("spkId").value||"").trim();
+  // listenOnly / dispMode are declared further down this script; a render that
+  // happens before they exist simply waits for the next one (show() re-renders).
+  let lo, dm; try{ lo=listenOnly; dm=dispMode; }catch(_){ return; }
+  if(!u || !code || lo){ el.classList.add("hidden"); return; }
+  const ticked=!!($("cPlay") && $("cPlay").checked);
+  let card=null;
+  if(ticked && window.AFD.speakerState){ try{ card=await window.AFD.speakerState(code); }catch(_){} }
+  if(my!==_shareSeq) return;                        // a newer render is on its way
+  const state = !ticked ? "private" : card==="deleted" ? "erased" : (card && card!=="public") ? "closed" : "public";
+  el.className="sharechip "+(state==="public"?"pub":"priv");
+  el.innerHTML=AFDCore.tHTML("share."+state, dm);
+  el.setAttribute("role", state==="public" ? "status" : "button");
+  el.tabIndex = state==="public" ? -1 : 0;
+  const act = state==="private" ? ()=>{ show("setup"); const c=$("cPlay"); if(c){ c.scrollIntoView({block:"center"}); c.focus(); } }
+            : state==="closed" ? ()=>offerShare(code)          // "erased" is never re-opened from here
+            : null;
+  el.onclick=act;
+  el.onkeydown= act ? (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); act(); } } : null;
+}
+// Reopen a speaker whose card is withdrawn, after asking. Same act as the
+// roster's "share again": the card first, then that speaker's takes.
+async function offerShare(code){
+  const u=window.AFD && window.AFD.user && window.AFD.user();
+  if(!u || !code || !window.AFD.withdrawSpeaker) return;
+  if(!confirm(AFDCore.t("share.confirm",dispMode).split("{spk}").join(code))) return;
+  try{ await window.AFD.withdrawSpeaker(u.uid, code, "public"); }
+  catch(e){ console.warn("[AFD] share speaker", e); }
+  renderShareChip();
+  try{ renderRoster(); }catch(_){}
+}
+(function(){
+  const c=$("cPlay"); if(!c) return;
+  c.addEventListener("change", async ()=>{
+    // Ticking the box on a speaker whose card is closed would otherwise change
+    // nothing for their takes (a withdrawn card wins) — offer to share now.
+    if(c.checked){
+      const u=window.AFD && window.AFD.user && window.AFD.user();
+      const code=($("spkId").value||"").trim();
+      if(u && code && window.AFD.speakerState){
+        let st=null; try{ st=await window.AFD.speakerState(code); }catch(_){}
+        if(st==="withdrawn") await offerShare(code);
+      }
+    }
+    renderShareChip();
+  });
+})();
 function show(which){
   ["setup","miccheck","recorder"].forEach(s=>$(s).classList.toggle("hidden",s!==which));
   paintStepHeader(which);
@@ -1740,6 +1809,8 @@ async function openMic(){
 
   $("micResult").classList.remove("hidden");
   $("toRecord").classList.toggle("hidden",!ok);
+  $("levelBtn").classList.toggle("hidden",!ok);
+  $("levelResult").classList.add("hidden");
   $("verdict").className="verdict "+(ok?"ok":"bad");
   if(ok){
     $("verdict").innerHTML=verdictHTML("mic.ok.title","mic.ok.body");
@@ -1759,6 +1830,52 @@ async function openMic(){
     "<b>device</b>"+((track&&track.label)||"unnamed");
 }
 function fmt(v){return v===undefined?"not reported":(v?"ON — should be off":"off");}
+
+/* ---- level check (optional, step 2) --------------------------------------
+   Browser auto-gain is off on purpose (archive quality), so the device's own
+   input volume is what gets recorded: a laptop set high distorts every take,
+   a phone held far away is too faint. Listen to ~3.5 s of the speaker saying
+   a word and say which. Same clipping test as the per-take QC (isClipped). */
+async function testLevel(){
+  const btn=$("levelBtn"), out=$("levelResult");
+  if(!stream || !btn) return;
+  btn.disabled=true;
+  const label=btn.innerHTML;
+  btn.innerHTML=AFDCore.tHTML("mic.level.listening", dispMode);
+  out.classList.add("hidden");
+  let res;
+  try{
+    ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+    try{ await ctx.resume(); }catch(_){}
+    const src=ctx.createMediaStreamSource(stream), an=ctx.createAnalyser();
+    an.fftSize=2048; src.connect(an);
+    const buf=new Float32Array(an.fftSize), frames=[];
+    let clipped=0, total=0;
+    const t0=performance.now();
+    await new Promise(done=>{
+      const iv=setInterval(()=>{
+        an.getFloatTimeDomainData(buf);
+        let e=0;
+        for(let i=0;i<buf.length;i++){ const a=Math.abs(buf[i]); if(a>=CLIP_LEVEL) clipped++; e+=a*a; }
+        total+=buf.length; frames.push(Math.sqrt(e/buf.length));
+        if(performance.now()-t0>3500){ clearInterval(iv); done(); }
+      }, 40);                                   // ~ one 2048-sample window per tick at 48 kHz
+    });
+    try{ src.disconnect(); }catch(_){}
+    frames.sort((a,b)=>a-b);
+    const floor=frames[Math.floor(frames.length*0.2)]||0, loudest=frames[frames.length-1]||0;
+    res = isClipped({clipped, samples:total}) ? "loud"
+        : loudest < 0.015                     ? "quiet"      // voice never rose above ~-36 dBFS
+        : (floor > 0.015 || loudest < floor*4) ? "noisy"     // the room is nearly as loud as the voice
+        : "ok";
+    console.log("[AFD] level check", {res, clipped, total, floor:+floor.toFixed(4), loudest:+loudest.toFixed(4)});
+  }catch(e){ console.warn("[AFD] level check", e); }
+  btn.disabled=false; btn.innerHTML=label;
+  if(!res) return;
+  out.className="verdict "+(res==="ok"?"ok":"bad");
+  out.innerHTML=verdictHTML("mic.level."+res+".title","mic.level."+res+".body");
+}
+$("levelBtn").onclick=testLevel;
 function ctxRate(){try{return new (window.AudioContext||window.webkitAudioContext)().sampleRate;}catch(e){return 0;}}
 
 function setupAnalyser(){

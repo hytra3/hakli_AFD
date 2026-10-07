@@ -151,25 +151,28 @@ async function entryCounts(entryId){
 // voices. Obscure stewards, and any voice recorded by proxy (viaAgent), keep
 // the deterministic fauna avatar — a known steward never reveals the elders
 // they recorded. Public reads (afd_stewards + afd_avatars), cached per owner.
-const _stewardCache = new Map();   // uid -> { known, displayName, avatarUrl } | null
-async function stewardProfile(uid){
-  if(!uid || !CFG.db) return null;
-  if(_stewardCache.has(uid)) return _stewardCache.get(uid);
-  let prof = null;
-  try{
-    const sn = await getDoc(doc(CFG.db,"afd_stewards",uid));
-    if(sn.exists()){
-      const d = sn.data() || {};
-      if(d.visibility === "known"){
-        prof = { known:true, displayName:String(d.displayName||"").slice(0,80), avatarUrl:null };
-        // Only reach for the picture when the profile says one exists — otherwise
-        // getDownloadURL 404s in the console even though we catch the rejection.
-        if(d.hasAvatar===true){ try{ prof.avatarUrl = await getDownloadURL(ref(CFG.store,"afd_avatars/"+uid+"/avatar")); }catch(_){} }
+const _stewardCache = new Map();   // uid -> Promise<{ known, displayName, avatarUrl } | null>
+function stewardProfile(uid){
+  if(!uid || !CFG.db) return Promise.resolve(null);
+  // Cache the in-flight lookup, not just the answer, so voices loading in
+  // parallel share one read per contributor.
+  if(!_stewardCache.has(uid)) _stewardCache.set(uid, (async ()=>{
+    let prof = null;
+    try{
+      const sn = await getDoc(doc(CFG.db,"afd_stewards",uid));
+      if(sn.exists()){
+        const d = sn.data() || {};
+        if(d.visibility === "known"){
+          prof = { known:true, displayName:String(d.displayName||"").slice(0,80), avatarUrl:null };
+          // Only reach for the picture when the profile says one exists — otherwise
+          // getDownloadURL 404s in the console even though we catch the rejection.
+          if(d.hasAvatar===true){ try{ prof.avatarUrl = await getDownloadURL(ref(CFG.store,"afd_avatars/"+uid+"/avatar")); }catch(_){} }
+        }
       }
-    }
-  }catch(_){}
-  _stewardCache.set(uid, prof);
-  return prof;
+    }catch(_){}
+    return prof;
+  })());
+  return _stewardCache.get(uid);
 }
 function photoAvatar(bg, url){
   return { bg, svg:`<img src="${url}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit">` };
@@ -180,43 +183,47 @@ function monogramAvatar(bg, name){
 }
 
 async function listPlayable(entryId){
-  const out=[], seen=new Set();
-  const add=async(d)=>{
-    if(seen.has(d.id)) return; const v=d.data(); if(!v.storagePath) return;
-    if(v.consent==="deleted") return;   // erased: awaiting server purge, shown to no one — not even its owner
-    let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }catch(_){ return; }
-    seen.add(d.id);
-    out.push({ url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
-               type: v.type || v.phase || "word",
-               consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
-               mine: !!(CFG.user() && v.uid===CFG.user().uid),
-               envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
-               avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) });
-  };
+  // Everything here runs in parallel: the two queries, then one audio link per
+  // voice, then the contributor profiles. One at a time, a word with a few
+  // voices took several seconds to open — each link is a network round-trip,
+  // and under the consent-gated Storage rules each also costs a Firestore read.
+  const recsCol=collection(CFG.db,"afd_entries",entryId,"recordings");
+  let docs=[];
   try{
-    const pub=await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),
-                                  where("allowPlayback","==",true), limit(12)));
-    for(const d of pub.docs) await add(d);
-    // the signed-in viewer's own voices for this word — including withdrawn ones,
-    // so they can restore. Dev + deployed rules both let an author read their own.
-    if(CFG.user()){
-      const mineQ=await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),
-                                      where("uid","==",CFG.user().uid), limit(12)));
-      for(const d of mineQ.docs) await add(d);
-    }
+    const [pub, mine] = await Promise.all([
+      getDocs(query(recsCol, where("allowPlayback","==",true), limit(12))),
+      // the signed-in viewer's own voices for this word — including withdrawn ones,
+      // so they can restore. Dev + deployed rules both let an author read their own.
+      CFG.user() ? getDocs(query(recsCol, where("uid","==",CFG.user().uid), limit(12)))
+                 : Promise.resolve({ docs: [] })
+    ]);
+    const seen=new Set();
+    for(const d of [...pub.docs, ...mine.docs]){ if(!seen.has(d.id)){ seen.add(d.id); docs.push(d); } }
   }catch(_){}
+  const rows = await Promise.all(docs.map(async d=>{
+    const v=d.data(); if(!v.storagePath) return null;
+    if(v.consent==="deleted") return null;   // erased: awaiting server purge, shown to no one — not even its owner
+    let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }catch(_){ return null; }
+    return { url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
+             type: v.type || v.phase || "word",
+             consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
+             mine: !!(CFG.user() && v.uid===CFG.user().uid),
+             envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
+             avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) };
+  }));
+  const out = rows.filter(Boolean);           // same order as before: public first, then the viewer's own
   // Overlay contributor identity: a "known" steward's own (non-proxied) voices
   // get their photo, or a name monogram if they set no picture. Cache dedupes
   // repeated owners, so this is at most one read per distinct contributor.
-  for(const rec of out){
-    if(rec.viaAgent || !rec.uid) continue;         // proxied voices stay pseudonymous
+  await Promise.all(out.map(async rec=>{
+    if(rec.viaAgent || !rec.uid) return;         // proxied voices stay pseudonymous
     const p = await stewardProfile(rec.uid);
     if(p && p.known){
       rec.displayName = p.displayName;
       rec.avatar = p.avatarUrl ? photoAvatar(rec.avatar.bg, p.avatarUrl)
                                : monogramAvatar(rec.avatar.bg, p.displayName);
     }
-  }
+  }));
   return out;
 }
 
@@ -478,6 +485,9 @@ function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, se
 async function entryCard(res, lead){
   const el = document.createElement("div");
   el.className = "card" + (lead ? " lead open" : "");
+  // A lead card opens at once, so start fetching its voices now, alongside the
+  // entry doc, instead of after it.
+  let playable = lead ? listPlayable(res.entryId) : null;
 
   // entry metadata (public). Fall back gracefully if absent.
   let meta={};
@@ -539,7 +549,7 @@ async function entryCard(res, lead){
   // lets the dictionary render 40 cards without hundreds of Storage calls up front.
   async function loadDetail(){
     if(loaded) return firstPlayable; loaded=true;
-    const recs = await listPlayable(res.entryId);
+    const recs = await (playable || listPlayable(res.entryId));
     const wordRecs    = recs.filter(r => (r.type||"word")==="word");
     const contextRecs = recs.filter(r => r.type==="context");
     const defRecs     = recs.filter(r => r.type==="definition");

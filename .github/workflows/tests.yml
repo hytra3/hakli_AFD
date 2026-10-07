@@ -1,0 +1,49 @@
+# Runs the security-rules tests and the server-side Python tests on every pull
+# request (and on pushes to main), so a PR shows pass/fail before it is merged.
+# Nothing here deploys or touches the live Firebase project: the rules run in
+# the local emulators, and the Python tests stub every Google Cloud client.
+name: tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    name: Firestore + Storage rules (emulators)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: test/package-lock.json
+      - uses: actions/setup-java@v4      # the emulators run on Java
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm install -g firebase-tools
+      - run: npm ci
+        working-directory: test
+      - name: Run rules tests
+        run: firebase emulators:exec --project afd-dev --only firestore,storage "cd test && npm test"
+
+  python:
+    name: Purge, embed trigger, embed service, revoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: pip install numpy fastapi python-multipart httpx
+      - name: Run Python tests
+        run: python -m unittest discover -s test -p "test_*.py" -v
