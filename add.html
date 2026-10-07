@@ -839,6 +839,7 @@ async function share(){
   sharing = true; wantShare = false;
   const btn = $("shareBtn"); btn.disabled = true; btn.innerHTML = bi("add.share.saving");
   $("shareErr").textContent = "";
+  let step = "start";
   try{
     const uid = u.uid, up = draft.up;
     if(up.uid !== uid){
@@ -849,12 +850,14 @@ async function share(){
       if(!up.meaning) up.meaningId = null;
       up.speakerId = null; up.uid = uid;
     }
+    step = "speaker";
     if(!up.speakerId) up.speakerId = await selfSpeaker(uid);
     await saveDraft();
 
     // photo → entry → word → meaning. Each is write-once on the server, so a
     // retry that finds its earlier attempt already landed just carries on.
     if(draft.photo && !up.entry && !up.photo){
+      step = "photo";
       const path = "afd_pics/"+uid+"/"+draft.entryId+".jpg";
       try{ await uploadBytes(ref(store, path), draft.photo, { contentType:"image/jpeg" }); }
       catch(e){
@@ -864,6 +867,7 @@ async function share(){
       up.photo = true; up.photoPath = path; await saveDraft();
     }
     if(!up.entry){
+      step = "entry";
       const eref = doc(db, "afd_entries", draft.entryId);
       const data = { source:"user", createdBy:uid, createdAt:serverTimestamp() };
       if(draft.pic) data.pic = draft.pic;
@@ -880,11 +884,13 @@ async function share(){
     const ctx = { db, store, uid }, spk = speakerSnapshot(up.speakerId);
     const recId = ()=> "rec_"+draft.entryId.replace(/^ent_/,"")+"_"+uid.slice(0,6)+"_"+up.speakerId+"_"+Date.now();
     if(draft.word && !up.word){
+      step = "word";
       if(!up.wordId){ up.wordId = recId(); await saveDraft(); }
       await uploadClip(ctx, takeRec(draft.word, "word", up.wordId, up.speakerId), spk);
       up.word = true; await saveDraft();
     }
     if(draft.meaning && !up.meaning){
+      step = "meaning";
       if(!up.meaningId){ up.meaningId = recId()+"_m"; await saveDraft(); }
       await uploadClip(ctx, takeRec(draft.meaning, "definition", up.meaningId, up.speakerId), spk);
       up.meaning = true; await saveDraft();
@@ -896,8 +902,17 @@ async function share(){
     show("done");
     await clearDraft();
   }catch(e){
-    console.warn("[AFD add] share", e);
-    $("shareErr").innerHTML = bi("add.share.err");
+    console.warn("[AFD add] share failed at", step, e);
+    // Only blame the signal when the phone says it's offline. Anything else
+    // (a refused write, a rules mismatch) gets the step and error code, so a
+    // screenshot from the field is enough to tell what went wrong.
+    if(navigator.onLine === false){
+      $("shareErr").innerHTML = bi("add.share.err");
+    }else{
+      const code = (e && (e.code || e.name)) || "error";
+      $("shareErr").innerHTML = bi("add.share.failed") +
+        '<small style="display:block;opacity:.6;margin-top:6px;direction:ltr">' + esc(step + " · " + code) + '</small>';
+    }
   }finally{
     sharing = false; btn.disabled = false; btn.innerHTML = bi("add.share.go");
   }
