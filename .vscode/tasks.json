@@ -34,6 +34,14 @@
       "presentation": { "reveal": "always", "panel": "shared", "clear": true }
     },
     {
+      "label": "AFD: Deploy purge (Cloud Function)",
+      "detail": "Redeploy the nightly clean-up after editing purge/main.py. Keeps its settings.",
+      "type": "shell",
+      "command": "bash ${workspaceFolder}/scripts/deploy-purge.sh",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
       "label": "AFD: Health check the service",
       "detail": "Confirm the matcher is alive and see its routes + corpus size.",
       "type": "shell",
