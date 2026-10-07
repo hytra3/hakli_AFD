@@ -73,7 +73,11 @@ self.addEventListener("fetch", (e) => {
 async function navigate(e) {
   const req = e.request;
   const c = await caches.open(CACHE);
-  const net = fetch(req).then(async (r) => {
+  // cache:"no-cache" = always ask the server (a cheap 304 when nothing changed).
+  // A plain fetch() honours the HTTP cache, and GitHub Pages lets a page be
+  // reused for 10 minutes — so just after a publish one page could load the new
+  // build while another still showed the old one.
+  const net = fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(async (r) => {
     if (r && r.ok) await c.put(stripQuery(req.url), r.clone());   // one copy per page, ignoring ?query/#hash
     return r;
   });

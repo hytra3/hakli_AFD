@@ -107,6 +107,7 @@
 /* Share sits just under "Say it yourself", one step quieter: a <button>, so it
    needs the full width an <a class="sayit"> gets from the flex column. */
 .afdcard .shareit{width:100%; margin-top:-4px; border-style:dashed; font-weight:500}
+.afdcard .shareit.next-link{border-style:solid; border-color:var(--resin); color:var(--resin)}
 /* labelled sections inside an open card: "the word" (voices), then the empty
      homes for context & definition audio (the recorder doesn't capture those yet) */
   .afdcard .slot .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px}
