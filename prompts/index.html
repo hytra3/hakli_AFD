@@ -208,7 +208,7 @@ const SECTIONS = [
   ]},
   { name:"Consent grant (most important)", items:[
     { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", ar:"ماذا يعني أن تدع العالم يسمعك — بوضوحٍ، قبل أي موافقة", kind:"narration" },
-    { key:"consent.blessing", en:"Keep your culture alive", ar:"حافظ على حيوية ثقافتك", kind:"label" },
+    { key:"consent.blessing", en:"Keep your culture strong", ar:"حافظ على قوّة ثقافتك", kind:"label" },   // was "…alive"; re-record if an old take exists
     { key:"consent.truth.world", en:"Anyone, anywhere can hear you", ar:"يمكن لأي شخص، في أي مكان، أن يسمعك", kind:"label" },
     { key:"consent.truth.permanent", en:"It stays — even after today", ar:"يبقى — حتى بعد اليوم", kind:"label" },
     { key:"consent.truth.revocable", en:"You can take it back, anytime", ar:"يمكنك سحبه في أي وقت", kind:"label" },
@@ -312,6 +312,22 @@ const SCREEN_GROUPS = [
   });
   SCREEN_GROUPS.forEach((g,i)=>{ if(buckets[i].length || !g.catchAll) SECTIONS.push({ name:g.name+" · "+g.ar, items:buckets[i], screen:true }); });
 })();
+/* ---- Spoken prompts for "Add a word" (add.html). Pushed AFTER the on-screen
+   sections, not into SECTIONS above, so every existing section and item keeps
+   its number. Only lines the earlier sections don't already cover: the page
+   also uses record.hold / record.holding / record.release, review.redo /
+   review.keep, nav.back and action.play from the lists above.
+   Wording "strengthen", not "keep alive". */
+SECTIONS.push({ name:"Add a word — say it · show it · share it (spoken)", items:[
+  { key:"add.say",          en:"Say your word: hold the button and say it twice, with a short pause", ar:"قُل كلمتك: اضغط باستمرار وقُلها مرّتين، مع وقفة قصيرة", kind:"narration" },
+  { key:"add.show",         en:"Now show what it means — a photo, a picture, or say it", ar:"والآن أَرِنا معناها — بصورة، أو رسم، أو قُلها", kind:"narration" },
+  { key:"add.show.photo",   en:"Take a photo", ar:"التقط صورة", kind:"label" },
+  { key:"add.show.picture", en:"Choose a picture", ar:"اختر رسمًا", kind:"label" },
+  { key:"add.show.meaning", en:"Say what it means", ar:"قُل ماذا تعني", kind:"label" },
+  { key:"add.share",        en:"Share it: your word goes into the Hakli dictionary, and it stays yours", ar:"شارِكها: تُضاف كلمتك إلى قاموس الحَكلي، وتبقى لك", kind:"narration" },
+  { key:"add.done",         en:"Thank you — your word is in the dictionary. Together we strengthen Hakli", ar:"شكرًا لك — كلمتك الآن في القاموس. معًا نُقوّي الحَكلي", kind:"narration" },
+  { key:"add.another",      en:"Add another word", ar:"أضِف كلمة أخرى", kind:"label" },
+]});
 // Number every section (1, 2, 3…) and item (1.1, 1.2…) in list order.
 SECTIONS.forEach((sec,si)=>{ sec.num = si+1; sec.items.forEach((it,ii)=>{ it.num = (si+1)+"."+(ii+1); }); });
 const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.num+" · "+s.name})));

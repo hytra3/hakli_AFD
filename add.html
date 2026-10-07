@@ -71,6 +71,11 @@ header h1 .sub{font-size:12px}
 .wrap{max-width:520px; margin:0 auto; padding:16px 16px calc(40px + env(safe-area-inset-bottom))}
 section{display:flex; flex-direction:column; align-items:stretch; gap:14px}
 h2{font-size:24px; margin:6px 0 0; text-align:center; color:var(--mountain)}
+/* a step's title + its spoken prompt (🔈 shows only once that prompt is recorded) */
+.titlerow{display:flex; align-items:center; justify-content:center; gap:10px}
+.hear{width:40px; height:40px; border-radius:50%; border:1px solid var(--mist-2); background:var(--cloud);
+  color:var(--mountain); display:grid; place-items:center; cursor:pointer; margin-top:6px; flex:0 0 auto}
+.hear svg{width:20px; height:20px}
 h2 .sub{font-size:14px}
 .hint{margin:0; text-align:center; font-size:16px; line-height:1.5; color:var(--mountain)}
 .note{margin:0; font-size:13px; line-height:1.45; color:#4d6159}
@@ -166,7 +171,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 
   <!-- ============ 1. SAY IT ============ -->
   <section id="say">
-    <h2 data-k="add.step.say"></h2>
+    <div class="titlerow"><h2 data-k="add.step.say"></h2><button class="hear" type="button" hidden aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
     <p class="hint" data-k="add.say.hint"></p>
     <div class="stage">
       <button class="hold" id="sayBtn" type="button" aria-label="Hold to record">
@@ -191,7 +196,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <div class="pic" id="showPic"></div>
       <button class="play" id="showPlay" type="button" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
     </div>
-    <h2 data-k="add.step.show"></h2>
+    <div class="titlerow"><h2 data-k="add.step.show"></h2><button class="hear" type="button" hidden aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
     <p class="hint" data-k="add.show.hint"></p>
 
     <div class="tiles">
@@ -253,7 +258,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <div class="pic" id="sharePic"></div>
       <button class="play" id="sharePlay" type="button" aria-label="Play"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
     </div>
-    <h2 data-k="add.step.share"></h2>
+    <div class="titlerow"><h2 data-k="add.step.share"></h2><button class="hear" type="button" hidden aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
     <p class="hint" data-k="add.share.hint"></p>
 
     <div class="card">
@@ -293,7 +298,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
   <section id="done" hidden>
     <div class="big-thanks">🎉</div>
     <div class="face"><div class="pic" id="donePic"></div></div>
-    <h2 data-k="add.done.title"></h2>
+    <div class="titlerow"><h2 data-k="add.done.title"></h2><button class="hear" type="button" hidden aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
     <p class="hint" id="doneMsg"></p>
     <a class="btn linkish" id="doneSee" href="index.html" data-k="add.done.see"></a>
     <button class="btn secondary" id="doneAnother" type="button" data-k="add.done.another"></button>
@@ -331,7 +336,7 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getMetadata }
+import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip } from "./afd-upload.js?v=b1007i";
 import { initCard, withdrawSpeaker } from "./afd-card.js?v=b1007i";
@@ -438,6 +443,44 @@ async function saveDraft(){ try{ await idbDo("readwrite", s=>s.put(draft)); }cat
 async function loadDraft(){ try{ return await idbDo("readonly", s=>s.get("current")) || null; }catch(_){ return null; } }
 async function clearDraft(){ try{ await idbDo("readwrite", s=>s.delete("current")); }catch(_){} }
 
+/* ---------------- spoken prompts (Hakli, recorded in prompts/) ----------------
+   Each step speaks its recorded prompt when it appears (add.say / add.show /
+   add.share / add.done — listed in prompts/index.html), and its 🔈 replays it.
+   Nothing plays, and no 🔈 shows, until that prompt has been recorded, so the
+   page works as text in the meantime. Arriving at a step is NARRATION, which
+   quiet mode holds back; a tapped 🔈 or tile label was ASKED for, and plays. */
+const STEP_PROMPT = { say:"add.say", show:"add.show", share:"add.share", done:"add.done" };
+let _promptPaths = null;
+function promptPaths(){
+  if(!_promptPaths) _promptPaths = getDocs(collection(db, "afd_ui_prompts")).then(snap=>{
+    const m = {};
+    snap.forEach(d=>{ const x = d.data()||{}; if(x.status==="recorded") m[d.id] = x.storagePath || ("afd_ui/"+d.id+".webm"); });
+    return m;
+  }).catch(()=>({}));
+  return _promptPaths;
+}
+const _promptUrls = {};
+async function promptUrl(key){
+  if(key in _promptUrls) return _promptUrls[key];
+  const p = (await promptPaths())[key];
+  _promptUrls[key] = p ? await getDownloadURL(ref(store, p)).catch(()=>null) : null;
+  return _promptUrls[key];
+}
+async function speakStep(which){
+  const key = STEP_PROMPT[which]; if(!key) return;
+  const url = await promptUrl(key);
+  const btn = document.querySelector("#"+which+" .hear");
+  if(btn){ btn.hidden = !url; btn.onclick = ()=> url && C.playUI(url, "asked"); }
+  if(url && !$(which).hidden) C.playUI(url, "narration");
+}
+// A tile's spoken label, for people who don't read — only in the wordless tier,
+// where the label text isn't the point. Readers just get the tile.
+async function sayLabel(key){
+  if(MODE !== "sound") return;
+  const url = await promptUrl(key);
+  if(url) C.playUI(url, "asked");
+}
+
 /* ---------------- screens ---------------- */
 const SCREENS = ["say","show","share","done"];
 function show(which){
@@ -451,6 +494,7 @@ function show(which){
   if(which==="show") paintShow();
   if(which==="share") paintShare();
   if(which==="done") paintFace($("donePic"));
+  speakStep(which);
   window.scrollTo(0,0);
 }
 
@@ -707,10 +751,10 @@ function togglePanel(name){
   paintShow();
   if(openPanel==="write") setTimeout(()=>$("glossArIn").focus(), 50);
 }
-$("tileEmoji").onclick   = ()=> togglePanel("emoji");
-$("tileMeaning").onclick = ()=> togglePanel("meaning");
+$("tileEmoji").onclick   = ()=>{ sayLabel("add.show.picture"); togglePanel("emoji"); };
+$("tileMeaning").onclick = ()=>{ sayLabel("add.show.meaning"); togglePanel("meaning"); };
 $("tileWrite").onclick   = ()=> togglePanel("write");
-$("tilePhoto").onclick   = ()=>{ if(draft.photo){ togglePanel("photo"); } else { $("photoIn").click(); } };
+$("tilePhoto").onclick   = ()=>{ sayLabel("add.show.photo"); if(draft.photo){ togglePanel("photo"); } else { $("photoIn").click(); } };
 $("photoRetake").onclick = ()=> $("photoIn").click();
 $("photoRemove").onclick = async ()=>{ draft.photo=null; if(photoUrl){ URL.revokeObjectURL(photoUrl); photoUrl=null; } openPanel=null; await saveDraft(); paintShow(); };
 $("emojiRemove").onclick = ()=>{ $("emojiIn").value=""; setPic(""); };
