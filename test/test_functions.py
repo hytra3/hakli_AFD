@@ -163,6 +163,54 @@ class PurgeRun(unittest.TestCase):
         ok.reference.delete.assert_called_once()
 
 
+class PurgeEmptyUserEntry(unittest.TestCase):
+    """A contributor's word with no recordings left is reaped — with its photo."""
+
+    OLD = purge.datetime.datetime(2000, 1, 1, tzinfo=purge.datetime.timezone.utc)
+
+    def _run(self, edata, entry_id="ent_u_0123456789ab", bucket=None):
+        entry = mock.MagicMock()
+        entry.id = entry_id
+        entry.to_dict.return_value = {"source": "user", "createdAt": self.OLD, **edata}
+        recs = entry.reference.collection.return_value
+        recs.limit.return_value.stream.return_value = []          # no recordings at all
+        recs.where.return_value.stream.return_value = []
+        bucket = bucket or mock.MagicMock()
+        with mock.patch.object(purge, "_db") as db, \
+             mock.patch.object(purge, "_gcs") as gcs, \
+             mock.patch.object(purge, "DRY_RUN", False), \
+             mock.patch.object(purge, "BUCKET_NAME", "b"):
+            db.collection.return_value.stream.return_value = [entry]
+            gcs.bucket.return_value = bucket
+            purge.purge(None)
+        return entry, bucket
+
+    def test_photo_then_entry(self):
+        entry, bucket = self._run({"createdBy": "uA", "image": "https://x"})
+        bucket.blob.assert_called_once_with("afd_pics/uA/ent_u_0123456789ab.jpg")
+        bucket.blob.return_value.delete.assert_called_once()
+        entry.reference.delete.assert_called_once()
+
+    def test_no_photo_on_storage_still_reaps(self):
+        bucket = mock.MagicMock()
+        bucket.blob.return_value.delete.side_effect = sys.modules["google.api_core.exceptions"].NotFound()
+        entry, _ = self._run({"createdBy": "uA"}, bucket=bucket)
+        entry.reference.delete.assert_called_once()
+
+    def test_failed_photo_delete_keeps_the_entry(self):
+        bucket = mock.MagicMock()
+        bucket.blob.return_value.delete.side_effect = RuntimeError("503 backend error")
+        entry, _ = self._run({"createdBy": "uA"}, bucket=bucket)
+        entry.reference.delete.assert_not_called()
+
+    def test_photo_path_comes_from_the_entry_not_its_image_url(self):
+        self.assertEqual(purge.owned_photo_path({"createdBy": "uA", "image": "afd/uB/x"}, "ent_u_ab12"),
+                         "afd_pics/uA/ent_u_ab12.jpg")
+        for edata, eid in [({}, "ent_u_ab12"), ({"createdBy": "uA"}, "ent_sun"),
+                           ({"createdBy": "../uB"}, "ent_u_ab12"), ({"createdBy": "uA"}, "ent_u_../x")]:
+            self.assertIsNone(purge.owned_photo_path(edata, eid))
+
+
 # ----------------------------------------------------------- embed trigger
 class EmbedTrigger(unittest.TestCase):
     NAME = "afd/uA/rec1.webm"

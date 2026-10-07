@@ -28,7 +28,8 @@ within each group.
     a real Android + iPhone from a WhatsApp message. If it bites, next step is
     email-link (passwordless) sign-in.
   - Open: a steward review/takedown view for new words and photos (today: delete the
-    photo object as a steward in the console).
+    photo object as a steward in the console). Erasing every voice on a contributed
+    word lets the daily purge reap it after 24h — and, since 10-07, its photo too.
 
 - **Shared core** — `afd-core.js` (entry identity, display tiers, the one mic-capture
   protocol) and `afd-words.js` (the 40-entry wordlist). Both `index.html` and

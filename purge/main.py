@@ -29,6 +29,11 @@ SAFETY RAILS (this deletes an irreplaceable corpus of elders' voices):
   * Only ever deletes the recording's OWN file (afd/{uid}/{recordingId}.*). A
     doc whose storagePath names anything else is refused and logged, never
     purged — see owned_storage_path().
+  * A contributor's word (source == "user") whose recordings are all gone is
+    reaped after the grace window — and its photo with it ("show it",
+    add.html): afd_pics/{createdBy}/{entryId}.jpg, the one path the rules let
+    that entry name. Photo first, then the entry; a failed photo delete keeps
+    the entry for the next sweep. See owned_photo_path().
   * Idempotent — safe to run on a schedule and safe to re-run.
 
 Deploy (from this folder):
@@ -82,6 +87,19 @@ def owned_storage_path(data, recording_id):
             and re.fullmatch(rf"afd/{re.escape(uid)}/{re.escape(recording_id)}\.(webm|m4a)", path)):
         return path
     raise ValueError(f"storagePath {path!r} is not afd/{uid}/{recording_id}.*")
+
+
+def owned_photo_path(edata, entry_id):
+    """Where a contributor's word keeps its photo, if it can have one:
+    afd_pics/{createdBy}/{entryId}.jpg. Built from the entry's own creator and
+    id — never from the client-written image URL — so a reaped entry can only
+    ever take its OWN photo with it. None for anything that isn't a
+    contributor-minted id (ent_u_…) with a creator."""
+    uid = edata.get("createdBy")
+    if (isinstance(uid, str) and re.fullmatch(r"[A-Za-z0-9]+", uid)
+            and isinstance(entry_id, str) and re.fullmatch(r"ent_u_[a-z0-9]+", entry_id)):
+        return f"afd_pics/{uid}/{entry_id}.jpg"
+    return None
 
 
 @functions_framework.cloud_event
@@ -170,9 +188,23 @@ def purge(cloud_event):
             if created is None or created > cutoff:
                 e_within_grace += 1
             elif DRY_RUN:
-                print(f"DRY-RUN would purge empty entry {entry_ref.path}  created={created}")
+                photo = owned_photo_path(edata, entry.id)
+                print(f"DRY-RUN would purge empty entry {entry_ref.path}  created={created}"
+                      + (f"  photo={photo}" if photo else ""))
                 e_purged += 1
             else:
+                # its photo first (if it has one); keep the entry if that fails,
+                # so the next sweep tries again instead of orphaning the picture
+                photo = owned_photo_path(edata, entry.id)
+                if photo:
+                    try:
+                        bucket.blob(photo).delete()
+                    except NotFound:
+                        pass                      # no photo, or already gone — fine
+                    except Exception as ex:
+                        errors += 1
+                        print(f"photo delete failed {photo}: {ex} — keeping {entry_ref.path} for the next sweep")
+                        continue
                 try:
                     entry_ref.delete()
                     e_purged += 1
