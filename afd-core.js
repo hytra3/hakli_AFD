@@ -472,7 +472,7 @@ window.AFDCore = (function(){
     "add.done.another":     { en:"Add another word",    ar:"أضِف كلمة أخرى" },
     "add.done.see":         { en:"See it in the dictionary", ar:"شاهِدها في القاموس" },
     "add.done.invite":      { en:"Invite a friend",     ar:"ادعُ صديقًا" },
-    "add.invite.text":      { en:"Help keep Hakli alive — add a word in your own voice:", ar:"ساعد في حفظ الحَكلي — أضِف كلمة بصوتك:" },
+    "add.invite.text":      { en:"Let's strengthen Hakli together — add a word in your own voice:", ar:"لِنُقوِّ الحَكلي معًا — أضِف كلمةً بصوتك:" },
     "add.draft":            { en:"You have a word waiting to be shared.", ar:"لديك كلمة تنتظر المشاركة." },
     "add.draft.discard":    { en:"Start a new word instead", ar:"ابدأ كلمة جديدة بدلًا منها" },
     "add.say.silent":       { en:"We couldn't hear you — try again, a little closer to the phone.", ar:"لم نسمعك — حاول مجددًا واقترب قليلًا من الهاتف." },
