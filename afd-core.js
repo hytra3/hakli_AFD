@@ -479,7 +479,8 @@ window.AFDCore = (function(){
     "add.say.loud":         { en:"Too loud — the sound broke up. Try again a little further away.", ar:"الصوت مرتفع جدًّا وتشوّه. حاول مجددًا وابتعد قليلًا." },
     "add.share.browser":    { en:"Sign-in didn't open? Open this page in Chrome or Safari (tap ⋮ or the share icon, then “Open in browser”).", ar:"لم يُفتَح تسجيل الدخول؟ افتح هذه الصفحة في Chrome أو Safari (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)." },
     "add.share.as":         { en:"Signed in as {who}", ar:"مسجَّل الدخول باسم {who}" },
-    "add.share.notyou":     { en:"Not you?", ar:"لست أنت؟" }
+    "add.share.notyou":     { en:"Not you?", ar:"لست أنت؟" },
+    "add.share.failed":     { en:"Couldn't share. Your word is safe on this phone. If it keeps happening, send a screenshot of this to whoever sent you the link.", ar:"تعذّرت المشاركة. كلمتك محفوظة على هذا الهاتف. إن تكرّر ذلك، أرسل لقطة شاشة لهذه الرسالة إلى من أرسل لك الرابط." }
   };
   function t(key, mode){
     const s = STRINGS[key];
