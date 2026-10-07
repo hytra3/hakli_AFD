@@ -488,6 +488,8 @@ window.AFDCore = (function(){
     "add.auth.link.sent":   { en:"Check your email and open the link on this phone. If it opens in another browser, come back here afterwards — your word is saved in this one.", ar:"افتح بريدك واضغط الرابط على هذا الهاتف. إن فُتح في متصفّح آخر فارجع إلى هنا بعدها — كلمتك محفوظة في هذا المتصفّح." },
     "add.auth.link.email":  { en:"Which email did you send the link to?", ar:"إلى أيّ بريد أُرسل الرابط؟" },
     "add.share.browser":    { en:"Google sign-in didn't open? Use your phone number instead, or open this page in Chrome or Safari (tap ⋮ or the share icon, then “Open in browser”).", ar:"لم يُفتَح الدخول عبر Google؟ استخدم رقم هاتفك بدلًا منه، أو افتح هذه الصفحة في Chrome أو Safari (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)." },
+    "add.acct.out":         { en:"Not signed in yet — you'll sign in at the end, when you share your word.", ar:"لم تسجّل الدخول بعد — ستسجّل الدخول في النهاية عند مشاركة كلمتك." },
+    "add.acct.signout":     { en:"Signed in as {who}. Sign out?", ar:"مسجَّل الدخول باسم {who}. تسجيل الخروج؟" },
     "add.share.as":         { en:"Signed in as {who}", ar:"مسجَّل الدخول باسم {who}" },
     "add.share.notyou":     { en:"Not you?", ar:"لست أنت؟" },
     "add.share.hidden":     { en:"Your voice is hidden right now (you withdrew it earlier). Ticking this shares your recordings again.", ar:"صوتك مخفيّ الآن (سحبته سابقًا). اختيار هذا يعيد نشر تسجيلاتك." },
