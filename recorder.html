@@ -2798,7 +2798,7 @@ function renderRecAccount(){
     recAcct.classList.remove("in"); recAcct.setAttribute("aria-label","Sign in"); recAcct.removeAttribute("title");
     return;
   }
-  const acctName = (u.displayName || u.email || "").trim();
+  const acctName = (u.displayName || u.email || u.phoneNumber || "").trim();
   const paint=(who)=>{
     recAcct.innerHTML='<span class="acct-initial">'+rosterEsc((who[0]||"?").toUpperCase())+'</span>';
     recAcct.setAttribute("aria-label", who ? ("Signed in as "+who+" — account menu") : "Account menu");

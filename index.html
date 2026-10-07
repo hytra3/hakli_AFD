@@ -930,7 +930,7 @@ function openAcctMenu(){ if(acctMenu){ acctMenu.classList.add("open"); acctMenu.
 // back to the plain account name. stewardKnownName is filled async below.
 let stewardKnownName = "";
 function acctWhoName(){
-  return stewardKnownName || ((currentUser && (currentUser.displayName || currentUser.email)) || "").trim();
+  return stewardKnownName || ((currentUser && (currentUser.displayName || currentUser.email || currentUser.phoneNumber)) || "").trim();
 }
 function syncAcctLabels(){
   const who = acctWhoName();
