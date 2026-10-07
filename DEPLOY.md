@@ -24,9 +24,26 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
 
 ## The pieces, and where they live
 
-- **Recorder** (`index.html`) and **Speak-to-find** (`find.html`) — served by
-  GitHub Pages at `hytra3.github.io/hakli_AFD/` and `/find`. Updated by the
-  **Publish** task.
+- **The site** — GitHub Pages at **hakli.app**, updated by the **Publish** task
+  (`scripts/publish-site.sh`, which also bumps the build stamp shown at the foot
+  of each page):
+  - `index.html` — the dictionary: browse every word, speak to find, open a word.
+  - `add.html` — "add a word": say it, show it, share it (the page WhatsApp
+    invitations open). Sign-in only at the end: Google, phone number, email.
+  - `recorder.html` — the full recorder (sessions, speaker details, spoken
+    consent, recording for someone else, importing a WhatsApp voice note).
+  - `welcome.html` — the outward-facing intro to hand out; not linked in-app.
+  - `find.html`, `dictionary.html` — old names; they just forward to `index.html`.
+- **Steward pages** — not linked from the app; open them directly and sign in
+  with the steward account (email + password):
+  - `hakli.app/steward.html` — review words people add: *To review / Hidden /
+    All*; listen; **Looks fine**, **Hide word / Show again**, **Take down
+    photo**, **Remove emoji**. Never touches anyone's voice.
+  - `hakli.app/prompts/admin.html` — open/close the UI-prompt recording and
+    Arabic-edit windows, and read the edit suggestions.
+  - Who counts as a steward: `node scripts/grant-steward.mjs <email>` (add),
+    `--revoke <email>`, `--list`. Rules check `afd_admins/{uid}`, which only that
+    script can write.
 - **Embed/match service** (`embed_service/`) — the matcher, on Cloud Run.
   Updated by the **Deploy embed service** task.
 - **Auto-embed trigger** (`embed_trigger/`) — a Cloud Function that vectorises
