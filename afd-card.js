@@ -136,7 +136,19 @@ function playInto(btn, url){
   audioEl.play().catch(()=>{});
 }
 
-async function entryCounts(entryId){
+// Briefly memoised: the dictionary asks for the same word's counts several
+// times in one render (which words to list, the card header, the views), and
+// each ask is a Firestore query. 15 s keeps one render to one read per word
+// while a new or withdrawn voice still shows on the next look.
+const _countsCache = new Map();   // entryId -> { at, p }
+function entryCounts(entryId){
+  const hit = _countsCache.get(entryId);
+  if(hit && Date.now() - hit.at < 15000) return hit.p;
+  const p = loadCounts(entryId);
+  _countsCache.set(entryId, { at: Date.now(), p });
+  return p;
+}
+async function loadCounts(entryId){
   const c={word:0,context:0,definition:0};
   try{
     const snap=await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),

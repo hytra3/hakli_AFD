@@ -49,6 +49,14 @@ within each group.
     Erasing every voice on a contributed word still lets the daily purge reap it (and
     its photo) after 24h. Next, if wanted: "Flag this word" for anyone feeding this queue.
 
+- **Contributed words list once they can be heard (10-07).** In the dictionary, a
+  word added by a contributor shows to everyone else only once it has at least one
+  public voice (word, sentence or meaning); its creator always sees it, to share or
+  remove it. Seeded words always show. Stops blank leftovers of the old "add a word"
+  tile, and words whose only voice is private, appearing as empty tiles. Direct
+  links still open the word. `entryCounts` is memoised for 15 s so this adds no
+  read. Also: `find.html` is back as a forwarder to `index.html` (old links 404'd).
+
 - **Shared core** — `afd-core.js` (entry identity, display tiers, the one mic-capture
   protocol) and `afd-words.js` (the 40-entry wordlist). Both `index.html` and
   `find.html` load them; `seed-entries.mjs` reads the wordlist from `afd-words.js`.

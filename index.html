@@ -625,6 +625,18 @@ async function renderBrowse(){
     // later); one a steward hid (steward.html) stays out until shown again
     userDocs = snap.docs.filter(d=>{ const x=d.data()||{};
       return !seen.has(d.id) && !x.removedAt && !x.hiddenAt; });
+    // A contributed word is listed for everyone only once it has a voice they
+    // can hear — otherwise it's a blank tile nobody else can say (no meaning to
+    // go on) or a word whose only voice is private. Its creator always sees it,
+    // so they can share or remove it. Seeded words always show: anyone can be
+    // the first to say "moon". (Counts are memoised, so the card header reuses
+    // this read.)
+    const me = currentUser && currentUser.uid;
+    const heard = await Promise.all(userDocs.map(d =>
+      ((d.data()||{}).createdBy===me && me) ? true :
+      entryCounts(d.id).then(c => (c.word + c.context + c.definition) > 0).catch(()=>false)));
+    if(my!==renderToken) return;
+    userDocs = userDocs.filter((d,i) => heard[i]);
   }catch(e){ console.warn("[AFD] browse: user entries", e); }
   const userCards = await Promise.all(userDocs.map(d =>
     entryCard({entryId: d.id}, false).catch(()=>null)));
@@ -965,9 +977,14 @@ if(acctOut)  acctOut.addEventListener("click", async ()=>{
 });
 document.addEventListener("click", (e)=>{ if(acctMenu && acctMenu.classList.contains("open") && !e.target.closest(".account-wrap")) closeAcctMenu(); });
 document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeAcctMenu(); });
+let _browseUid = null;
 onAuthStateChanged(auth, (u)=>{
+  const uid = (u && u.uid) || null, changed = uid !== _browseUid; _browseUid = uid;
   currentUser = u; updateAccountUi();
   if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults);  // refresh owner controls
+  // the browse list depends on who's looking (a creator sees their own
+  // not-yet-heard words), so redraw it when the account changes
+  else if(changed && mastView==="dictionary") renderBrowse();
 });
 updateAccountUi();
 
