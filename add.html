@@ -340,7 +340,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip } from "./afd-upload.js?v=b1007l";
-import { initCard, withdrawSpeaker, shareEntry } from "./afd-card.js?v=b1007l";
+import { initCard, withdrawSpeaker, shareEntry, voiceFile } from "./afd-card.js?v=b1007l";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
@@ -1014,7 +1014,10 @@ async function share(){
     // word's link would show them nothing. Captured now — the draft goes below.
     const shareArgs = [draft.entryId, { pic: draft.pic, glossAr: draft.glossAr.trim() }, true];
     $("doneShare").hidden = !up.public;
-    $("doneShare").onclick = ()=> shareEntry(...shareArgs, MODE);
+    // their own voice, from the phone, ready before the tap (see voiceFile)
+    let voiceReady = null;
+    if(up.public && draft.word && draft.word.blob) voiceFile(draft.word.blob).then(f => { voiceReady = f; });
+    $("doneShare").onclick = ()=> shareEntry(...shareArgs, MODE, voiceReady);
     show("done");
     await clearDraft();
   }catch(e){
