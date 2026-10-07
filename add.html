@@ -10,7 +10,7 @@
 <meta property="og:site_name" content="Hakli — Audio First Dictionary">
 <meta property="og:url" content="https://hakli.app/add.html">
 <meta property="og:title" content="أضِف كلمة بصوتك · Add a word to Hakli">
-<meta property="og:description" content="قُلها، أَرِها، شارِكها — كلمةٌ واحدة بصوتك تحفظ الحَكلي. · Say it, show it, share it — one word in your own voice helps keep Hakli alive.">
+<meta property="og:description" content="قُلها، أَرِها، شارِكها — لِنُقوِّ الحَكلي معًا بأصوات أهلها. · Say it, show it, share it — let's strengthen Hakli together, in its own voices.">
 <meta property="og:image" content="https://hakli.app/og-hakli-v2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -51,8 +51,19 @@ header{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap
 .home svg{height:100%; width:auto}
 header h1{font-size:17px; margin:0; flex:1; line-height:1.2; text-align:center}
 header h1 .sub{font-size:12px}
-.steps{display:flex; gap:6px; margin:0; padding:0; list-style:none}
-.steps li{width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+/* the display button — same control, icons and caption as the dictionary header */
+.skin{width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid var(--mist-2);
+  background:var(--cloud); color:var(--mountain); display:grid; place-items:center; cursor:pointer;
+  box-shadow:0 2px 8px rgba(31,58,52,.10); margin-bottom:12px}
+.skin svg{width:20px; height:20px}
+.skin .lbl{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:18px; line-height:1}
+.capd{position:relative}
+.capd::after{content:attr(data-cap); position:absolute; top:calc(100% + 4px); left:50%; transform:translateX(-50%);
+  font:500 10.5px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#6F8A81; white-space:nowrap;
+  pointer-events:none; direction:rtl}
+/* say · show · share — their own row under the header */
+.steps{display:flex; justify-content:center; gap:10px; margin:14px 0 0; padding:0; list-style:none}
+.steps li{width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center;
   font-size:16px; background:var(--cloud); border:1px solid var(--mist-2); opacity:.55}
 .steps li.on{opacity:1; border-color:var(--mountain); box-shadow:0 0 0 2px var(--mountain) inset}
 .steps li.done{opacity:1; background:var(--mist-2)}
@@ -145,10 +156,11 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 <header>
   <a class="home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
   <h1 data-k="add.title"></h1>
-  <ol class="steps" aria-hidden="true">
-    <li data-step="say">🎙️</li><li data-step="show">🖼️</li><li data-step="share">📤</li>
-  </ol>
+  <button class="skin capd" id="skin" type="button" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
 </header>
+<ol class="steps" aria-hidden="true">
+  <li data-step="say">🎙️</li><li data-step="show">🖼️</li><li data-step="share">📤</li>
+</ol>
 
 <main class="wrap">
 
@@ -341,8 +353,29 @@ initCard({ db, store, user:()=>{ const u = auth.currentUser; return (u && !u.isA
 
 const $ = id => document.getElementById(id);
 const C = window.AFDCore;
-const MODE = C.getDisplayMode("auto");
-document.body.setAttribute("data-tier", MODE);
+/* Display tier, shared with every page (AFDCore): auto = Arabic + English,
+   script = Arabic, sound = the non-reader view. Labels here are always built
+   Arabic + English (bi()); the tier just shows or hides the English line, so
+   switching needs no repaint. Sound falls back to Arabic until spoken prompts
+   cover this page, as AFDCore.t() does elsewhere. */
+let MODE = C.getDisplayMode("sound");      // same default as the dictionary
+const SKIN_ICON = {
+  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  script:`<span class="lbl">أ</span>`,
+};
+function applyMode(){
+  document.body.setAttribute("data-tier", MODE);
+  $("skin").innerHTML = SKIN_ICON[MODE] || SKIN_ICON.auto;
+}
+applyMode();
+$("skin").addEventListener("click", ()=>{
+  MODE = C.DISP_MODES[(C.DISP_MODES.indexOf(MODE)+1) % C.DISP_MODES.length];
+  C.setDisplayMode(MODE); applyMode();
+  try{ paintAuth(); }catch(_){}               // the one plain-text label
+});
+try{ const cap = C.STRINGS["hdr.display"]; if(cap && cap.ar) $("skin").setAttribute("data-cap", cap.ar); }catch(_){}
+C.attachQuietToggle($("skin"));               // long-press = quiet, as on the dictionary
 
 /* ---------------- strings ---------------- */
 function fill(t, vars){ let o=String(t); for(const k in (vars||{})) o=o.split("{"+k+"}").join(vars[k]); return o; }
