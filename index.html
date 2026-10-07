@@ -18,16 +18,16 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli-v2.png">
-<link rel="icon" href="favicon.svg?v=b1007l" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1007l" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1007l">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1007l">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1007l">
-<link rel="manifest" href="manifest.webmanifest?v=b1007l">
+<link rel="icon" href="favicon.svg?v=b1007m" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1007m" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1007m">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1007m">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1007m">
+<link rel="manifest" href="manifest.webmanifest?v=b1007m">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b1007l"></script>
-<script src="afd-words.js?v=b1007l"></script>
-<link rel="stylesheet" href="afd-card.css?v=b1007l">
+<script src="afd-core.js?v=b1007m"></script>
+<script src="afd-words.js?v=b1007m"></script>
+<link rel="stylesheet" href="afd-card.css?v=b1007m">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -274,7 +274,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1007l";
+import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1007m";
 
 
 /* ================================================================= CONFIG */
@@ -330,7 +330,7 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b1007l";      // bump every publish; shown in the wordmark + console
+const BUILD = "b1007m";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
