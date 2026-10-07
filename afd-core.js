@@ -480,6 +480,8 @@ window.AFDCore = (function(){
     "add.share.browser":    { en:"Sign-in didn't open? Open this page in Chrome or Safari (tap ⋮ or the share icon, then “Open in browser”).", ar:"لم يُفتَح تسجيل الدخول؟ افتح هذه الصفحة في Chrome أو Safari (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)." },
     "add.share.as":         { en:"Signed in as {who}", ar:"مسجَّل الدخول باسم {who}" },
     "add.share.notyou":     { en:"Not you?", ar:"لست أنت؟" },
+    "add.share.hidden":     { en:"Your voice is hidden right now (you withdrew it earlier). Ticking this shares your recordings again.", ar:"صوتك مخفيّ الآن (سحبته سابقًا). اختيار هذا يعيد نشر تسجيلاتك." },
+    "add.share.reopen":     { en:"Your voice was hidden earlier. Let people hear all your recordings again?", ar:"أخفيتَ صوتك سابقًا. هل تسمح للناس بسماع كل تسجيلاتك مجددًا؟" },
     "add.share.failed":     { en:"Couldn't share. Your word is safe on this phone. If it keeps happening, send a screenshot of this to whoever sent you the link.", ar:"تعذّرت المشاركة. كلمتك محفوظة على هذا الهاتف. إن تكرّر ذلك، أرسل لقطة شاشة لهذه الرسالة إلى من أرسل لك الرابط." }
   };
   function t(key, mode){

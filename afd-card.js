@@ -206,7 +206,10 @@ async function listPlayable(entryId){
     let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }catch(_){ return null; }
     return { url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
              type: v.type || v.phase || "word",
-             consent: v.consent || (v.allowPlayback ? "public" : "withdrawn"),
+             // What the viewer can act on is whether others can HEAR it. A take
+             // labelled public but uploaded hidden (its speaker card was withdrawn)
+             // must offer Restore, not Withdraw — Restore reopens the card.
+             consent: (v.consent && v.consent!=="public") ? v.consent : (v.allowPlayback ? "public" : "withdrawn"),
              mine: !!(CFG.user() && v.uid===CFG.user().uid),
              envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
              avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) };
