@@ -1098,13 +1098,16 @@ let recaptcha = null, phoneConfirm = null;
 function phoneFailed(e){
   console.warn("[AFD add] phone", e);
   const c = (e && e.code) || "";
+  // operation-not-allowed: texts to that country are off (Firebase's SMS region policy)
   $("shareErr").innerHTML = bi(c.includes("too-many") || c.includes("quota") ? "add.auth.toomany"
+                             : c.includes("operation-not-allowed") ? "add.auth.region"
                              : c.includes("code") ? "add.auth.code.bad" : "add.auth.phone.bad");
 }
 function phoneNumber(){
   let n = $("authPhone").value.replace(/[^\d+]/g, "");
   if(n.startsWith("00")) n = "+" + n.slice(2);
   if(!n.startsWith("+") && n.length === 8) n = "+968" + n;     // a local Omani number
+  else if(!n.startsWith("+") && n.length >= 10) n = "+" + n;   // full number, country code included, + left off
   return n;
 }
 $("phoneBtn").onclick = async ()=>{

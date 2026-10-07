@@ -483,6 +483,7 @@ window.AFDCore = (function(){
     "add.auth.code.go":     { en:"Sign in", ar:"دخول" },
     "add.auth.phone.bad":   { en:"Check the number — start with + and the country code, e.g. +968.", ar:"تحقّق من الرقم — ابدأ بـ + ورمز الدولة، مثل +968." },
     "add.auth.code.bad":    { en:"That code didn't work — check it, or send a new one.", ar:"لم ينجح الرمز — تحقّق منه أو اطلب رمزًا جديدًا." },
+    "add.auth.region":      { en:"Texts can't be sent to that country yet — please use Google or email instead.", ar:"لا يمكن إرسال الرسائل إلى هذا البلد بعد — استخدم Google أو البريد الإلكتروني بدلًا من ذلك." },
     "add.auth.toomany":     { en:"Too many tries — please wait a little and try again.", ar:"محاولات كثيرة — انتظر قليلًا ثم حاول مجددًا." },
     "add.auth.link":        { en:"Email me a sign-in link (no password)", ar:"أرسل لي رابط الدخول بالبريد (بلا كلمة مرور)" },
     "add.auth.link.sent":   { en:"Check your email and open the link on this phone. If it opens in another browser, come back here afterwards — your word is saved in this one.", ar:"افتح بريدك واضغط الرابط على هذا الهاتف. إن فُتح في متصفّح آخر فارجع إلى هنا بعدها — كلمتك محفوظة في هذا المتصفّح." },
