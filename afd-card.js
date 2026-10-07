@@ -613,11 +613,26 @@ async function shareEntry(entryId, meta, heard, mode, voice){
     // it lands in WhatsApp as audio that plays in the chat — no link to open
     // first. The link rides in the text (some apps drop `url` beside files).
     if(voice && navigator.canShare && navigator.canShare({ files:[voice] })){
-      await navigator.share({ files:[voice], text: text + "\n" + url }); return;
+      await navigator.share({ files:[voice], text: text + "\n" + url }); return "file";
     }
-    if(navigator.share){ await navigator.share({ text, url }); return; }
-  }catch(e){ if(e && e.name === "AbortError") return; }
+    if(navigator.share){ await navigator.share({ text, url }); return "link"; }
+  }catch(e){ if(e && e.name === "AbortError") return null; }
   window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");
+  return "link";
+}
+/* WhatsApp keeps no caption on an audio file, so the text and link sent with
+   the voice are dropped there. After a voice goes out, the button offers the
+   link as a second, optional tap ("Now send the link too") for two minutes —
+   a fresh tap, because a share sheet needs one. `paint(next)` relabels the
+   caller's button; returns the click handler. */
+function shareFlow(entryId, meta, heard, mode, getVoice, paint){
+  let next = "voice", timer = null;
+  const reset = () => { next = "voice"; clearTimeout(timer); paint("voice"); };
+  return async () => {
+    const how = await shareEntry(entryId, meta, heard, mode, next === "voice" ? getVoice() : null);
+    if(next === "link"){ if(how) reset(); return; }
+    if(how === "file"){ next = "link"; paint("link"); clearTimeout(timer); timer = setTimeout(reset, 120000); }
+  };
 }
 
 /* A voice as a file WhatsApp will take. WhatsApp plays AAC (.m4a), MP3, AMR and
@@ -870,8 +885,12 @@ async function entryCard(res, lead){
     const pubVoice = wordRecs.find(r => r.consent==="public");
     let voiceReady = null;
     if(pubVoice) voiceFile(pubVoice.url, meta.gloss).then(f => { voiceReady = f; });
-    share.addEventListener("click", (e)=>{ e.stopPropagation();
-      shareEntry(res.entryId, meta, recs.some(r => r.consent==="public"), CFG.mode(), voiceReady); });
+    const shareLabel = share.innerHTML;
+    const onShare = shareFlow(res.entryId, meta, recs.some(r => r.consent==="public"), CFG.mode(),
+      () => voiceReady,
+      (state) => { share.classList.toggle("next-link", state==="link");
+                   share.innerHTML = state==="link" ? AFDCore.tHTML("card.share.link", CFG.mode()) : shareLabel; });
+    share.addEventListener("click", (e)=>{ e.stopPropagation(); onShare(); });
     detail.appendChild(share);
     wordTools(res.entryId, meta, recs, el, detail, paintTags);
     return firstPlayable;
@@ -911,4 +930,4 @@ async function entryCard(res, lead){
   return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { entryCard, shareEntry, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

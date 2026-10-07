@@ -503,6 +503,7 @@ window.AFDCore = (function(){
     "card.removed":         { en:"Word removed.", ar:"حُذفت الكلمة." },
     "card.removed.gone":    { en:"This word was removed.", ar:"حُذفت هذه الكلمة." },
     "card.share":           { en:"Share this word", ar:"شارك هذه الكلمة" },
+    "card.share.link":      { en:"🔗 Now send the link too", ar:"🔗 والآن أرسل الرابط أيضًا" },
     "card.share.heard":     { en:"Listen to “{w}” in Hakli — and say it your way:", ar:"استمع إلى «{w}» بالحكلي — وقلها بطريقتك:" },
     "card.share.heard0":    { en:"Listen to this word in Hakli — and say it your way:", ar:"استمع إلى هذه الكلمة بالحكلي — وقلها بطريقتك:" },
     "card.share.unheard":   { en:"Nobody has said “{w}” in Hakli yet — be the first:", ar:"لم يقل أحدٌ «{w}» بالحكلي بعد — كن أوّل من يقولها:" },
