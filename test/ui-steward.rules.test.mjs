@@ -130,9 +130,18 @@ describe("afd_ui_suggestions — reading the queue", () => {
   });
 });
 
-describe("afd_admins — closed to every client", () => {
-  it("the steward cannot read the list", async () => {
-    await assertFails(getDoc(doc(asSteward(), "afd_admins", "uSteward")));
+describe("afd_admins — closed to every client (but you may see if you're on it)", () => {
+  it("the steward can read their OWN doc (to show steward controls)", async () => {
+    await assertSucceeds(getDoc(doc(asSteward(), "afd_admins", "uSteward")));
+  });
+  it("a contributor can check their own (absent) doc", async () => {
+    await assertSucceeds(getDoc(doc(asContrib(), "afd_admins", "uContrib")));
+  });
+  it("nobody can read someone else's", async () => {
+    await assertFails(getDoc(doc(asContrib(), "afd_admins", "uSteward")));
+  });
+  it("nobody can list the stewards", async () => {
+    await assertFails(getDocs(collection(asSteward(), "afd_admins")));
   });
   it("a contributor cannot add themselves", async () => {
     await assertFails(setDoc(doc(asContrib(), "afd_admins", "uContrib"), { note: "me too" }));

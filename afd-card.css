@@ -131,3 +131,20 @@
 .afdcard .sayit.afd-novoice-pulse{animation:afd-pulse 1.2s ease 2}
 @keyframes afd-pulse{50%{border-color:var(--resin); box-shadow:0 0 0 4px rgba(198,135,63,.18)}}
 @media (prefers-reduced-motion:reduce){ .afdcard .play.afd-novoice-shake, .afdcard .sayit.afd-novoice-pulse{animation:none} }
+/* tags (free labels: a dialect, "Mehri", "loanword"…) and the word tools under an open card */
+.afdcard .tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px}
+.afdcard .tags:empty{display:none}
+.afdcard .tag{font:600 11px/1 var(--sans); color:var(--mountain); background:var(--mist-2);
+  border-radius:999px; padding:4px 8px}
+.afdcard .word-tools{display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+  margin-top:14px; padding-top:12px; border-top:1px dashed var(--mist-2)}
+.afdcard .wt-btn{border:1px solid var(--mist-2); background:transparent; color:var(--mountain);
+  font:500 13px/1.2 var(--sans); border-radius:10px; padding:8px 12px; cursor:pointer}
+.afdcard .wt-btn .bi-ar, .afdcard .wt-btn .ar{margin-inline-start:6px; color:var(--mist)}
+.afdcard .wt-remove{color:var(--danger, #9E4433); border-color:currentColor}
+.afdcard .wt-remove:disabled{opacity:.45; cursor:default}
+.afdcard .wt-tags{display:flex; flex-direction:column; gap:6px; width:100%}
+.afdcard .wt-tags[hidden]{display:none}
+.afdcard .wt-tags input{font:15px var(--sans); padding:9px 10px; border:1.5px solid var(--mist-2); border-radius:10px; width:100%; box-sizing:border-box}
+.afdcard .wt-note{margin:0; font:12px/1.4 var(--sans); color:var(--mist)}
+
