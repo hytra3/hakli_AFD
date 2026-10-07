@@ -482,7 +482,16 @@ window.AFDCore = (function(){
     "add.share.notyou":     { en:"Not you?", ar:"لست أنت؟" },
     "add.share.hidden":     { en:"Your voice is hidden right now (you withdrew it earlier). Ticking this shares your recordings again.", ar:"صوتك مخفيّ الآن (سحبته سابقًا). اختيار هذا يعيد نشر تسجيلاتك." },
     "add.share.reopen":     { en:"Your voice was hidden earlier. Let people hear all your recordings again?", ar:"أخفيتَ صوتك سابقًا. هل تسمح للناس بسماع كل تسجيلاتك مجددًا؟" },
-    "add.share.failed":     { en:"Couldn't share. Your word is safe on this phone. If it keeps happening, send a screenshot of this to whoever sent you the link.", ar:"تعذّرت المشاركة. كلمتك محفوظة على هذا الهاتف. إن تكرّر ذلك، أرسل لقطة شاشة لهذه الرسالة إلى من أرسل لك الرابط." }
+    "add.share.failed":     { en:"Couldn't share. Your word is safe on this phone. If it keeps happening, send a screenshot of this to whoever sent you the link.", ar:"تعذّرت المشاركة. كلمتك محفوظة على هذا الهاتف. إن تكرّر ذلك، أرسل لقطة شاشة لهذه الرسالة إلى من أرسل لك الرابط." },
+    // Under an open dictionary card: tags + "remove my word" (afd-card.js wordTools)
+    "card.tags":            { en:"Tags", ar:"وسوم" },
+    "card.tags.hint":       { en:"Labels such as a dialect, Mehri, or loanword — separate with commas.", ar:"وسوم مثل اللهجة أو المهري أو كلمة دخيلة — افصل بينها بفواصل." },
+    "card.tags.save":       { en:"Save tags", ar:"احفظ الوسوم" },
+    "card.remove":          { en:"Remove my word", ar:"احذف كلمتي" },
+    "card.remove.confirm":  { en:"Remove this word? Your voices on it are erased for good, and the word leaves the dictionary.", ar:"حذف هذه الكلمة؟ تُمحى تسجيلاتك عليها نهائيًّا، وتخرج الكلمة من القاموس." },
+    "card.remove.others":   { en:"Other people have recorded this word too, so it can't be removed from here. A tag can say what it is.", ar:"سجّل آخرون هذه الكلمة أيضًا، فلا يمكن حذفها من هنا. يمكن لوسمٍ أن يوضّح ما هي." },
+    "card.removed":         { en:"Word removed.", ar:"حُذفت الكلمة." },
+    "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." }
   };
   function t(key, mode){
     const s = STRINGS[key];

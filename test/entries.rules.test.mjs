@@ -99,10 +99,11 @@ describe("entry create — say it, show it", () => {
   });
 });
 
-describe("entry — immutable once added", () => {
+describe("entry — immutable once added, except remove-my-word and tags", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (c) => {
       await setDoc(entry(c.firestore()), { source: "user", createdBy: "uA", createdAt: 1 });
+      await setDoc(entry(c.firestore(), "ent_sun"), { gloss: "sun", pic: "☀️" });   // a seeded word
     });
   });
   it("the creator cannot add a picture afterwards", async () => {
@@ -110,6 +111,58 @@ describe("entry — immutable once added", () => {
   });
   it("nobody can delete it", async () => {
     await assertFails(deleteDoc(entry(fsAs("uA"))));
+  });
+
+  // remove my word
+  it("the creator can mark their word removed", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uA")), { removedAt: serverTimestamp() }));
+  });
+  it("…only to now, not a chosen time", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { removedAt: 5 }));
+  });
+  it("…only once", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(entry(c.firestore()), { removedAt: 1 });
+    });
+    await assertFails(updateDoc(entry(fsAs("uA")), { removedAt: serverTimestamp() }));
+  });
+  it("…and nothing else alongside it", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { removedAt: serverTimestamp(), glossAr: "x" }));
+  });
+  it("someone else cannot remove it", async () => {
+    await assertFails(updateDoc(entry(fsAs("uB")), { removedAt: serverTimestamp() }));
+  });
+  it("not even a steward (that's the creator's call; stewards act in the console)", async () => {
+    await assertFails(updateDoc(entry(fsAs("uSteward")), { removedAt: serverTimestamp() }));
+  });
+  it("a seeded word can't be removed", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA"), "ent_sun"), { removedAt: serverTimestamp() }));
+  });
+
+  // tags
+  it("the creator can tag their word", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uA")), { tags: ["Mehri", "loanword"] }));
+  });
+  it("a steward can tag any word, seeded ones too", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward")), { tags: ["eastern dialect"] }));
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { tags: ["Mirbat"] }));
+  });
+  it("tags can be cleared", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uA")), { tags: [] }));
+  });
+  it("someone else cannot tag it", async () => {
+    await assertFails(updateDoc(entry(fsAs("uB")), { tags: ["spam"] }));
+    await assertFails(updateDoc(entry(fsAs("uB"), "ent_sun"), { tags: ["spam"] }));
+  });
+  it("at most 6 tags of 1–40 characters", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { tags: ["a","b","c","d","e","f","g"] }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { tags: [""] }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { tags: ["x".repeat(41)] }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { tags: [7] }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { tags: "Mehri" }));
+  });
+  it("tags ride alone — no sneaking other fields in", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { tags: ["Mehri"], pic: "🐐" }));
   });
 });
 

@@ -27,6 +27,14 @@ within each group.
     page then shows "open in Chrome/Safari", and email sign-in still works. Test on
     a real Android + iPhone from a WhatsApp message. If it bites, next step is
     email-link (passwordless) sign-in.
+  - **Remove my word + tags (10-07).** Under an open card, the creator of a contributed
+    word can remove it while every voice on it is theirs (erases their voices, sets
+    `removedAt`; hidden at once, purged later). Free-text **tags** (a dialect, "Mehri",
+    "loanword"…) can be set by the word's creator or by a steward on any word — labels,
+    not a verdict: tagged words stay in the dictionary. Tags show in the text tiers only.
+    An account may now read its OWN `afd_admins` doc so the app can show steward controls.
+  - Next, if wanted: "Flag this word" for anyone + a steward queue; a dictionary filter
+    by tag.
   - Open: a steward review/takedown view for new words and photos (today: delete the
     photo object as a steward in the console). Erasing every voice on a contributed
     word lets the daily purge reap it after 24h — and, since 10-07, its photo too.

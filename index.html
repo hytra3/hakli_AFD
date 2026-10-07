@@ -524,13 +524,13 @@ async function render(results){
   // lead card
   const lead = await entryCard(best, true);
   if(my!==renderToken) return;                 // a newer render/open superseded us
-  resultsEl.appendChild(lead.el);
+  if(!lead.removed) resultsEl.appendChild(lead.el);   // removed by its creator: search catches up on its next reload
   // the rest
   for(const res of results.slice(1)){
     if(res.distance > MAYBE_MAX) break;
     const c = await entryCard(res, false);
     if(my!==renderToken) return;
-    resultsEl.appendChild(c.el);
+    if(!c.removed) resultsEl.appendChild(c.el);
   }
   // A genuinely new word can look acoustically near an existing entry (e.g. two
   // Hakli words sharing one English gloss), so never force it into a candidate —
@@ -617,7 +617,8 @@ async function renderBrowse(){
   try{
     const snap = await getDocs(query(collection(db,"afd_entries"), where("source","==","user")));
     if(my!==renderToken) return;
-    userDocs = snap.docs.filter(d=>!seen.has(d.id));
+    // a word its creator removed leaves the list at once (the purge deletes it later)
+    userDocs = snap.docs.filter(d=>!seen.has(d.id) && !(d.data()||{}).removedAt);
   }catch(e){ console.warn("[AFD] browse: user entries", e); }
   const userCards = await Promise.all(userDocs.map(d =>
     entryCard({entryId: d.id}, false).catch(()=>null)));

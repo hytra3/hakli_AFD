@@ -111,7 +111,36 @@ service cloud.firestore {
                         request.resource.data.image ==
                           'https://firebasestorage.googleapis.com/v0/b/afd-dev.firebasestorage.app/o/afd_pics%2F'
                           + request.auth.uid + '%2F' + entryId + '.jpg?alt=media');
-      allow update: if false;
+      // Two narrow edits, nothing else about an entry ever changes:
+      //  • REMOVE MY WORD — the creator of a contributed word may take it back:
+      //    set removedAt (once, to now). The app erases their voices on it at the
+      //    same time; the dictionary hides it at once and the purge reaps it once
+      //    no recordings remain. Only the creator, only their own word.
+      //  • TAGS — free labels (a dialect, "Mehri", "loanword"…), set by the
+      //    word's creator, or by a steward on any word (seeded ones included).
+      //    Up to 6 tags of 1–40 characters each.
+      function tagOK(t) { return t is string && t.size() > 0 && t.size() <= 40; }
+      function tagsOK(ts) {
+        return ts is list && ts.size() <= 6
+               && (ts.size() < 1 || tagOK(ts[0])) && (ts.size() < 2 || tagOK(ts[1]))
+               && (ts.size() < 3 || tagOK(ts[2])) && (ts.size() < 4 || tagOK(ts[3]))
+               && (ts.size() < 5 || tagOK(ts[4])) && (ts.size() < 6 || tagOK(ts[5]));
+      }
+      function isCreator() {
+        return notAnon()
+               && resource.data.get('source', '') == 'user'
+               && resource.data.get('createdBy', '') == request.auth.uid;
+      }
+      function onlyChanged(keys) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+      }
+      allow update: if (isCreator()
+                        && !('removedAt' in resource.data)
+                        && onlyChanged(['removedAt'])
+                        && request.resource.data.removedAt == request.time)
+                    || ((isCreator() || isSteward())
+                        && onlyChanged(['tags'])
+                        && tagsOK(request.resource.data.tags));
       allow delete: if false;
 
       // -------------------------- contributed recordings --------------------------
@@ -360,10 +389,14 @@ service cloud.firestore {
     }
 
     // ------------------------------ everything else ------------------------------
-    // Steward list — Admin SDK only (scripts/grant-steward.mjs). Explicitly closed
-    // to clients; spelled out here so nobody "fixes" it open later.
+    // Steward list — Admin SDK only (scripts/grant-steward.mjs). Closed to client
+    // writes and listing; spelled out here so nobody "fixes" it open later.
+    // One exception: an account may GET its own doc, so the app can tell a
+    // steward (and show steward-only controls). It reveals only "am I one?" —
+    // nobody can list the stewards or look up anyone else.
     match /afd_admins/{uid} {
-      allow read, write: if false;
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list, write: if false;
     }
 
     match /{document=**} {

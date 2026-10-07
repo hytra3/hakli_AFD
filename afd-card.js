@@ -4,7 +4,7 @@
    SDK-agnostic: the host injects db, storage, live getters for the signed-in
    user and display mode, the recorder URL, and a banner() via initCard().
    AFDCore is read from the global (afd-core.js must load before this module). */
-import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs }
+import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -291,6 +291,95 @@ async function withdrawSpeaker(uid, speakerId, state, withdrawal){
   return n;
 }
 
+/* ---- word tools: tags, and "remove my word" ------------------------------
+   Under the open card, for the people the rules allow (afd-firestore.rules,
+   afd_entries update):
+     • Tags — free labels ("Mehri", "eastern dialect", "loanword"…): the word's
+       creator, or a steward on any word. Labels, not a verdict: a tagged word
+       stays in the dictionary.
+     • Remove my word — the creator of a contributed word, while every voice on
+       it is theirs. Erases their voices (the same Erase as a single voice) and
+       marks the word removed, so it leaves the dictionary at once; the daily
+       purge deletes it, and its photo, once the audio is gone. If anyone else
+       has recorded it, it isn't one person's to remove. */
+const _stewardMe = new Map();     // uid -> Promise<bool>
+function amSteward(){
+  const u = CFG.user(); if(!u || !CFG.db) return Promise.resolve(false);
+  if(!_stewardMe.has(u.uid)) _stewardMe.set(u.uid,
+    getDoc(doc(CFG.db,"afd_admins",u.uid)).then(sn=>sn.exists()).catch(()=>false));
+  return _stewardMe.get(u.uid);
+}
+function parseTags(str){
+  const out=[];
+  for(const raw of String(str||"").split(/[,\u060C;]/)){
+    const t=raw.trim().replace(/\s+/g," ").slice(0,40);
+    if(t && !out.some(x=>x.toLowerCase()===t.toLowerCase())) out.push(t);
+  }
+  return out.slice(0,6);
+}
+async function wordTools(entryId, meta, recs, cardEl, detail, paintTags){
+  const u = CFG.user(); if(!u) return;
+  const creator = meta.source==="user" && meta.createdBy===u.uid;
+  const canTag = creator || await amSteward();
+  if(!creator && !canTag) return;
+  const m = CFG.mode();
+  const box=document.createElement("div"); box.className="word-tools";
+  detail.appendChild(box);
+
+  if(canTag){
+    const tb=document.createElement("button"); tb.type="button"; tb.className="wt-btn";
+    tb.innerHTML="\u{1F3F7}\uFE0F "+AFDCore.tHTML("card.tags", m);
+    const ed=document.createElement("div"); ed.className="wt-tags"; ed.hidden=true;
+    ed.innerHTML=`<input type="text" maxlength="260" autocomplete="off"><p class="wt-note">${AFDCore.tHTML("card.tags.hint", m)}</p>`+
+      `<button type="button" class="wt-btn wt-save">${AFDCore.tHTML("card.tags.save", m)}</button>`;
+    const inp=ed.querySelector("input"); inp.value=(meta.tags||[]).join(", ");
+    tb.onclick=()=>{ ed.hidden=!ed.hidden; if(!ed.hidden) inp.focus(); };
+    ed.querySelector(".wt-save").onclick=async ()=>{
+      const tags=parseTags(inp.value);
+      try{
+        await updateDoc(doc(CFG.db,"afd_entries",entryId), { tags });
+        meta.tags=tags; paintTags(tags); inp.value=tags.join(", "); ed.hidden=true;
+      }catch(e){ console.warn("[AFD] tags", e); CFG.banner(AFDCore.t("card.failed", m)); }
+    };
+    box.appendChild(tb); box.appendChild(ed);
+  }
+
+  if(creator){
+    const others = recs.some(r=>!r.mine);
+    const proxied = recs.some(r=>r.mine && r.viaAgent);   // recorded FOR someone else: theirs to withdraw, not ours
+    const rb=document.createElement("button"); rb.type="button"; rb.className="wt-btn wt-remove";
+    rb.innerHTML=AFDCore.tHTML("card.remove", m);
+    box.appendChild(rb);
+    if(others || proxied){
+      rb.disabled=true;
+      const n=document.createElement("p"); n.className="wt-note";
+      n.innerHTML=AFDCore.tHTML("card.remove.others", m);
+      box.appendChild(n);
+      return;
+    }
+    rb.onclick=async ()=>{
+      if(!confirm(AFDCore.t("card.remove.confirm", m))) return;
+      rb.disabled=true;
+      try{
+        // all of MY takes on it, hidden ones included (the list above only has what loaded)
+        const mine = await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),
+                                         where("uid","==",u.uid)));
+        for(const r of mine.docs){
+          if((r.data()||{}).consent==="deleted") continue;
+          await updateDoc(r.ref, { consent:"deleted", allowPlayback:false });
+        }
+        await updateDoc(doc(CFG.db,"afd_entries",entryId), { removedAt: serverTimestamp() });
+        cardEl.remove();
+        CFG.banner(AFDCore.t("card.removed", m));
+      }catch(e){
+        console.warn("[AFD] remove word", e);
+        rb.disabled=false;
+        CFG.banner(AFDCore.t("card.failed", m));
+      }
+    };
+  }
+}
+
 async function setConsent(rec, state){
   try{
     // The rules only let a take become playable while its speaker card is
@@ -543,6 +632,10 @@ async function entryCard(res, lead){
   else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
   // compact voice counts on the collapsed header (wordless icons, tier-safe)
   const gc=el.querySelector(".gloss");
+  const tagsEl=document.createElement("div"); tagsEl.className="tags";
+  const paintTags=(ts)=>{ tagsEl.innerHTML=(CFG.mode()==="sound"?[]:(ts||[])).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join(""); };
+  paintTags(meta.tags);
+  if(gc) gc.appendChild(tagsEl);
   if(gc){ const hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
     entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`; }); }
 
@@ -569,6 +662,7 @@ async function entryCard(res, lead){
     say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
     ${CFG.mode()==="auto" ? 'Say it yourself <span class="ar">\u0633\u062c\u0651\u0644 \u0635\u0648\u062a\u0643</span>' : escapeHtml(AFDCore.t("result.sayityourself", CFG.mode()))}`;
     detail.appendChild(say);
+    wordTools(res.entryId, meta, recs, el, detail, paintTags);
     return firstPlayable;
   }
 
@@ -601,7 +695,7 @@ async function entryCard(res, lead){
   });
 
   if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
-  return { el, playBtn, get firstPlayable(){ return firstPlayable; } };
+  return { el, playBtn, removed: !!meta.removedAt, get firstPlayable(){ return firstPlayable; } };
 }
 
 export { entryCard, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
