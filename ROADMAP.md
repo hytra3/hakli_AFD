@@ -99,27 +99,36 @@ within each group.
   closed to all clients and written only by `scripts/grant-steward.mjs` (Admin SDK).
   `afd_ui_config` writes are also shape-locked to `{ openUntil: timestamp }`.
   Tests: `test/ui-steward.rules.test.mjs`. **Deploy order: grant first, then rules.**
-- **Recording-create provenance (designed, not built — trace the create order first).**
-  The recording create rule checks who you are and which speaker, but not *what the
-  doc points at*. Four gaps, most serious first:
-  1. `storagePath` is unchecked — a doc can point at **another person's audio** (all
-     `afd/` audio is public-read, so paths are discoverable). A voice whose own take
-     was withdrawn could be re-surfaced as public under someone else's speaker card.
-     Fix: require `storagePath == 'afd/' + uid + '/' + recordingId + '.(webm|m4a)'`.
-  2. The embed trigger trusts uploader-stamped metadata — anyone can upload their own
-     clip with metadata naming someone else's `entryId/recordingId`, and the trigger
-     (Admin SDK, bypasses rules) overwrites that recording's embedding, or creates a
-     stray doc. Fix in `embed_trigger/main.py`: read the recording doc first; proceed
-     only if it exists, its `storagePath == name`, and its `uid` matches the folder.
-  3. `entryId` / `recordingId` fields aren't required to equal the doc path — a take
-     filed under one word can claim another. Integrity only; one-line rule each.
-  4. First-take window: the recording is created BEFORE its speaker card, so the rule
-     allows "no card yet". Speaker codes default to `spk_<uid6>_NN` but are editable,
-     so binding the code to the account needs a decision (enforce the prefix, or
-     create the card first — which changes the retry/consent order in `uploadClip`).
-  Create order today: Storage bytes → recording doc → speaker card → private profile
-  (the consent-grant stub can create the card earlier). Idempotent retries rely on
-  "refused, then check it landed", so each new check must accept a genuine retry.
+- **✅ Security hardening (2026-10-06, PRs #1–#4).** All four recording-create
+  provenance gaps above are closed, plus the rest of that review:
+  - `storagePath` must be the account's own `afd/{uid}/{recordingId}.webm|m4a`;
+    `entryId`/`recordingId` must match the doc path; recording create has a field
+    allowlist (no client-planted `embedding`/`reps`). The purge only ever deletes a
+    take's own file, and keeps the doc if the bytes won't delete.
+  - The embed trigger checks the doc's `uid` and `storagePath` against the upload,
+    never creates the doc (`update()`), and retries (`--retry`) until it exists.
+    `scripts/backfill-embeddings.mjs` covers takes past the 24 h retry window.
+  - New speaker codes must be `spk_<uid6>_…` (the recorder adds the prefix).
+  - Corpus audio is readable only while its recording is public (cross-service
+    Storage rule); `revoke/` rotates download tokens on withdrawal; search only
+    indexes public takes. `afd_ui/` writes follow the recording window
+    (`afd-storage.rules.frozen` retired).
+  - `/embed` takes only the trigger's ID token; `/reindex` needs `ADMIN_TOKEN`;
+    upload/length limits. Tests run on every PR (`.github/workflows/tests.yml`).
+- **Firebase App Check (planned — revisit before any wider launch).** Today anyone
+  can call Firestore, Storage and the public `/search` with the page's (public)
+  Firebase config. Rules still apply, so nothing a signed-in user couldn't do — but
+  a script can run up costs (`/search` runs the model; audio re-reads) or spam
+  within the rules. App Check adds "is this request from the real hakli.app?" via
+  reCAPTCHA Enterprise, invisible to users.
+  Plan: (1) Marty — register the web app for App Check, create the reCAPTCHA
+  Enterprise key, list the domains (hakli.app, www, hytra3.github.io, localhost
+  for dev). (2) Code — initialise App Check on every page; the embed service
+  verifies the token on `/search`. (3) **Monitor mode** first: watch the
+  verified/unverified counts in the console for a few days of real use (incl.
+  field phones on older cached pages). (4) Only then **enforce**, service by
+  service. Check reCAPTCHA Enterprise pricing/free tier first; very old phones or
+  blocked Google domains may fail the check.
 
 ## Matcher warm-up (2026-09-26)
 
