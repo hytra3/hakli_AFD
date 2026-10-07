@@ -8,6 +8,28 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **"Add a word" — say it, show it, share it (10-07)** — `add.html`, the page the
+  WhatsApp link opens. The 45 seed words are examples; the community adds the rest.
+  One word at a time: hold to say it (twice), optionally show it (photo / emoji /
+  spoken meaning / Arabic), then the three permissions and **one sign-in at the
+  end**, once there's something worth keeping. Everything is a draft on the phone
+  (IndexedDB) until then, so a sign-in detour or a closed tab loses nothing, and
+  sharing resumes where it stopped. Always the person's own voice (viaAgent false);
+  proxies, speaker details and spoken consent stay in the full recorder.
+  - The index "add a word" tile and "none of these" now go here (they used to mint
+    an empty identicon entry up front, behind a Google sign-in).
+  - Upload code moved to `afd-upload.js`, shared by both pages, so they can't drift.
+  - Rules: an entry may carry `pic` (emoji) and `image` (only the creator's own
+    `afd_pics/{uid}/{entryId}.jpg` public URL). Photos: public read, owner
+    write-once JPEG ≤ 2 MB, steward-only delete. **Deploy firestore + storage
+    rules before linking people to it**, or sharing a word with a picture fails.
+  - Open: in-app browsers (WhatsApp on some phones) may refuse Google sign-in — the
+    page then shows "open in Chrome/Safari", and email sign-in still works. Test on
+    a real Android + iPhone from a WhatsApp message. If it bites, next step is
+    email-link (passwordless) sign-in.
+  - Open: a steward review/takedown view for new words and photos (today: delete the
+    photo object as a steward in the console).
+
 - **Shared core** — `afd-core.js` (entry identity, display tiers, the one mic-capture
   protocol) and `afd-words.js` (the 40-entry wordlist). Both `index.html` and
   `find.html` load them; `seed-entries.mjs` reads the wordlist from `afd-words.js`.

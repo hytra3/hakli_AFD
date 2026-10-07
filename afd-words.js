@@ -55,5 +55,10 @@ window.AFDWords = [
  {id:"school",en:"school",ar:"مدرسة",pic:"🏫",dom:"places",ref:"madrest"},
  {id:"barber",en:"barber",ar:"حلاق",pic:"💈",dom:"people",ref:"halaQ"},
  {id:"white",en:"white",ar:"أبيض",pic:"⬜",dom:"colour",ref:"loon"},
- {id:"red",en:"red",ar:"أحمر",pic:"🟥",dom:"colour",ref:"awthr"}
+ {id:"red",en:"red",ar:"أحمر",pic:"🟥",dom:"colour",ref:"awthr"},
+ {id:"black",en:"black",ar:"أسود",pic:"⬛",dom:"colour",ref:""},
+ {id:"green",en:"green",ar:"أخضر",pic:"🟩",dom:"colour",ref:""},
+ {id:"blue",en:"blue",ar:"أزرق",pic:"🟦",dom:"colour",ref:""},
+ {id:"yellow",en:"yellow",ar:"أصفر",pic:"🟨",dom:"colour",ref:""},
+ {id:"brown",en:"brown",ar:"بني",pic:"🟫",dom:"colour",ref:""}
 ];

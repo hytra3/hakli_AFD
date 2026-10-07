@@ -8,6 +8,7 @@ rules_version = '2';
  *    afd/{uid}/{recordingId}.webm      — contributed corpus audio
  *    afd_withdrawals/{uid}/{fileName}  — spoken-Hakli consent-withdrawal proof
  *    afd_ui/{fileName}                 — the app's spoken Hakli interface
+ *    afd_pics/{uid}/{entryId}.jpg      — a contributor's photo for a word they added
  *
  *  Corpus audio is readable only while its recording doc is public, and
  *  afd_ui/ writes follow the Firestore recording window — both via
@@ -153,6 +154,28 @@ service firebase.storage {
                    && ( request.resource == null
                         || ( request.resource.size < 2 * 1024 * 1024
                              && request.resource.contentType.matches('image/(png|jpeg|webp)') ) );
+    }
+    // ---------------- word photos ("show it", add.html) ----------------
+    // The picture a contributor gives a NEW word they add. The entry doc names
+    // it by its public URL, and the Firestore rule only accepts this account's
+    // own afd_pics/{uid}/{entryId}.jpg, so a picture belongs to one word.
+    //   • public read — it's the word's face in the dictionary,
+    //   • owner-only, NON-anonymous create; JPEG only (the page re-encodes every
+    //     photo to a 512px square, which also drops camera EXIF/GPS), 2 MB cap,
+    //   • write-once like the audio (resource == null) — an entry can't be
+    //     edited, so neither can its picture,
+    //   • only a steward may delete (taking down a photo that shouldn't be there).
+    match /afd_pics/{uid}/{fileName} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid
+                    && resource == null
+                    && fileName.matches('ent_u_[a-z0-9]{1,40}[.]jpg')
+                    && request.resource.size < 2 * 1024 * 1024
+                    && request.resource.contentType == 'image/jpeg';
+      allow update: if false;
+      allow delete: if isSteward();
     }
     // everything else is closed
     match /{allPaths=**} {

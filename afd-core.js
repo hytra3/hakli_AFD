@@ -438,7 +438,48 @@ window.AFDCore = (function(){
     // Quiet mode toast (long-press the display button). Added at the very END so
     // the prompts tool's section.item numbers don't shift (lands last in §11).
     "hdr.quiet.on":         { en:"Quiet — the app won't talk you through it. Words still play.", ar:"هدوء — لن يتكلّم التطبيق بالإرشادات. الكلمات تُسمَع كما هي." },
-    "hdr.quiet.off":        { en:"Spoken guidance is on", ar:"الإرشاد الصوتيّ مُفعَّل" }
+    "hdr.quiet.off":        { en:"Spoken guidance is on", ar:"الإرشاد الصوتيّ مُفعَّل" },
+    // "Add a word" (add.html) — say it, show it, share it. Added at the END so the
+    // prompts tool's section.item numbers don't shift.
+    "add.title":            { en:"Add a word",          ar:"أضِف كلمة" },
+    "add.step.say":         { en:"Say it",              ar:"قُلها" },
+    "add.step.show":        { en:"Show it",             ar:"أَرِها" },
+    "add.step.share":       { en:"Share it",            ar:"شارِكها" },
+    "add.say.hint":         { en:"Hold the button and say your word twice, with a short pause between.", ar:"اضغط باستمرار على الزر وقل كلمتك مرّتين، مع وقفة قصيرة بينهما." },
+    "add.say.short":        { en:"Keep holding while you speak", ar:"استمرّ بالضغط وأنت تتكلّم" },
+    "add.say.again":        { en:"Say it again",        ar:"قُلها مرّة أخرى" },
+    "add.next":             { en:"Next",                ar:"التالي" },
+    "add.back":             { en:"Back",                ar:"رجوع" },
+    "add.show.hint":        { en:"Help people know what your word means. Choose any — or skip.", ar:"ساعد الناس على معرفة معنى كلمتك. اختر ما تشاء — أو تخطَّ." },
+    "add.show.photo":       { en:"Take a photo",        ar:"التقط صورة" },
+    "add.show.photo.note":  { en:"Photos of things and places — not of people.", ar:"صوِّر الأشياء والأماكن — لا الأشخاص." },
+    "add.show.emoji":       { en:"Choose a picture",    ar:"اختر رسمًا" },
+    "add.show.emoji.type":  { en:"Or type any emoji",   ar:"أو اكتب أيّ رمز تعبيري" },
+    "add.show.meaning":     { en:"Say what it means",   ar:"قُل ماذا تعني" },
+    "add.show.meaning.hint":{ en:"Hold and explain the word, in Hakli or Arabic.", ar:"اضغط باستمرار واشرح الكلمة بالحَكلي أو بالعربية." },
+    "add.show.write":       { en:"Write it in Arabic",  ar:"اكتبها بالعربية" },
+    "add.show.remove":      { en:"Remove",              ar:"إزالة" },
+    "add.skip":             { en:"Skip",                ar:"تخطَّ" },
+    "add.share.hint":       { en:"Your word goes into the Hakli dictionary.", ar:"تُضاف كلمتك إلى قاموس الحَكلي." },
+    "add.share.who":        { en:"This is your own voice. Recording someone else? Use the full recorder.", ar:"هذا صوتك أنت. تسجّل صوت شخصٍ آخر؟ استخدم المسجّل الكامل." },
+    "add.share.signin":     { en:"Sign in once, so your word is yours — you can hide it any time.", ar:"سجّل الدخول مرّة واحدة لتبقى كلمتك لك — يمكنك إخفاؤها في أيّ وقت." },
+    "add.share.go":         { en:"Share my word",       ar:"شارِك كلمتي" },
+    "add.share.saving":     { en:"Sharing…",            ar:"جارٍ المشاركة…" },
+    "add.share.err":        { en:"Couldn't share just now. Your word is safe on this phone — try again when you have signal.", ar:"تعذّرت المشاركة الآن. كلمتك محفوظة على هذا الهاتف — حاول مجددًا عند توفّر الشبكة." },
+    "add.done.title":       { en:"Thank you!",          ar:"شكرًا لك!" },
+    "add.done.public":      { en:"Your word is in the dictionary.", ar:"كلمتك الآن في القاموس." },
+    "add.done.private":     { en:"Your word is in the dictionary. Only you can hear your voice until you let others listen.", ar:"كلمتك الآن في القاموس. أنت وحدك تسمع صوتك حتى تسمح للآخرين بالاستماع." },
+    "add.done.another":     { en:"Add another word",    ar:"أضِف كلمة أخرى" },
+    "add.done.see":         { en:"See it in the dictionary", ar:"شاهِدها في القاموس" },
+    "add.done.invite":      { en:"Invite a friend",     ar:"ادعُ صديقًا" },
+    "add.invite.text":      { en:"Help keep Hakli alive — add a word in your own voice:", ar:"ساعد في حفظ الحَكلي — أضِف كلمة بصوتك:" },
+    "add.draft":            { en:"You have a word waiting to be shared.", ar:"لديك كلمة تنتظر المشاركة." },
+    "add.draft.discard":    { en:"Start a new word instead", ar:"ابدأ كلمة جديدة بدلًا منها" },
+    "add.say.silent":       { en:"We couldn't hear you — try again, a little closer to the phone.", ar:"لم نسمعك — حاول مجددًا واقترب قليلًا من الهاتف." },
+    "add.say.loud":         { en:"Too loud — the sound broke up. Try again a little further away.", ar:"الصوت مرتفع جدًّا وتشوّه. حاول مجددًا وابتعد قليلًا." },
+    "add.share.browser":    { en:"Sign-in didn't open? Open this page in Chrome or Safari (tap ⋮ or the share icon, then “Open in browser”).", ar:"لم يُفتَح تسجيل الدخول؟ افتح هذه الصفحة في Chrome أو Safari (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)." },
+    "add.share.as":         { en:"Signed in as {who}", ar:"مسجَّل الدخول باسم {who}" },
+    "add.share.notyou":     { en:"Not you?", ar:"لست أنت؟" }
   };
   function t(key, mode){
     const s = STRINGS[key];

@@ -82,8 +82,12 @@ service cloud.firestore {
 
       // Seeded entries are written by the admin script (the Admin SDK bypasses
       // rules, so those aren't constrained here). A signed-in contributor may
-      // CREATE a new entry from the app — audio-first, so gloss text is optional
-      // and there is no client-set picture (identicon carries the visual). They
+      // CREATE a new entry from the app — audio-first, so gloss text is optional.
+      // "Show it" (add.html) may give the new word a face at create time: an
+      // emoji (pic) and/or a photo (image). The image may only be THIS account's
+      // own upload for THIS entry (afd_pics/{uid}/{entryId}.jpg, public URL with
+      // no token), so an entry can't hotlink someone else's picture or any
+      // other site. With neither, the identicon carries the visual. They
       // may never edit or delete an entry: relabel / merge / split is a future
       // reviewer tool with its own authorisation model, so update+delete stay
       // closed. This is what turns the fixed seed corpus into a growable one
@@ -93,13 +97,20 @@ service cloud.firestore {
                     && request.resource.data.createdBy == request.auth.uid
                     && request.resource.data.createdAt == request.time
                     && request.resource.data.keys().hasOnly(
-                         ['source','createdBy','createdAt','gloss','glossAr','domain'])
+                         ['source','createdBy','createdAt','gloss','glossAr','domain','pic','image'])
                     && (!('gloss'   in request.resource.data) ||
                         (request.resource.data.gloss   is string && request.resource.data.gloss.size()   <= 80))
                     && (!('glossAr' in request.resource.data) ||
                         (request.resource.data.glossAr is string && request.resource.data.glossAr.size() <= 80))
                     && (!('domain'  in request.resource.data) ||
-                        (request.resource.data.domain  is string && request.resource.data.domain.size()  <= 40));
+                        (request.resource.data.domain  is string && request.resource.data.domain.size()  <= 40))
+                    && (!('pic'     in request.resource.data) ||
+                        (request.resource.data.pic     is string && request.resource.data.pic.size() > 0
+                         && request.resource.data.pic.size() <= 32))
+                    && (!('image'   in request.resource.data) ||
+                        request.resource.data.image ==
+                          'https://firebasestorage.googleapis.com/v0/b/afd-dev.firebasestorage.app/o/afd_pics%2F'
+                          + request.auth.uid + '%2F' + entryId + '.jpg?alt=media');
       allow update: if false;
       allow delete: if false;
 

@@ -297,18 +297,20 @@ const SCREEN_GROUPS = [
   { name:"Screen · This session",              ar:"هذه الجلسة",        prefixes:["session","sync","save","export","clear"] },
   { name:"Screen · Your voice (withdraw / spoken consent)", ar:"صوتك", prefixes:["withdraw","grant","voice","roster"] },
   { name:"Screen · Dictionary card",           ar:"بطاقة القاموس",     prefixes:["slot","group","result","card","entry"] },
-  { name:"Screen · Other",                     ar:"أخرى",              prefixes:[] },   // catch-all — keep LAST
+  { name:"Screen · Other",                     ar:"أخرى",              prefixes:[], catchAll:true },
+  // Screens added after the catch-all go BELOW it, so "Other" keeps its number.
+  { name:"Screen · Add a word",                ar:"أضِف كلمة",         prefixes:["add"] },
 ];
 (function(){
   const S = (window.AFDCore && window.AFDCore.STRINGS) || {};
   const buckets = SCREEN_GROUPS.map(()=>[]);
-  const other = SCREEN_GROUPS.length-1;
+  const other = SCREEN_GROUPS.findIndex(g=>g.catchAll);
   Object.keys(S).filter(k => S[k] && S[k].ar).forEach(k=>{
     const pre = k.split(".")[0];
     let g = SCREEN_GROUPS.findIndex(x=>x.prefixes.includes(pre)); if(g<0) g = other;
     buckets[g].push({ key:"screen:"+k, en:S[k].en || k, ar:S[k].ar, kind:"screen" });
   });
-  SCREEN_GROUPS.forEach((g,i)=>{ if(buckets[i].length || i<other) SECTIONS.push({ name:g.name+" · "+g.ar, items:buckets[i], screen:true }); });
+  SCREEN_GROUPS.forEach((g,i)=>{ if(buckets[i].length || !g.catchAll) SECTIONS.push({ name:g.name+" · "+g.ar, items:buckets[i], screen:true }); });
 })();
 // Number every section (1, 2, 3…) and item (1.1, 1.2…) in list order.
 SECTIONS.forEach((sec,si)=>{ sec.num = si+1; sec.items.forEach((it,ii)=>{ it.num = (si+1)+"."+(ii+1); }); });
