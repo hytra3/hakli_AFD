@@ -134,13 +134,35 @@ service cloud.firestore {
       function onlyChanged(keys) {
         return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
       }
+      //  • STEWARD REVIEW (steward.html) — on a contributed word only:
+      //      reviewedAt  — "looks fine", set to now; takes it out of the queue.
+      //      hiddenAt    — hide the word (set to now, once) or show it again
+      //                    (delete the field). Reversible, and it touches no
+      //                    voice: consent stays each speaker's own.
+      //      image / pic — take a picture down: each may only be REMOVED,
+      //                    never set (the steward deletes the photo bytes too).
+      function isContributed() { return resource.data.get('source', '') == 'user'; }
       allow update: if (isCreator()
                         && !('removedAt' in resource.data)
                         && onlyChanged(['removedAt'])
                         && request.resource.data.removedAt == request.time)
                     || ((isCreator() || isSteward())
                         && onlyChanged(['tags'])
-                        && tagsOK(request.resource.data.tags));
+                        && tagsOK(request.resource.data.tags))
+                    || (isSteward() && isContributed()
+                        && onlyChanged(['reviewedAt'])
+                        && request.resource.data.reviewedAt == request.time)
+                    || (isSteward() && isContributed()
+                        && onlyChanged(['hiddenAt'])
+                        && (!('hiddenAt' in request.resource.data)
+                            || (!('hiddenAt' in resource.data)
+                                && request.resource.data.hiddenAt == request.time)))
+                    || (isSteward() && isContributed()
+                        && onlyChanged(['image', 'pic'])
+                        && (!('image' in request.resource.data)
+                            || request.resource.data.image == resource.data.get('image', null))
+                        && (!('pic' in request.resource.data)
+                            || request.resource.data.pic == resource.data.get('pic', null)));
       allow delete: if false;
 
       // -------------------------- contributed recordings --------------------------

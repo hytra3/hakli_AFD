@@ -136,7 +136,19 @@ function playInto(btn, url){
   audioEl.play().catch(()=>{});
 }
 
-async function entryCounts(entryId){
+// Briefly memoised: the dictionary asks for the same word's counts several
+// times in one render (which words to list, the card header, the views), and
+// each ask is a Firestore query. 15 s keeps one render to one read per word
+// while a new or withdrawn voice still shows on the next look.
+const _countsCache = new Map();   // entryId -> { at, p }
+function entryCounts(entryId){
+  const hit = _countsCache.get(entryId);
+  if(hit && Date.now() - hit.at < 15000) return hit.p;
+  const p = loadCounts(entryId);
+  _countsCache.set(entryId, { at: Date.now(), p });
+  return p;
+}
+async function loadCounts(entryId){
   const c={word:0,context:0,definition:0};
   try{
     const snap=await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),
@@ -644,14 +656,17 @@ async function entryCard(res, lead){
   if(gc){ const hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
     entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`; }); }
 
-  let currentUrl=null, firstPlayable=null, loaded=false;
+  let currentUrl=null, firstPlayable=null, detailP=null;
   const setUrl = (u)=>{ currentUrl = u; };
 
   // Detail (voices, slots, playback) is EXPENSIVE — listPlayable resolves a Storage
   // URL per recording — so it loads lazily, only when the card opens. This is what
   // lets the dictionary render 40 cards without hundreds of Storage calls up front.
-  async function loadDetail(){
-    if(loaded) return firstPlayable; loaded=true;
+  // Every caller shares the ONE load: a play tap that lands while the open-tap's
+  // load is still in flight must wait for it, not read "no voice yet" from a
+  // half-loaded card (seen on a slow phone: the note, then the voice under it).
+  function loadDetail(){ return detailP || (detailP = buildDetail()); }
+  async function buildDetail(){
     const recs = await (playable || listPlayable(res.entryId));
     const wordRecs    = recs.filter(r => (r.type||"word")==="word");
     const contextRecs = recs.filter(r => r.type==="context");
@@ -700,7 +715,9 @@ async function entryCard(res, lead){
   });
 
   if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
-  return { el, playBtn, removed: !!meta.removedAt, get firstPlayable(){ return firstPlayable; } };
+  // removed by its creator, or hidden by a steward (steward.html): either way it
+  // stays out of the dictionary, search and old links
+  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt), get firstPlayable(){ return firstPlayable; } };
 }
 
 export { entryCard, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
