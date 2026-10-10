@@ -747,6 +747,7 @@ function backToAll(){
 function clearEntryHash(){
   if(!location.hash) return;
   try{ history.replaceState(null, "", location.pathname + location.search); }catch(_){}
+  steps.sync();
 }
 function setIdleHint(){ hint.classList.remove("small"); setHintKey("find.idle"); }
 function showAll(){

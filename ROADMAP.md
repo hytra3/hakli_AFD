@@ -289,6 +289,12 @@ mocked), looking for dead ends, stale state and links that go nowhere.
     again without a new search, and without autoplaying again.
   - *Steps from before a reload are ignored* (no microphone, no draft behind
     them), except search results, which the page can rebuild.
+  - *A link that only changes the #hash is not a step.* The browser reports it
+    like a Back press (popstate, no state), and b1010b took it for one: tapping
+    "Add a sentence" / "Add a meaning" in the recorder threw you to step 1.
+    Fixed the same afternoon — the helper ignores hash-only moves, and the
+    recorder takes its slot links in place (address replaced, not pushed), so
+    choosing a slot adds nothing to the history.
 - **Recorder step 2 has the breadcrumb too** (chevron + tap → step 1).
 - **The recorder shows the word you came for**, as a chip under the header on
   all three steps: picture + name (no words in the sound tier), and tapping it
@@ -329,9 +335,17 @@ lists, page not found)* — so every earlier section and item keeps its number:
 - the 404 page (`notfound.*`), which reads its words from the table when it
   loads, so a corrected string reaches it.
 New screens go at the end of `SCREEN_GROUPS` with `late:true`.
-**Still outside the list:** about a dozen lines in `recorder.html` not keyed to
-the table (the Word / Sentence / Meaning tabs among them), and the welcome,
-walkthrough and intro pages, which carry their own text.
+**Recorder, third pass (10-10).** The Word / Sentence / Meaning tabs had been
+hidden since the card's slots took over choosing the type (2c); their markup,
+styles and click handler are now removed. The recorder's last unlisted lines —
+the three "say it twice / a sentence / what it means" instructions and the
+"Listening · Word N of M" readout — moved into the table (`record.instr.*`,
+`record.progress.*`) and appear at the end of *Screen · Recording*; the speaker
+chip's gender words reuse `form.gender.*`. In the instructions, `*stars*` mark
+the one emphasised word (shown bold); a reviewer who drops them just loses the
+bold.
+**Still outside the list:** the welcome, walkthrough and intro pages, which
+carry their own text.
 
 ## Polish / small fixes
 

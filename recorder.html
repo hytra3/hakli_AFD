@@ -227,11 +227,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .picto{font-size:80px;line-height:1;margin-bottom:10px;user-select:none}
 .gloss{font-family:var(--serif);font-size:34px;font-weight:500;letter-spacing:-.02em;margin:0;color:var(--ink)}
 .gloss-ar{font-size:23px;font-weight:400;color:var(--ink-soft);margin:3px 0 0;direction:rtl}
-.rectype{display:flex;gap:6px;margin-bottom:14px}
-.rectype .rt{flex:1;padding:10px 8px;border:1.5px solid var(--hairline);background:var(--paper);
-  border-radius:12px;font:600 14px/1.2 var(--sans);color:var(--ink-soft);cursor:pointer;text-align:center}
-.rectype .rt .ar{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.8}
-.rectype .rt.active{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
 .instruction{font-size:15px;line-height:1.45;color:var(--ink);margin:0}
 .instruction .bi-ar{display:block;direction:rtl;font-size:16px}
 .instruction .sub{text-align:center;font-size:12.5px}
@@ -342,10 +337,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   /* "Say it yourself" links back to this very page — here it only competes with
      the record button, so the recorder hides it. */
   #entryCardHost .sayit{ display:none; }
-  /* 2c — the card's slots now choose the record type, so the Word/Sentence/Meaning
-     tabs are redundant: hide them. The slot you're contributing to is ringed in
-     amber so it's clear what the next recording will be filed under. */
-  #rectype{ display:none; }
+  /* 2c — the card's slots choose the record type (the Word / Sentence / Meaning
+     tabs they replaced were hidden, then removed 10-10). The slot you're
+     contributing to is ringed in amber so it's clear what the next recording
+     will be filed under. */
   #entryCardHost[data-rectype="word"] .slot-word,
   #entryCardHost[data-rectype="context"] .slot-context,
   #entryCardHost[data-rectype="definition"] .slot-definition{
@@ -577,12 +572,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 
   <div id="recChip" class="spkchip hidden" role="button" tabindex="0" title="Tap to change speaker"></div>
   <div id="shareChip" class="sharechip hidden" aria-live="polite"></div>
-
-  <div class="rectype" id="rectype">
-    <button class="rt active" data-type="word">كلمة <span class="ar">Word</span></button>
-    <button class="rt" data-type="context">جملة <span class="ar">Sentence</span></button>
-    <button class="rt" data-type="definition">معنى <span class="ar">Meaning</span></button>
-  </div>
 
   <div class="afdcard" id="entryCardHost"></div>
   <div class="prompt" id="promptCue">
@@ -1510,7 +1499,8 @@ function speakerChipHTML(){
   const town=($("spkTown").value||"").trim(), tribe=($("spkTribe").value||"").trim();
   const age=($("spkAge").value||"").trim(), g=($("spkGender").value||"").trim();
   const code=($("spkId").value||"").trim();
-  const genderTxt = g==="f" ? "أنثى · F" : g==="m" ? "ذكر · M" : "";
+  const GS=AFDCore.STRINGS||{}, gAr=(k,d)=>((GS[k]||{}).ar)||d;     // the form's own words (form.gender.*)
+  const genderTxt = g==="f" ? gAr("form.gender.f","أنثى")+" · F" : g==="m" ? gAr("form.gender.m","ذكر")+" · M" : "";
   const label = [town||tribe, age, genderTxt].filter(x=>x && x!=="—").join(" · ") || "—";
   const ic='<svg class="spkchip-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
   return ic+'<span class="spkchip-main">'+rosterEsc(label)+'</span><span class="spkchip-code">'+rosterEsc(code)+'</span><span class="spkchip-sw" aria-hidden="true">\u21c4</span>';
@@ -1840,7 +1830,7 @@ function renderPrompt(){
   const sil=document.querySelector(".silhouette");
   const sess=$("sessionCard");
   if(listenOnly){
-    setProgress("استماع", "LISTENING", false);
+    setProgress("record.progress.listening", "", false);
     $("instruction").innerHTML=AFDCore.tHTML("listen.instruction",dispMode);
     $("compareNext").classList.add("hidden");   // browse nav below already has Next — one is enough
     recBtn.classList.add("hidden");
@@ -1893,10 +1883,13 @@ function tMsg(key, vars){
 
 // Step 3 / listening label: Arabic first ("الكلمة ١ من ٤٠"), English line only
 // in the "auto" tier — the same convention as tHTML. Was English-only.
-function setProgress(arLead, enLead, recording){
-  const n=(v)=>Number(v).toLocaleString("ar-EG");
-  const ar=(arLead?arLead+" · ":"")+"الكلمة "+n(idx+1)+" من "+n(WORDS.length);
-  const en=enLead+" · WORD "+(idx+1)+" OF "+WORDS.length;
+// leadKey: a STRINGS key for what goes in front ("record.progress.listening"),
+// or "" to use enLead alone (step 3 has no Arabic lead, only "STEP 3 / 3").
+function setProgress(leadKey, enLead, recording){
+  const S=AFDCore.STRINGS||{}, n=(v)=>Number(v).toLocaleString("ar-EG");
+  const w=S["record.progress.word"] || { en:"WORD {i} OF {n}", ar:"{i} / {n}" }, lead=leadKey ? S[leadKey] : null;
+  const ar=(lead&&lead.ar?lead.ar+" · ":"")+fill(w.ar, { i:n(idx+1), n:n(WORDS.length) });
+  const en=(lead?lead.en:enLead)+" · "+fill(w.en, { i:idx+1, n:WORDS.length });
   const el=$("progress"); if(!el) return;
   el.innerHTML='<span class="bi-ar" dir="rtl">'+ar+'</span>'+(dispMode==="auto"?'<small class="sub">'+en+'</small>':'');
 }
@@ -1910,16 +1903,11 @@ const entryIdFor = AFDCore.entryIdFor;
    recording and tells find which slot it fills. Sentences and meanings are one
    natural utterance, so their QC skips the two-repetition rule. */
 let recType="word";
-const REC_INSTR={
-  word:"Say the Hakli word <b>twice</b>, with a short pause between.",
-  context:"Say a short <b>sentence</b> using this word — one time.",
-  definition:"Say what this word <b>means</b>, in Hakli — one time."
-};
-const REC_INSTR_AR={
-  word:"قل الكلمة الحكلية <b>مرّتين</b>، مع وقفة قصيرة بينهما.",
-  context:"قل <b>جملة</b> قصيرة تستخدم هذه الكلمة — مرّة واحدة.",
-  definition:"قل ما <b>تعنيه</b> هذه الكلمة، بالحكلية — مرّة واحدة."
-};
+// The instruction for each type lives in afd-core STRINGS (record.instr.*), so
+// speakers can review the Arabic in the prompts tool. *stars* mark the one
+// emphasised word; everything else is plain text.
+const REC_INSTR_KEY={ word:"record.instr.word", context:"record.instr.context", definition:"record.instr.definition" };
+function instrHTML(text){ return rosterEsc(text||"").replace(/\*([^*]+)\*/g,"<b>$1</b>"); }
 
 /* Display tier — shared with index.html through the same localStorage key, so a
    Hakli-only speaker sets it once and both screens obey. Mirrors find's three
@@ -1967,7 +1955,6 @@ const DISP_ICON={
 function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.auto; }
 function setRecType(t){
   recType=(t==="context"||t==="definition")?t:"word";
-  document.querySelectorAll("#rectype .rt").forEach(b=>b.classList.toggle("active",b.dataset.type===recType));
   const _host=document.getElementById("entryCardHost");   // 2c: ring the slot being filled
   if(_host) _host.setAttribute("data-rectype", recType);
   const instr=$("instruction");
@@ -1982,18 +1969,12 @@ function setRecType(t){
       // script: Arabic only · auto: Arabic first, English underneath (same
       // convention as tHTML everywhere else on the page)
       instr.classList.remove("rtl");
-      instr.innerHTML = '<span class="bi-ar" dir="rtl">'+REC_INSTR_AR[recType]+'</span>'+
-                        (dispMode==="auto" ? '<small class="sub">'+REC_INSTR[recType]+'</small>' : '');
+      const s=(AFDCore.STRINGS||{})[REC_INSTR_KEY[recType]] || { en:"", ar:"" };
+      instr.innerHTML = '<span class="bi-ar" dir="rtl">'+instrHTML(s.ar)+'</span>'+
+                        (dispMode==="auto" ? '<small class="sub">'+instrHTML(s.en)+'</small>' : '');
     }
   }
 }
-document.querySelectorAll("#rectype .rt").forEach(b=>b.addEventListener("click",()=>{
-  // switching type = "I'll record this now" → clean record-ready state for the new
-  // type. The type-filtered "how others said it" reappears after you record, or via
-  // the Hear-how-others button — always matching the selected tab, never stale.
-  setRecType(b.dataset.type);
-  renderPrompt();
-}));
 
 /* Localize every static chrome string for the current tier (auto=en, script=ar,
    sound=icon||ar). Re-run on load and whenever the tier changes. */
@@ -2115,6 +2096,21 @@ async function applyDeepLink(){
 window.__applyDeepLink = applyDeepLink;
 applyDeepLink();
 window.addEventListener("hashchange",applyDeepLink);
+/* "Add a sentence" / "Add a meaning" on the card link to this very page with a
+   new #hash. Choosing a slot is not a step back or forward, so it must not
+   become one in the browser history: take the link in place (the address is
+   replaced, not pushed) and apply it directly. Back from here still goes to
+   step 2. */
+document.addEventListener("click",(e)=>{
+  const a = e.target && e.target.closest ? e.target.closest("#entryCardHost a.slot-add") : null;
+  if(!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  let u; try{ u = new URL(a.href, location.href); }catch(_){ return; }
+  if(u.origin!==location.origin || u.pathname!==location.pathname || !u.hash) return;
+  e.preventDefault();
+  try{ history.replaceState(history.state, "", u.hash); }catch(_){ location.hash = u.hash; return; }
+  if(recSteps) recSteps.sync();
+  applyDeepLink();
+});
 
 $("playGloss").onclick=()=>{
   const w=WORDS[idx];
