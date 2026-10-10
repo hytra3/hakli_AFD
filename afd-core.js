@@ -549,7 +549,16 @@ window.AFDCore = (function(){
     "mast.dictionary":      { en:"dictionary", ar:"القاموس" },
     // 404.html — the page for an address that doesn't exist
     "notfound.title":       { en:"This page isn't here", ar:"هذه الصفحة غير موجودة" },
-    "notfound.open":        { en:"Open the dictionary", ar:"ادخل القاموس" }
+    "notfound.open":        { en:"Open the dictionary", ar:"ادخل القاموس" },
+    // Recorder step 3 — the lines that were written into recorder.html, so the
+    // prompts tool could not list them. Wording unchanged. In the three
+    // instructions, *stars* mark the one emphasised word (shown bold); drop
+    // them and the line simply has no bold. Added at the END.
+    "record.instr.word":       { en:"Say the Hakli word *twice*, with a short pause between.", ar:"قل الكلمة الحكلية *مرّتين*، مع وقفة قصيرة بينهما." },
+    "record.instr.context":    { en:"Say a short *sentence* using this word — one time.", ar:"قل *جملة* قصيرة تستخدم هذه الكلمة — مرّة واحدة." },
+    "record.instr.definition": { en:"Say what this word *means*, in Hakli — one time.", ar:"قل ما *تعنيه* هذه الكلمة، بالحكلية — مرّة واحدة." },
+    "record.progress.word":      { en:"WORD {i} OF {n}", ar:"الكلمة {i} من {n}" },
+    "record.progress.listening": { en:"LISTENING", ar:"استماع" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -628,16 +637,23 @@ window.AFDCore = (function(){
      Back / Forward then call the handler. A step pushed before a reload belongs
      to a page that no longer exists (no microphone, no draft), so it is ignored
      rather than half-restored; steps.adopt() lets a page that CAN restore one
-     claim it. */
+     claim it.
+
+     A link that only changes the #hash is NOT a step, but the browser reports it
+     the same way (a popstate with no state). The handler is not called for
+     those — b1010b took one for "Back to the first screen", which threw the
+     recorder to step 1 whenever "Add a sentence / Add a meaning" was tapped. */
   function stepHistory(onShow){
     const token = Math.random().toString(36).slice(2);
-    let path = [], skip = 0;
+    let path = [], skip = 0, lastHash = location.hash;
     const mine = (s)=> !!(s && s.afdStep && s.afdT === token);
     window.addEventListener("popstate", (e)=>{
-      const s = e.state;
+      const s = e.state, hashMoved = location.hash !== lastHash;
+      lastHash = location.hash;
       if(s && s.afdStep && !mine(s)){ if(skip) skip--; return; }   // from before a reload — not ours
       path = mine(s) ? s.afdPath.slice() : [];
       if(skip){ skip--; return; }                                   // our own back(): the screen already moved
+      if(!s && hashMoved) return;                                   // only the #hash changed — the page's hashchange handles it
       try{ onShow(mine(s) ? s.afdStep : null); }catch(err){ console.warn("[AFD] step", err); }
     });
     return {
@@ -645,7 +661,11 @@ window.AFDCore = (function(){
         path.push(step);
         try{ history.pushState({ afdStep:step, afdT:token, afdPath:path.slice() }, "", url || undefined); }
         catch(_){ path.pop(); }
+        lastHash = location.hash;
       },
+      // The page changed the address itself (history.replaceState): note the
+      // hash, so the next Back isn't mistaken for a hash-only move, or the reverse.
+      sync(){ lastHash = location.hash; },
       back(n){
         n = Math.min(n == null ? 1 : n, path.length);
         if(n > 0){ skip++; path = path.slice(0, path.length - n); history.go(-n); }
