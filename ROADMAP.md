@@ -347,6 +347,30 @@ bold.
 **Still outside the list:** the welcome, walkthrough and intro pages, which
 carry their own text.
 
+## Browser tests (2026-10-10)
+
+The pages had no automated check at all — only the rules and the Python
+services did — and b1010b shipped a recorder regression (slot links dropping to
+step 1) that a hand-run check found an hour later. The checks written through
+the day now live in `test/browser/` and run on every pull request.
+
+- **What they are.** 92 checks in five files (`search`, `navigation`, `back`,
+  `recorder`, `extras`), each opening the real pages in headless Chromium at
+  phone size. Firebase is four small in-memory stand-ins, the matcher is
+  answered by the test (a result, an error, a dropped connection, silence), the
+  microphone is Chromium's fake device, and all other traffic is blocked.
+- **They fail when they should.** Run against b1010b the recorder file fails;
+  against b1007r the navigation file passes 4 of 16.
+- **One retry per file**, named when it was needed — a late headless browser
+  should not fail a pull request, but a check that only passes sometimes should
+  be seen.
+- **The review list's numbers are pinned** (`prompt-numbers.json`): a number
+  speakers have been given can never come to mean another line. Adding lines
+  needs a deliberate refresh (see DEPLOY).
+- **What they are not:** a real phone, the installed app, iOS, real audio, the
+  real matcher, or how anything looks. Timings in them are waits, so a much
+  slower machine could need longer ones.
+
 ## Polish / small fixes
 
 - **✅ Lead-card "closest match" marker** — in the wordless sound/script tiers nothing

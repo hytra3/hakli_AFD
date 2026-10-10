@@ -1,7 +1,9 @@
-# Runs the security-rules tests and the server-side Python tests on every pull
-# request (and on pushes to main), so a PR shows pass/fail before it is merged.
-# Nothing here deploys or touches the live Firebase project: the rules run in
-# the local emulators, and the Python tests stub every Google Cloud client.
+# Runs the security-rules tests, the server-side Python tests and the browser
+# tests on every pull request (and on pushes to main), so a PR shows pass/fail
+# before it is merged. Nothing here deploys or touches the live Firebase
+# project: the rules run in the local emulators, the Python tests stub every
+# Google Cloud client, and the browser tests open the pages from the checkout
+# with Firebase and the matcher replaced by stand-ins (test/browser/lib.mjs).
 name: tests
 
 on:
@@ -47,3 +49,23 @@ jobs:
       - run: pip install numpy fastapi python-multipart httpx
       - name: Run Python tests
         run: python -m unittest discover -s test -p "test_*.py" -v
+
+  browser:
+    name: Pages in a browser (search, navigation, Back, recorder)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: test/package-lock.json
+      - run: npm ci
+        working-directory: test
+      - name: Install Chromium
+        run: npx playwright-core install --with-deps chromium
+        working-directory: test
+      - name: Run browser tests
+        run: npm run test:browser
+        working-directory: test

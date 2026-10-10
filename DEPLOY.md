@@ -62,7 +62,19 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   (speak-to-find can't match it). `node scripts/backfill-embeddings.mjs` lists
   them; `--apply` re-runs the embed trigger for each.
 - **Tests** run on every pull request (GitHub → the PR's "Checks"): the
-  Firestore/Storage rules in the emulators, and the Python services.
+  Firestore/Storage rules in the emulators, the Python services, and the
+  **browser tests** — the real pages opened in headless Chromium at phone size
+  and walked like a person would (hold the mic, press Back, tap a slot), with
+  Firebase and the matcher replaced by stand-ins so nothing live is touched.
+  - On the laptop: `cd ~/afd/test && npm install && npx playwright-core install chromium`
+    once, then `npm run test:browser` (about four minutes). One file:
+    `node browser/run.mjs recorder`. Screenshots: `AFD_SHOTS=/tmp/shots npm run test:browser`.
+  - They check behaviour, not appearance, and not a real phone: the installed
+    app, iOS and a real microphone still need a hand test.
+  - **After adding on-screen strings on purpose**, refresh the review list's
+    number record: `AFD_UPDATE_NUMBERS=1 node browser/run.mjs extras`, and commit
+    `test/browser/prompt-numbers.json`. The test fails if any existing number
+    comes to mean a different line.
 - **Storage rules** (`afd-storage.rules`) — corpus audio is playable only
   while its recording is public. Before deploying them, run
   `node scripts/audit-recording-paths.mjs` (add `--fix` to repair missing
