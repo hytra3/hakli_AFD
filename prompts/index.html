@@ -30,6 +30,9 @@
   .bar > i{display:block; height:100%; width:0; background:var(--go); border-radius:6px; transition:width .25s;}
   .barlabel{font-size:12px; color:var(--muted); margin-top:6px; display:flex; justify-content:space-between;}
   .status{font-size:12px; color:var(--muted);}
+  /* home — the same incense-burner glyph as the app's pages; this tool had no way out */
+  .title a.home{display:inline-flex; height:22px; color:inherit; flex:0 0 auto;}
+  .title a.home svg{height:100%; width:auto; display:block;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:16px;}
   .sec{font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted);}
   .badge{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; margin-left:6px; vertical-align:2px;}
@@ -96,7 +99,7 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="title">🎙️ Hakli voice prompts <span id="status" class="status">connecting…</span></div>
+    <div class="title"><a class="home" href="../index.html" aria-label="Home — the dictionary" title="Home — the dictionary"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>🎙️ Hakli voice prompts <span id="status" class="status">connecting…</span></div>
     <div class="bar"><i id="barfill"></i></div>
     <div class="barlabel"><span id="count">0 recorded</span><span id="remaining"></span></div>
   </header>

@@ -595,12 +595,64 @@ window.AFDCore = (function(){
            `shape-rendering="crispEdges" style="background:#EFEAE3"><g fill="${fg}">${cells}</g></svg>`;
   }
 
+  /* ---- in-page steps in the browser history ---------------------------------
+     Steps inside one page (recorder 1 → 2 → 3, add say → show → share, search
+     results over the list) were not in the browser history, so the phone's Back
+     button left the page — from search results it left the app. Installed as an
+     app there is no other back button. A page declares its steps here:
+
+       const steps = AFDCore.stepHistory(step => …show that step…);
+         // step is null for the page's first screen
+       steps.push("show")   after the page itself moved FORWARD to a step
+       steps.back(n)        after an in-page back control already moved the
+                            screen back over n steps (keeps history in line)
+
+     Back / Forward then call the handler. A step pushed before a reload belongs
+     to a page that no longer exists (no microphone, no draft), so it is ignored
+     rather than half-restored; steps.adopt() lets a page that CAN restore one
+     claim it. */
+  function stepHistory(onShow){
+    const token = Math.random().toString(36).slice(2);
+    let path = [], skip = 0;
+    const mine = (s)=> !!(s && s.afdStep && s.afdT === token);
+    window.addEventListener("popstate", (e)=>{
+      const s = e.state;
+      if(s && s.afdStep && !mine(s)){ if(skip) skip--; return; }   // from before a reload — not ours
+      path = mine(s) ? s.afdPath.slice() : [];
+      if(skip){ skip--; return; }                                   // our own back(): the screen already moved
+      try{ onShow(mine(s) ? s.afdStep : null); }catch(err){ console.warn("[AFD] step", err); }
+    });
+    return {
+      push(step, url){
+        path.push(step);
+        try{ history.pushState({ afdStep:step, afdT:token, afdPath:path.slice() }, "", url || undefined); }
+        catch(_){ path.pop(); }
+      },
+      back(n){
+        n = Math.min(n == null ? 1 : n, path.length);
+        if(n > 0){ skip++; path = path.slice(0, path.length - n); history.go(-n); }
+      },
+      // Claim the step this page was loaded on (after a reload, or coming Back
+      // from another page) — only for a step the page can rebuild by itself.
+      adopt(){
+        const s = history.state;
+        if(!(s && s.afdStep) || mine(s)) return null;
+        path = [s.afdStep];
+        try{ history.replaceState({ afdStep:s.afdStep, afdT:token, afdPath:path.slice() }, ""); }catch(_){ path = []; return null; }
+        return s.afdStep;
+      },
+      depth(){ return path.length; },
+      path(){ return path.slice(); },
+      top(){ return path.length ? path[path.length-1] : null; }
+    };
+  }
+
   return {
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tHTML,
-    identicon
+    identicon, stepHistory
   };
 })();

@@ -271,32 +271,49 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   check → "Start recording words" dropped back into listening, with no record
   button, until a reload. Continue now leaves listen mode.
 
-**Open — choices, not bugs (nothing changed)**
-- **The phone's Back button doesn't follow the steps.** Steps inside a page
-  (recorder 1→2→3, add say→show→share, list→results/word) aren't in the browser
-  history, so Android Back leaves the page — from search results it leaves the
-  app. Matters most installed as an app, where Back is the only back there is.
-  Fix is a `history.pushState` per step; a real piece of work, wants a decision.
-- **Recorder step 2 (mic check) has no way back to step 1** unless the speaker
-  chip is showing. The step readout is deliberately a breadcrumb on step 3 only;
-  making it one on step 2 as well is a few lines.
-- **The recorder forgets where you came from.** "Say it yourself" on a word goes
-  to the recorder; Home and Find both return to the full list, not that word,
-  and steps 1–2 don't show which word you came to record.
-- **The "all words" button is a bare ☰** — reads as a menu, not "back to the
-  list", and has no caption (the header icons got Arabic captions for this reason).
-- **Masthead wording.** A word opened from a link is titled "speak to find"; the
-  header still says "dictionary" while it is listening / finding.
-- **The tile atop the list says "Add it to the dictionary"** — "it" has nothing
-  to refer to there (the string was written for the no-match screen). `add.title`
-  ("Add a word") fits.
-- **No 404 page.** A mistyped address gets GitHub's stock page with no way in.
-- **Pages with no way out:** `hakli-intro.html` / `hakli-intro-ar.html` (no links
-  at all — and not in DEPLOY's page list), `prompts/index.html`, and the two
-  steward pages (not linked in-app by design; a home link would still be cheap).
-- Small: add.html's account icon is captioned "حسابي" even when signed out
-  (index says "دخول"); its "Invite" fallback navigates the page itself to
-  WhatsApp where every other share opens a new tab.
+**✅ Built — the choices that were left open (second pass, same day)**
+- **The phone's Back button follows the steps.** `AFDCore.stepHistory` puts
+  in-page steps into the browser history: recorder 3 → 2 → 1, add share → show →
+  say, and search results over the list. Rules, so they aren't relitigated:
+  - *Forward by the person pushes a step; the page's own back controls take the
+    steps off again* — so there is never a dead Back press.
+  - *The page moving by itself is not a step* (returning-speaker fast path, a
+    resumed draft): Back from there still leaves, as it should.
+  - *"Done" on add.html takes all its steps off*: Back from the thank-you leaves
+    rather than reopening a word that is already shared.
+  - *Two searches in a row are one step.* Results are kept for the tab
+    (sessionStorage), so Back from the recorder — a fresh page load — shows them
+    again without a new search, and without autoplaying again.
+  - *Steps from before a reload are ignored* (no microphone, no draft behind
+    them), except search results, which the page can rebuild.
+- **Recorder step 2 has the breadcrumb too** (chevron + tap → step 1).
+- **The recorder shows the word you came for**, as a chip under the header on
+  all three steps: picture + name (no words in the sound tier), and tapping it
+  returns to that word in the dictionary. Home and Find still mean the whole list.
+- **The "all words" control is a labelled pill**: back chevron, list glyph and
+  the name of the list it returns to ("Needs a voice" if that is the view) —
+  icons only in the sound tier.
+- **Masthead.** A word opened from a link is titled "dictionary"; the header
+  switches to "speak to find" the moment a hold starts and stays through
+  "Finding…", and returns to what is on screen if the hold comes to nothing.
+- **The tile atop the list says "Add a word"** (`add.title`); "Add it to the
+  dictionary" stays on the no-match screen, where "it" means something.
+- **`404.html`** — GitHub Pages serves it for any address that doesn't exist;
+  links are absolute so it works at any depth. Arabic is an MSA draft.
+- **Ways out:** the two intro pages end with "ادخل القاموس" (hidden in print);
+  the prompts tool has the home glyph; the two steward pages link to the
+  dictionary, each other and the prompts tool.
+- Small: add.html's account caption follows sign-in ("دخول" / "حسابي"); its
+  "Invite" fallback opens WhatsApp in a new tab like every other share.
+
+**Still open**
+- **Back does not close the recorder's overlays** (withdraw / spoken-consent
+  proof): it goes to the previous step underneath. They have their own Cancel.
+- **Not tried on a real phone** — Android's Back gesture in the installed app,
+  and iOS swipe-back, are the cases this was built for; verified only in desktop
+  Chromium at phone size with Firebase stubbed.
+- **Keep the screen awake during a search** (`navigator.wakeLock`) — see Matcher
+  resilience above.
 
 ## Polish / small fixes
 

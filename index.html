@@ -206,9 +206,15 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
     *{animation:none !important; transition:none !important}
   }
 :focus-visible{outline:3px solid var(--resin); outline-offset:3px}
-.allbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:40px;height:40px;
-  border:1.5px solid var(--mist-2);border-radius:50%;background:var(--cloud);color:var(--mountain);
-  cursor:pointer;padding:0;margin-bottom:12px}
+/* the way back to the list from a word or from search results: a back chevron,
+   the list glyph and the list's name (no words in the sound tier) */
+.allbtn{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;min-height:44px;
+  border:1.5px solid var(--mist-2);border-radius:22px;background:var(--cloud);color:var(--mountain);
+  cursor:pointer;padding:0 16px 0 10px;margin-bottom:12px;font:inherit}
+.allbtn svg{flex:0 0 auto}
+.allbtn .all-t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.12}
+.allbtn .all-ar{font-family:var(--serif);font-size:15px}
+.allbtn .all-en{font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);margin-top:1px}
 /* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
      escape hatch under search candidates for a real new word that looked near one */
   .addword{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:460px;
@@ -434,6 +440,7 @@ async function startHold(){
   if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); showResults(); return; }
   if(!holding){ showResults(); return; }   // released during acquisition — stream stays warm for the next hold
   document.body.classList.add("rec"); setHint("Listening…","أستمع…");
+  setMastView("find");                 // the header follows: this is speak-to-find from the first moment of the hold
   meter(s);
   chunks=[];
   try{ mediaRec = new MediaRecorder(s); }
@@ -588,10 +595,30 @@ async function runSearch(blob){
   const results = (data.results||[]);
   console.log("[AFD] corpus", data.corpus_n, "· age", data.corpus_age_s, "s ·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
   showDbg(results, data.corpus_n);
+  // Results are a step over the list in the browser history, so the phone's Back
+  // button returns to the list instead of leaving the app. (A second search from
+  // the results replaces them — one step, not a pile.)
+  rememberResults(results);
+  clearEntryHash();                              // searching from a linked word: the list is what's underneath now
+  if(steps.top()!=="results") steps.push("results");
   await render(results);
 }
 
-async function render(results){
+/* The last results, kept for this tab: coming Back from the recorder (a fresh
+   page load) or going Forward again can show them without a new search. */
+const RESULTS_KEY = "afd_results";
+function rememberResults(r){ try{ sessionStorage.setItem(RESULTS_KEY, JSON.stringify(r)); }catch(_){} }
+function recallResults(){
+  try{ const r = JSON.parse(sessionStorage.getItem(RESULTS_KEY) || "null"); return Array.isArray(r) ? r : null; }
+  catch(_){ return null; }
+}
+const steps = AFDCore.stepHistory((step)=>{
+  if(location.hash) return;                      // landed on an #ent_ link — hashchange opens it
+  const r = step==="results" ? recallResults() : null;
+  if(r){ cancelSearch(); render(r, true); } else showAll();
+});
+
+async function render(results, quiet){   // quiet: a return to old results (Back / Forward) — don't autoplay again
   const my = ++renderToken; deepEntry = null;
   lastResults = results; setMastView("find");
   resultsEl.innerHTML=""; hint.classList.add("small");
@@ -627,7 +654,7 @@ async function render(results){
   resultsEl.appendChild(alt);
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 
-  if(confident && lead.firstPlayable){ playInto(lead.playBtn, lead.firstPlayable); }
+  if(confident && lead.firstPlayable && !quiet){ playInto(lead.playBtn, lead.firstPlayable); }
 }
 
 /* Open a specific entry directly — the dictionary links here as index.html#ent_xxx.
@@ -635,7 +662,7 @@ async function render(results){
    autoplay: the user navigated deliberately, so let them pick a voice. */
 async function openEntry(entryId){
   const my = ++renderToken; deepEntry = entryId;
-  lastResults = [{entryId, distance:0}]; setMastView("find");
+  lastResults = [{entryId, distance:0}]; setMastView("dictionary");   // a word opened by link is the dictionary, not a search
   resultsEl.innerHTML=""; hint.classList.add("small");
   setHint("Here it is","ها هو");
   const lead = await entryCard({entryId, distance:0}, true);
@@ -672,9 +699,15 @@ function applyEntryDeepLink(){
    (detail loads lazily for that one entry). Same card whether reached by speaking
    or scrolling — one renderer, one behaviour. */
 function backToAll(){
+  // Names the list it goes back to (the active view), so it reads as "back to
+  // the list" — a bare ☰ read as a menu. Sound tier: chevron + glyph, no words.
+  const v = VIEWS.find(x=>x.id===currentView) || VIEWS[0];
   const b=document.createElement("button");
-  b.className="allbtn"; b.setAttribute("aria-label","Show all words");
-  b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+  b.className="allbtn"; b.type="button"; b.setAttribute("aria-label","Back to the list — "+v.en); b.title=v.en;
+  b.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`+
+    `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`+
+    (displayMode==="sound" ? "" : `<span class="all-t"><span class="all-ar" dir="rtl">${escapeHtml(v.ar)}</span>`+
+      (displayMode==="auto" ? `<span class="all-en">${escapeHtml(v.en)}</span>` : "")+`</span>`);
   b.addEventListener("click", showAll);
   return b;
 }
@@ -686,7 +719,10 @@ function clearEntryHash(){
   try{ history.replaceState(null, "", location.pathname + location.search); }catch(_){}
 }
 function setIdleHint(){ hint.classList.remove("small"); setHint("Hold and speak","تكلّم"); }
-function showAll(){ clearEntryHash(); setIdleHint(); return renderBrowse(); }
+function showAll(){
+  if(steps.top()==="results") steps.back();     // leaving results by a button: take their history step with them
+  clearEntryHash(); setIdleHint(); return renderBrowse();
+}
 /* coverage meter: how many words already have a spoken recording, as a glanceable
    goal that shrinks the wall of zeros into progress. */
 function coverageMeterEl(){
@@ -802,7 +838,7 @@ function addWordButton(){
   const b=document.createElement("button");
   b.className="addword";
   b.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`+
-    `<span>${escapeHtml(AFDCore.t("entry.addnew", displayMode))}</span>`;
+    `<span>${escapeHtml(AFDCore.t("add.title", displayMode))}</span>`;   // "Add a word" — "Add it…" has no "it" up here
   b.addEventListener("click", startNewEntry);
   return b;
 }
@@ -911,6 +947,7 @@ function setHintKey(key, code){
    without new results puts it back. */
 function showResults(){
   if(resultsEl.childElementCount){ resultsEl.classList.remove("hidden"); document.body.classList.add("has-results"); }
+  setMastView(lastResults && !deepEntry ? "find" : "dictionary");   // the header names what is back on screen
 }
 function banner(msg){
   let b=document.querySelector(".banner");
@@ -954,7 +991,7 @@ let mastView = "find";
 function renderMasthead(){
   const m = MAST[mastView] || MAST.find;
   let ar=m.ar, en=m.en;                       // in the dictionary, reflect the active view
-  if(mastView==="dictionary" && currentView!=="all"){
+  if(mastView==="dictionary" && currentView!=="all" && !deepEntry){
     const v = VIEWS.find(x=>x.id===currentView);
     if(v){ ar=v.ar; en=v.en; }
   }
@@ -1000,8 +1037,14 @@ document.addEventListener("click",(e)=>{ if(viewMenu && viewMenu.classList.conta
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewMenuClose(); });
 
 // deep-link opens one entry; otherwise show the whole dictionary as browsable cards
-if(!applyEntryDeepLink()) renderBrowse();
-window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) showAll(); });
+// …unless this load is a return to search results (Back from the recorder, or a
+// refresh): show those again.
+{ const back = (!location.hash && steps.adopt()==="results") ? recallResults() : null;
+  if(back) render(back, true); else if(!applyEntryDeepLink()) renderBrowse(); }
+window.addEventListener("hashchange", ()=>{
+  if(applyEntryDeepLink()) return;
+  if(steps.top()!=="results") showAll();         // Forward onto results: the step handler shows them
+});
 
 mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
 mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
