@@ -166,6 +166,9 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 .hint .ar{display:block; font-size:16px; color:var(--mist); font-family:var(--sans); margin-top:4px}
 .hint .ar.solo{display:block; font-size:inherit; color:var(--mountain); font-family:var(--sans); direction:rtl; margin-top:0}
 .hint.small{font-size:16px; color:var(--mist)}
+/* which failure a search hit, small enough to ignore and legible in a screenshot */
+.hint .code{display:block; margin-top:8px; direction:ltr; font:500 10.5px/1 var(--sans);
+  letter-spacing:.12em; text-transform:uppercase; color:var(--mist)}
 /* ---------------------------------------------------------------- results */
   .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px}
 /* header account button — sign in to manage your own voice */
@@ -295,12 +298,14 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* ---- pre-warm the matcher -------------------------------------------------
    Normally afd-embed runs at min-instances=0 (scripts/set-warm.sh off), so it
    costs nothing while idle but pays a cold start on the first search after it
-   scales to zero: container boot + MMS model load + corpus load, several
-   seconds. For field weeks, `set-warm.sh on` keeps one instance up and this
-   warm-up becomes a harmless no-op. We hide that by firing ONE
-   throwaway /search the moment the find page loads — the instance boots and
-   fully warms (this endpoint loads the corpus AND the model on the way through)
-   while the person is still getting oriented, so their real search is fast.
+   scales to zero: container boot + MMS model load + corpus load — measured at
+   60–80 s on 2026-10-10, not the few seconds first assumed. For field weeks,
+   `set-warm.sh on` keeps one instance up and this warm-up becomes a harmless
+   no-op. We soften that by firing ONE throwaway /search the moment the find
+   page loads — the instance boots and fully warms (this endpoint loads the
+   corpus AND the model on the way through) while the person is still getting
+   oriented. It is a head start, not a guarantee: a search spoken inside that
+   minute still waits (runSearch says so, and rides it out).
 
    The clip is a ~0.25s 16 kHz mono WAV synthesised in-browser: valid for the
    container's ffmpeg decode, non-silent so it survives the empty-audio guard,
@@ -417,19 +422,22 @@ function stopStream(){
 
 async function startHold(){
   if(holding) return; holding=true;
+  cancelSearch();                      // pressing the mic again abandons a search still in flight
   resultsEl.classList.add("hidden");
   let s = await ensureStream();
   // A warm stream can go stale — the browser/OS ends the track between holds —
   // and reusing a dead track makes MediaRecorder.start() throw NotSupportedError.
   // Drop a stream with no live track and re-acquire a fresh one.
   if(s && !s.getAudioTracks().some(t=>t.readyState==="live")){ stopStream(); s = await ensureStream(); }
-  if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
-  if(!holding) return;                 // released during acquisition — stream stays warm for the next hold
+  // Each early way out below puts the list back (showResults): the hold hid it,
+  // and without a search nothing else would — a blank page with no way on.
+  if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); showResults(); return; }
+  if(!holding){ showResults(); return; }   // released during acquisition — stream stays warm for the next hold
   document.body.classList.add("rec"); setHint("Listening…","أستمع…");
   meter(s);
   chunks=[];
   try{ mediaRec = new MediaRecorder(s); }
-  catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); return; }
+  catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); showResults(); return; }
   mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mediaRec.onstop = onClip;
   try{ mediaRec.start(100); }   // 100ms timeslice: flush data during the hold, not only on stop
@@ -437,7 +445,7 @@ async function startHold(){
     // Stream became unrecordable — force a fresh one on the next hold rather than
     // leaving an uncaught rejection and a dead-feeling button.
     holding=false; document.body.classList.remove("rec"); stopStream();
-    setHint("Hold and speak","تكلّم");
+    setHint("Hold and speak","تكلّم"); showResults();
   }
 }
 function endHold(){
@@ -465,7 +473,7 @@ function meter(stream){
 async function onClip(){
   // keep the stream warm for the next hold — do NOT stop it here
   const blob = new Blob(chunks, {type: chunks[0]?.type || "audio/webm"});
-  if(blob.size < 800){ setHint("Hold a little longer, then speak","تكلّم أطول قليلاً"); return; }
+  if(blob.size < 800){ setHint("Hold a little longer, then speak","تكلّم أطول قليلاً"); showResults(); return; }
   await runSearch(blob);
 }
 
@@ -484,26 +492,101 @@ window.addEventListener("pagehide", stopStream);
 })();
 
 /* ================================================================= search */
+/* A search can fail in different places, and each calls for something different
+   from the person holding the phone — so the page says WHICH (and shows a small
+   code a screenshot can carry), instead of one catch-all line:
+     offline  the phone has no connection                       → no retry
+     network  the request never got an answer (dropped signal, or the service
+              died before replying — the browser can't tell these apart)
+     timeout  no answer within the limit (a cold matcher takes 60–80 s)
+     server   the matcher answered with an error (5xx / 429 / anything else)
+     audio    it couldn't decode the clip (400)                  → no retry
+     toolong  the clip was over the limit (413)                  → no retry
+   network / timeout / server are retried ONCE, automatically. The first try is
+   given long enough to ride out a cold start; by the retry the matcher is warm,
+   so that one is short. */
+const SEARCH_TIMEOUT_MS = [120000, 60000];   // per attempt
+const SEARCH_SLOW_MS    = 6000;              // past this, say it is still looking
+const SEARCH_RETRY_MS   = 1500;              // pause before the one retry
+const SEARCH_RETRYABLE  = new Set(["network","timeout","server"]);
+const SEARCH_ERR_KEY    = { offline:"find.err.offline", network:"find.err.network", timeout:"find.err.timeout",
+                            server:"find.err.server", audio:"find.err.audio", toolong:"find.err.toolong" };
+class SearchError extends Error{
+  constructor(kind, code){ super(code); this.kind=kind; this.code=code; }
+}
+let searchSeq = 0, searchAbort = null;   // the search on screen; a newer hold or Home supersedes it
+
+/* Drop any search still in flight — the mic was pressed again, or the person
+   went Home. Its answer, if one ever comes, is ignored. */
+function cancelSearch(){
+  searchSeq++;
+  if(searchAbort){ try{ searchAbort.abort(); }catch(_){} searchAbort=null; }
+  document.body.classList.remove("busy");
+}
+
+async function searchOnce(blob, timeoutMs){
+  if(navigator.onLine === false) throw new SearchError("offline","offline");
+  const ctl = new AbortController(); searchAbort = ctl;
+  let timedOut = false;
+  const timer = setTimeout(()=>{ timedOut = true; ctl.abort(); }, timeoutMs);
+  try{
+    const fd = new FormData(); fd.append("file", blob, "query.webm");
+    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd, signal:ctl.signal});
+    if(!r.ok){
+      const kind = r.status===400 ? "audio" : r.status===413 ? "toolong" : "server";
+      throw new SearchError(kind, "http "+r.status);
+    }
+    return await r.json();
+  }catch(e){
+    if(e instanceof SearchError) throw e;
+    if(timedOut) throw new SearchError("timeout","timeout");
+    if(navigator.onLine === false) throw new SearchError("offline","offline");
+    throw new SearchError("network","network");       // fetch rejected, or the reply wasn't readable
+  }finally{
+    clearTimeout(timer);
+    if(searchAbort === ctl) searchAbort = null;
+  }
+}
+
 async function runSearch(blob){
+  cancelSearch();                                      // only one search at a time
+  const my = searchSeq;
   document.body.classList.add("busy"); setHint("Finding…","أبحث…");
   if(EMBED_URL.includes("PASTE-")){
     banner("Set EMBED_URL to your Cloud Run address in index.html.");
-    document.body.classList.remove("busy"); setHint("Hold and speak","تكلّم"); return;
+    document.body.classList.remove("busy"); setHint("Hold and speak","تكلّم"); showResults(); return;
   }
-  let data;
-  try{
-    const fd = new FormData(); fd.append("file", blob, "query.webm");
-    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd});
-    if(!r.ok) throw new Error("search "+r.status);
-    data = await r.json();
-  }catch(e){
-    document.body.classList.remove("busy");
-    setHint("Couldn't reach the matcher — try again","حاول مرة أخرى");
-    document.body.classList.add("has-results"); return;
+  // A cold matcher can take a minute. Say so, or "Finding…" reads as frozen and
+  // the person gives up — or lets the screen sleep, which drops the request.
+  const slow = setTimeout(()=>{ if(my===searchSeq) setHintKey("find.waking"); }, SEARCH_SLOW_MS);
+  let data = null, err = null;
+  for(let attempt=0; attempt<2; attempt++){
+    try{ data = await searchOnce(blob, SEARCH_TIMEOUT_MS[attempt]); err = null; break; }
+    catch(e){
+      err = e;
+      if(my!==searchSeq) break;                        // superseded — say nothing
+      console.warn("[AFD] search attempt "+(attempt+1)+" failed:", e.code);
+      if(attempt===0 && SEARCH_RETRYABLE.has(e.kind)){
+        setHintKey("find.retrying");
+        await new Promise(res=>setTimeout(res, SEARCH_RETRY_MS));
+        if(my!==searchSeq) break;
+        continue;
+      }
+      break;
+    }
   }
+  clearTimeout(slow);
+  if(my!==searchSeq) return;                           // a newer hold, or Home, took over
   document.body.classList.remove("busy");
+  if(err){
+    // Name the failure, and put back whatever was on screen before the hold
+    // (the list, or the last results) — a failed search must not leave a blank
+    // page with no way on.
+    setHintKey(SEARCH_ERR_KEY[err.kind] || "find.err.network", err.code);
+    showResults(); return;
+  }
   const results = (data.results||[]);
-  console.log("[AFD] corpus", data.corpus_n, "·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
+  console.log("[AFD] corpus", data.corpus_n, "· age", data.corpus_age_s, "s ·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
   showDbg(results, data.corpus_n);
   await render(results);
 }
@@ -557,6 +640,13 @@ async function openEntry(entryId){
   setHint("Here it is","ها هو");
   const lead = await entryCard({entryId, distance:0}, true);
   if(my!==renderToken) return;                 // superseded by a newer render/open
+  if(lead.missing){
+    // A mistyped or cut-off link: there is no such word. Say so over the whole
+    // dictionary, rather than a blank card that says "Here it is" and offers to
+    // record it.
+    clearEntryHash(); await renderBrowse(); if(renderToken===my+1) setHintKey("find.missing");
+    return;
+  }
   resultsEl.innerHTML="";                       // clear again in case of a race
   resultsEl.appendChild(backToAll());
   if(lead.removed){
@@ -585,9 +675,18 @@ function backToAll(){
   const b=document.createElement("button");
   b.className="allbtn"; b.setAttribute("aria-label","Show all words");
   b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-  b.addEventListener("click", renderBrowse);
+  b.addEventListener("click", showAll);
   return b;
 }
+/* Back to the whole list, leaving nothing of the last view behind: the address
+   drops its #ent_… (or a reload — or a re-share — would snap back to that word)
+   and the hint returns to idle (or "Here it is" sits over the full list). */
+function clearEntryHash(){
+  if(!location.hash) return;
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(_){}
+}
+function setIdleHint(){ hint.classList.remove("small"); setHint("Hold and speak","تكلّم"); }
+function showAll(){ clearEntryHash(); setIdleHint(); return renderBrowse(); }
 /* coverage meter: how many words already have a spoken recording, as a glanceable
    goal that shrinks the wall of zeros into progress. */
 function coverageMeterEl(){
@@ -801,6 +900,18 @@ function setHint(en, ar){
   if(displayMode!=="auto" && ar){ hint.innerHTML = `<span class="ar solo">${escapeHtml(ar)}</span>`; return; }
   hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:"");
 }
+/* A hint from the shared string table (afd-core STRINGS), with an optional small
+   code beneath it — used by search, which names the failure it hit. */
+function setHintKey(key, code){
+  const s = AFDCore.STRINGS[key] || { en:key, ar:"" };
+  setHint(s.en, s.ar);
+  if(code){ const c=document.createElement("span"); c.className="code"; c.textContent=code; hint.appendChild(c); }
+}
+/* A hold hides whatever is listed so the mic has the screen. Anything that ends
+   without new results puts it back. */
+function showResults(){
+  if(resultsEl.childElementCount){ resultsEl.classList.remove("hidden"); document.body.classList.add("has-results"); }
+}
 function banner(msg){
   let b=document.querySelector(".banner");
   if(!b){ b=document.createElement("div"); b.className="banner"; document.querySelector("main").prepend(b); }
@@ -877,7 +988,7 @@ function selectView(id){
   if(v.nav){ location.href=v.nav; return; }       // page jump (e.g. Record a word)
   currentView = id;
   renderViewMenu();
-  renderBrowse();
+  showAll();
 }
 if(mastScreen){
   mastScreen.addEventListener("click",(e)=>{ e.stopPropagation();
@@ -890,7 +1001,7 @@ document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewMenuClose();
 
 // deep-link opens one entry; otherwise show the whole dictionary as browsable cards
 if(!applyEntryDeepLink()) renderBrowse();
-window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) renderBrowse(); });
+window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) showAll(); });
 
 mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
 mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
@@ -1020,9 +1131,15 @@ updateAccountUi();
 
 /* The incense-burner glyph is HOME: tap it to return to the whole dictionary
    (with the add-a-word tile at the top) and scroll up. The hidden dev distance
-   readout still lives here — a quick triple-tap toggles it. */
+   readout still lives here — a quick triple-tap toggles it.
+   Home means home from ANYWHERE: a filtered view ("Needs a voice"), a search
+   still in flight, or a hold that hid the list and found nothing — each used to
+   leave Home doing nothing but scroll. */
 function goHome(){
-  if(!(mastView==="dictionary" && !deepEntry && !lastResults)) renderBrowse();
+  cancelSearch();
+  const atHome = mastView==="dictionary" && currentView==="all" && !deepEntry && !lastResults
+                 && !resultsEl.classList.contains("hidden") && !location.hash;
+  if(atHome) setIdleHint(); else { currentView = "all"; showAll(); }
   window.scrollTo({ top:0, behavior:"smooth" });
 }
 let taps=0,tt=0;

@@ -206,6 +206,98 @@ within each group.
   field weeks (no cold start at all). `deploy-service.sh` no longer sets it, so a
   redeploy keeps the last choice. Check Billing after a day of "on" before leaving it.
 
+## Matcher resilience (2026-10-10)
+
+What prompted it: a search on the phone sat on "Finding…" and then showed
+"Couldn't reach the matcher — try again", with nothing to say why. The Cloud Run
+log for that window showed **every request answered 200** and none at all at the
+time of the error — so the service and the data were fine, and the failure was
+between the phone and the service.
+
+- **Measured: a cold matcher takes 60–80 s**, not "several seconds" (≈40 s
+  container boot + 30–40 s model load). And the page-open warm-up is a head
+  start, not a guarantee: a second cold instance started for the real search
+  45 s after the first had finished warming (the log doesn't say why).
+- **✅ The page names the failure** (`index.html` `runSearch`). One line per kind,
+  with a small code under it that a screenshot carries: `offline`, `network`
+  (no answer — a dropped connection and a service that died before replying look
+  the same to a browser), `timeout`, `http NNN` for a matcher error, plus "couldn't
+  make out that recording" (400) and "too long" (413). Strings are `find.*` in
+  afd-core STRINGS — **Arabic is an MSA draft, needs Dhofari review** like the rest.
+- **✅ One automatic retry** for network / timeout / matcher errors (not for
+  offline, 400 or 413). First try waits up to 120 s so it can ride out a cold
+  start; the retry gets 60 s. After ~6 s of waiting the hint changes to "Still
+  looking — the first search can take a minute", so nobody gives up or lets the
+  screen sleep (which drops the request).
+- **✅ Pressing the mic again abandons the search in flight**, and a failed search
+  puts the list back instead of leaving a blank page.
+- **✅ The service survives a failed corpus reload** (`embed_service/app.py`
+  `ensure_fresh`). Since 10-05 a search re-reads the corpus from Firestore when
+  its copy is over `CORPUS_MAX_AGE_S` (5 min) old, and a failed read failed the
+  search. Now it answers from the last good copy and asks Firestore again after
+  `CORPUS_RETRY_S` (30 s). **Bounded on purpose:** the reload is what carries a
+  withdrawal into search, so a copy older than `CORPUS_STALE_OK_S` (30 min) is
+  refused with a 503 rather than trusted. During a Firestore outage a withdrawn
+  voice's entry can therefore keep matching for up to 30 min (its audio still
+  can't be played — the card reads Firestore directly). Lower `CORPUS_STALE_OK_S`
+  to tighten that; 0 restores fail-closed.
+- **Not done — keep the screen awake during a search** (`navigator.wakeLock`), the
+  most direct guard against the dropped-request case. A few lines; ask if wanted.
+- **Not done — warm instance.** `set-warm.sh on` removes the wait entirely; left
+  off until there is data coming in.
+
+## Wayfinding pass (2026-10-10)
+
+Every page walked at phone width in a real browser (Firebase stubbed, matcher
+mocked), looking for dead ends, stale state and links that go nowhere.
+
+**✅ Fixed — plain defects**
+- **A hold that found nothing left a blank page.** Holding the mic hides the
+  list; a too-short hold, a refused microphone or a quick tap never put it back,
+  and Home did nothing there (it thought it was already home). Every such exit
+  now restores the list.
+- **"All words" left the last view behind.** Coming back from a linked word or
+  from search results kept "Here it is" above the full list and kept `#ent_…`
+  in the address — so a reload (or re-sharing the page) snapped back to that
+  word, and tapping the same link again did nothing. One `showAll()` now clears
+  both; the list button, Home and the view menu all use it.
+- **Home didn't leave a filtered view.** From "Needs a voice" or "Newest" it only
+  scrolled up. Home now always means All words, and cancels a search in flight.
+- **A link to a word that doesn't exist showed a blank card** saying "Here it is"
+  with a "Say it yourself" button (which, in the recorder, lands on word 1). It
+  now says "That word isn't in the dictionary" over the whole list. Only when
+  Firestore *answered* no — offline, the link still opens as before.
+- **Recorder: "Just listen" was a one-way door.** After trying it, Continue → mic
+  check → "Start recording words" dropped back into listening, with no record
+  button, until a reload. Continue now leaves listen mode.
+
+**Open — choices, not bugs (nothing changed)**
+- **The phone's Back button doesn't follow the steps.** Steps inside a page
+  (recorder 1→2→3, add say→show→share, list→results/word) aren't in the browser
+  history, so Android Back leaves the page — from search results it leaves the
+  app. Matters most installed as an app, where Back is the only back there is.
+  Fix is a `history.pushState` per step; a real piece of work, wants a decision.
+- **Recorder step 2 (mic check) has no way back to step 1** unless the speaker
+  chip is showing. The step readout is deliberately a breadcrumb on step 3 only;
+  making it one on step 2 as well is a few lines.
+- **The recorder forgets where you came from.** "Say it yourself" on a word goes
+  to the recorder; Home and Find both return to the full list, not that word,
+  and steps 1–2 don't show which word you came to record.
+- **The "all words" button is a bare ☰** — reads as a menu, not "back to the
+  list", and has no caption (the header icons got Arabic captions for this reason).
+- **Masthead wording.** A word opened from a link is titled "speak to find"; the
+  header still says "dictionary" while it is listening / finding.
+- **The tile atop the list says "Add it to the dictionary"** — "it" has nothing
+  to refer to there (the string was written for the no-match screen). `add.title`
+  ("Add a word") fits.
+- **No 404 page.** A mistyped address gets GitHub's stock page with no way in.
+- **Pages with no way out:** `hakli-intro.html` / `hakli-intro-ar.html` (no links
+  at all — and not in DEPLOY's page list), `prompts/index.html`, and the two
+  steward pages (not linked in-app by design; a home link would still be cheap).
+- Small: add.html's account icon is captioned "حسابي" even when signed out
+  (index says "دخول"); its "Invite" fallback navigates the page itself to
+  WhatsApp where every other share opens a new tab.
+
 ## Polish / small fixes
 
 - **✅ Lead-card "closest match" marker** — in the wordless sound/script tiers nothing

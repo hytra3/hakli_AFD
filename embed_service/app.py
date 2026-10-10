@@ -76,6 +76,14 @@ TORCH_THREADS = int(os.environ.get("TORCH_THREADS", "0"))   # 0 = leave default
 # A withdrawal must reach search without anyone remembering to /reindex: the
 # corpus cache reloads on the next search once it is older than this.
 CORPUS_MAX_AGE_S = float(os.environ.get("CORPUS_MAX_AGE_S", "300"))
+# If that reload FAILS (a Firestore blip), search keeps answering from the last
+# good copy instead of failing — but only for a bounded time. The reload is what
+# carries a withdrawal into search, so a copy older than this is refused (503)
+# rather than trusted: past it, a withdrawn voice could still be matching.
+CORPUS_STALE_OK_S = float(os.environ.get("CORPUS_STALE_OK_S", "1800"))
+# After a failed reload, wait this long before asking Firestore again, so a
+# burst of searches during an outage doesn't queue up one slow failure each.
+CORPUS_RETRY_S = float(os.environ.get("CORPUS_RETRY_S", "30"))
 
 # Abuse limits. /search is open to the world (the browser calls it), so a
 # request must stay cheap: bounded upload, bounded audio length, and a cap on
@@ -325,6 +333,7 @@ class Corpus:
         self._reload_lock = threading.Lock()
         self.loaded = False
         self.loaded_at = 0.0
+        self._retry_at = 0.0          # no reload attempt before this (set by a failure)
 
     @property
     def entry_ids(self) -> List[str]:
@@ -333,12 +342,34 @@ class Corpus:
     def stale(self) -> bool:
         return not self.loaded or time.monotonic() - self.loaded_at > CORPUS_MAX_AGE_S
 
+    def age_s(self) -> Optional[float]:
+        """Seconds since the corpus was last loaded; None if it never was."""
+        return time.monotonic() - self.loaded_at if self.loaded else None
+
     def ensure_fresh(self):
-        """Reload if stale — once, even when several searches notice together."""
-        if self.stale():
-            with self._reload_lock:
-                if self.stale():
+        """Reload if stale — once, even when several searches notice together.
+
+        A reload that fails does not fail the search: the last good copy keeps
+        answering, up to CORPUS_STALE_OK_S old. With no copy at all, or one
+        older than that, the search is refused with a 503 the page can name."""
+        if not self.stale():
+            return
+        with self._reload_lock:
+            if not self.stale():
+                return
+            now = time.monotonic()
+            if now >= self._retry_at:
+                try:
                     self.load_from_firestore()
+                    return
+                except Exception as e:                # Firestore unreachable, denied, bad doc…
+                    self._retry_at = now + CORPUS_RETRY_S
+                    print(f"corpus reload failed: {e!r}", flush=True)
+            age = self.age_s()
+            if age is None or age > CORPUS_STALE_OK_S:
+                raise HTTPException(status_code=503, detail="corpus unavailable",
+                                    headers={"Retry-After": str(int(CORPUS_RETRY_S))})
+            print(f"serving the corpus loaded {age:.0f}s ago", flush=True)
 
     def load_from_firestore(self):
         from google.cloud import firestore
@@ -366,6 +397,7 @@ class Corpus:
                       entry_ids, glosses)
         self.loaded = True
         self.loaded_at = time.monotonic()
+        self._retry_at = 0.0
         return len(entry_ids)
 
     def search(self, q: np.ndarray, top_k: int = 5):
@@ -446,8 +478,12 @@ def search(file: UploadFile = File(...), top_k: int = 5):
     # voiced-only pool still ≈ one word (order-invariant), so no split needed
     r = embed_waveform(decode_to_16k_mono(raw))
     top_k = max(1, min(top_k, MAX_TOP_K))
+    age = _corpus.age_s()
     return {"results": _corpus.search(r["embedding"], top_k=top_k),
             "corpus_n": len(_corpus.entry_ids),
+            # how old the copy that answered is — over CORPUS_MAX_AGE_S means a
+            # reload failed and this came from the last good one
+            "corpus_age_s": None if age is None else round(age),
             "n_reps": r["n_reps"]}
 
 

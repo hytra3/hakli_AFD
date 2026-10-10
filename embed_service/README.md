@@ -97,5 +97,12 @@ The right entry should come back at the top with a small distance
 - Only recordings that are public right now (`allowPlayback` and
   `consent == "public"`) are searchable, so a withdrawn or erased voice drops
   out of search within that window.
+- If a refresh fails (Firestore unreachable), search keeps answering from the
+  last good copy rather than failing, and tries again after `CORPUS_RETRY_S`
+  (default 30 s). That copy is trusted for at most `CORPUS_STALE_OK_S` (default
+  1800 s): a refresh is what carries a withdrawal into search, so during such
+  an outage a withdrawn voice's entry can keep matching for up to that long.
+  Past it — or with no copy at all — `/search` answers 503 "corpus
+  unavailable". Each reply carries `corpus_age_s`, the age of the copy used.
 - Layer is env-configurable (`EMBED_LAYER`) if a re-sweep on clean 48 kHz data
   moves the optimum off 12.
