@@ -241,8 +241,11 @@ between the phone and the service.
   voice's entry can therefore keep matching for up to 30 min (its audio still
   can't be played — the card reads Firestore directly). Lower `CORPUS_STALE_OK_S`
   to tighten that; 0 restores fail-closed.
-- **Not done — keep the screen awake during a search** (`navigator.wakeLock`), the
-  most direct guard against the dropped-request case. A few lines; ask if wanted.
+- **✅ The screen stays awake during a search** (`navigator.wakeLock`, index.html
+  `holdScreenAwake`) — the most direct guard against the dropped-request case.
+  Held only while a search is in flight; released when it ends, is superseded or
+  cancelled, or the page is hidden (and re-taken on return). Browsers without a
+  wake lock, or that refuse it (battery saver), behave as before.
 - **Not done — warm instance.** `set-warm.sh on` removes the wait entirely; left
   off until there is data coming in.
 
@@ -312,8 +315,23 @@ mocked), looking for dead ends, stale state and links that go nowhere.
 - **Not tried on a real phone** — Android's Back gesture in the installed app,
   and iOS swipe-back, are the cases this was built for; verified only in desktop
   Chromium at phone size with Firebase stubbed.
-- **Keep the screen awake during a search** (`navigator.wakeLock`) — see Matcher
-  resilience above.
+
+**Arabic for review (10-10).** Everything written or surfaced today is in the
+prompts tool, as a new last section — *Screen · Dictionary page (speak to find,
+lists, page not found)* — so every earlier section and item keeps its number:
+- the search messages added today (`find.*`, moved out of the tail of "Other",
+  where they had sat for an hour);
+- the dictionary page's own words, which were written into `index.html` and so
+  were never listed: the mic hints (`find.idle / listening / finding / short /
+  mic / none`), the view names (`view.*`) and the two header titles (`mast.*`).
+  Wording unchanged — only where it lives. One visible change: the no-match card
+  showed English in every tier; the Arabic-only tiers now get Arabic only;
+- the 404 page (`notfound.*`), which reads its words from the table when it
+  loads, so a corrected string reaches it.
+New screens go at the end of `SCREEN_GROUPS` with `late:true`.
+**Still outside the list:** about a dozen lines in `recorder.html` not keyed to
+the table (the Word / Sentence / Meaning tabs among them), and the welcome,
+walkthrough and intro pages, which carry their own text.
 
 ## Polish / small fixes
 

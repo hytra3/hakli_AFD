@@ -531,7 +531,25 @@ window.AFDCore = (function(){
     "find.err.server":      { en:"The matcher is having trouble — try again in a minute", ar:"في البحث مشكلة — حاول بعد دقيقة" },
     "find.err.audio":       { en:"Couldn't make out that recording — hold and speak again", ar:"لم أتمكّن من سماع التسجيل — اضغط وتكلّم مرة أخرى" },
     "find.err.toolong":     { en:"That was too long — say just the word", ar:"التسجيل طويل — قل الكلمة فقط" },
-    "find.missing":         { en:"That word isn't in the dictionary", ar:"هذه الكلمة ليست في القاموس" }
+    "find.missing":         { en:"That word isn't in the dictionary", ar:"هذه الكلمة ليست في القاموس" },
+    // The dictionary page's own words (index.html). They were written into the
+    // page itself, so the prompts tool could not list them for speaker review;
+    // the wording is unchanged, only where it lives. Added at the END.
+    "find.idle":            { en:"Hold and speak", ar:"تكلّم" },
+    "find.listening":       { en:"Listening…", ar:"أستمع…" },
+    "find.finding":         { en:"Finding…", ar:"أبحث…" },
+    "find.short":           { en:"Hold a little longer, then speak", ar:"تكلّم أطول قليلاً" },
+    "find.mic":             { en:"Let the app use the microphone", ar:"اسمح باستخدام الميكروفون" },
+    "find.none":            { en:"Not in the dictionary yet", ar:"ليست في القاموس بعد — أضِفها" },
+    "view.all":             { en:"All words", ar:"كل الكلمات" },
+    "view.needs":           { en:"Needs a voice", ar:"يحتاج صوتًا" },
+    "view.newest":          { en:"Newest", ar:"الأحدث" },
+    "view.record":          { en:"Record a word", ar:"سجِّل كلمة" },
+    "mast.find":            { en:"speak to find", ar:"قُل لتجد" },
+    "mast.dictionary":      { en:"dictionary", ar:"القاموس" },
+    // 404.html — the page for an address that doesn't exist
+    "notfound.title":       { en:"This page isn't here", ar:"هذه الصفحة غير موجودة" },
+    "notfound.open":        { en:"Open the dictionary", ar:"ادخل القاموس" }
   };
   function t(key, mode){
     const s = STRINGS[key];
