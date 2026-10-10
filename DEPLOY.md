@@ -66,9 +66,16 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   **browser tests** — the real pages opened in headless Chromium at phone size
   and walked like a person would (hold the mic, press Back, tap a slot), with
   Firebase and the matcher replaced by stand-ins so nothing live is touched.
-  - On the laptop: `cd ~/afd/test && npm install && npx playwright-core install chromium`
-    once, then `npm run test:browser` (about four minutes). One file:
-    `node browser/run.mjs recorder`. Screenshots: `AFD_SHOTS=/tmp/shots npm run test:browser`.
+  - **Nothing to install or run on the laptop** — GitHub runs them on every pull
+    request, and that is the check that counts.
+  - Running them locally is optional, and **does not work on the laptop as it
+    is**: the pinned browser driver (playwright-core 1.56.0) has no Chromium for
+    Ubuntu 26.04 ("Playwright does not support chromium on ubuntu26.04-x64").
+    To make it work, move the pin in `test/package.json` to a driver that
+    supports the laptop's Ubuntu. Where it is supported:
+    `cd test && npm install && npx playwright-core install chromium` once, then
+    `npm run test:browser` (about four minutes); one file:
+    `node browser/run.mjs recorder`; screenshots: `AFD_SHOTS=/tmp/shots npm run test:browser`.
   - They check behaviour, not appearance, and not a real phone: the installed
     app, iOS and a real microphone still need a hand test.
   - **After adding on-screen strings on purpose**, refresh the review list's
