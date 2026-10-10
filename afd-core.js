@@ -519,7 +519,18 @@ window.AFDCore = (function(){
     "import.btn":           { en:"Load a voice note instead", ar:"أو حمّل رسالة صوتية" },
     "import.loaded":        { en:"Voice note loaded — listen, then keep it", ar:"حُمّلت الرسالة الصوتية — استمع ثم احفظها" },
     "import.fail":          { en:"Couldn't read that file. In WhatsApp, share the voice note to this phone's Files, then load it from there.", ar:"تعذّرت قراءة الملف. في واتساب شارك الرسالة الصوتية إلى «الملفات» في هذا الهاتف ثم حمّلها من هناك." },
-    "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." }
+    "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." },
+    // Speak-to-find (index.html) — what a slow or failed search says. One line per
+    // KIND of failure, so the person (and a screenshot) can tell them apart.
+    // Added at the END so the prompts tool's section.item numbers don't shift.
+    "find.waking":          { en:"Still looking — the first search can take a minute", ar:"ما زلت أبحث — قد يستغرق أوّل بحث دقيقة" },
+    "find.retrying":        { en:"Trying once more…", ar:"أحاول مرة أخرى…" },
+    "find.err.offline":     { en:"No internet connection — try again when you're online", ar:"لا يوجد اتصال بالإنترنت — حاول عند توفّر الاتصال" },
+    "find.err.network":     { en:"Couldn't reach the matcher — check your connection and try again", ar:"تعذّر الوصول إلى البحث — تحقّق من الاتصال وحاول مرة أخرى" },
+    "find.err.timeout":     { en:"The matcher took too long to answer — try again", ar:"تأخّر البحث في الردّ — حاول مرة أخرى" },
+    "find.err.server":      { en:"The matcher is having trouble — try again in a minute", ar:"في البحث مشكلة — حاول بعد دقيقة" },
+    "find.err.audio":       { en:"Couldn't make out that recording — hold and speak again", ar:"لم أتمكّن من سماع التسجيل — اضغط وتكلّم مرة أخرى" },
+    "find.err.toolong":     { en:"That was too long — say just the word", ar:"التسجيل طويل — قل الكلمة فقط" }
   };
   function t(key, mode){
     const s = STRINGS[key];

@@ -323,6 +323,64 @@ class SearchCorpus(unittest.TestCase):
         c.loaded_at -= service.CORPUS_MAX_AGE_S + 1
         self.assertTrue(c.stale())
 
+    # --- a reload that fails must not take search down with it
+    def _loaded_stale(self, age_s):
+        """A corpus that loaded fine `age_s` ago and is now due a reload."""
+        c = service.Corpus()
+        c._snap = (service.np.array([[1.0, 0.0]], dtype=service.np.float32), ["ent_old"], ["old"])
+        c.loaded, c.loaded_at = True, service.time.monotonic() - age_s
+        return c
+
+    def test_failed_reload_serves_the_last_good_copy(self):
+        c = self._loaded_stale(service.CORPUS_MAX_AGE_S + 1)
+        with mock.patch.object(c, "load_from_firestore", side_effect=RuntimeError("firestore down")):
+            c.ensure_fresh()                                   # no exception
+        hits = c.search(service.np.array([1.0, 0.0], dtype=service.np.float32))
+        self.assertEqual([h["entryId"] for h in hits], ["ent_old"])
+
+    def test_failed_reload_with_nothing_cached_is_a_503(self):
+        c = service.Corpus()
+        with mock.patch.object(c, "load_from_firestore", side_effect=RuntimeError("firestore down")):
+            with self.assertRaises(service.HTTPException) as cm:
+                c.ensure_fresh()
+        self.assertEqual(cm.exception.status_code, 503)
+
+    def test_a_copy_past_the_stale_limit_is_refused(self):
+        # the reload is what carries a withdrawal into search, so the old copy
+        # is only trusted for a bounded time
+        c = self._loaded_stale(service.CORPUS_STALE_OK_S + 1)
+        with mock.patch.object(c, "load_from_firestore", side_effect=RuntimeError("firestore down")):
+            with self.assertRaises(service.HTTPException) as cm:
+                c.ensure_fresh()
+        self.assertEqual(cm.exception.status_code, 503)
+
+    def test_failed_reload_backs_off_then_recovers(self):
+        c = self._loaded_stale(service.CORPUS_MAX_AGE_S + 1)
+        with mock.patch.object(c, "load_from_firestore", side_effect=RuntimeError("firestore down")) as load:
+            c.ensure_fresh(); c.ensure_fresh(); c.ensure_fresh()
+        self.assertEqual(load.call_count, 1)                   # not once per search
+        c._retry_at = 0.0                                      # the back-off has passed
+        def good_load():
+            c.loaded, c.loaded_at = True, service.time.monotonic()
+        with mock.patch.object(c, "load_from_firestore", side_effect=good_load) as load:
+            c.ensure_fresh()
+        self.assertEqual(load.call_count, 1)
+        self.assertFalse(c.stale())
+
+    def test_a_reload_that_dies_midway_keeps_the_old_rows(self):
+        c = self._loaded_stale(service.CORPUS_MAX_AGE_S + 1)
+        def stream():
+            s = mock.MagicMock()
+            s.to_dict.return_value = {"entryId": "ent_new", "gloss": "new", "consent": "public",
+                                      "allowPlayback": True, "reps": [{"vector": [0.0, 1.0]}]}
+            yield s
+            raise RuntimeError("stream broke")
+        firestore = sys.modules["google.cloud.firestore"]
+        with mock.patch.object(firestore, "Client") as client:
+            client.return_value.collection_group.return_value.stream.side_effect = stream
+            c.ensure_fresh()
+        self.assertEqual(c.entry_ids, ["ent_old"])             # never a half-loaded corpus
+
 
 # ------------------------------------------------------- embed service limits
 class EmbedServiceGuards(unittest.TestCase):
@@ -393,6 +451,37 @@ class EmbedServiceGuards(unittest.TestCase):
              mock.patch.object(service._corpus, "search", return_value=[]) as search:
             self.client.post("/search?top_k=100000", files={"file": ("a", b"x")})
         self.assertEqual(search.call_args.kwargs["top_k"], service.MAX_TOP_K)
+
+    def test_search_answers_from_the_old_copy_and_says_how_old(self):
+        c = service._corpus
+        saved = (c._snap, c.loaded, c.loaded_at, c._retry_at)
+        try:
+            c._snap = (service.np.array([[1.0, 0.0]], dtype=service.np.float32), ["ent_old"], ["old"])
+            c.loaded, c.loaded_at, c._retry_at = True, service.time.monotonic() - 400, 0.0
+            q = {"embedding": service.np.array([1.0, 0.0], dtype=service.np.float32), "n_reps": 1}
+            with mock.patch.object(service, "embed_waveform", return_value=q), \
+                 mock.patch.object(service, "decode_to_16k_mono"), \
+                 mock.patch.object(c, "load_from_firestore", side_effect=RuntimeError("firestore down")):
+                r = self.client.post("/search", files={"file": ("a", b"x")})
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual([h["entryId"] for h in r.json()["results"]], ["ent_old"])
+            self.assertGreaterEqual(r.json()["corpus_age_s"], 400)
+        finally:
+            c._snap, c.loaded, c.loaded_at, c._retry_at = saved
+
+    def test_search_with_no_corpus_at_all_is_a_503_the_browser_can_read(self):
+        c = service._corpus
+        saved = (c._snap, c.loaded, c.loaded_at, c._retry_at)
+        try:
+            c.loaded, c.loaded_at, c._retry_at = False, 0.0, 0.0
+            with mock.patch.object(c, "load_from_firestore", side_effect=RuntimeError("firestore down")):
+                r = self.client.post("/search", files={"file": ("a", b"x")},
+                                     headers={"Origin": "https://hakli.app"})
+            self.assertEqual(r.status_code, 503)
+            # CORS headers must ride on the error too, or the page only sees "network error"
+            self.assertEqual(r.headers.get("access-control-allow-origin"), "https://hakli.app")
+        finally:
+            c._snap, c.loaded, c.loaded_at, c._retry_at = saved
 
     def test_concurrent_stale_searches_reload_once(self):
         import threading

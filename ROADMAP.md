@@ -206,6 +206,46 @@ within each group.
   field weeks (no cold start at all). `deploy-service.sh` no longer sets it, so a
   redeploy keeps the last choice. Check Billing after a day of "on" before leaving it.
 
+## Matcher resilience (2026-10-10)
+
+What prompted it: a search on the phone sat on "Finding…" and then showed
+"Couldn't reach the matcher — try again", with nothing to say why. The Cloud Run
+log for that window showed **every request answered 200** and none at all at the
+time of the error — so the service and the data were fine, and the failure was
+between the phone and the service.
+
+- **Measured: a cold matcher takes 60–80 s**, not "several seconds" (≈40 s
+  container boot + 30–40 s model load). And the page-open warm-up is a head
+  start, not a guarantee: a second cold instance started for the real search
+  45 s after the first had finished warming (the log doesn't say why).
+- **✅ The page names the failure** (`index.html` `runSearch`). One line per kind,
+  with a small code under it that a screenshot carries: `offline`, `network`
+  (no answer — a dropped connection and a service that died before replying look
+  the same to a browser), `timeout`, `http NNN` for a matcher error, plus "couldn't
+  make out that recording" (400) and "too long" (413). Strings are `find.*` in
+  afd-core STRINGS — **Arabic is an MSA draft, needs Dhofari review** like the rest.
+- **✅ One automatic retry** for network / timeout / matcher errors (not for
+  offline, 400 or 413). First try waits up to 120 s so it can ride out a cold
+  start; the retry gets 60 s. After ~6 s of waiting the hint changes to "Still
+  looking — the first search can take a minute", so nobody gives up or lets the
+  screen sleep (which drops the request).
+- **✅ Pressing the mic again abandons the search in flight**, and a failed search
+  puts the list back instead of leaving a blank page.
+- **✅ The service survives a failed corpus reload** (`embed_service/app.py`
+  `ensure_fresh`). Since 10-05 a search re-reads the corpus from Firestore when
+  its copy is over `CORPUS_MAX_AGE_S` (5 min) old, and a failed read failed the
+  search. Now it answers from the last good copy and asks Firestore again after
+  `CORPUS_RETRY_S` (30 s). **Bounded on purpose:** the reload is what carries a
+  withdrawal into search, so a copy older than `CORPUS_STALE_OK_S` (30 min) is
+  refused with a 503 rather than trusted. During a Firestore outage a withdrawn
+  voice's entry can therefore keep matching for up to 30 min (its audio still
+  can't be played — the card reads Firestore directly). Lower `CORPUS_STALE_OK_S`
+  to tighten that; 0 restores fail-closed.
+- **Not done — keep the screen awake during a search** (`navigator.wakeLock`), the
+  most direct guard against the dropped-request case. A few lines; ask if wanted.
+- **Not done — warm instance.** `set-warm.sh on` removes the wait entirely; left
+  off until there is data coming in.
+
 ## Polish / small fixes
 
 - **✅ Lead-card "closest match" marker** — in the wordless sound/script tiers nothing

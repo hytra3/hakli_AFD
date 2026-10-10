@@ -166,6 +166,9 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 .hint .ar{display:block; font-size:16px; color:var(--mist); font-family:var(--sans); margin-top:4px}
 .hint .ar.solo{display:block; font-size:inherit; color:var(--mountain); font-family:var(--sans); direction:rtl; margin-top:0}
 .hint.small{font-size:16px; color:var(--mist)}
+/* which failure a search hit, small enough to ignore and legible in a screenshot */
+.hint .code{display:block; margin-top:8px; direction:ltr; font:500 10.5px/1 var(--sans);
+  letter-spacing:.12em; text-transform:uppercase; color:var(--mist)}
 /* ---------------------------------------------------------------- results */
   .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px}
 /* header account button — sign in to manage your own voice */
@@ -295,12 +298,14 @@ const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
 /* ---- pre-warm the matcher -------------------------------------------------
    Normally afd-embed runs at min-instances=0 (scripts/set-warm.sh off), so it
    costs nothing while idle but pays a cold start on the first search after it
-   scales to zero: container boot + MMS model load + corpus load, several
-   seconds. For field weeks, `set-warm.sh on` keeps one instance up and this
-   warm-up becomes a harmless no-op. We hide that by firing ONE
-   throwaway /search the moment the find page loads — the instance boots and
-   fully warms (this endpoint loads the corpus AND the model on the way through)
-   while the person is still getting oriented, so their real search is fast.
+   scales to zero: container boot + MMS model load + corpus load — measured at
+   60–80 s on 2026-10-10, not the few seconds first assumed. For field weeks,
+   `set-warm.sh on` keeps one instance up and this warm-up becomes a harmless
+   no-op. We soften that by firing ONE throwaway /search the moment the find
+   page loads — the instance boots and fully warms (this endpoint loads the
+   corpus AND the model on the way through) while the person is still getting
+   oriented. It is a head start, not a guarantee: a search spoken inside that
+   minute still waits (runSearch says so, and rides it out).
 
    The clip is a ~0.25s 16 kHz mono WAV synthesised in-browser: valid for the
    container's ffmpeg decode, non-silent so it survives the empty-audio guard,
@@ -417,6 +422,7 @@ function stopStream(){
 
 async function startHold(){
   if(holding) return; holding=true;
+  cancelSearch();                      // pressing the mic again abandons a search still in flight
   resultsEl.classList.add("hidden");
   let s = await ensureStream();
   // A warm stream can go stale — the browser/OS ends the track between holds —
@@ -484,26 +490,101 @@ window.addEventListener("pagehide", stopStream);
 })();
 
 /* ================================================================= search */
+/* A search can fail in different places, and each calls for something different
+   from the person holding the phone — so the page says WHICH (and shows a small
+   code a screenshot can carry), instead of one catch-all line:
+     offline  the phone has no connection                       → no retry
+     network  the request never got an answer (dropped signal, or the service
+              died before replying — the browser can't tell these apart)
+     timeout  no answer within the limit (a cold matcher takes 60–80 s)
+     server   the matcher answered with an error (5xx / 429 / anything else)
+     audio    it couldn't decode the clip (400)                  → no retry
+     toolong  the clip was over the limit (413)                  → no retry
+   network / timeout / server are retried ONCE, automatically. The first try is
+   given long enough to ride out a cold start; by the retry the matcher is warm,
+   so that one is short. */
+const SEARCH_TIMEOUT_MS = [120000, 60000];   // per attempt
+const SEARCH_SLOW_MS    = 6000;              // past this, say it is still looking
+const SEARCH_RETRY_MS   = 1500;              // pause before the one retry
+const SEARCH_RETRYABLE  = new Set(["network","timeout","server"]);
+const SEARCH_ERR_KEY    = { offline:"find.err.offline", network:"find.err.network", timeout:"find.err.timeout",
+                            server:"find.err.server", audio:"find.err.audio", toolong:"find.err.toolong" };
+class SearchError extends Error{
+  constructor(kind, code){ super(code); this.kind=kind; this.code=code; }
+}
+let searchSeq = 0, searchAbort = null;   // the search on screen; a newer hold or Home supersedes it
+
+/* Drop any search still in flight — the mic was pressed again, or the person
+   went Home. Its answer, if one ever comes, is ignored. */
+function cancelSearch(){
+  searchSeq++;
+  if(searchAbort){ try{ searchAbort.abort(); }catch(_){} searchAbort=null; }
+  document.body.classList.remove("busy");
+}
+
+async function searchOnce(blob, timeoutMs){
+  if(navigator.onLine === false) throw new SearchError("offline","offline");
+  const ctl = new AbortController(); searchAbort = ctl;
+  let timedOut = false;
+  const timer = setTimeout(()=>{ timedOut = true; ctl.abort(); }, timeoutMs);
+  try{
+    const fd = new FormData(); fd.append("file", blob, "query.webm");
+    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd, signal:ctl.signal});
+    if(!r.ok){
+      const kind = r.status===400 ? "audio" : r.status===413 ? "toolong" : "server";
+      throw new SearchError(kind, "http "+r.status);
+    }
+    return await r.json();
+  }catch(e){
+    if(e instanceof SearchError) throw e;
+    if(timedOut) throw new SearchError("timeout","timeout");
+    if(navigator.onLine === false) throw new SearchError("offline","offline");
+    throw new SearchError("network","network");       // fetch rejected, or the reply wasn't readable
+  }finally{
+    clearTimeout(timer);
+    if(searchAbort === ctl) searchAbort = null;
+  }
+}
+
 async function runSearch(blob){
+  cancelSearch();                                      // only one search at a time
+  const my = searchSeq;
   document.body.classList.add("busy"); setHint("Finding…","أبحث…");
   if(EMBED_URL.includes("PASTE-")){
     banner("Set EMBED_URL to your Cloud Run address in index.html.");
-    document.body.classList.remove("busy"); setHint("Hold and speak","تكلّم"); return;
+    document.body.classList.remove("busy"); setHint("Hold and speak","تكلّم"); showResults(); return;
   }
-  let data;
-  try{
-    const fd = new FormData(); fd.append("file", blob, "query.webm");
-    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd});
-    if(!r.ok) throw new Error("search "+r.status);
-    data = await r.json();
-  }catch(e){
-    document.body.classList.remove("busy");
-    setHint("Couldn't reach the matcher — try again","حاول مرة أخرى");
-    document.body.classList.add("has-results"); return;
+  // A cold matcher can take a minute. Say so, or "Finding…" reads as frozen and
+  // the person gives up — or lets the screen sleep, which drops the request.
+  const slow = setTimeout(()=>{ if(my===searchSeq) setHintKey("find.waking"); }, SEARCH_SLOW_MS);
+  let data = null, err = null;
+  for(let attempt=0; attempt<2; attempt++){
+    try{ data = await searchOnce(blob, SEARCH_TIMEOUT_MS[attempt]); err = null; break; }
+    catch(e){
+      err = e;
+      if(my!==searchSeq) break;                        // superseded — say nothing
+      console.warn("[AFD] search attempt "+(attempt+1)+" failed:", e.code);
+      if(attempt===0 && SEARCH_RETRYABLE.has(e.kind)){
+        setHintKey("find.retrying");
+        await new Promise(res=>setTimeout(res, SEARCH_RETRY_MS));
+        if(my!==searchSeq) break;
+        continue;
+      }
+      break;
+    }
   }
+  clearTimeout(slow);
+  if(my!==searchSeq) return;                           // a newer hold, or Home, took over
   document.body.classList.remove("busy");
+  if(err){
+    // Name the failure, and put back whatever was on screen before the hold
+    // (the list, or the last results) — a failed search must not leave a blank
+    // page with no way on.
+    setHintKey(SEARCH_ERR_KEY[err.kind] || "find.err.network", err.code);
+    showResults(); return;
+  }
   const results = (data.results||[]);
-  console.log("[AFD] corpus", data.corpus_n, "·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
+  console.log("[AFD] corpus", data.corpus_n, "· age", data.corpus_age_s, "s ·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
   showDbg(results, data.corpus_n);
   await render(results);
 }
@@ -800,6 +881,18 @@ function setHint(en, ar){
   // English with Arabic beneath, for you and bilingual helpers.
   if(displayMode!=="auto" && ar){ hint.innerHTML = `<span class="ar solo">${escapeHtml(ar)}</span>`; return; }
   hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:"");
+}
+/* A hint from the shared string table (afd-core STRINGS), with an optional small
+   code beneath it — used by search, which names the failure it hit. */
+function setHintKey(key, code){
+  const s = AFDCore.STRINGS[key] || { en:key, ar:"" };
+  setHint(s.en, s.ar);
+  if(code){ const c=document.createElement("span"); c.className="code"; c.textContent=code; hint.appendChild(c); }
+}
+/* A hold hides whatever is listed so the mic has the screen. Anything that ends
+   without new results puts it back. */
+function showResults(){
+  if(resultsEl.childElementCount){ resultsEl.classList.remove("hidden"); document.body.classList.add("has-results"); }
 }
 function banner(msg){
   let b=document.querySelector(".banner");
