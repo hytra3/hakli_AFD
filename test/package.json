@@ -3,10 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-concurrency=1"
+    "test": "node --test --test-concurrency=1",
+    "test:browser": "node browser/run.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
-    "firebase": "^12.17.1"
+    "firebase": "^12.17.1",
+    "playwright-core": "1.56.0"
   }
 }
