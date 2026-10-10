@@ -122,7 +122,16 @@
            direction:ltr; max-width:56ch; margin:16px auto 0; text-align:center}
   .seal{margin:40px auto 0; width:44px; height:2px; background:var(--frank); border:0}
 
+  /* the way into the dictionary — these pages had no link at all (not printed) */
+  .enter-wrap{text-align:center; margin-top:34px}
+  .enter{display:inline-flex; flex-direction:column; align-items:center; gap:2px; font-family:var(--ar); font-size:21px;
+    color:#fff; background:var(--mountain); border-radius:999px; padding:14px 36px; text-decoration:none;
+    box-shadow:0 12px 30px rgba(31,58,52,.18)}
+  .enter:hover{background:var(--ink)}
+  .enter .enter-en{font-family:var(--en, Georgia, serif); font-style:italic; font-size:14px; direction:ltr; opacity:.85}
+
   @media print{
+    .enter-wrap{display:none}
     body{background:#fff; background-image:none}
     .wave i{animation:none}
     .core, .step.keep{box-shadow:none}
@@ -235,6 +244,7 @@
     <p class="body">كل صوتٍ يُضاف هنا يعين لغة الحَكلي على أن تُسمَع — من أي أحد، في أي مكان، اليوم وبعد اليوم بزمنٍ طويل. إنها لغتكم، محفوظةً بأصواتكم، لمن يأتي بعدكم.</p>
     <p class="body-en">Every voice added here helps the Hakli language be heard — by anyone, anywhere, now and long after today. This is your language, kept in your own voices, for those who come after you.</p>
     <hr class="seal">
+    <nav class="enter-wrap"><a class="enter" href="index.html">ادخل القاموس ←<span class="enter-en">Enter the dictionary →</span></a></nav>
   </section>
 
 </main>

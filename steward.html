@@ -56,6 +56,8 @@
   .top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
   .who{font-size:12px; color:var(--muted); text-align:right;}
   a.small{font-size:12px; color:var(--accent);}
+  .nav{font-size:12px; color:var(--muted); margin-bottom:10px;}
+  .nav a{color:var(--accent);}
 
   .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;}
   .tab{border:1px solid var(--line); background:var(--card); color:var(--muted); border-radius:20px; padding:6px 12px; font-size:13px; cursor:pointer;}
@@ -88,6 +90,7 @@
 </head>
 <body>
 <div class="wrap">
+  <div class="nav"><a href="index.html">← Dictionary</a> · <a href="prompts/admin.html">Prompt windows</a> · <a href="prompts/index.html">Voice prompts</a></div>
   <div class="top">
     <div><h1>Contributed words</h1></div>
     <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden">sign out</a></div>

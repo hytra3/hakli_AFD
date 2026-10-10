@@ -506,8 +506,28 @@ async function sayLabel(key){
 
 /* ---------------- screens ---------------- */
 const SCREENS = ["say","show","share","done"];
-function show(which){
+/* The steps are steps in the browser history too (AFDCore.stepHistory), so the
+   phone's Back button walks share → show → say and only then leaves the page —
+   it used to leave from any step. Forward (Next / Skip) pushes a step; the
+   page's own Back buttons take it off again; "done" takes them all off, so Back
+   from the thank-you leaves instead of reopening a word that is already shared.
+     show(step,{auto:true})    the page moved by itself (a draft resumed at share)
+     show(step,{fromPop:true}) Back / Forward landed here */
+const STEP_ORDER = { say:0, show:1, share:2, done:3 };
+var addSteps = null, addBase = "say";     // addBase: the screen on the page's own history entry
+function currentScreen(){ return SCREENS.find(s=> !$(s).hidden) || "say"; }
+function show(which, opt){
+  const from = currentScreen();
   SCREENS.forEach(s=> $(s).hidden = s!==which);
+  if(addSteps){
+    if(!(opt && (opt.fromPop || opt.auto))){
+      if(which==="done" || which==="say") addSteps.back(addSteps.depth());           // finished, or starting over
+      else if(STEP_ORDER[which] > STEP_ORDER[from]) addSteps.push(which);
+      else if(STEP_ORDER[which] < STEP_ORDER[from])
+        addSteps.back(addSteps.path().filter(x=>STEP_ORDER[x] > STEP_ORDER[which]).length);
+    }
+    if(addSteps.depth()===0) addBase = which;
+  }
   const order = ["say","show","share"], at = order.indexOf(which);
   document.querySelectorAll(".steps li").forEach(li=>{
     const i = order.indexOf(li.dataset.step);
@@ -520,6 +540,15 @@ function show(which){
   speakStep(which);
   window.scrollTo(0,0);
 }
+
+addSteps = C.stepHistory((step)=>{
+  let to = step || addBase;
+  // a step left over from a word that has since been shared (stay on the
+  // thank-you) or discarded (nothing to show or share yet)
+  if(addBase==="done") to = "done";
+  else if((to==="show" || to==="share") && !(draft && draft.word)) to = "say";
+  show(to, {fromPop:true});
+});
 
 /* ---------------- playback ---------------- */
 let player = null, playerUrl = null;
@@ -1176,6 +1205,8 @@ function paintAcct(){
     b.title = signedInAs(u);
   }else{ b.innerHTML = PERSON_SVG; b.title = plain("add.acct.out"); }
   b.setAttribute("aria-label", b.title);
+  // caption: "دخول" signed out, "حسابي" signed in — it said "my account" either way
+  const cap = C.STRINGS[u ? "hdr.account" : "hdr.signin"]; if(cap && cap.ar) b.setAttribute("data-cap", cap.ar);
 }
 $("acct").onclick = ()=>{
   const u = realUser();
@@ -1206,7 +1237,7 @@ $("doneInvite").onclick = async ()=>{
   const x = C.STRINGS["add.invite.text"];
   const text = x.ar + "\n" + x.en;
   try{ if(navigator.share){ await navigator.share({ text, url }); return; } }catch(e){ if(e && e.name==="AbortError") return; }
-  location.href = "https://wa.me/?text=" + encodeURIComponent(text + "\n" + url);
+  window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");   // a new tab, like every other share — this used to navigate the page away
 };
 
 /* ---------------- draft banner + start ---------------- */
@@ -1226,9 +1257,9 @@ $("draftDiscard").onclick = async ()=>{
     draft.consent = Object.assign(freshDraft().consent, d.consent||{});
     draft.up = Object.assign(freshDraft().up, d.up||{});
     $("draftBanner").classList.remove("hidden");
-    show("share");
+    show("share", {auto:true});
   }else{
-    show("say");
+    show("say", {auto:true});
   }
 })();
 </script>

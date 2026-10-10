@@ -33,7 +33,11 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   - `recorder.html` — the full recorder (sessions, speaker details, spoken
     consent, recording for someone else, importing a WhatsApp voice note).
   - `welcome.html` — the outward-facing intro to hand out; not linked in-app.
+  - `hakli-intro.html`, `hakli-intro-ar.html` — the printable introduction
+    (bilingual / Arabic only); not linked in-app, ends with a link in.
   - `find.html`, `dictionary.html` — old names; they just forward to `index.html`.
+  - `404.html` — what GitHub Pages shows for an address that doesn't exist;
+    points back into the app.
 - **Steward pages** — not linked from the app; open them directly and sign in
   with the steward account (email + password):
   - `hakli.app/steward.html` — review words people add: *To review / Hidden /
@@ -41,6 +45,8 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
     photo**, **Remove emoji**. Never touches anyone's voice.
   - `hakli.app/prompts/admin.html` — open/close the UI-prompt recording and
     Arabic-edit windows, and read the edit suggestions.
+  - `hakli.app/prompts/index.html` — the tool speakers use to record the
+    spoken prompts and suggest Arabic wording (open while a window is open).
   - Who counts as a steward: `node scripts/grant-steward.mjs <email>` (add),
     `--revoke <email>`, `--list`. Rules check `afd_admins/{uid}`, which only that
     script can write.
