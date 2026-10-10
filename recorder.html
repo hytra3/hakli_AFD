@@ -1474,6 +1474,10 @@ $("grantRecordBtn").onclick=()=>{
   openGrantProof(uid, spk);
 };
 $("toMic").onclick=async ()=>{
+  // Continue is the way to RECORDING. Someone who tried "Just listen" first and
+  // came back here was otherwise sent through the mic check and dropped into
+  // listening again, with no record button, until they reloaded the page.
+  listenOnly=false;
   // a new code goes into this account's own namespace before any take uses it
   if(window.AFD && window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
   if(switchingSpeaker){

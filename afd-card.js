@@ -780,8 +780,8 @@ async function entryCard(res, lead){
   let playable = lead ? listPlayable(res.entryId) : null;
 
   // entry metadata (public). Fall back gracefully if absent.
-  let meta={};
-  try{ const sn = await getDoc(doc(CFG.db,"afd_entries",res.entryId)); if(sn.exists()) meta=sn.data(); }catch(_){}
+  let meta={}, known=null;      // known: true/false once Firestore has answered; null if it couldn't
+  try{ const sn = await getDoc(doc(CFG.db,"afd_entries",res.entryId)); known=sn.exists(); if(known) meta=sn.data(); }catch(_){}
   // No signal (or a slow one) → the entry doc can't load, and every card used to
   // collapse into an anonymous identicon. The 40 seeded words ship with the app
   // (afd-words.js), so fill picture / gloss / domain from there. Firestore still
@@ -927,7 +927,10 @@ async function entryCard(res, lead){
   if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
   // removed by its creator, or hidden by a steward (steward.html): either way it
   // stays out of the dictionary, search and old links
-  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt), get firstPlayable(){ return firstPlayable; } };
+  // missing: Firestore answered "no such entry" and it isn't a seeded word either —
+  // a mistyped or cut-off link. (No answer at all, e.g. offline, is NOT missing.)
+  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt),
+           missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
 export { entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

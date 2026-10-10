@@ -530,7 +530,8 @@ window.AFDCore = (function(){
     "find.err.timeout":     { en:"The matcher took too long to answer — try again", ar:"تأخّر البحث في الردّ — حاول مرة أخرى" },
     "find.err.server":      { en:"The matcher is having trouble — try again in a minute", ar:"في البحث مشكلة — حاول بعد دقيقة" },
     "find.err.audio":       { en:"Couldn't make out that recording — hold and speak again", ar:"لم أتمكّن من سماع التسجيل — اضغط وتكلّم مرة أخرى" },
-    "find.err.toolong":     { en:"That was too long — say just the word", ar:"التسجيل طويل — قل الكلمة فقط" }
+    "find.err.toolong":     { en:"That was too long — say just the word", ar:"التسجيل طويل — قل الكلمة فقط" },
+    "find.missing":         { en:"That word isn't in the dictionary", ar:"هذه الكلمة ليست في القاموس" }
   };
   function t(key, mode){
     const s = STRINGS[key];

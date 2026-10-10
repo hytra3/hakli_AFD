@@ -429,13 +429,15 @@ async function startHold(){
   // and reusing a dead track makes MediaRecorder.start() throw NotSupportedError.
   // Drop a stream with no live track and re-acquire a fresh one.
   if(s && !s.getAudioTracks().some(t=>t.readyState==="live")){ stopStream(); s = await ensureStream(); }
-  if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); return; }
-  if(!holding) return;                 // released during acquisition — stream stays warm for the next hold
+  // Each early way out below puts the list back (showResults): the hold hid it,
+  // and without a search nothing else would — a blank page with no way on.
+  if(!s){ holding=false; setHint("Let the app use the microphone","اسمح باستخدام الميكروفون"); showResults(); return; }
+  if(!holding){ showResults(); return; }   // released during acquisition — stream stays warm for the next hold
   document.body.classList.add("rec"); setHint("Listening…","أستمع…");
   meter(s);
   chunks=[];
   try{ mediaRec = new MediaRecorder(s); }
-  catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); return; }
+  catch(e){ holding=false; stopStream(); setHint("Hold and speak","تكلّم"); showResults(); return; }
   mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mediaRec.onstop = onClip;
   try{ mediaRec.start(100); }   // 100ms timeslice: flush data during the hold, not only on stop
@@ -443,7 +445,7 @@ async function startHold(){
     // Stream became unrecordable — force a fresh one on the next hold rather than
     // leaving an uncaught rejection and a dead-feeling button.
     holding=false; document.body.classList.remove("rec"); stopStream();
-    setHint("Hold and speak","تكلّم");
+    setHint("Hold and speak","تكلّم"); showResults();
   }
 }
 function endHold(){
@@ -471,7 +473,7 @@ function meter(stream){
 async function onClip(){
   // keep the stream warm for the next hold — do NOT stop it here
   const blob = new Blob(chunks, {type: chunks[0]?.type || "audio/webm"});
-  if(blob.size < 800){ setHint("Hold a little longer, then speak","تكلّم أطول قليلاً"); return; }
+  if(blob.size < 800){ setHint("Hold a little longer, then speak","تكلّم أطول قليلاً"); showResults(); return; }
   await runSearch(blob);
 }
 
@@ -638,6 +640,13 @@ async function openEntry(entryId){
   setHint("Here it is","ها هو");
   const lead = await entryCard({entryId, distance:0}, true);
   if(my!==renderToken) return;                 // superseded by a newer render/open
+  if(lead.missing){
+    // A mistyped or cut-off link: there is no such word. Say so over the whole
+    // dictionary, rather than a blank card that says "Here it is" and offers to
+    // record it.
+    clearEntryHash(); await renderBrowse(); if(renderToken===my+1) setHintKey("find.missing");
+    return;
+  }
   resultsEl.innerHTML="";                       // clear again in case of a race
   resultsEl.appendChild(backToAll());
   if(lead.removed){
@@ -666,9 +675,18 @@ function backToAll(){
   const b=document.createElement("button");
   b.className="allbtn"; b.setAttribute("aria-label","Show all words");
   b.innerHTML=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-  b.addEventListener("click", renderBrowse);
+  b.addEventListener("click", showAll);
   return b;
 }
+/* Back to the whole list, leaving nothing of the last view behind: the address
+   drops its #ent_… (or a reload — or a re-share — would snap back to that word)
+   and the hint returns to idle (or "Here it is" sits over the full list). */
+function clearEntryHash(){
+  if(!location.hash) return;
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(_){}
+}
+function setIdleHint(){ hint.classList.remove("small"); setHint("Hold and speak","تكلّم"); }
+function showAll(){ clearEntryHash(); setIdleHint(); return renderBrowse(); }
 /* coverage meter: how many words already have a spoken recording, as a glanceable
    goal that shrinks the wall of zeros into progress. */
 function coverageMeterEl(){
@@ -970,7 +988,7 @@ function selectView(id){
   if(v.nav){ location.href=v.nav; return; }       // page jump (e.g. Record a word)
   currentView = id;
   renderViewMenu();
-  renderBrowse();
+  showAll();
 }
 if(mastScreen){
   mastScreen.addEventListener("click",(e)=>{ e.stopPropagation();
@@ -983,7 +1001,7 @@ document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewMenuClose();
 
 // deep-link opens one entry; otherwise show the whole dictionary as browsable cards
 if(!applyEntryDeepLink()) renderBrowse();
-window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) renderBrowse(); });
+window.addEventListener("hashchange", ()=>{ if(!applyEntryDeepLink()) showAll(); });
 
 mic.addEventListener("pointerdown", e=>{ e.preventDefault(); startHold(); });
 mic.addEventListener("pointerup",   e=>{ e.preventDefault(); endHold(); });
@@ -1113,9 +1131,15 @@ updateAccountUi();
 
 /* The incense-burner glyph is HOME: tap it to return to the whole dictionary
    (with the add-a-word tile at the top) and scroll up. The hidden dev distance
-   readout still lives here — a quick triple-tap toggles it. */
+   readout still lives here — a quick triple-tap toggles it.
+   Home means home from ANYWHERE: a filtered view ("Needs a voice"), a search
+   still in flight, or a hold that hid the list and found nothing — each used to
+   leave Home doing nothing but scroll. */
 function goHome(){
-  if(!(mastView==="dictionary" && !deepEntry && !lastResults)) renderBrowse();
+  cancelSearch();
+  const atHome = mastView==="dictionary" && currentView==="all" && !deepEntry && !lastResults
+                 && !resultsEl.classList.contains("hidden") && !location.hash;
+  if(atHome) setIdleHint(); else { currentView = "all"; showAll(); }
   window.scrollTo({ top:0, behavior:"smooth" });
 }
 let taps=0,tt=0;

@@ -246,6 +246,58 @@ between the phone and the service.
 - **Not done — warm instance.** `set-warm.sh on` removes the wait entirely; left
   off until there is data coming in.
 
+## Wayfinding pass (2026-10-10)
+
+Every page walked at phone width in a real browser (Firebase stubbed, matcher
+mocked), looking for dead ends, stale state and links that go nowhere.
+
+**✅ Fixed — plain defects**
+- **A hold that found nothing left a blank page.** Holding the mic hides the
+  list; a too-short hold, a refused microphone or a quick tap never put it back,
+  and Home did nothing there (it thought it was already home). Every such exit
+  now restores the list.
+- **"All words" left the last view behind.** Coming back from a linked word or
+  from search results kept "Here it is" above the full list and kept `#ent_…`
+  in the address — so a reload (or re-sharing the page) snapped back to that
+  word, and tapping the same link again did nothing. One `showAll()` now clears
+  both; the list button, Home and the view menu all use it.
+- **Home didn't leave a filtered view.** From "Needs a voice" or "Newest" it only
+  scrolled up. Home now always means All words, and cancels a search in flight.
+- **A link to a word that doesn't exist showed a blank card** saying "Here it is"
+  with a "Say it yourself" button (which, in the recorder, lands on word 1). It
+  now says "That word isn't in the dictionary" over the whole list. Only when
+  Firestore *answered* no — offline, the link still opens as before.
+- **Recorder: "Just listen" was a one-way door.** After trying it, Continue → mic
+  check → "Start recording words" dropped back into listening, with no record
+  button, until a reload. Continue now leaves listen mode.
+
+**Open — choices, not bugs (nothing changed)**
+- **The phone's Back button doesn't follow the steps.** Steps inside a page
+  (recorder 1→2→3, add say→show→share, list→results/word) aren't in the browser
+  history, so Android Back leaves the page — from search results it leaves the
+  app. Matters most installed as an app, where Back is the only back there is.
+  Fix is a `history.pushState` per step; a real piece of work, wants a decision.
+- **Recorder step 2 (mic check) has no way back to step 1** unless the speaker
+  chip is showing. The step readout is deliberately a breadcrumb on step 3 only;
+  making it one on step 2 as well is a few lines.
+- **The recorder forgets where you came from.** "Say it yourself" on a word goes
+  to the recorder; Home and Find both return to the full list, not that word,
+  and steps 1–2 don't show which word you came to record.
+- **The "all words" button is a bare ☰** — reads as a menu, not "back to the
+  list", and has no caption (the header icons got Arabic captions for this reason).
+- **Masthead wording.** A word opened from a link is titled "speak to find"; the
+  header still says "dictionary" while it is listening / finding.
+- **The tile atop the list says "Add it to the dictionary"** — "it" has nothing
+  to refer to there (the string was written for the no-match screen). `add.title`
+  ("Add a word") fits.
+- **No 404 page.** A mistyped address gets GitHub's stock page with no way in.
+- **Pages with no way out:** `hakli-intro.html` / `hakli-intro-ar.html` (no links
+  at all — and not in DEPLOY's page list), `prompts/index.html`, and the two
+  steward pages (not linked in-app by design; a home link would still be cheap).
+- Small: add.html's account icon is captioned "حسابي" even when signed out
+  (index says "دخول"); its "Invite" fallback navigates the page itself to
+  WhatsApp where every other share opens a new tab.
+
 ## Polish / small fixes
 
 - **✅ Lead-card "closest match" marker** — in the wordless sound/script tiers nothing
