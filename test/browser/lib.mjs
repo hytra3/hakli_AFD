@@ -12,7 +12,10 @@
  *    · the microphone is Chromium's fake device;
  *    · every other outside request is blocked.
  *
- *  Run:   cd test && npm install && npx playwright-core install chromium
+ *  GitHub runs these on every pull request. To run them yourself (optional —
+ *  needs an OS the pinned playwright-core has a Chromium for; Ubuntu 26.04 is
+ *  not one as of 1.56.0):
+ *         cd test && npm install && npx playwright-core install chromium
  *         npm run test:browser
  *  One file:           node browser/run.mjs search
  *  Keep screenshots:   AFD_SHOTS=/tmp/shots npm run test:browser
