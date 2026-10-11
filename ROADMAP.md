@@ -359,6 +359,18 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   someone else's — to a word that already exists.
 
 **Still open**
+- **The welcome animation still shows the three tabs (flagged 10-10, to do).**
+  `hakli-welcome-walkthrough.html` (the animation `welcome.html` embeds) draws
+  the recorder with كلمة / جملة / معنى tabs, and scenes 3 and 4 show a finger
+  tapping the sentence and meaning tabs. The real recorder dropped those tabs in
+  b1010c: a sentence or a meaning is now reached from the word's card ("Add a
+  sentence" / "Add a meaning"). Redraw scenes 3 and 4 to match; the narration
+  clips (`howto.sentence`, `howto.meaning`) and their timings can stay.
+- **One steward account, and it takes over the phone (10-10).** Signing in on
+  the steward page replaces the dictionary sign-in on that device, so anything
+  added afterwards is credited to the steward account until you sign out. Keep
+  the steward list short. Not built: a warning in the dictionary while a steward
+  account is signed in, or refusing to save a contribution from one.
 - **Back does not close the recorder's overlays** (withdraw / spoken-consent
   proof): it goes to the previous step underneath. They have their own Cancel.
 - **Not tried on a real phone** — Android's Back gesture in the installed app,
