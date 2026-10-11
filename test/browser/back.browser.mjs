@@ -55,8 +55,19 @@ await scenario("I5 results → recorder → Back → the results are still there
 await scenario("I6 a linked word: header says dictionary; the list button is labelled", async ()=>{ const { page, ctx } = await openIndex("/index.html#ent_camel");
   const a = await ist(page);
   await shot(page, "o-entry-allbtn");
-  const label = await page.innerText(".allbtn");
-  ok("I6 a linked word: header says dictionary; the list button is labelled", a.mastEn==="dictionary" && /All words/i.test(label) && /كل الكلمات/.test(label), JSON.stringify([a.mastEn, label]));
+  const btn = await page.evaluate(()=>{ const b=document.getElementById("allBtn"); return { shown:!b.classList.contains("hidden"), cap:b.getAttribute("data-cap"), aria:b.getAttribute("aria-label"), inZone:!!b.closest(".control") }; });
+  ok("I6 a linked word: header says dictionary; the back control names the list", a.mastEn==="dictionary" && btn.shown && btn.cap==="كل الكلمات" && /All words/.test(btn.aria), JSON.stringify([a.mastEn, btn]));
+  // it lives in the mic's zone, so it must still be on screen (and tappable) after scrolling the card
+  await page.evaluate(()=>{ document.querySelector("#results .card").style.minHeight="2400px"; window.scrollTo(0, 1500); }); await page.waitForTimeout(400);
+  const seen = await page.evaluate(()=>{ const b=document.getElementById("allBtn"), r=b.getBoundingClientRect();
+    const top = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    return { y: Math.round(scrollY), top: Math.round(r.top), onScreen: r.top >= 0 && r.bottom <= innerHeight, hit: !!(top && top.closest("#allBtn")) }; });
+  ok("I6b the back control stays on screen while the page scrolls", btn.inZone && seen.y > 1000 && seen.onScreen && seen.hit, JSON.stringify(seen));
+  await shot(page, "back-control-after-scroll");
+  await page.click("#allBtn"); await page.waitForTimeout(800);
+  const l = await ist(page);
+  ok("I6c tapping it there returns to the list, and it hides itself over the list", l.cards>40 && await page.evaluate(()=>document.getElementById("allBtn").classList.contains("hidden")), JSON.stringify(l));
+  await page.evaluate(()=>{ location.hash = "ent_camel"; }); await page.waitForTimeout(900);
   await search(page);
   await back(page); const b = await ist(page);
   ok("I7 search from a linked word → Back → the list (not a stuck #ent_)", b.cards>40 && b.url==="/index.html", JSON.stringify(b));
@@ -81,13 +92,13 @@ await scenario("I10 too-short hold → header back to 'dictionary'", async ()=>{
   ok("I10 too-short hold → header back to 'dictionary'", a.mastEn==="dictionary" && !a.hidden, JSON.stringify(a));
   await page.click("#mastScreen"); await page.click('#viewMenu [data-view="needs"]'); await page.waitForTimeout(600);
   await page.evaluate(()=>{ location.hash = "ent_camel"; }); await page.waitForTimeout(900);
-  const label = await page.innerText(".allbtn");
-  ok("I11 the list button names the list it returns to", /Needs a voice/i.test(label), JSON.stringify(label));
+  const label = await page.evaluate(()=>{ const b=document.getElementById("allBtn"); return [b.getAttribute("data-cap"), b.getAttribute("aria-label")]; });
+  ok("I11 the back control names the list it returns to", label[0]==="يحتاج صوتًا" && /Needs a voice/.test(label[1]), JSON.stringify(label));
   await ctx.close(); });
-await scenario("I12 sound tier: the list button is icons only", async ()=>{ const { page, ctx } = await openIndex("/index.html#ent_camel", { init:SOUND });
-  const html = await page.innerHTML(".allbtn");
-  ok("I12 sound tier: the list button is icons only", !/all-t/.test(html) && (html.match(/<svg/g)||[]).length===2);
-  await shot(page, "o-entry-allbtn-sound");
+await scenario("I12 the back control is two icons with the list's Arabic name beneath, in every mode", async ()=>{ const { page, ctx } = await openIndex("/index.html#ent_camel", { init:SOUND });
+  const b = await page.evaluate(()=>{ const x=document.getElementById("allBtn"); return { svgs:x.querySelectorAll("svg").length, text:x.textContent.trim(), cap:getComputedStyle(x, "::after").content }; });
+  ok("I12 the back control is two icons with the list's Arabic name beneath, in every mode", b.svgs===2 && b.text==="" && /كل الكلمات/.test(b.cap), JSON.stringify(b));
+  await shot(page, "back-control-sound");
   await ctx.close(); });
 
 /* --------------------------------------------------------- recorder: Back */

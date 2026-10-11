@@ -315,6 +315,20 @@ mocked), looking for dead ends, stale state and links that go nowhere.
 - Small: add.html's account caption follows sign-in ("دخول" / "حسابي"); its
   "Invite" fallback opens WhatsApp in a new tab like every other share.
 
+**From the first evening on a phone (10-10, build after b1010c)**
+- **The back control moved into the mic's zone.** As a pill above the card it
+  scrolled away with the page (and slid under the mic). It now sits beside the
+  small mic, which stays put: chevron + list glyph, the list's Arabic name
+  beneath like the header's round buttons, English in the title. Shown only
+  over a word or results; tapping it also abandons a search in flight.
+- **Hints follow the display mode.** A hint was drawn once and kept: switch
+  modes during "Still looking…" and the English stayed in the Arabic-only
+  modes. The hint now remembers what it says and is redrawn on a mode change.
+  Changing the mode while a hold or search has the screen no longer puts the
+  list back under "Finding…"; what is underneath is redrawn when it ends.
+- **Phone sign-ins show a phone mark in the account circle**, not the number's
+  first character — a "+" in a dark circle read as an add button.
+
 **Still open**
 - **Back does not close the recorder's overlays** (withdraw / spoken-consent
   proof): it goes to the previous step underneath. They have their own Cancel.

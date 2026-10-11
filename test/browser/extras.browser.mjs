@@ -121,5 +121,16 @@ await scenario("N4 404 page shows the table's wording (a corrected string reache
   ok("N4 404 page shows the table's wording (a corrected string reaches it)", /TEST-AR/.test(h1) && /ادخل القاموس OPEN THE DICTIONARY/i.test(go) && !state.errors.length, JSON.stringify([h1, go, state.errors]));
   await ctx.close(); s2.close(); });
 
+// the account badge for someone signed in by phone
+await scenario("the account badge for someone signed in by phone", async ()=>{
+  const badge = async (path, sel, user)=>{ const { page, ctx } = await newPage(browser, srv.url, { user, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+    await page.goto(srv.url + path); await page.waitForTimeout(1500);
+    const t = (await page.innerText(sel)).trim(); await ctx.close(); return t; };
+  const PHONE = { uid:"uPhone", isAnonymous:false, displayName:null, email:null, phoneNumber:"+96891234567" };
+  const NAMED = { uid:"uNamed", isAnonymous:false, displayName:"Salim", email:"s@example.com" };
+  const a = await badge("/", "#account", PHONE), b = await badge("/recorder.html", "#account", PHONE), c = await badge("/", "#account", NAMED);
+  ok("A phone sign-in shows a phone mark, not the number's '+' (which read as an add button); a name still shows its initial", a==="\u260E" && b==="\u260E" && c==="S", JSON.stringify([a, b, c]));
+});
+
 await browser.close(); srv.close();
 finish();
