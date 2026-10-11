@@ -315,6 +315,40 @@ mocked), looking for dead ends, stale state and links that go nowhere.
 - Small: add.html's account caption follows sign-in ("دخول" / "حسابي"); its
   "Invite" fallback opens WhatsApp in a new tab like every other share.
 
+**From the first evening on a phone (10-10, build after b1010c)**
+- **The back control moved into the mic's zone.** As a pill above the card it
+  scrolled away with the page (and slid under the mic). It now sits beside the
+  small mic, which stays put: chevron + list glyph, the list's Arabic name
+  beneath like the header's round buttons, English in the title. Shown only
+  over a word or results; tapping it also abandons a search in flight.
+- **Hints follow the display mode.** A hint was drawn once and kept: switch
+  modes during "Still looking…" and the English stayed in the Arabic-only
+  modes. The hint now remembers what it says and is redrawn on a mode change.
+  Changing the mode while a hold or search has the screen no longer puts the
+  list back under "Finding…"; what is underneath is redrawn when it ends.
+- **Phone sign-ins show a phone mark in the account circle**, not the number's
+  first character — a "+" in a dark circle read as an add button.
+- **"Add a word" is always within reach — but is not a second home (decision).**
+  Asked: should `add.html` become a main page beside the dictionary? No: the
+  people this is for don't read, a second home needs a switcher and a new
+  "where am I", and add already works as a landing page for anyone arriving
+  from a WhatsApp invitation. What was weak was reach — the "Add a word" tile
+  scrolls away with the list, and the view menu's only add-like item opened the
+  full recorder. So: a dashed amber **+** beside the mic (the back control's
+  mirror, in the zone that stays put), and **Add a word card** in the view menu
+  above **Record a word**. The button atop the list stays.
+  **Vocabulary (decided 10-10): a "word card" — بطاقة كلمة — is a word's card
+  in the dictionary: one card, many voices.** "Tile" was the word that first
+  made the idea click, but "card" is what the Arabic says (بطاقة; there is no
+  natural "tile"), and what the app already calls it (`card.*` strings, "Screen ·
+  Dictionary card"), so there is one name in English, Arabic and code. Hence the
+  menu: "Add a word card" makes a NEW card; "Record a word" puts a voice on a
+  card that exists. (`view.add`; its Arabic, "أضِف بطاقة كلمة", is an MSA draft.
+  The + caption, the list button and the add page itself still say "Add a word"
+  / "أضِف كلمة".) The two pages, in one line: *add* makes a
+  NEW word and is always your own voice; the *recorder* adds a voice — yours or
+  someone else's — to a word that already exists.
+
 **Still open**
 - **Back does not close the recorder's overlays** (withdraw / spoken-consent
   proof): it goes to the previous step underneath. They have their own Cancel.

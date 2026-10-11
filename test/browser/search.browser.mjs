@@ -108,5 +108,25 @@ await scenario("J — Arabic-only tiers show the Arabic line and the code", asyn
   ok("J sound tier → Arabic message + code", /[؀-ۿ]/.test(h) && !/matcher/.test(h), `mode=${mode} ${JSON.stringify(h)}`);
   await ctx.close(); });
 
+// K — the display mode is changed while a search is waiting
+await scenario("K — the display mode is changed while a search is waiting", async ()=>{ const { page, state, ctx } = await open((i)=> i===0 ? "hang" : { status:503, body:{} });   // first try never answers (so there is time to switch modes); the retry gets a 503
+  await hold(page); await page.waitForFunction(()=> /Still looking/.test(document.getElementById("hint").innerText), null, { timeout:8000 });
+  const st = ()=> page.evaluate(()=>({ hint: document.getElementById("hint").innerText, hidden: document.getElementById("results").classList.contains("hidden"),
+    mast: (document.getElementById("mastAr")||{}).textContent, busy: document.body.classList.contains("busy"), firstGloss: (document.querySelector("#results .card .gloss")||{}).innerText || "" }));
+  const before = await st();
+  await page.click("#skin"); await page.waitForTimeout(300);          // auto → sound
+  const sound = await st();
+  await page.click("#skin"); await page.waitForTimeout(300);          // sound → script
+  const script = await st();
+  ok("K1 the waiting message follows the display mode (Arabic only outside the bilingual mode)",
+     /Still looking/.test(before.hint) && !/[A-Za-z]{3}/.test(sound.hint) && /ما زلت أبحث/.test(sound.hint) && !/[A-Za-z]{3}/.test(script.hint) && /ما زلت أبحث/.test(script.hint), JSON.stringify([before.hint, sound.hint, script.hint]));
+  ok("K2 changing the mode mid-search leaves the search screen alone (list stays hidden, header stays 'speak to find')",
+     sound.hidden && script.hidden && script.busy && script.mast==="قُل لتجد", JSON.stringify(script));
+  await page.waitForFunction(()=> /HTTP 503/i.test(document.getElementById("hint").innerText), null, { timeout:15000 }); await page.waitForTimeout(600);
+  const after = await st();
+  ok("K3 when the search ends, the message and the list underneath are both in the new mode",
+     !after.hidden && !/[A-Za-z]{4}/.test(after.hint.replace(/HTTP 503/i,"")) && /في البحث مشكلة/.test(after.hint) && !/[A-Za-z]{3}/.test(after.firstGloss) && /[\u0600-\u06FF]/.test(after.firstGloss), JSON.stringify(after));
+  await ctx.close(); });
+
 await browser.close(); srv.close();
 finish();

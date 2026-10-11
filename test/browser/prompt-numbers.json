@@ -422,6 +422,7 @@
   "21.20": "screen:mast.find",
   "21.21": "screen:mast.dictionary",
   "21.22": "screen:notfound.title",
-  "21.23": "screen:notfound.open"
+  "21.23": "screen:notfound.open",
+  "21.24": "screen:view.add"
  }
 }

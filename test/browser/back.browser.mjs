@@ -55,8 +55,19 @@ await scenario("I5 results → recorder → Back → the results are still there
 await scenario("I6 a linked word: header says dictionary; the list button is labelled", async ()=>{ const { page, ctx } = await openIndex("/index.html#ent_camel");
   const a = await ist(page);
   await shot(page, "o-entry-allbtn");
-  const label = await page.innerText(".allbtn");
-  ok("I6 a linked word: header says dictionary; the list button is labelled", a.mastEn==="dictionary" && /All words/i.test(label) && /كل الكلمات/.test(label), JSON.stringify([a.mastEn, label]));
+  const btn = await page.evaluate(()=>{ const b=document.getElementById("allBtn"); return { shown:!b.classList.contains("hidden"), cap:b.getAttribute("data-cap"), aria:b.getAttribute("aria-label"), inZone:!!b.closest(".control") }; });
+  ok("I6 a linked word: header says dictionary; the back control names the list", a.mastEn==="dictionary" && btn.shown && btn.cap==="كل الكلمات" && /All words/.test(btn.aria), JSON.stringify([a.mastEn, btn]));
+  // it lives in the mic's zone, so it must still be on screen (and tappable) after scrolling the card
+  await page.evaluate(()=>{ document.querySelector("#results .card").style.minHeight="2400px"; window.scrollTo(0, 1500); }); await page.waitForTimeout(400);
+  const seen = await page.evaluate(()=>{ const b=document.getElementById("allBtn"), r=b.getBoundingClientRect();
+    const top = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    return { y: Math.round(scrollY), top: Math.round(r.top), onScreen: r.top >= 0 && r.bottom <= innerHeight, hit: !!(top && top.closest("#allBtn")) }; });
+  ok("I6b the back control stays on screen while the page scrolls", btn.inZone && seen.y > 1000 && seen.onScreen && seen.hit, JSON.stringify(seen));
+  await shot(page, "back-control-after-scroll");
+  await page.click("#allBtn"); await page.waitForTimeout(800);
+  const l = await ist(page);
+  ok("I6c tapping it there returns to the list, and it hides itself over the list", l.cards>40 && await page.evaluate(()=>document.getElementById("allBtn").classList.contains("hidden")), JSON.stringify(l));
+  await page.evaluate(()=>{ location.hash = "ent_camel"; }); await page.waitForTimeout(900);
   await search(page);
   await back(page); const b = await ist(page);
   ok("I7 search from a linked word → Back → the list (not a stuck #ent_)", b.cards>40 && b.url==="/index.html", JSON.stringify(b));
@@ -81,13 +92,13 @@ await scenario("I10 too-short hold → header back to 'dictionary'", async ()=>{
   ok("I10 too-short hold → header back to 'dictionary'", a.mastEn==="dictionary" && !a.hidden, JSON.stringify(a));
   await page.click("#mastScreen"); await page.click('#viewMenu [data-view="needs"]'); await page.waitForTimeout(600);
   await page.evaluate(()=>{ location.hash = "ent_camel"; }); await page.waitForTimeout(900);
-  const label = await page.innerText(".allbtn");
-  ok("I11 the list button names the list it returns to", /Needs a voice/i.test(label), JSON.stringify(label));
+  const label = await page.evaluate(()=>{ const b=document.getElementById("allBtn"); return [b.getAttribute("data-cap"), b.getAttribute("aria-label")]; });
+  ok("I11 the back control names the list it returns to", label[0]==="يحتاج صوتًا" && /Needs a voice/.test(label[1]), JSON.stringify(label));
   await ctx.close(); });
-await scenario("I12 sound tier: the list button is icons only", async ()=>{ const { page, ctx } = await openIndex("/index.html#ent_camel", { init:SOUND });
-  const html = await page.innerHTML(".allbtn");
-  ok("I12 sound tier: the list button is icons only", !/all-t/.test(html) && (html.match(/<svg/g)||[]).length===2);
-  await shot(page, "o-entry-allbtn-sound");
+await scenario("I12 the back control is two icons with the list's Arabic name beneath, in every mode", async ()=>{ const { page, ctx } = await openIndex("/index.html#ent_camel", { init:SOUND });
+  const b = await page.evaluate(()=>{ const x=document.getElementById("allBtn"); return { svgs:x.querySelectorAll("svg").length, text:x.textContent.trim(), cap:getComputedStyle(x, "::after").content }; });
+  ok("I12 the back control is two icons with the list's Arabic name beneath, in every mode", b.svgs===2 && b.text==="" && /كل الكلمات/.test(b.cap), JSON.stringify(b));
+  await shot(page, "back-control-sound");
   await ctx.close(); });
 
 /* --------------------------------------------------------- recorder: Back */
@@ -212,6 +223,36 @@ await scenario("N1 404 page: every link is absolute and leads into the app", asy
       const r = await page.request.get(h); if(r.status()!==200) dead.push(p+" → "+h+" ("+r.status()+")"); }
   }
   ok("N3 no dead links on the tool pages", dead.length===0, JSON.stringify(dead));
+  await ctx.close(); });
+
+// Add a word is always within reach
+await scenario("Add a word is always within reach", async ()=>{ const { page, ctx } = await openIndex("/");
+  const at = ()=> page.evaluate(()=>{ const a=document.getElementById("addBtn"), r=a.getBoundingClientRect(), m=document.getElementById("mic").getBoundingClientRect(), b=document.getElementById("allBtn").getBoundingClientRect();
+    const top = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    return { href:a.getAttribute("href"), cap:a.getAttribute("data-cap"), onScreen: r.width>0 && r.top>=0 && r.bottom<=innerHeight, hit: !!(top && top.closest("#addBtn")),
+             rightOfMic: r.left >= m.right, clearOfBack: b.width===0 || b.right <= m.left, y: Math.round(scrollY) }; });
+  const list = await at();
+  await page.evaluate(()=>window.scrollTo(0, 1500)); await page.waitForTimeout(400);
+  const scrolled = await at();
+  ok("P1 a '+' beside the mic leads to the add page, on the list and after scrolling", list.href==="add.html" && list.cap==="أضِف كلمة" && list.onScreen && list.hit && list.rightOfMic && scrolled.y>1000 && scrolled.onScreen && scrolled.hit, JSON.stringify([list, scrolled]));
+  await page.evaluate(()=>{ window.scrollTo(0,0); location.hash = "ent_camel"; }); await page.waitForTimeout(900);
+  const word = await at();
+  ok("P2 over a word it sits on the mic's other side from the back control, neither touching the mic", word.onScreen && word.hit && word.rightOfMic && word.clearOfBack, JSON.stringify(word));
+  await shot(page, "add-and-back-beside-the-mic");
+  await page.setViewportSize({ width:340, height:700 }); await page.waitForTimeout(300);
+  const narrow = await at();
+  ok("P3 on a narrow phone (340 px) both controls still clear the mic", narrow.onScreen && narrow.rightOfMic && narrow.clearOfBack, JSON.stringify(narrow));
+  await page.setViewportSize({ width:412, height:880 });
+  await page.click("#allBtn"); await page.waitForTimeout(700);
+  await page.click("#mastScreen"); await page.waitForTimeout(200);
+  const menu = await page.$$eval("#viewMenu [data-view]", b=>b.map(x=>x.dataset.view+":"+x.innerText.replace(/\s+/g," ").trim()));
+  await shot(page, "view-menu-with-add");
+  ok("P4 the view menu offers 'Add a word card' above 'Record a word'", menu.findIndex(x=>/^add:/.test(x)) >= 0 && menu.findIndex(x=>/^add:/.test(x)) < menu.findIndex(x=>/^record:/.test(x)) && menu.some(x=>/^add:.*Add a word card$/i.test(x)) && menu.some(x=>/^record:.*Record a word$/i.test(x)), JSON.stringify(menu));
+  await page.click('#viewMenu [data-view="add"]'); await page.waitForLoadState("load"); await page.waitForTimeout(600);
+  ok("P5 …and it opens the add page", rel(page)==="/add.html", rel(page));
+  await page.goBack(); await ready(page); await page.waitForTimeout(400);
+  await page.click("#addBtn"); await page.waitForLoadState("load"); await page.waitForTimeout(600);
+  ok("P6 the '+' opens the add page too", rel(page)==="/add.html", rel(page));
   await ctx.close(); });
 
 await browser.close(); srv.close();

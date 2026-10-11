@@ -206,15 +206,25 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
     *{animation:none !important; transition:none !important}
   }
 :focus-visible{outline:3px solid var(--resin); outline-offset:3px}
-/* the way back to the list from a word or from search results: a back chevron,
-   the list glyph and the list's name (no words in the sound tier) */
-.allbtn{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;min-height:44px;
-  border:1.5px solid var(--mist-2);border-radius:22px;background:var(--cloud);color:var(--mountain);
-  cursor:pointer;padding:0 16px 0 10px;margin-bottom:12px;font:inherit}
-.allbtn svg{flex:0 0 auto}
-.allbtn .all-t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.12}
-.allbtn .all-ar{font-family:var(--serif);font-size:15px}
-.allbtn .all-en{font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist);margin-top:1px}
+/* The way back to the list from a word or from search results. It lives IN the
+   mic's zone, beside the small mic, because that zone stays put while the page
+   scrolls — as a pill above the card it scrolled away (and slid under the mic).
+   Chevron + list glyph, with the list's Arabic name beneath, like the header's
+   round buttons (the English is in its title / aria-label). */
+.control .allbtn{position:absolute; inset-inline-start:0; top:44px;   /* centred on the 104px mic: 14 + (104-44)/2 */
+  display:inline-flex; align-items:center; gap:6px; height:44px; margin:0; padding:0 14px 0 10px;
+  border:1.5px solid var(--mist-2); border-radius:22px; background:var(--cloud); color:var(--mountain);
+  cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
+.control .allbtn svg{flex:0 0 auto}
+/* "Add a word", always within reach: the mirror of the back control, on the
+   mic's other side. The tile atop the list says the same thing but scrolls
+   away with it; this stays. Amber and dashed like that tile, so the two read
+   as one invitation. Only beside the SMALL mic (the big idle mic fills the zone). */
+.control .addbtn{position:absolute; inset-inline-end:0; top:44px; width:44px; height:44px; display:none;
+  align-items:center; justify-content:center; border:1.5px dashed var(--resin); border-radius:50%;
+  background:var(--cloud); color:var(--resin); text-decoration:none; box-shadow:0 2px 8px rgba(31,58,52,.10)}
+body.has-results .control .addbtn{display:inline-flex}
+.control .addbtn.capd::after{color:var(--resin)}
 /* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
      escape hatch under search candidates for a real new word that looked near one */
   .addword{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:460px;
@@ -256,6 +266,10 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 
   <main>
     <div class="control">
+      <button class="allbtn capd hidden" id="allBtn" type="button" data-cap="كل الكلمات"></button>
+      <a class="addbtn capd" id="addBtn" href="add.html" data-cap="أضِف كلمة" data-cap-key="add.title" title="Add a word" aria-label="Add a word">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </a>
       <div class="stage" id="stage">
         <span class="ring"></span><span class="ring"></span><span class="ring"></span>
         <span class="bloom" id="bloom"></span>
@@ -379,6 +393,8 @@ const isRealUser = () => !!currentUser && !currentUser.isAnonymous;
 initCard({ db, store, recorderUrl: RECORDER_URL, mode:()=>displayMode, user:()=>currentUser, banner });
 
 const $ = id => document.getElementById(id);
+const allBtn = $("allBtn");
+allBtn.addEventListener("click", ()=>{ cancelSearch(); showAll(); });   // also the way out of a search still in flight
 const mic = $("mic"), hint = $("hint"), resultsEl = $("results"),
       bloom = $("bloom"), dbg = $("dbg");
 
@@ -652,7 +668,7 @@ async function render(results, quiet){   // quiet: a return to old results (Back
   const my = ++renderToken; deepEntry = null;
   lastResults = results; setMastView("find");
   resultsEl.innerHTML=""; hint.classList.add("small");
-  resultsEl.appendChild(backToAll());
+  paintAllBtn(true); reskinPending = false;
   const best = results[0];
 
   if(!best || best.distance > MAYBE_MAX){ renderEmpty(best); return; }
@@ -705,7 +721,7 @@ async function openEntry(entryId){
     return;
   }
   resultsEl.innerHTML="";                       // clear again in case of a race
-  resultsEl.appendChild(backToAll());
+  paintAllBtn(true); reskinPending = false;
   if(lead.removed){
     // an old link to a word its creator removed: say so, not the stale card
     const g=AFDCore.STRINGS["card.removed.gone"];
@@ -728,18 +744,16 @@ function applyEntryDeepLink(){
    Idle state lists every entry as a collapsed card; tapping expands it in place
    (detail loads lazily for that one entry). Same card whether reached by speaking
    or scrolling — one renderer, one behaviour. */
-function backToAll(){
-  // Names the list it goes back to (the active view), so it reads as "back to
-  // the list" — a bare ☰ read as a menu. Sound tier: chevron + glyph, no words.
+/* The back control in the mic's zone (#allBtn). It names the list it returns to
+   — the active view — and is shown only when there is a list to go back to:
+   over a word or search results, not over the list itself. */
+function paintAllBtn(show){
   const v = VIEWS.find(x=>x.id===currentView) || VIEWS[0];
-  const b=document.createElement("button");
-  b.className="allbtn"; b.type="button"; b.setAttribute("aria-label","Back to the list — "+v.en); b.title=v.en;
-  b.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`+
-    `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`+
-    (displayMode==="sound" ? "" : `<span class="all-t"><span class="all-ar" dir="rtl">${escapeHtml(v.ar)}</span>`+
-      (displayMode==="auto" ? `<span class="all-en">${escapeHtml(v.en)}</span>` : "")+`</span>`);
-  b.addEventListener("click", showAll);
-  return b;
+  allBtn.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`+
+    `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
+  allBtn.setAttribute("aria-label","Back to the list — "+v.en); allBtn.title = v.en;
+  allBtn.setAttribute("data-cap", v.ar);
+  allBtn.classList.toggle("hidden", !show);
 }
 /* Back to the whole list, leaving nothing of the last view behind: the address
    drops its #ent_… (or a reload — or a re-share — would snap back to that word)
@@ -771,6 +785,7 @@ function setCoverage(withVoice, total){
 
 async function renderBrowse(){
   const my = ++renderToken; deepEntry = null; lastResults = null; setMastView("dictionary");
+  paintAllBtn(false); reskinPending = false;
   hint.classList.remove("small");
   // A cold Firestore connection makes the header reads slow, so show a loading
   // pulse immediately (a blank landing reads as broken) and fetch the headers in
@@ -963,22 +978,37 @@ function renderEmpty(best){
 
 /* ================================================================= plumbing */
 
-function setHint(en, ar){
+/* The hint remembers WHAT it says (hintNow), not just the HTML it drew, so a
+   change of display mode can say the same thing again in the new mode. It used
+   to stay as first drawn: switch from the bilingual mode during "Still
+   looking…" and the English stayed on screen in the Arabic-only modes. */
+let hintNow = null;        // { en, ar }  or  { key, code }
+let reskinPending = false; // the display mode changed while a hold or search had the screen
+function paintHint(){
+  const h = hintNow; if(!h) return;
+  const s = h.key ? (AFDCore.STRINGS[h.key] || { en:h.key, ar:"" }) : h;
   // Audio-first tiers (sound / script) speak to non-readers in Arabic; auto keeps
   // English with Arabic beneath, for you and bilingual helpers.
-  if(displayMode!=="auto" && ar){ hint.innerHTML = `<span class="ar solo">${escapeHtml(ar)}</span>`; return; }
-  hint.innerHTML = escapeHtml(en) + (ar?`<span class="ar">${escapeHtml(ar)}</span>`:"");
+  if(displayMode!=="auto" && s.ar) hint.innerHTML = `<span class="ar solo">${escapeHtml(s.ar)}</span>`;
+  else hint.innerHTML = escapeHtml(s.en||"") + (s.ar?`<span class="ar">${escapeHtml(s.ar)}</span>`:"");
+  if(h.code){ const c=document.createElement("span"); c.className="code"; c.textContent=h.code; hint.appendChild(c); }
 }
+function setHint(en, ar){ hintNow = { en, ar }; paintHint(); }
 /* A hint from the shared string table (afd-core STRINGS), with an optional small
    code beneath it — used by search, which names the failure it hit. */
-function setHintKey(key, code){
-  const s = AFDCore.STRINGS[key] || { en:key, ar:"" };
-  setHint(s.en, s.ar);
-  if(code){ const c=document.createElement("span"); c.className="code"; c.textContent=code; hint.appendChild(c); }
+function setHintKey(key, code){ hintNow = { key, code }; paintHint(); }
+/* Draw again whatever view is current (after a change of display mode). */
+function reskinView(){
+  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults); else renderBrowse();
 }
 /* A hold hides whatever is listed so the mic has the screen. Anything that ends
    without new results puts it back. */
 function showResults(){
+  if(reskinPending){
+    // the display mode changed meanwhile: draw what is underneath in the new mode,
+    // and keep the hint this hold or search just set (the redraw sets its own)
+    const keep = hintNow; reskinView(); hintNow = keep; paintHint();
+  }
   if(resultsEl.childElementCount){ resultsEl.classList.remove("hidden"); document.body.classList.add("has-results"); }
   setMastView(lastResults && !deepEntry ? "find" : "dictionary");   // the header names what is back on screen
 }
@@ -1011,6 +1041,11 @@ const VIEWS = [
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/><path d="M18 3.5v4M16 5.5h4"/></svg>' },
   { id:"newest", ar:STR("view.newest").ar, en:STR("view.newest").en,
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2"/></svg>' },
+  // Two page jumps, lighter first: "Add a word card" is the short page for a NEW
+  // word in your own voice (add.html); "Record a word" is the full recorder, for a
+  // voice on a card that exists, sessions, and recording someone else.
+  { id:"add",    ar:STR("view.add").ar, en:STR("view.add").en, nav:"add.html",
+    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>' },
   { id:"record", ar:STR("view.record").ar, en:STR("view.record").en, nav:"recorder.html",
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3" fill="currentColor" stroke="none"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>' },
 ];
@@ -1048,7 +1083,7 @@ function renderViewMenu(){
     const active = (!v.nav && v.id===currentView);
     html += '<button role="menuitem" data-view="'+v.id+'"'+(active?' aria-current="true"':'')+'>'
           + '<span class="vm-ic">'+v.ic+'</span><span class="vm-t">'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
-    if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jump
+    if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jumps
   }
   viewMenu.innerHTML=html;
   viewMenu.querySelectorAll("[data-view]").forEach(b=> b.onclick=()=>selectView(b.dataset.view));
@@ -1098,7 +1133,12 @@ function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[disp
 $("skin").addEventListener("click", ()=>{
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
   setDisplayMode(next); updateSkinIcon(); syncAcctLabels();
-  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults); else renderBrowse();  // re-skin what's on screen — incl. the browse list
+  paintHint();                                   // the hint says the same thing, in the new mode
+  // While a hold or a search has the screen, leave it alone — redrawing the list
+  // now would put it back under "Finding…" and turn the header to "dictionary".
+  // What is underneath is redrawn in the new mode when the search ends.
+  if(holding || document.body.classList.contains("busy")){ reskinPending = true; return; }
+  reskinView();                                  // re-skin what's on screen — incl. the browse list
 });
 updateSkinIcon();
 AFDCore.attachQuietToggle($("skin"));   // long-press = quiet mode (mute bubble on the circle)
@@ -1137,7 +1177,10 @@ function updateAccountUi(){
   stewardKnownName = "";                     // reset; the async fetch below refills it
   const paint = ()=>{
     const who = acctWhoName();
-    accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml((who[0]||"?").toUpperCase())}</span>`;
+    // signed in by phone: the "name" is a number, and its first character "+"
+    // read as an add button — show the phone mark add.html uses instead
+    const initial = /^[+\d]/.test(who) ? "\u260E" : (who[0]||"?").toUpperCase();
+    accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml(initial)}</span>`;
     accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — account menu` : "Account menu");
     accountBtn.title = who || "Signed in";
   };

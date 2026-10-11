@@ -2919,7 +2919,8 @@ function renderRecAccount(){
   }
   const acctName = (u.displayName || u.email || u.phoneNumber || "").trim();
   const paint=(who)=>{
-    recAcct.innerHTML='<span class="acct-initial">'+rosterEsc((who[0]||"?").toUpperCase())+'</span>';
+    const initial = /^[+\d]/.test(who) ? "\u260E" : (who[0]||"?").toUpperCase();   // a phone number's "+" read as an add button
+    recAcct.innerHTML='<span class="acct-initial">'+rosterEsc(initial)+'</span>';
     recAcct.setAttribute("aria-label", who ? ("Signed in as "+who+" — account menu") : "Account menu");
     recAcct.title = who || "Signed in";
   };
