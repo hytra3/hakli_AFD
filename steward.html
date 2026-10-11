@@ -152,6 +152,16 @@ const ms = t => (t && typeof t.toMillis === "function") ? t.toMillis() : (typeof
 const when = t => { const m = ms(t); return m ? new Date(m).toLocaleString() : ""; };
 const notAllowed = e => e && e.code === "permission-denied";
 const NOT_STEWARD = "This account isn’t listed as the steward. On the laptop: node scripts/grant-steward.mjs <this email>";
+// What to print for the signed-in account. Sign-in is shared by every page of
+// the site, so this page can find the phone or Google account someone used in
+// the dictionary. Never fall back to the account id: it means nothing to a reader.
+const whoLabel = u => u.email || u.phoneNumber || u.displayName || "signed in";
+// Why this account can't use the page, said for the account that is signed in.
+function notStewardMsg(u){
+  if(!u || !u.email) return "You’re signed in with your dictionary account" + (u && u.phoneNumber ? " (" + u.phoneNumber + ")" : "") +
+    ", not the steward account. Sign in below with the steward email and password.";
+  return "This account isn’t listed as the steward. If it should be, on the laptop: node scripts/grant-steward.mjs " + u.email;
+}
 
 let words = [];            // [{ id, d }]
 let tab = "review";
@@ -167,7 +177,7 @@ $("signout").onclick = e=>{ e.preventDefault(); signOut(auth); };
 
 onAuthStateChanged(auth, async user=>{
   const named = user && !user.isAnonymous;
-  $("who").textContent = named ? (user.email || user.uid) : "";
+  $("who").textContent = named ? whoLabel(user) : "";
   $("signout").classList.toggle("hidden", !named);
   if(!named){ $("signin").classList.remove("hidden"); $("panel").classList.add("hidden"); return; }
   // An account may read its own afd_admins doc — that's how we know.
@@ -175,7 +185,7 @@ onAuthStateChanged(auth, async user=>{
   try{ steward = (await getDoc(doc(db, "afd_admins", user.uid))).exists(); }catch(_){}
   if(!steward){
     $("signin").classList.remove("hidden"); $("panel").classList.add("hidden");
-    $("authmsg").textContent = NOT_STEWARD;
+    $("authmsg").textContent = notStewardMsg(user);
     return;
   }
   $("signin").classList.add("hidden"); $("panel").classList.remove("hidden");

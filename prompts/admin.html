@@ -257,7 +257,7 @@ onAuthStateChanged(auth, async (u)=>{
   if(u && real){
     $("signin").classList.add("hidden");
     $("panel").classList.remove("hidden");
-    $("who").textContent = u.email || "signed in";
+    $("who").textContent = u.email || u.phoneNumber || u.displayName || "signed in";
     $("signout").classList.remove("hidden");
     await refresh();
     loadQueue();

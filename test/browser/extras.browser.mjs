@@ -132,5 +132,23 @@ await scenario("the account badge for someone signed in by phone", async ()=>{
   ok("A phone sign-in shows a phone mark, not the number's '+' (which read as an add button); a name still shows its initial", a==="\u260E" && b==="\u260E" && c==="S", JSON.stringify([a, b, c]));
 });
 
+// the steward page names the signed-in account in words a person can read
+await scenario("the steward page never shows an account id", async ()=>{
+  const see = async (path, user, fs)=>{ const { page, ctx } = await newPage(browser, srv.url, { user, fs });
+    await page.goto(srv.url + path); await page.waitForTimeout(1200);
+    const r = await page.evaluate(()=>({ who: document.getElementById("who").textContent.trim(), msg: (document.getElementById("authmsg")||{}).textContent || "",
+      panel: !document.getElementById("panel").classList.contains("hidden"), form: !document.getElementById("signin").classList.contains("hidden") }));
+    await ctx.close(); return r; };
+  const PHONE = { uid:"q1QvbtezJ6dXnfVMC3kyAlqJKfm2", isAnonymous:false, displayName:null, email:null, phoneNumber:"+96891234567", providerData:[{ providerId:"phone" }] };
+  const OTHER = { uid:"uOther", isAnonymous:false, displayName:"Salim", email:"s@example.com", providerData:[{ providerId:"password" }] };
+  const STEW  = { uid:"uSteward", isAnonymous:false, displayName:null, email:"steward@example.org", providerData:[{ providerId:"password" }] };
+  const p = await see("/steward.html", PHONE), o = await see("/steward.html", OTHER), s = await see("/steward.html", STEW, { "afd_admins/uSteward": { email:"steward@example.org" } });
+  ok("Q1 a phone sign-in is shown by its number and told to use the steward sign-in", p.who==="+96891234567" && !/q1Qvbt/.test(p.who + p.msg) && /dictionary account \(\+96891234567\)/.test(p.msg) && /steward email and password/.test(p.msg) && p.form && !p.panel, JSON.stringify(p));
+  ok("Q2 an email account that isn't the steward is told how to be listed, by its own address", o.who==="s@example.com" && /grant-steward\.mjs s@example\.com$/.test(o.msg) && o.form && !o.panel, JSON.stringify(o));
+  ok("Q3 the steward gets the panel", s.who==="steward@example.org" && s.panel && !s.form, JSON.stringify(s));
+  const a = await see("/prompts/admin.html", PHONE);
+  ok("Q4 the prompt-windows page shows the number too", a.who==="+96891234567", JSON.stringify(a));
+});
+
 await browser.close(); srv.close();
 finish();
