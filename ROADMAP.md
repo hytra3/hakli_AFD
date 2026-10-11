@@ -328,6 +328,17 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   list back under "Finding…"; what is underneath is redrawn when it ends.
 - **Phone sign-ins show a phone mark in the account circle**, not the number's
   first character — a "+" in a dark circle read as an add button.
+- **"Add a word" is always within reach — but is not a second home (decision).**
+  Asked: should `add.html` become a main page beside the dictionary? No: the
+  people this is for don't read, a second home needs a switcher and a new
+  "where am I", and add already works as a landing page for anyone arriving
+  from a WhatsApp invitation. What was weak was reach — the "Add a word" tile
+  scrolls away with the list, and the view menu's only add-like item opened the
+  full recorder. So: a dashed amber **+** beside the mic (the back control's
+  mirror, in the zone that stays put), and **Add a word** in the view menu above
+  **Record a word**. The tile stays. The two pages, in one line: *add* makes a
+  NEW word and is always your own voice; the *recorder* adds a voice — yours or
+  someone else's — to a word that already exists.
 
 **Still open**
 - **Back does not close the recorder's overlays** (withdraw / spoken-consent

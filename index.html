@@ -216,6 +216,15 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
   border:1.5px solid var(--mist-2); border-radius:22px; background:var(--cloud); color:var(--mountain);
   cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
 .control .allbtn svg{flex:0 0 auto}
+/* "Add a word", always within reach: the mirror of the back control, on the
+   mic's other side. The tile atop the list says the same thing but scrolls
+   away with it; this stays. Amber and dashed like that tile, so the two read
+   as one invitation. Only beside the SMALL mic (the big idle mic fills the zone). */
+.control .addbtn{position:absolute; inset-inline-end:0; top:44px; width:44px; height:44px; display:none;
+  align-items:center; justify-content:center; border:1.5px dashed var(--resin); border-radius:50%;
+  background:var(--cloud); color:var(--resin); text-decoration:none; box-shadow:0 2px 8px rgba(31,58,52,.10)}
+body.has-results .control .addbtn{display:inline-flex}
+.control .addbtn.capd::after{color:var(--resin)}
 /* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
      escape hatch under search candidates for a real new word that looked near one */
   .addword{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:460px;
@@ -258,6 +267,9 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
   <main>
     <div class="control">
       <button class="allbtn capd hidden" id="allBtn" type="button" data-cap="كل الكلمات"></button>
+      <a class="addbtn capd" id="addBtn" href="add.html" data-cap="أضِف كلمة" data-cap-key="add.title" title="Add a word" aria-label="Add a word">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </a>
       <div class="stage" id="stage">
         <span class="ring"></span><span class="ring"></span><span class="ring"></span>
         <span class="bloom" id="bloom"></span>
@@ -1029,6 +1041,11 @@ const VIEWS = [
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/><path d="M18 3.5v4M16 5.5h4"/></svg>' },
   { id:"newest", ar:STR("view.newest").ar, en:STR("view.newest").en,
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3 2"/></svg>' },
+  // Two page jumps, lighter first: "Add a word" is the short page for a NEW word in
+  // your own voice (add.html); "Record a word" is the full recorder, for a voice on
+  // a word that exists, sessions, and recording someone else.
+  { id:"add",    ar:STR("add.title").ar, en:STR("add.title").en, nav:"add.html",
+    ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>' },
   { id:"record", ar:STR("view.record").ar, en:STR("view.record").en, nav:"recorder.html",
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3" fill="currentColor" stroke="none"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>' },
 ];
@@ -1066,7 +1083,7 @@ function renderViewMenu(){
     const active = (!v.nav && v.id===currentView);
     html += '<button role="menuitem" data-view="'+v.id+'"'+(active?' aria-current="true"':'')+'>'
           + '<span class="vm-ic">'+v.ic+'</span><span class="vm-t">'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
-    if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jump
+    if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jumps
   }
   viewMenu.innerHTML=html;
   viewMenu.querySelectorAll("[data-view]").forEach(b=> b.onclick=()=>selectView(b.dataset.view));

@@ -28,10 +28,15 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   (`scripts/publish-site.sh`, which also bumps the build stamp shown at the foot
   of each page):
   - `index.html` — the dictionary: browse every word, speak to find, open a word.
-  - `add.html` — "add a word": say it, show it, share it (the page WhatsApp
-    invitations open). Sign-in only at the end: Google, phone number, email.
-  - `recorder.html` — the full recorder (sessions, speaker details, spoken
-    consent, recording for someone else, importing a WhatsApp voice note).
+  - `add.html` — "add a word": a NEW word, in your own voice — say it, show it,
+    share it (the page WhatsApp invitations open). Sign-in only at the end:
+    Google, phone number, email. Reached from the **+** beside the mic, "Add a
+    word" in the view menu, the tile atop the list and the no-match card.
+  - `recorder.html` — the full recorder: a voice (yours or someone else's) on a
+    word that ALREADY exists, or a session through the word list — speaker
+    details, spoken consent, recording for someone else, importing a WhatsApp
+    voice note. Reached from "Say it yourself" / "Add a sentence" / "Add a
+    meaning" on a card, and "Record a word" in the view menu.
   - `welcome.html` — the outward-facing intro to hand out; not linked in-app.
   - `hakli-intro.html`, `hakli-intro-ar.html` — the printable introduction
     (bilingual / Arabic only); not linked in-app, ends with a link in.
