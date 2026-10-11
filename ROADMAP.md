@@ -335,8 +335,13 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   from a WhatsApp invitation. What was weak was reach — the "Add a word" tile
   scrolls away with the list, and the view menu's only add-like item opened the
   full recorder. So: a dashed amber **+** beside the mic (the back control's
-  mirror, in the zone that stays put), and **Add a word** in the view menu above
-  **Record a word**. The tile stays. The two pages, in one line: *add* makes a
+  mirror, in the zone that stays put), and **Add a word tile** in the view menu
+  above **Record a word**. The button atop the list stays.
+  **Vocabulary (Marty, 10-10): a "word tile" is a word's card** — one tile, many
+  voices. Hence the menu's wording: "Add a word tile" makes a NEW tile; "Record a
+  word" puts a voice on a tile that exists. (`view.add`; its Arabic, "أضِف بطاقة
+  كلمة", is an MSA draft. The + caption, the list button and the add page itself
+  still say "Add a word" / "أضِف كلمة".) The two pages, in one line: *add* makes a
   NEW word and is always your own voice; the *recorder* adds a voice — yours or
   someone else's — to a word that already exists.
 

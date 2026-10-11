@@ -558,7 +558,11 @@ window.AFDCore = (function(){
     "record.instr.context":    { en:"Say a short *sentence* using this word — one time.", ar:"قل *جملة* قصيرة تستخدم هذه الكلمة — مرّة واحدة." },
     "record.instr.definition": { en:"Say what this word *means*, in Hakli — one time.", ar:"قل ما *تعنيه* هذه الكلمة، بالحكلية — مرّة واحدة." },
     "record.progress.word":      { en:"WORD {i} OF {n}", ar:"الكلمة {i} من {n}" },
-    "record.progress.listening": { en:"LISTENING", ar:"استماع" }
+    "record.progress.listening": { en:"LISTENING", ar:"استماع" },
+    // View menu: the jump to add.html. A "word tile" is a word's card — one tile,
+    // many voices — so "Add a word tile" (a NEW tile) reads apart from "Record a
+    // word" (a voice on a tile that exists) right below it. Arabic is an MSA draft.
+    "view.add":             { en:"Add a word tile", ar:"أضِف بطاقة كلمة" }
   };
   function t(key, mode){
     const s = STRINGS[key];
