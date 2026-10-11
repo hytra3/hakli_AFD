@@ -316,6 +316,15 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   "Invite" fallback opens WhatsApp in a new tab like every other share.
 
 **From the first evening on a phone (10-10, build after b1010c)**
+- **The steward page names the account, never its id.** Sign-in is shared by
+  every page of hakli.app, so opening `steward.html` on a phone already signed
+  in to the dictionary by phone number found that account, which has no email,
+  and printed its raw account id beside "sign out". It now shows the email, else
+  the phone number, else "signed in"; and the "not the steward" message says
+  which case this is (a dictionary account: sign in below with the steward
+  email; an unlisted email: the grant command with that address filled in).
+  `prompts/admin.html` shows the number too. Worth knowing: signing in as the
+  steward **replaces** the dictionary sign-in on that phone until you sign out.
 - **The back control moved into the mic's zone.** As a pill above the card it
   scrolled away with the page (and slid under the mic). It now sits beside the
   small mic, which stays put: chevron + list glyph, the list's Arabic name
