@@ -31,7 +31,7 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   - `add.html` — "add a word": a NEW word, in your own voice — say it, show it,
     share it (the page WhatsApp invitations open). Sign-in only at the end:
     Google, phone number, email. Reached from the **+** beside the mic, "Add a
-    word tile" in the view menu, the button atop the list and the no-match card.
+    word card" in the view menu, the button atop the list and the no-match card.
   - `recorder.html` — the full recorder: a voice (yours or someone else's) on a
     word that ALREADY exists, or a session through the word list — speaker
     details, spoken consent, recording for someone else, importing a WhatsApp

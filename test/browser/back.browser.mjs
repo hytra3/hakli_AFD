@@ -247,7 +247,7 @@ await scenario("Add a word is always within reach", async ()=>{ const { page, ct
   await page.click("#mastScreen"); await page.waitForTimeout(200);
   const menu = await page.$$eval("#viewMenu [data-view]", b=>b.map(x=>x.dataset.view+":"+x.innerText.replace(/\s+/g," ").trim()));
   await shot(page, "view-menu-with-add");
-  ok("P4 the view menu offers 'Add a word tile' above 'Record a word'", menu.findIndex(x=>/^add:/.test(x)) >= 0 && menu.findIndex(x=>/^add:/.test(x)) < menu.findIndex(x=>/^record:/.test(x)) && menu.some(x=>/^add:.*Add a word tile$/i.test(x)) && menu.some(x=>/^record:.*Record a word$/i.test(x)), JSON.stringify(menu));
+  ok("P4 the view menu offers 'Add a word card' above 'Record a word'", menu.findIndex(x=>/^add:/.test(x)) >= 0 && menu.findIndex(x=>/^add:/.test(x)) < menu.findIndex(x=>/^record:/.test(x)) && menu.some(x=>/^add:.*Add a word card$/i.test(x)) && menu.some(x=>/^record:.*Record a word$/i.test(x)), JSON.stringify(menu));
   await page.click('#viewMenu [data-view="add"]'); await page.waitForLoadState("load"); await page.waitForTimeout(600);
   ok("P5 …and it opens the add page", rel(page)==="/add.html", rel(page));
   await page.goBack(); await ready(page); await page.waitForTimeout(400);
