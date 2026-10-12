@@ -21,12 +21,23 @@ window.AFDInstance = {
   // otherwise. One default, on purpose: speakers who can't read can't be asked
   // to pick a language per take. A take in another language is the rare
   // exception and gets corrected later, not chosen at record time.
-  // CONFIRM before the backfill runs: ISO 639-3 "shv" (Shehri / Jibbali).
+  // `code` is this dictionary's own identifier for the language, stamped on
+  // every record. It is a BCP 47 private-use code (qaa–qtz are reserved for
+  // local use), chosen so that no record carries a contested external code.
+  // If an official code is ever issued for Hakli, it replaces this one in a
+  // single backfill.
   language: {
-    code: "shv",
+    code: "qhk",
     name: "Hakli",
     endonym: "Əḥklí",
-    glottocode: ""            // to confirm
+
+    // External crosswalks — consulted only at archive-deposit time, never
+    // written onto records. Left empty on purpose; fill in only by deliberate
+    // decision for a specific deposit.
+    crosswalk: {
+      iso639_3: "",
+      glottocode: ""
+    }
   },
 
   // Languages glosses are written in, in display priority. `glosses` maps on

@@ -196,7 +196,7 @@ describe("recording create — storagePath and fields can't be forged", () => {
   });
   // Export-manifest fields
   it("a take carries its language code (the instance default)", async () => {
-    await assertSucceeds(setDoc(rec(asSelf(), "rec_lang"), fullRec("rec_lang", { lang: "shv" })));
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_lang"), fullRec("rec_lang", { lang: "qhk" })));
     await assertSucceeds(setDoc(rec(asSelf(), "rec_lang2"), fullRec("rec_lang2", { lang: "ar" })));
   });
   it("…a take kept before lang existed still uploads without it", async () => {

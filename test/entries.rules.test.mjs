@@ -101,7 +101,7 @@ describe("entry create — say it, show it", () => {
 
 describe("entry create — export-manifest fields (lang, concepts, glosses)", () => {
   // what add.html writes now
-  const full = (uid) => ({ ...base(uid), lang: "shv", concepts: [], glossAr: "ماعز", glosses: { ar: "ماعز" } });
+  const full = (uid) => ({ ...base(uid), lang: "qhk", concepts: [], glossAr: "ماعز", glosses: { ar: "ماعز" } });
   it("the new add-a-word doc is accepted", async () => {
     await assertSucceeds(setDoc(entry(fsAs("uA")), full("uA")));
   });
