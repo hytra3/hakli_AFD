@@ -11,6 +11,7 @@ and ffmpeg on the PATH:
     pip install numpy fastapi python-multipart httpx
     python3 -m unittest discover -s test -p "test_*.py"
 """
+import hashlib
 import importlib.util
 import os
 import sys
@@ -245,6 +246,9 @@ class EmbedTrigger(unittest.TestCase):
         ref.update.assert_called_once()
         ref.set.assert_not_called()
         self.assertEqual(ref.update.call_args[0][0]["embedding"], [1.0, 0.0])
+        # fixity for the export manifest: sha256 of the stored bytes
+        self.assertEqual(ref.update.call_args[0][0]["sha256"],
+                         hashlib.sha256(b"audio").hexdigest())
 
     def test_sends_an_id_token_for_the_service_url(self):
         fetch = sys.modules["google.oauth2.id_token"].fetch_id_token
@@ -284,7 +288,9 @@ class EmbedTrigger(unittest.TestCase):
 
     def test_undecodable_audio_is_not_retried(self):
         ref, _ = self._run({"uid": "uA", "storagePath": self.NAME}, status=400)
-        ref.update.assert_not_called()          # returned quietly, no raise
+        # returned quietly, no raise — and only the checksum was written, so the
+        # take can still be verified on export even with no embedding
+        ref.update.assert_called_once_with({"sha256": hashlib.sha256(b"audio").hexdigest()})
 
 
 # ------------------------------------------------------------ search corpus

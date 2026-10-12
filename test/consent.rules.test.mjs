@@ -194,6 +194,22 @@ describe("recording create — storagePath and fields can't be forged", () => {
     await assertFails(setDoc(rec(asSelf(), "rec_evil"),
       fullRec("rec_evil", { reps: [{ start: 0, end: 1, vector: [1, 0] }] })));
   });
+  // Export-manifest fields
+  it("a take carries its language code (the instance default)", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_lang"), fullRec("rec_lang", { lang: "shv" })));
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_lang2"), fullRec("rec_lang2", { lang: "ar" })));
+  });
+  it("…a take kept before lang existed still uploads without it", async () => {
+    await assertSucceeds(setDoc(rec(asSelf(), "rec_old"), fullRec("rec_old")));
+  });
+  it("…but a malformed language code is refused", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_bad"), fullRec("rec_bad", { lang: "Hakli" })));
+    await assertFails(setDoc(rec(asSelf(), "rec_bad"), fullRec("rec_bad", { lang: "" })));
+    await assertFails(setDoc(rec(asSelf(), "rec_bad"), fullRec("rec_bad", { lang: 7 })));
+  });
+  it("the checksum is server-owned — a client can't plant sha256", async () => {
+    await assertFails(setDoc(rec(asSelf(), "rec_evil"), fullRec("rec_evil", { sha256: "00" })));
+  });
 });
 
 describe("recording create — speaker card is honoured (late / offline uploads)", () => {

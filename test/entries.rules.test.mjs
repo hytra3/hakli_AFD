@@ -99,6 +99,33 @@ describe("entry create — say it, show it", () => {
   });
 });
 
+describe("entry create — export-manifest fields (lang, concepts, glosses)", () => {
+  // what add.html writes now
+  const full = (uid) => ({ ...base(uid), lang: "shv", concepts: [], glossAr: "ماعز", glosses: { ar: "ماعز" } });
+  it("the new add-a-word doc is accepted", async () => {
+    await assertSucceeds(setDoc(entry(fsAs("uA")), full("uA")));
+  });
+  it("glosses in both contact languages", async () => {
+    await assertSucceeds(setDoc(entry(fsAs("uA")), { ...base("uA"), glosses: { ar: "ماعز", en: "goat" } }));
+  });
+  it("a malformed language code is refused", async () => {
+    await assertFails(setDoc(entry(fsAs("uA")), { ...full("uA"), lang: "Hakli" }));
+  });
+  it("concepts must start empty — linking is a later steward step", async () => {
+    await assertFails(setDoc(entry(fsAs("uA")), { ...full("uA"), concepts: ["concepticon:1343"] }));
+    await assertFails(setDoc(entry(fsAs("uA")), { ...full("uA"), concepts: "none" }));
+  });
+  it("glosses only in the instance's contact languages, 1–80 characters", async () => {
+    await assertFails(setDoc(entry(fsAs("uA")), { ...base("uA"), glosses: { fr: "chèvre" } }));
+    await assertFails(setDoc(entry(fsAs("uA")), { ...base("uA"), glosses: { ar: "" } }));
+    await assertFails(setDoc(entry(fsAs("uA")), { ...base("uA"), glosses: { ar: "x".repeat(81) } }));
+    await assertFails(setDoc(entry(fsAs("uA")), { ...base("uA"), glosses: {} }));
+  });
+  it("access is reserved — a client can't set it", async () => {
+    await assertFails(setDoc(entry(fsAs("uA")), { ...full("uA"), access: { labels: [] } }));
+  });
+});
+
 describe("entry — immutable once added, except remove-my-word and tags", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (c) => {

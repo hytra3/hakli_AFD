@@ -25,6 +25,7 @@
 <meta name="theme-color" content="#17241F">
 <script src="afd-core.js?v=b1012e"></script>
 <script src="afd-words.js?v=b1012e"></script>
+<script src="afd-instance.js?v=b1012e"></script>
 <style>/* Same khareef tokens as index.html, so this reads as the same app. */
   :root{
     --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --mist:#8CA39B; --mist-2:#C4D2CC;
@@ -361,7 +362,7 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { uploadClip } from "./afd-upload.js?v=b1012e";
+import { uploadClip, instanceLang } from "./afd-upload.js?v=b1012e";
 import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile } from "./afd-card.js?v=b1012e";
 
 const firebaseConfig = {
@@ -1024,11 +1025,16 @@ async function share(){
     if(!up.entry){
       step = "entry";
       const eref = doc(db, "afd_entries", draft.entryId);
-      const data = { source:"user", createdBy:uid, createdAt:serverTimestamp() };
+      // lang + an empty concepts list on every new word card, so the export
+      // manifest and later concept linking never need a second migration.
+      const data = { source:"user", createdBy:uid, createdAt:serverTimestamp(),
+                     lang: instanceLang(), concepts: [] };
       if(draft.pic) data.pic = draft.pic;
       if(up.photo && up.photoPath) data.image = publicUrl(up.photoPath);
       const ar = draft.glossAr.trim().slice(0,80);
-      if(ar) data.glossAr = ar;
+      // glosses is the language-keyed form; glossAr stays until every reader
+      // has moved over to glosses.
+      if(ar){ data.glossAr = ar; data.glosses = { ar }; }
       try{ await setDoc(eref, data); }
       catch(e){
         let mine=false; try{ const sn = await getDoc(eref); mine = sn.exists() && (sn.data()||{}).createdBy===uid; }catch(_){}

@@ -19,11 +19,21 @@ import { doc, getDoc, setDoc, serverTimestamp }
 import { ref, uploadBytes, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+// The instance's default language code (afd-instance.js, loaded as a classic
+// script before this module). Throws rather than guessing: a take filed under
+// the wrong language is worse than one that waits on the phone for a fix.
+export function instanceLang(){
+  const code = window.AFDInstance && window.AFDInstance.language && window.AFDInstance.language.code;
+  if(!code) throw new Error("afd-instance.js not loaded (no language code)");
+  return code;
+}
+
 export async function uploadClip({ db, store, uid }, rec, speaker){
   if(!db || !store) throw new Error("Firebase not configured");
   if(!uid) throw new Error("not signed in");
   const speakerId = speaker.speakerId;
   if(!speakerId) throw new Error("no speaker code");
+  instanceLang();   // fail before any bytes move if the config is missing
 
   // Read the speaker card FIRST. Two things it can tell us that the form can't:
   //  • the card belongs to another steward → this code isn't ours to record
@@ -79,6 +89,10 @@ export async function uploadClip({ db, store, uid }, rec, speaker){
         type:            rec.type,
         promptTier:      rec.promptTier,
         repetitionIndex: rec.repetitionIndex,
+        // The language spoken in this take. One instance-wide default
+        // (afd-instance.js); a take in another language is corrected later,
+        // never chosen at record time.
+        lang:            rec.lang || instanceLang(),
         // capture WITHOUT `device` (navigator.userAgent): a UA fingerprint has no
         // place in a world-readable doc. The QC-relevant capture fields are kept.
         capture: {
