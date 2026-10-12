@@ -399,8 +399,9 @@ the three "say it twice / a sentence / what it means" instructions and the
 chip's gender words reuse `form.gender.*`. In the instructions, `*stars*` mark
 the one emphasised word (shown bold); a reviewer who drops them just loses the
 bold.
-**Still outside the list:** the welcome, walkthrough and intro pages, which
-carry their own text.
+**Still outside the list:** the printable intros (`hakli-intro.html`,
+`hakli-intro-ar.html`), which carry their own text. (The welcome page and the
+walkthrough moved into the list on 10-12 — see below.)
 **Welcome animation redrawn (10-12; was "still open" from 10-10).**
 `hakli-welcome-walkthrough.html` no longer draws the كلمة / جملة / معنى tabs.
 The recorder scenes show the word card as the live recorder does: picture and
@@ -415,6 +416,32 @@ the `record.instr.*` Arabic. Narration clips, cue keys and every timing are
 unchanged, so `welcome.html` needs nothing. Small fix while there: after Keep,
 the record button went back to its idle label instead of freezing on
 "يُسجّل… 2.4s".
+**Welcome page and walkthrough, second pass (10-12).**
+- **The welcome page's glyph opens the dictionary**, as the glyph does on every
+  other page. Only the glyph; the الحَكلي wordmark stays something to look at.
+- **Scene 1 caught up with the dictionary:** beside the small mic, the back
+  control (كل الكلمات) on the right and the dashed amber **+** (أضِف كلمة) on
+  the left, as on `index.html` since b1010d.
+- **Scene 5, new: adding a word that isn't there.** `intro.tour.new` promises
+  "you can be the first to say it", and nothing showed how. The finger taps the
+  **+**, and the add page runs say it (hold) → show it (picks a picture, 🐐) →
+  share it → 🎉. New spoken clip **`howto.add`** (prompts tool 2.6) plays on
+  that scene; the narration set is now 5 intro + 6 howto = 11 clips. Loop
+  37.8 s → 48.8 s; scenes 1–4 unchanged. The share step leaves out the
+  permission ticks and sign-in, which a trainer should show live (they are the
+  first thing a new speaker meets).
+- **All their words are in the prompts tool**, as a new last section, *Screen ·
+  Welcome page & walkthrough captions* (22): `welcome.*` (the page's hint,
+  listen/stop, "see how it works", "enter the dictionary") and `wt.*` (the
+  captions, in scene order). Inside the phone the walkthrough now uses the
+  app's own strings (`find.*`, `record.*`, `slot.*`, `review.*`, `add.*`), so
+  the phone always says what the app says — e.g. "Keep it" was احفظه in the
+  animation and احتفظ به in the app; now it is the app's.
+- **The welcome page's numbered lines stay the spoken `intro.tour.*` items**
+  (section 1), not new on-screen keys, so each line is reviewed once.
+  `pull-suggestions.mjs` copies an applied edit of one onto welcome.html's
+  matching `k:"…"` line (and says so). For that, `CLOSE` is on one line now.
+- No item number moved: checked by building the list before and after.
 
 ## Browser tests (2026-10-10)
 
@@ -826,7 +853,7 @@ cannot say *why this matters* or *your voice stays yours* — that is the text's
   screen (the sentence and meaning scenes tap the card's "Add a sentence" / "Add a
   meaning" — tabs until 10-12), so that clip had no playback surface. Narration set
   is now 5 intro + 5 howto = 10 clips: `intro.tour.{what,new,yours,waits,why}` and
-  `howto.{find,record,review,sentence,meaning}`.
+  `howto.{find,record,review,sentence,meaning}` (+ `howto.add` on 10-12: 11 clips).
 - Scene beats are 8–9 s and clips ~3–5 s, so cues never overlap; a late clip is simply
   cut off by the next scene, which matches the visuals. The standalone (non-embedded)
   walkthrough still loops silently — narration only runs when embedded in `welcome.html`.

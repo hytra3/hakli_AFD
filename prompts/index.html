@@ -208,6 +208,7 @@ const SECTIONS = [
     { key:"howto.review", en:"Then listen back — keep it, or record again", ar:"ثم استمع إليه — احفظه، أو أعد التسجيل", kind:"narration" },
     { key:"howto.sentence", en:"You can also say the word inside a sentence", ar:"ويمكنك أن تقول الكلمة داخل جملة", kind:"narration" },
     { key:"howto.meaning", en:"And you can say what the word means, in Hakli", ar:"وأن تقول معنى الكلمة، بالحَكلي", kind:"narration" },
+    { key:"howto.add", en:"And if a word isn't here yet, tap the plus and add it in your own voice", ar:"وإن لم تكن الكلمة هنا بعد، انقر + وأضِفها بصوتك", kind:"narration" },
   ]},
   { name:"Consent grant (most important)", items:[
     { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", ar:"ماذا يعني أن تدع العالم يسمعك — بوضوحٍ، قبل أي موافقة", kind:"narration" },
@@ -307,6 +308,10 @@ const SCREEN_GROUPS = [
   // that section (and everything above it) keeps its number. Add later screens
   // the same way, at the end.
   { name:"Screen · Dictionary page (speak to find, lists, page not found)", ar:"صفحة القاموس", prefixes:["find","view","mast","notfound"], late:true },
+  // welcome.html's own words, then the captions under the animated phone, in
+  // scene order. (The numbered intro lines are the spoken intro.tour.* items in
+  // section 1; the words inside the phone are the app's own strings.)
+  { name:"Screen · Welcome page & walkthrough captions", ar:"صفحة الترحيب والجولة", prefixes:["welcome","wt"], late:true },
 ];
 const LATE_SCREENS = [];
 (function(){

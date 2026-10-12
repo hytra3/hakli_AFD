@@ -94,9 +94,18 @@ await scenario("the review list keeps its numbers", async ()=>{ const { page, ct
       else{ out.items[num] = (el.querySelector(".rowtext .k")||{}).textContent || ""; ar[num] = !!el.querySelector(".rowtext .a"); } }
     out.noArabic = Object.keys(out.items).filter(n => !ar[n]); return out; });
   const file = new URL("./prompt-numbers.json", import.meta.url);
-  const last = Object.keys(now.sections).length, inLast = Object.entries(now.items).filter(([n])=> n.startsWith(last+".")).map(([,k])=>k);
+  const last = Object.keys(now.sections).length;
+  // Sections are found by name, not position: new screens go at the end.
+  const secNum = (re)=> Object.keys(now.sections).find(n => re.test(now.sections[n]));
+  const keysIn = (n)=> Object.entries(now.items).filter(([m])=> m.startsWith(n+".")).map(([,k])=>k);
+  const dict = secNum(/Dictionary page/), inDict = dict ? keysIn(dict) : [];
   const want = ["find.waking","find.err.offline","find.missing","find.idle","find.none","view.all","view.record","mast.find","mast.dictionary","notfound.title","notfound.open"].map(k=>"screen:"+k);
-  ok("P1 the last section is the dictionary page's, with its search, list and not-found words", /Dictionary page/.test(now.sections[last]||"") && want.every(k=>inLast.includes(k)), JSON.stringify([now.sections[last], want.filter(k=>!inLast.includes(k))]));
+  ok("P1 the dictionary page has its own section, with its search, list and not-found words", !!dict && want.every(k=>inDict.includes(k)), JSON.stringify([dict, want.filter(k=>!inDict.includes(k))]));
+  const wel = secNum(/Welcome page/), inWel = wel ? keysIn(wel) : [];
+  const wantW = ["welcome.hint.none","welcome.enter","wt.find.1","wt.add.tap","wt.close"].map(k=>"screen:"+k);
+  ok("P6 the welcome page and walkthrough captions are listed (after the dictionary page), and howto.add is spoken item 2.6",
+     !!wel && +wel > +dict && wantW.every(k=>inWel.includes(k)) && now.items["2.6"]==="howto.add",
+     JSON.stringify([wel, dict, wantW.filter(k=>!inWel.includes(k)), now.items["2.6"]]));
   const rec = Object.values(now.items);
   ok("P2 the recorder's instructions and readout are listed", ["record.instr.word","record.instr.context","record.instr.definition","record.progress.word","record.progress.listening"].every(k=> rec.includes("screen:"+k)));
   ok("P3 every listed line has Arabic to review", now.noArabic.length===0, JSON.stringify(now.noArabic.slice(0,8)));

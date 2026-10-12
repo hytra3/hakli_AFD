@@ -563,7 +563,46 @@ window.AFDCore = (function(){
     // card — one card, many voices — so "Add a word card" (a NEW card) reads apart
     // from "Record a word" (a voice on a card that exists) right below it.
     // Arabic is an MSA draft.
-    "view.add":             { en:"Add a word card", ar:"أضِف بطاقة كلمة" }
+    "view.add":             { en:"Add a word card", ar:"أضِف بطاقة كلمة" },
+    // welcome.html — the introduction you hand out. Its numbered lines are the
+    // spoken intro.tour.* prompts (prompts tool section 1); pull-suggestions.mjs
+    // copies an approved edit of those into welcome.html too. These are the
+    // page's other words. The arrows on the enter buttons are added in code.
+    "welcome.hint.none":    { en:"This introduction will be narrated in Hakli once its people record it — until then, here is the text in Arabic.", ar:"ستُروى هذه المقدمة بالحَكلي حين يسجّلها أهلها — وحتى ذلك الحين، إليك النصّ بالعربية." },
+    "welcome.hint.some":    { en:"Press play to hear each line in Hakli.", ar:"اضغط زرّ التشغيل لتسمع كل سطرٍ بالحَكلي." },
+    "welcome.listen":       { en:"Listen", ar:"استمع" },
+    "welcome.stop":         { en:"Stop", ar:"إيقاف" },
+    "welcome.demo":         { en:"See how it works", ar:"شاهد كيف يعمل" },
+    "welcome.enter":        { en:"Enter the dictionary", ar:"ادخل القاموس" },
+    // hakli-welcome-walkthrough.html — the captions under the animated phone, in
+    // scene order. (The words INSIDE the phone are the app's own strings, so they
+    // change with the app.) Keep them short: one or two lines under the phone.
+    "wt.find.1":            { en:"To find a word, hold the green circle and speak.", ar:"للعثور على كلمة، اضغط الدائرة الخضراء وتكلّم." },
+    "wt.find.2":            { en:"Hold it, and say the word.", ar:"اضغط، وانطق الكلمة." },
+    "wt.find.3":            { en:"Lift your finger — Hakli listens and finds it.", ar:"ارفع إصبعك — يستمع الحَكلي ويجدها." },
+    "wt.find.4":            { en:"The word you said, ready to hear.", ar:"الكلمة التي قلتها، جاهزةٌ لتُسمَع." },
+    "wt.record.1":          { en:"To add your voice, hold the amber button.", ar:"لتضيف صوتك، اضغط الزرّ الكهرماني." },
+    "wt.record.2":          { en:"Say the word twice.", ar:"انطق الكلمة مرّتين." },
+    "wt.review.1":          { en:"Hear it back — keep it, or record again.", ar:"استمع إليه — احفظه، أو أعد." },
+    "wt.review.2":          { en:"Clear? Keep it.", ar:"واضح؟ احفظه." },
+    "wt.review.3":          { en:"Keep it — your voice joins the word.", ar:"احفظه — فينضمّ صوتك إلى الكلمة." },
+    "wt.kept":              { en:"Kept.", ar:"حُفِظ." },
+    "wt.sentence.1":        { en:"You can also say it inside a sentence.", ar:"ويمكنك أن تنطقها داخل جملة." },
+    "wt.sentence.tap":      { en:"Tap “Add a sentence” on the word’s card.", ar:"انقر «أضف جملة» على بطاقة الكلمة." },
+    "wt.sentence.say":      { en:"Say a sentence using the word.", ar:"انطق جملةً تستعمل فيها الكلمة." },
+    "wt.hearkeep":          { en:"Hear it — keep it.", ar:"استمع — احفظه." },
+    "wt.sentence.kept":     { en:"Sentence kept.", ar:"حُفِظت الجملة." },
+    "wt.meaning.1":         { en:"And say what it means — in Hakli.", ar:"وأن تقول معناها — بالحَكلي." },
+    "wt.meaning.tap":       { en:"Tap “Add a meaning” on the card.", ar:"انقر «أضف معنى» على البطاقة." },
+    "wt.meaning.say":       { en:"Say what the word means.", ar:"قل ما تعنيه الكلمة." },
+    "wt.meaning.kept":      { en:"Meaning kept.", ar:"حُفِظ المعنى." },
+    "wt.add.1":             { en:"Not in the dictionary yet? Add it, in your own voice.", ar:"ليست في القاموس بعد؟ أضِفها بصوتك." },
+    "wt.add.tap":           { en:"Tap + beside the green circle.", ar:"انقر + بجانب الدائرة الخضراء." },
+    "wt.add.say":           { en:"Say your new word twice.", ar:"قُل كلمتك الجديدة مرّتين." },
+    "wt.add.show":          { en:"Show what it means — a photo, a picture, or say it.", ar:"أَرِ معناها — بصورة، أو رسم، أو قُلها." },
+    "wt.add.share":         { en:"Share it — the word stays yours.", ar:"شارِكها — وتبقى الكلمة لك." },
+    "wt.add.done":          { en:"A new word card, in your voice.", ar:"بطاقة كلمة جديدة، بصوتك." },
+    "wt.close":             { en:"That is how you add your voice to Hakli.", ar:"هكذا تُضيف صوتك إلى الحَكلي." }
   };
   function t(key, mode){
     const s = STRINGS[key];
