@@ -359,13 +359,6 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   someone else's — to a word that already exists.
 
 **Still open**
-- **The welcome animation still shows the three tabs (flagged 10-10, to do).**
-  `hakli-welcome-walkthrough.html` (the animation `welcome.html` embeds) draws
-  the recorder with كلمة / جملة / معنى tabs, and scenes 3 and 4 show a finger
-  tapping the sentence and meaning tabs. The real recorder dropped those tabs in
-  b1010c: a sentence or a meaning is now reached from the word's card ("Add a
-  sentence" / "Add a meaning"). Redraw scenes 3 and 4 to match; the narration
-  clips (`howto.sentence`, `howto.meaning`) and their timings can stay.
 - **One steward account, and it takes over the phone (10-10).** Signing in on
   the steward page replaces the dictionary sign-in on that device, so anything
   added afterwards is credited to the steward account until you sign out. Keep
@@ -401,6 +394,20 @@ the one emphasised word (shown bold); a reviewer who drops them just loses the
 bold.
 **Still outside the list:** the welcome, walkthrough and intro pages, which
 carry their own text.
+**Welcome animation redrawn (10-12; was "still open" from 10-10).**
+`hakli-welcome-walkthrough.html` no longer draws the كلمة / جملة / معنى tabs.
+The recorder scenes show the word card as the live recorder does: picture and
+name, then its three slots (الكلمة · مثال في جملة · المعنى) with "لا شيء بعد"
+and the dashed **أضف جملة** / **أضف معنى** under the empty ones. Scene 3's
+finger taps أضف جملة, scene 4's taps أضف معنى; the chosen slot is ringed in
+amber (as `#entryCardHost[data-rectype]` does), and each kept take appears in
+its slot as a new amber voice, so by the end the card has a word, a sentence
+and a meaning. Two new captions name the tap ("Tap “Add a sentence” on the
+word's card" / "Tap “Add a meaning” on the card"); the instructions are now
+the `record.instr.*` Arabic. Narration clips, cue keys and every timing are
+unchanged, so `welcome.html` needs nothing. Small fix while there: after Keep,
+the record button went back to its idle label instead of freezing on
+"يُسجّل… 2.4s".
 
 ## Browser tests (2026-10-10)
 
@@ -809,7 +816,8 @@ cannot say *why this matters* or *your voice stays yours* — that is the text's
   closers (`yours`, `waits`, `why`) play as it finishes → silent looping resumes. One
   `<audio>` element in the parent, so the intro and scene narrations never collide.
 - **`howto.types` retired** — the animation has no "choose word / sentence / meaning"
-  screen (it switches tabs inline), so that clip had no playback surface. Narration set
+  screen (the sentence and meaning scenes tap the card's "Add a sentence" / "Add a
+  meaning" — tabs until 10-12), so that clip had no playback surface. Narration set
   is now 5 intro + 5 howto = 10 clips: `intro.tour.{what,new,yours,waits,why}` and
   `howto.{find,record,review,sentence,meaning}`.
 - Scene beats are 8–9 s and clips ~3–5 s, so cues never overlap; a late clip is simply

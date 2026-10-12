@@ -3,6 +3,9 @@
   Hakli · Welcome walkthrough — four scenes stitched into one loop
   Scene 1 FIND (green circle) → Scene 2 WORD → Scene 3 SENTENCE → Scene 4 MEANING.
   Faithful to the live speak-to-find (index.html) and recorder (recorder.html) tokens.
+  Scenes 3–4 (10-12): no Word / Sentence / Meaning tabs (the recorder dropped them in
+  b1010c). The word card's slots choose the type: the finger taps the card's
+  "أضف جملة" / "أضف معنى", that slot is ringed in amber, and the kept take lands in it.
   Captions FEATURE ARABIC (large); English is a small reviewer aid — toggle it off,
   or captions off entirely, for the audience cut. Lay the Hakli voiceover on top.
   Record JUST the phone frame; captions + controls sit OUTSIDE it. Arabic = MSA draft.
@@ -100,23 +103,37 @@
   .dispskin{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--hairline);background:var(--paper);
     color:var(--mountain);display:inline-grid;place-items:center}
   .dispskin svg{width:15px;height:15px}
-  .rectype{display:flex;gap:6px;margin-bottom:12px}
-  .rt{flex:1;padding:11px 6px;border:1.5px solid var(--hairline);background:var(--paper);border-radius:12px;
-    font:600 16px/1.15 var(--sans);color:var(--ink-soft);text-align:center;direction:rtl;transition:background .2s,color .2s,border-color .2s}
-  .rt .ar{display:block;font-size:11px;font-weight:400;margin-top:2px;opacity:.85;direction:rtl}
-  .rt.active{background:var(--mountain);color:#fff;border-color:var(--mountain)}
+  /* word card with its three slots — the slots choose what you record (no tabs) */
+  .wcard{padding:12px 14px 10px;direction:rtl}
+  .wc-head{display:flex;align-items:center;gap:11px;padding-bottom:8px;border-bottom:1px solid var(--hairline)}
+  .wc-picto{width:44px;height:44px;border-radius:13px;background:#F3F7F5;display:grid;place-items:center;font-size:26px;flex:0 0 auto}
+  .wc-name{font-size:19px;font-weight:600;color:var(--ink);line-height:1.1}
+  .wc-name small{display:block;font-family:var(--serif);font-size:13px;font-weight:400;color:var(--mist);margin-top:2px;direction:ltr;text-align:right}
+  .slot{margin-top:8px;padding:6px 7px;border-radius:12px;box-shadow:0 0 0 0 rgba(198,135,63,0);
+    transition:box-shadow .3s}
+  .slot.on{box-shadow:0 0 0 2px var(--amber)}
+  .slot-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px}
+  .slot-label{font:600 12px/1.2 var(--sans);color:var(--mountain)}
+  .slot-empty{font:400 11px/1 var(--sans);color:var(--mist)}
+  .slot-voices{display:flex;gap:5px;align-items:center}
+  .slot-voices:empty{display:none}
+  .vchip{width:24px;height:24px;border-radius:50%;background:var(--mountain);color:#fff;display:grid;place-items:center;
+    font-size:9px;padding-left:2px;animation:chipin .45s ease}
+  .vchip.mine{background:var(--amber)}
+  @keyframes chipin{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+  .slot-add{display:inline-flex;align-items:center;gap:5px;color:var(--mist);border:1.5px dashed var(--mist-2);
+    border-radius:10px;padding:6px 10px;font:600 12px/1 var(--sans);margin-top:6px;transition:color .2s,border-color .2s}
+  .slot-add svg{width:12px;height:12px}
+  .slot-add.press{color:var(--amber);border-color:var(--amber)}
+  .slot.filled .slot-add,.slot.filled .slot-empty{display:none}
   .card{background:var(--cloud);border-radius:var(--r);box-shadow:var(--shadow)}
-  .prompt{text-align:center;padding:18px 16px}
-  .picto{font-size:56px;line-height:1;margin-bottom:4px}
-  .gloss{font-family:var(--serif);font-size:27px;font-weight:500;letter-spacing:-.02em;margin:0;color:var(--ink)}
-  .gloss-ar{font-size:19px;color:var(--ink-soft);margin:2px 0 0;direction:rtl}
-  .instruction{font-size:15px;color:var(--ink);margin:12px 0 0;padding-top:11px;border-top:1px solid var(--hairline);direction:rtl;font-family:var(--amiri)}
-  .silhouette{height:66px;background:var(--well);border-radius:16px;margin-top:10px;position:relative;overflow:hidden;
+  .instruction{font-size:15px;color:var(--ink);margin:10px 4px 0;direction:rtl;text-align:center;font-family:var(--amiri);min-height:24px}
+  .silhouette{height:56px;background:var(--well);border-radius:16px;margin-top:8px;position:relative;overflow:hidden;
     box-shadow:inset 0 1px 3px rgba(31,58,52,.07);display:flex;align-items:center;justify-content:center;gap:3px;padding:0 14px}
   .sil-label{position:absolute;left:12px;top:8px;font-family:var(--sans);font-size:11px;color:var(--ink-soft);direction:rtl}
   .bar{width:3px;height:6px;border-radius:2px;background:var(--mist-2);transition:height .09s linear}
   .recs.rec .bar{background:var(--amber)}
-  .recbtn{width:100%;padding:17px;margin-top:11px;font-size:18px;font-weight:600;color:#fff;background:var(--amber);direction:rtl;
+  .recbtn{width:100%;padding:15px;margin-top:9px;font-size:18px;font-weight:600;color:#fff;background:var(--amber);direction:rtl;
     border:none;border-radius:16px;box-shadow:0 10px 26px rgba(198,135,63,.30);user-select:none;position:relative;
     transition:transform .16s,background .2s}
   .recbtn.press{transform:scale(.97)}
@@ -125,8 +142,8 @@
   .recs.rec .recbtn{background:var(--alert);box-shadow:0 10px 26px rgba(163,59,42,.30)}
   .recs.rec .recbtn .dot{animation:pulse 1.1s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-  .recs.review .recbtn{display:none}
-  .reviewcard{margin-top:11px;padding:16px;display:none}
+  .recs.review .recbtn,.recs.review .silhouette,.recs.review .instruction{display:none}
+  .reviewcard{margin-top:10px;padding:14px 16px;display:none}
   .recs.review .reviewcard{display:block;animation:rise .4s ease}
   @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   .reviewcard h2{font-family:var(--amiri);font-size:20px;margin:0 0 11px;color:var(--ink);direction:rtl;text-align:right}
@@ -223,17 +240,27 @@
             <span class="dispskin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg></span>
           </span>
         </div>
-        <div class="rectype">
-          <span class="rt active" id="tabWord">كلمة</span>
-          <span class="rt" id="tabSent">جملة</span>
-          <span class="rt" id="tabMean">معنى</span>
+        <div class="card wcard">
+          <div class="wc-head">
+            <div class="wc-picto">☀️</div>
+            <div class="wc-name">شمس<small>sun</small></div>
+          </div>
+          <div class="slot slot-word on" id="slotWord">
+            <div class="slot-head"><span class="slot-label">الكلمة</span>
+              <span class="slot-voices" id="vWord"><span class="vchip">▶</span><span class="vchip">▶</span><span class="vchip">▶</span></span></div>
+          </div>
+          <div class="slot slot-context" id="slotSent">
+            <div class="slot-head"><span class="slot-label">مثال في جملة</span><span class="slot-empty">لا شيء بعد</span>
+              <span class="slot-voices" id="vSent"></span></div>
+            <span class="slot-add" id="addSent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>أضف جملة</span>
+          </div>
+          <div class="slot slot-definition" id="slotMean">
+            <div class="slot-head"><span class="slot-label">المعنى</span><span class="slot-empty">لا شيء بعد</span>
+              <span class="slot-voices" id="vMean"></span></div>
+            <span class="slot-add" id="addMean"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>أضف معنى</span>
+          </div>
         </div>
-        <div class="card prompt">
-          <div class="picto">☀️</div>
-          <p class="gloss">sun</p>
-          <p class="gloss-ar">شمس</p>
-          <p class="instruction" id="instruction">انطق الكلمة <b>مرّتين</b>، مع وقفةٍ قصيرة.</p>
-        </div>
+        <p class="instruction" id="instruction"></p>
         <div class="silhouette">
           <span class="sil-label" id="silLabel" dir="rtl">جاهز</span>
           <span id="bars"></span>
@@ -265,7 +292,7 @@
   const find=$('find'), recs=$('recs'), touch=$('touch'), capEl=$('caption');
   const fmic=$('fmic'), fbloom=$('fbloom'), fhint=$('fhint');
   const rbtn=$('rbtn'), keep=$('keep'), silLabel=$('silLabel'), stepdots=$('stepdots'), instruction=$('instruction');
-  const tabWord=$('tabWord'), tabSent=$('tabSent'), tabMean=$('tabMean');
+  const addSent=$('addSent'), addMean=$('addMean');
   const ribbons=[$('rb0'),$('rb1'),$('rb2'),$('rb3')];
 
   const bars=[]; for(let i=0;i<38;i++){const b=document.createElement('span');b.className='bar';$('bars').appendChild(b);bars.push(b);}
@@ -283,13 +310,22 @@
   const park=()=>{touch.style.opacity='0';touch.style.transform='translate(250px,560px) scale(.9)';};
   const contact=()=>{touch.classList.remove('contact');void touch.offsetWidth;touch.classList.add('contact');};
 
-  const TABS={word:tabWord,context:tabSent,definition:tabMean};
-  const INSTR={
-    word:'انطق الكلمة <b>مرّتين</b>، مع وقفةٍ قصيرة.',
-    context:'انطق <b>جملةً</b> تستعمل فيها الكلمة.',
-    definition:'قل <b>معنى</b> الكلمة، بالحَكلي.'
+  // The card's slots choose the record type, as in the live recorder: the chosen
+  // slot is ringed amber, and a kept take adds a voice to it.
+  const SLOTS={word:$('slotWord'),context:$('slotSent'),definition:$('slotMean')};
+  const VOICES={word:$('vWord'),context:$('vSent'),definition:$('vMean')};
+  const INSTR={   // record.instr.* in afd-core.js
+    word:'قل الكلمة الحكلية <b>مرّتين</b>، مع وقفة قصيرة بينهما.',
+    context:'قل <b>جملة</b> قصيرة تستخدم هذه الكلمة — مرّة واحدة.',
+    definition:'قل ما <b>تعنيه</b> هذه الكلمة، بالحكلية — مرّة واحدة.'
   };
-  function setTab(type){for(const k in TABS)TABS[k].classList.toggle('active',k===type);instruction.innerHTML=INSTR[type];}
+  let curSlot='word';
+  function setSlot(type){curSlot=type;for(const k in SLOTS)SLOTS[k].classList.toggle('on',k===type);instruction.innerHTML=INSTR[type];}
+  function addVoice(){const c=document.createElement('span');c.className='vchip mine';c.textContent='▶';
+    VOICES[curSlot].appendChild(c);SLOTS[curSlot].classList.add('filled');}
+  function resetCard(){VOICES.word.querySelectorAll('.mine').forEach(n=>n.remove());
+    for(const k of ['context','definition']){VOICES[k].innerHTML='';SLOTS[k].classList.remove('filled');}
+    addSent.classList.remove('press');addMean.classList.remove('press');setSlot('word');}
   function recIdle(){rbtn.innerHTML='<span class="dot"></span>اضغط مطوّلًا للتسجيل';}
   let timerEl=null;
   function recHold(){rbtn.innerHTML='<span class="dot"></span>يُسجّل…<span class="timer">0.0s</span>';timerEl=rbtn.querySelector('.timer');}
@@ -310,7 +346,7 @@
   const P=[
     // SCENE 1 · FIND
     {t:0,cue:'howto.find',fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent='جاهز';
-      fhint.textContent='تكلّم';recIdle();setTab('word');setRecs('idle');
+      fhint.textContent='تكلّم';recIdle();resetCard();setRecs('idle');
       setCap('للعثور على كلمة، اضغط الدائرة الخضراء وتكلّم.','To find a word, hold the green circle and speak.');}},
     {t:1400,fn(){moveTouch(fmic,1);}},
     {t:2250,fn(){moveTouch(fmic,.84);contact();fmic.classList.add('press');setFind('rec');fhint.textContent='أستمع…';bloomRun();
@@ -320,7 +356,7 @@
     {t:6100,fn(){setFind('results');fhint.textContent='تكلّم';
       setCap('الكلمة التي قلتها، جاهزةٌ لتُسمَع.','The word you said, ready to hear.');}},
     // SCENE 2 · WORD
-    {t:8300,cue:'howto.record',fn(){setRibbon(1);showRecs();setRecs('idle');setTab('word');recIdle();silLabel.textContent='جاهز';park();
+    {t:8300,cue:'howto.record',fn(){setRibbon(1);showRecs();setRecs('idle');resetCard();recIdle();silLabel.textContent='جاهز';park();
       stepdots.textContent='الخطوة ٣ / ٣ · كلمة ١ من ٤٠';
       setCap('لتضيف صوتك، اضغط الزرّ الكهرماني.','To add your voice, hold the amber button.');}},
     {t:9700,fn(){moveTouch(rbtn,1);setCap('انطق الكلمة مرّتين.','Say the word twice.');}},
@@ -328,26 +364,28 @@
     {t:13000,cue:'howto.review',fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';
       setCap('استمع إليه — احفظه، أو أعد.','Hear it back — keep it, or record again.');}},
     {t:14600,fn(){moveTouch(keep,1);setCap('واضح؟ احفظه.','Clear? Keep it.');}},
-    {t:15400,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('احفظه — فينضمّ صوتك إلى الكلمة.','Keep it — your voice joins the word.');}},
-    {t:16400,fn(){keep.classList.remove('press');park();setRecs('idle');setCap('حُفِظ.','Kept.');}},
+    {t:15400,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('احفظه — فينضمّ صوتك إلى الكلمة.','Keep it — your voice joins the word.');}},
+    {t:16400,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();setCap('حُفِظ.','Kept.');}},
     // SCENE 3 · SENTENCE
-    {t:17400,cue:'howto.sentence',fn(){setRibbon(2);setCap('ويمكنك أن تنطقها داخل جملة.','You can also say it inside a sentence.');moveTouch(tabSent,1);}},
-    {t:18200,fn(){moveTouch(tabSent,.9);contact();setTab('context');}},
+    {t:17400,cue:'howto.sentence',fn(){setRibbon(2);setCap('ويمكنك أن تنطقها داخل جملة.','You can also say it inside a sentence.');moveTouch(addSent,1);}},
+    {t:18200,fn(){moveTouch(addSent,.9);contact();addSent.classList.add('press');setSlot('context');
+      setCap('انقر «أضف جملة» على بطاقة الكلمة.','Tap “Add a sentence” on the word’s card.');}},
     {t:19100,fn(){moveTouch(rbtn,1);setCap('انطق جملةً تستعمل فيها الكلمة.','Say a sentence using the word.');}},
     {t:19900,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2800);}},
     {t:22800,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';setCap('استمع — احفظه.','Hear it — keep it.');}},
     {t:24200,fn(){moveTouch(keep,1);}},
-    {t:24900,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظت الجملة.','Sentence kept.');}},
-    {t:25900,fn(){keep.classList.remove('press');park();setRecs('idle');}},
+    {t:24900,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('حُفِظت الجملة.','Sentence kept.');}},
+    {t:25900,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
     // SCENE 4 · MEANING
-    {t:26800,cue:'howto.meaning',fn(){setRibbon(3);setCap('وأن تقول معناها — بالحَكلي.','And say what it means — in Hakli.');moveTouch(tabMean,1);}},
-    {t:27600,fn(){moveTouch(tabMean,.9);contact();setTab('definition');}},
+    {t:26800,cue:'howto.meaning',fn(){setRibbon(3);setCap('وأن تقول معناها — بالحَكلي.','And say what it means — in Hakli.');moveTouch(addMean,1);}},
+    {t:27600,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('definition');
+      setCap('انقر «أضف معنى» على البطاقة.','Tap “Add a meaning” on the card.');}},
     {t:28500,fn(){moveTouch(rbtn,1);setCap('قل ما تعنيه الكلمة.','Say what the word means.');}},
     {t:29300,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent='يستمع';waveRun(2600);}},
     {t:32000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent='جاهز';setCap('استمع — احفظه.','Hear it — keep it.');}},
     {t:33400,fn(){moveTouch(keep,1);}},
-    {t:34100,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');setCap('حُفِظ المعنى.','Meaning kept.');}},
-    {t:35100,fn(){keep.classList.remove('press');park();setRecs('idle');}},
+    {t:34100,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('حُفِظ المعنى.','Meaning kept.');}},
+    {t:35100,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
     // CLOSE
     {t:36000,end:true,fn(){setCap('هكذا تُضيف صوتك إلى الحَكلي.','That is how you add your voice to Hakli.');}},
   ];
@@ -378,7 +416,7 @@
   // When embedded in welcome.html, the language toggle drives the caption:
   //   en        → Arabic caption + English subtitle beneath  (capModes[0])
   //   ar / hakli → Arabic caption only                        (capModes[1])
-  // The in-phone chrome (tabs, record button, review card) stays Arabic in
+  // The in-phone chrome (word card, record button, review card) stays Arabic in
   // every mode, by design — the audience reads Arabic, not English.
   window.addEventListener("message",(e)=>{
     const d = e && e.data;
