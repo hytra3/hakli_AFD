@@ -55,6 +55,11 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   - Who counts as a steward: `node scripts/grant-steward.mjs <email>` (add),
     `--revoke <email>`, `--list`. Rules check `afd_admins/{uid}`, which only that
     script can write.
+  - **Keep the steward in its own browser** (Firefox, or a second Chrome
+    profile). Sign-in is kept per browser, and signing in on a steward page
+    replaces the dictionary sign-in in that browser: anything you add or record
+    afterwards is credited to the steward account until you sign out. Present
+    and contribute from your ordinary account in your main browser.
 - **Embed/match service** (`embed_service/`) — the matcher, on Cloud Run.
   Updated by the **Deploy embed service** task.
 - **Auto-embed trigger** (`embed_trigger/`) — a Cloud Function that vectorises
