@@ -148,6 +148,11 @@ await scenario("the steward page never shows an account id", async ()=>{
   ok("Q3 the steward gets the panel", s.who==="steward@example.org" && s.panel && !s.form, JSON.stringify(s));
   const a = await see("/prompts/admin.html", PHONE);
   ok("Q4 the prompt-windows page shows the number too", a.who==="+96891234567", JSON.stringify(a));
+  const tips = [];
+  for(const path of ["/steward.html", "/prompts/admin.html"]){ const { page, ctx } = await newPage(browser, srv.url, {});
+    await page.goto(srv.url + path); await page.waitForTimeout(800);
+    tips.push(await page.locator("#ownBrowser").isVisible() ? (await page.innerText("#ownBrowser")) : ""); await ctx.close(); }
+  ok("Q5 both steward sign-in cards say to keep the steward in its own browser", tips.every(t=>/separate browser/.test(t) && /credited to the steward/.test(t)), JSON.stringify(tips));
 });
 
 await browser.close(); srv.close();

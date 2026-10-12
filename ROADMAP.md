@@ -359,11 +359,18 @@ mocked), looking for dead ends, stale state and links that go nowhere.
   someone else's — to a word that already exists.
 
 **Still open**
-- **One steward account, and it takes over the phone (10-10).** Signing in on
-  the steward page replaces the dictionary sign-in on that device, so anything
-  added afterwards is credited to the steward account until you sign out. Keep
-  the steward list short. Not built: a warning in the dictionary while a steward
-  account is signed in, or refusing to save a contribution from one.
+- **One steward account, and it takes over the browser (10-10; decided 10-12).**
+  Signing in on a steward page replaces the dictionary sign-in in that browser,
+  so anything added afterwards is credited to the steward account until you
+  sign out. Keep the steward list short. **Decision: the steward lives in its
+  own browser** (Firefox, or a second Chrome profile) — sign-in is per browser,
+  so the two never meet; said on both steward sign-in cards and in DEPLOY.
+  Considered and not built: a visible steward mark in the dictionary (confusing
+  when presenting — the audience wouldn't see it; and you should present from
+  an ordinary account anyway, or the demo's recordings are credited to the
+  steward). **Later, only if a mix-up actually happens:** a save-time check —
+  when a steward account taps save on the add page or the recorder, ask "Save
+  as the steward account?" before anything is credited.
 - **Back does not close the recorder's overlays** (withdraw / spoken-consent
   proof): it goes to the previous step underneath. They have their own Cancel.
 - **Not tried on a real phone** — Android's Back gesture in the installed app,
