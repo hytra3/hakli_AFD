@@ -441,7 +441,37 @@ the record button went back to its idle label instead of freezing on
   (section 1), not new on-screen keys, so each line is reviewed once.
   `pull-suggestions.mjs` copies an applied edit of one onto welcome.html's
   matching `k:"…"` line (and says so). For that, `CLOSE` is on one line now.
-- No item number moved: checked by building the list before and after.
+- (Superseded the same day by the prompts-tool rework below, which renumbered on purpose.)
+
+**Prompts tool reworked: two tabs, "start here", progress (10-12).** Nothing had
+been recorded yet, so the numbers were refreshed once, on purpose.
+- **Two tabs, two jobs:** 🎙️ *Record in Hakli* (spoken lines, numbered R1.1 …)
+  and ✍️ *Review the Arabic* (on-screen text, A1.1 …). Two number series, so
+  adding to one tab never renumbers the other. Prev / Next stay in the tab.
+- **R1 · Start here — the welcome page:** its 11 clips, in the order they are
+  heard. Progress reads "Start here: 3 of 11"; the section links to the welcome
+  page; when all 11 are in, a banner says the welcome page speaks Hakli and the
+  helper moves on. Why: a first session should end with a result they can hear.
+- **R2 · Heard in the app now:** the add page's prompts, plus **`find_hint`** —
+  the home page has always tried to play it, but it was never in the list, so
+  nobody could record it (new wording, an MSA draft).
+- **R3–R10 · for later:** the 55 spoken lines no page plays yet, marked so.
+- **Retired:** `intro.welcome`, `intro.longpress`, `intro.hold_to_speak`,
+  `intro.find` — no page used them, and they were the first four lines a
+  helper met.
+- **Links to a part:** `prompts/#R1`, `#A5`, `#review` … open that tab/section,
+  so each helper can be sent just their share. The section chips only scroll.
+- **"This week: N lines recorded by M people":** each new take now saves `by`
+  (the phone's anonymous id), so M counts phones, near enough people. No rules
+  change: the prompt-doc write rule doesn't restrict fields.
+- **Tab notes:** record — "say it the way you'd say it to a friend; there is no
+  wrong way"; review — "nothing changes until Marty approves it".
+- Browser tests: the list test reads both tabs; new P7–P9 (start here, retired
+  lines, tabs hold the right kinds) and S1–S7 (landing, progress, this-week
+  count, `by` on upload, links, tab switch, the finished banner).
+- Not built: two helpers on the same line overwrite each other (one take per
+  key, as before) — "Go to next unrecorded" skips taken lines, but a helper can
+  still tap a recorded one and record again.
 
 ## Browser tests (2026-10-10)
 

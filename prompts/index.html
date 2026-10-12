@@ -94,17 +94,42 @@
   .suggestbody textarea, .suggestbody input{width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink);}
   .suggestbody textarea{font-size:20px; direction:rtl; text-align:right; resize:vertical;}
   .suggestbody .review{margin-top:2px;}
+  /* two jobs, two tabs: record Hakli / review the Arabic */
+  .tabs{display:flex; gap:6px; margin-top:10px;}
+  .tabs button{flex:1; border:1px solid var(--line); background:var(--card); color:var(--muted); border-radius:12px;
+    padding:8px 6px; font:600 15px/1.2 inherit; font-family:inherit; cursor:pointer;}
+  .tabs button small{display:block; font-weight:400; font-size:11px; margin-top:2px;}
+  .tabs button[aria-selected="true"]{background:var(--ink); border-color:var(--ink); color:var(--bg);}
+  .week{font-size:12px; color:var(--go); margin-top:4px; min-height:0;}
+  .week:empty{display:none;}
+  .donebanner{display:block; margin-top:8px; padding:9px 12px; border-radius:12px; background:var(--go-bg); color:var(--go);
+    font-size:14px; font-weight:600; text-decoration:none;}
+  .donebanner.hidden{display:none;}   /* .donebanner comes after .hidden, so say it again */
+  .tabnote{margin-top:14px; font-size:14px; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 14px;}
+  .tabnote b{display:block; direction:rtl; text-align:right; font-weight:500; font-size:16px; margin-bottom:2px;}
+  .tabnote small{color:var(--muted);}
+  .list h2 .later{font-size:10px; letter-spacing:.04em; color:var(--muted); border:1px solid var(--line); border-radius:20px; padding:1px 7px; margin-left:4px; vertical-align:1px;}
+  .list h2 .hear{display:block; margin-top:4px; font-size:13px; text-transform:none; letter-spacing:0; color:var(--go); text-decoration:none;}
+  .secnote{font-size:12px; color:var(--muted); margin:-4px 0 8px;}
+  .jump a.start{border-color:var(--go); background:var(--go-bg);}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="title"><a class="home" href="../index.html" aria-label="Home — the dictionary" title="Home — the dictionary"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>🎙️ Hakli voice prompts <span id="status" class="status">connecting…</span></div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabRecord" data-tab="record" aria-selected="true">🎙️ سجّل بالحَكلي<small>Record in Hakli</small></button>
+      <button role="tab" id="tabReview" data-tab="review" aria-selected="false">✍️ راجع العربية<small>Review the Arabic</small></button>
+    </div>
     <div class="bar"><i id="barfill"></i></div>
     <div class="barlabel"><span id="count">0 recorded</span><span id="remaining"></span></div>
+    <div class="week" id="week"></div>
+    <a class="donebanner hidden" id="welcomeDone" href="../welcome.html" target="_blank" rel="noopener">✓ صفحة الترحيب تتكلّم الحَكلي الآن — استمع ↗<br><small>The welcome page speaks Hakli now — hear it</small></a>
   </header>
 
   <div id="app" class="hidden">
+    <div class="tabnote" id="tabnote"></div>
     <div class="card">
       <div class="sec" id="cur-sec">—</div>
       <div class="gloss" id="cur-gloss">—</div>
@@ -187,30 +212,45 @@ const firebaseConfig = {
 const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE_");
 
 /* ---- 2. The prompts. Add an `ar` (Arabic gloss) to any item and it will show. ---- */
-/* NOTE: `ar` values below are MSA drafts (added 08-27) — PENDING DHOFARI REVIEW.
-   Items whose gloss starts with [توجيه] are recorder DIRECTIVES (esp. the "count"
-   framings), not literal UI copy — set their real phrasing before recording. */
+/* ==== RECORD tab · spoken prompts, numbered R1.1, R1.2 … in the order to record them ====
+   Numbers were refreshed on 10-12 (nothing had been recorded): the welcome page's
+   eleven clips come first, in the order they are heard, so the first session
+   shows a result straight away; then what the app already plays; then the rest,
+   which no page plays yet ("for later"). Retired 10-12 because no page used them:
+   intro.welcome, intro.longpress, intro.hold_to_speak, intro.find.
+   Keeping numbers stable from here: a new line goes at the END of its section,
+   a new section at the END of its tab. Recordings and suggestions are keyed by
+   `key`, never by number, so a renumbering loses nothing.
+   NOTE: `ar` values are MSA drafts — PENDING DHOFARI REVIEW. Items whose gloss
+   starts with [توجيه] are recorder DIRECTIVES, not literal UI copy. */
 const SECTIONS = [
-  { name:"Walkthrough (spoken tour)", items:[
-    { key:"intro.welcome", en:"What this is — a place to hear and add Hakli", ar:"ما هذا — مكان لسماع الحَكلي وإضافته", kind:"narration" },
-    { key:"intro.longpress", en:"Hold any button to hear what it does", ar:"اضغط مطوّلًا على أي زر لتسمع ما يفعله", kind:"narration" },
-    { key:"intro.hold_to_speak", en:"To add your voice, hold and speak", ar:"لإضافة صوتك، اضغط مطوّلًا وتكلّم", kind:"narration" },
-    { key:"intro.find", en:"To find a word, speak it or look by picture", ar:"للعثور على كلمة، انطقها أو ابحث بالصورة", kind:"narration" },
+  { tab:"record", start:true, name:"Start here — the welcome page", ar:"ابدأ هنا — صفحة الترحيب",
+    note:"The welcome page plays these, in this order. Record them and it speaks Hakli.", items:[
     { key:"intro.tour.what", en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people.", ar:"هذا مكانٌ لسماع لغة الحَكلي، ولحفظها بأصوات أهلها.", kind:"narration" },
     { key:"intro.tour.new", en:"If a word isn't here yet, you can be the first to say it.", ar:"إن لم تكن الكلمة هنا بعد، فيمكنك أن تكون أوّل من يقولها.", kind:"narration" },
-    { key:"intro.tour.yours", en:"Every recording is yours — you can take it back anytime.", ar:"كل تسجيلٍ هو ملكك — ويمكنك سحبه في أي وقت.", kind:"narration" },
-    { key:"intro.tour.waits", en:"Nothing is lost if you go offline — there is no rush.", ar:"لا يضيع شيء إن انقطع الاتصال — لا عجلة في الأمر.", kind:"narration" },
-    { key:"intro.tour.why", en:"Your language, kept in your own voice, for those who come after you.", ar:"لغتُك، محفوظةً بصوتك، لمن يأتي بعدك.", kind:"narration" },
-  ]},
-  { name:"How-to video (spoken narration)", items:[
     { key:"howto.find", en:"To find a word: hold the green circle and say it", ar:"للعثور على كلمة: اضغط الدائرة الخضراء مطوّلًا وقُلها", kind:"narration" },
     { key:"howto.record", en:"To add your voice: hold the amber button and say the word twice", ar:"لإضافة صوتك: اضغط الزرّ الكهرماني مطوّلًا وقُل الكلمة مرّتين", kind:"narration" },
     { key:"howto.review", en:"Then listen back — keep it, or record again", ar:"ثم استمع إليه — احفظه، أو أعد التسجيل", kind:"narration" },
     { key:"howto.sentence", en:"You can also say the word inside a sentence", ar:"ويمكنك أن تقول الكلمة داخل جملة", kind:"narration" },
     { key:"howto.meaning", en:"And you can say what the word means, in Hakli", ar:"وأن تقول معنى الكلمة، بالحَكلي", kind:"narration" },
     { key:"howto.add", en:"And if a word isn't here yet, tap the plus and add it in your own voice", ar:"وإن لم تكن الكلمة هنا بعد، انقر + وأضِفها بصوتك", kind:"narration" },
+    { key:"intro.tour.yours", en:"Every recording is yours — you can take it back anytime.", ar:"كل تسجيلٍ هو ملكك — ويمكنك سحبه في أي وقت.", kind:"narration" },
+    { key:"intro.tour.waits", en:"Nothing is lost if you go offline — there is no rush.", ar:"لا يضيع شيء إن انقطع الاتصال — لا عجلة في الأمر.", kind:"narration" },
+    { key:"intro.tour.why", en:"Your language, kept in your own voice, for those who come after you.", ar:"لغتُك، محفوظةً بصوتك، لمن يأتي بعدك.", kind:"narration" },
   ]},
-  { name:"Consent grant (most important)", items:[
+  { tab:"record", name:"Heard in the app now", ar:"تُسمَع في التطبيق الآن",
+    note:"The dictionary's home page and the Add-a-word page play these.", items:[
+    { key:"find_hint", en:"Hold the green circle and say a word — it will find it", ar:"اضغط الدائرة الخضراء مطوّلًا وقل كلمة — وستجدها", kind:"narration" },
+    { key:"add.say",          en:"Say your word: hold the button and say it twice, with a short pause", ar:"قُل كلمتك: اضغط باستمرار وقُلها مرّتين، مع وقفة قصيرة", kind:"narration" },
+    { key:"add.show",         en:"Now show what it means — a photo, a picture, or say it", ar:"والآن أَرِنا معناها — بصورة، أو رسم، أو قُلها", kind:"narration" },
+    { key:"add.show.photo",   en:"Take a photo", ar:"التقط صورة", kind:"label" },
+    { key:"add.show.picture", en:"Choose a picture", ar:"اختر رسمًا", kind:"label" },
+    { key:"add.show.meaning", en:"Say what it means", ar:"قُل ماذا تعني", kind:"label" },
+    { key:"add.share",        en:"Share it: your word goes into the Hakli dictionary, and it stays yours", ar:"شارِكها: تُضاف كلمتك إلى قاموس الحَكلي، وتبقى لك", kind:"narration" },
+    { key:"add.done",         en:"Thank you — your word is in the dictionary. Together we strengthen Hakli", ar:"شكرًا لك — كلمتك الآن في القاموس. معًا نُقوّي الحَكلي", kind:"narration" },
+    { key:"add.another",      en:"Add another word", ar:"أضِف كلمة أخرى", kind:"label" },
+  ]},
+  { tab:"record", later:true, name:"Consent grant (most important)", ar:"إعطاء الإذن (الأهمّ)", items:[
     { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", ar:"ماذا يعني أن تدع العالم يسمعك — بوضوحٍ، قبل أي موافقة", kind:"narration" },
     { key:"consent.blessing", en:"Keep your culture strong", ar:"حافظ على قوّة ثقافتك", kind:"label" },   // was "…alive"; re-record if an old take exists
     { key:"consent.truth.world", en:"Anyone, anywhere can hear you", ar:"يمكن لأي شخص، في أي مكان، أن يسمعك", kind:"label" },
@@ -220,7 +260,7 @@ const SECTIONS = [
     { key:"consent.give.sub", en:"Your word, in your language", ar:"كلمتك، بلغتك", kind:"label" },
     { key:"consent.notnow", en:"Not now", ar:"ليس الآن", kind:"label" },
   ]},
-  { name:"Your voice (consent control)", items:[
+  { tab:"record", later:true, name:"Your voice (consent control)", ar:"صوتك", items:[
     { key:"voice.title", en:"Your voice", ar:"صوتك", kind:"label" },
     { key:"voice.reassure", en:"These are yours — take any back anytime", ar:"هذه لك — يمكنك سحب أيٍّ منها في أي وقت", kind:"label" },
     { key:"voice.state.shared", en:"Shared", ar:"مُشارَك", kind:"label" },
@@ -233,7 +273,7 @@ const SECTIONS = [
     { key:"voice.mask", en:"Mask my avatar — be heard, not traceable", ar:"أخفِ رمزي — أن تُسمَع دون أن تُعرَف", kind:"label" },
     { key:"voice.bulk.confirm", en:"Take back all your words? You can share them again later", ar:"أتسحب كل كلماتك؟ يمكنك مشاركتها مجددًا لاحقًا", kind:"narration", tag:"may change" },
   ]},
-  { name:"Home", items:[
+  { tab:"record", later:true, name:"Home", ar:"الرئيسيّة", items:[
     { key:"home.speak", en:"Speak to find", ar:"تكلّم لتجد", kind:"label" },
     { key:"home.speak.hint", en:"Tap and say a word", ar:"انقر وانطق كلمة", kind:"label" },
     { key:"home.picture", en:"Look by picture", ar:"ابحث بالصورة", kind:"label" },
@@ -241,13 +281,13 @@ const SECTIONS = [
     { key:"home.recent", en:"Recently heard", ar:"سُمِع مؤخرًا", kind:"label" },
     { key:"home.momentum", en:"Frame words only: “words in the dictionary”, “voices sharing” (no numbers)", ar:"[توجيه] بصياغة كلماتية فقط: «كلمات في القاموس»، «أصوات تُشارك» (بلا أرقام)", kind:"label", tag:"count" },
   ]},
-  { name:"Record", items:[
+  { tab:"record", later:true, name:"Record", ar:"التسجيل", items:[
     { key:"record.prompt.image", en:"Say what you see, in Hakli", ar:"قل ما تراه، بالحَكلي", kind:"label" },
     { key:"record.hold", en:"Hold to speak", ar:"اضغط مطوّلًا لتتكلّم", kind:"label" },
     { key:"record.holding", en:"Keep holding", ar:"استمر بالضغط", kind:"label" },
     { key:"record.release", en:"Let go when you finish", ar:"اترك عند الانتهاء", kind:"label" },
   ]},
-  { name:"Review & keep", items:[
+  { tab:"record", later:true, name:"Review & keep", ar:"الاستماع والحفظ", items:[
     { key:"review.yourtake", en:"Your take", ar:"تسجيلك", kind:"label" },
     { key:"review.clear", en:"Clear, good to keep", ar:"واضح، جيّد للحفظ", kind:"label" },
     { key:"review.check.loud", en:"Loud enough", ar:"بمستوى صوت كافٍ", kind:"label" },
@@ -260,7 +300,7 @@ const SECTIONS = [
     { key:"review.keep", en:"Keep it", ar:"احفظه", kind:"label" },
     { key:"review.savedonphone", en:"Saved on your phone first", ar:"حُفِظ على هاتفك أولًا", kind:"label" },
   ]},
-  { name:"Find a word (result)", items:[
+  { tab:"record", later:true, name:"Find a word (result)", ar:"نتيجة البحث", items:[
     { key:"result.whatyousaid", en:"Hear what you said", ar:"اسمع ما قلته", kind:"label" },
     { key:"result.playing", en:"Playing", ar:"يُشغَّل", kind:"label" },
     { key:"result.pure_hakli", en:"Pure Hakli", ar:"حَكلي خالص", kind:"label" },
@@ -270,50 +310,40 @@ const SECTIONS = [
     { key:"result.sayityourself", en:"Say it yourself", ar:"قُلها بنفسك", kind:"label" },
     { key:"result.pick", en:"I heard a few — pick the one you said", ar:"سمعتُ عدّة — اختر ما قلته", kind:"narration", tag:"may change" },
   ]},
-  { name:"Hear how others say it", items:[
+  { tab:"record", later:true, name:"Hear how others say it", ar:"كيف يقولها الآخرون", items:[
     { key:"others.title", en:"How others say it", ar:"كيف يقولها الآخرون", kind:"label" },
     { key:"others.playall", en:"Play all", ar:"شغّل الكل", kind:"label" },
     { key:"others.cluster", en:"“How many voices, around one shape” — frame words only (no number)", ar:"[توجيه] «كم صوتًا حول شكلٍ واحد» — بصياغة كلماتية فقط (بلا رقم)", kind:"label", tag:"count" },
     { key:"others.more", en:"And more", ar:"والمزيد", kind:"label" },
   ]},
-  { name:"Everywhere (shared)", items:[
+  { tab:"record", later:true, name:"Everywhere (shared)", ar:"في كلّ مكان", items:[
     { key:"nav.back", en:"Go back", ar:"ارجع", kind:"label" },
     { key:"action.play", en:"Play / listen", ar:"شغّل / استمع", kind:"label" },
     { key:"action.hear_prompt", en:"Hear the prompt", ar:"اسمع التوجيه", kind:"label" },
   ]},
 ];
-/* ---- On-screen text: the app's button labels, badges and messages, straight
-   from afd-core.js STRINGS. SUGGEST-ONLY (no recording — these are read, not
-   heard) and not counted in the recording progress. Keys are prefixed
-   "screen:" so a suggestion for on-screen "record.hold" can never be confused
-   with the SPOKEN prompt "record.hold" above; pull-suggestions.mjs routes
-   "screen:" keys into afd-core.js and everything else into this file. */
-/* On-screen text is split by SCREEN (from the key's prefix) so a team can divide
-   it up — "you take Permission, I'll take Microphone". Numbers are section.item
-   (e.g. 13.4). To keep numbers stable for people already working through them:
-   add NEW screens at the END of SCREEN_GROUPS, and add new strings at the end of
-   their prefix group in afd-core.js (items keep afd-core.js order). */
+/* ==== REVIEW ARABIC tab · on-screen text, numbered A1.1, A1.2 … ====
+   The app's button labels, badges and messages, straight from afd-core.js STRINGS.
+   SUGGEST-ONLY (read, not heard) and not counted in the recording progress. Keys
+   are prefixed "screen:" so a suggestion for on-screen "record.hold" can never be
+   confused with the SPOKEN prompt "record.hold"; pull-suggestions.mjs routes
+   "screen:" keys into afd-core.js and everything else into this file.
+   Split by SCREEN (from the key's prefix), in the order a newcomer meets them.
+   Items keep afd-core.js order, so add new strings at the end of their prefix
+   group, and new screens at the END of this list ("Other" catches the rest). */
 const SCREEN_GROUPS = [
-  { name:"Screen · Header & sign-in",          ar:"الترويسة والدخول",          prefixes:["setup","auth","account","hdr","restore"] },
-  { name:"Screen · Speaker & permission",      ar:"المتحدِّث والإذن",   prefixes:["speaker","form","town","consent","profile"] },
-  { name:"Screen · Microphone",                ar:"الميكروفون",        prefixes:["mic"] },
-  { name:"Screen · Recording",                 ar:"التسجيل",           prefixes:["record","review","qc","status","unit","clip","nav","action","list"] },
-  { name:"Screen · This session",              ar:"هذه الجلسة",        prefixes:["session","sync","save","export","clear"] },
-  { name:"Screen · Your voice (withdraw / spoken consent)", ar:"صوتك", prefixes:["withdraw","grant","voice","roster"] },
-  { name:"Screen · Dictionary card",           ar:"بطاقة القاموس",     prefixes:["slot","group","result","card","entry"] },
-  { name:"Screen · Other",                     ar:"أخرى",              prefixes:[], catchAll:true },
-  // Screens added after the catch-all go BELOW it, so "Other" keeps its number.
-  { name:"Screen · Add a word",                ar:"أضِف كلمة",         prefixes:["add"] },
-  // late:true = listed AFTER the spoken "Add a word" section further down, so
-  // that section (and everything above it) keeps its number. Add later screens
-  // the same way, at the end.
-  { name:"Screen · Dictionary page (speak to find, lists, page not found)", ar:"صفحة القاموس", prefixes:["find","view","mast","notfound"], late:true },
-  // welcome.html's own words, then the captions under the animated phone, in
-  // scene order. (The numbered intro lines are the spoken intro.tour.* items in
-  // section 1; the words inside the phone are the app's own strings.)
-  { name:"Screen · Welcome page & walkthrough captions", ar:"صفحة الترحيب والجولة", prefixes:["welcome","wt"], late:true },
+  { name:"Dictionary page (speak to find, lists, page not found)", ar:"صفحة القاموس", prefixes:["find","view","mast","notfound"] },
+  { name:"Dictionary card",           ar:"بطاقة القاموس",     prefixes:["slot","group","result","card","entry"] },
+  { name:"Add a word",                ar:"أضِف كلمة",         prefixes:["add"] },
+  { name:"Header & sign-in",          ar:"الترويسة والدخول",  prefixes:["setup","auth","account","hdr","restore"] },
+  { name:"Speaker & permission",      ar:"المتحدِّث والإذن",   prefixes:["speaker","form","town","consent","profile"] },
+  { name:"Microphone",                ar:"الميكروفون",        prefixes:["mic"] },
+  { name:"Recording",                 ar:"التسجيل",           prefixes:["record","review","qc","status","unit","clip","nav","action","list"] },
+  { name:"This session",              ar:"هذه الجلسة",        prefixes:["session","sync","save","export","clear"] },
+  { name:"Your voice (withdraw / spoken consent)", ar:"صوتك", prefixes:["withdraw","grant","voice","roster"] },
+  { name:"Welcome page & walkthrough captions", ar:"صفحة الترحيب والجولة", prefixes:["welcome","wt"] },
+  { name:"Other",                     ar:"أخرى",              prefixes:[], catchAll:true },
 ];
-const LATE_SCREENS = [];
 (function(){
   const S = (window.AFDCore && window.AFDCore.STRINGS) || {};
   const buckets = SCREEN_GROUPS.map(()=>[]);
@@ -323,28 +353,14 @@ const LATE_SCREENS = [];
     let g = SCREEN_GROUPS.findIndex(x=>x.prefixes.includes(pre)); if(g<0) g = other;
     buckets[g].push({ key:"screen:"+k, en:S[k].en || k, ar:S[k].ar, kind:"screen" });
   });
-  SCREEN_GROUPS.forEach((g,i)=>{ if(buckets[i].length || !g.catchAll) (g.late ? LATE_SCREENS : SECTIONS).push({ name:g.name+" · "+g.ar, items:buckets[i], screen:true }); });
+  SCREEN_GROUPS.forEach((g,i)=>{ if(buckets[i].length) SECTIONS.push({ tab:"review", name:g.name, ar:g.ar, items:buckets[i], screen:true }); });
 })();
-/* ---- Spoken prompts for "Add a word" (add.html). Pushed AFTER the on-screen
-   sections, not into SECTIONS above, so every existing section and item keeps
-   its number. Only lines the earlier sections don't already cover: the page
-   also uses record.hold / record.holding / record.release, review.redo /
-   review.keep, nav.back and action.play from the lists above.
-   Wording "strengthen", not "keep alive". */
-SECTIONS.push({ name:"Add a word — say it · show it · share it (spoken)", items:[
-  { key:"add.say",          en:"Say your word: hold the button and say it twice, with a short pause", ar:"قُل كلمتك: اضغط باستمرار وقُلها مرّتين، مع وقفة قصيرة", kind:"narration" },
-  { key:"add.show",         en:"Now show what it means — a photo, a picture, or say it", ar:"والآن أَرِنا معناها — بصورة، أو رسم، أو قُلها", kind:"narration" },
-  { key:"add.show.photo",   en:"Take a photo", ar:"التقط صورة", kind:"label" },
-  { key:"add.show.picture", en:"Choose a picture", ar:"اختر رسمًا", kind:"label" },
-  { key:"add.show.meaning", en:"Say what it means", ar:"قُل ماذا تعني", kind:"label" },
-  { key:"add.share",        en:"Share it: your word goes into the Hakli dictionary, and it stays yours", ar:"شارِكها: تُضاف كلمتك إلى قاموس الحَكلي، وتبقى لك", kind:"narration" },
-  { key:"add.done",         en:"Thank you — your word is in the dictionary. Together we strengthen Hakli", ar:"شكرًا لك — كلمتك الآن في القاموس. معًا نُقوّي الحَكلي", kind:"narration" },
-  { key:"add.another",      en:"Add another word", ar:"أضِف كلمة أخرى", kind:"label" },
-]});
-LATE_SCREENS.forEach(s => SECTIONS.push(s));
-// Number every section (1, 2, 3…) and item (1.1, 1.2…) in list order.
-SECTIONS.forEach((sec,si)=>{ sec.num = si+1; sec.items.forEach((it,ii)=>{ it.num = (si+1)+"."+(ii+1); }); });
-const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, section:s.num+" · "+s.name})));
+// Number each tab on its own: R1, R2 … (record) and A1, A2 … (Arabic review), items
+// R1.1, A3.4 … Two series, so adding to one tab never renumbers the other.
+const TABS = { record:"R", review:"A" };
+Object.keys(TABS).forEach(t=>{ SECTIONS.filter(s=>s.tab===t).forEach((sec,si)=>{
+  sec.num = TABS[t]+(si+1); sec.items.forEach((it,ii)=>{ it.num = sec.num+"."+(ii+1); }); }); });
+const ITEMS = SECTIONS.flatMap(s => s.items.map(it => ({...it, tab:s.tab, sec:s.num, start:!!s.start, section:s.num+" · "+s.name})));
 const isScreen = it => it && it.kind === "screen";
 const RECORDABLE = ITEMS.filter(it => !isScreen(it));
 
@@ -368,7 +384,34 @@ const IDB = (()=>{
 })();
 
 const $ = id => document.getElementById(id);
-const state = { i:0, recorded:new Set(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null };
+const state = { i:0, tab:"record", recorded:new Set(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null, week:null };
+
+/* ---- tabs and links ----
+   #record / #review open a tab; #R1, #A3 … open a section at its first item, so
+   each helper can be sent a link to just their part (e.g. hakli.app/prompts/#R1). */
+const START = ITEMS.filter(it=>it.start);
+const inTab = (t)=> ITEMS.map((it,i)=>i).filter(i=>ITEMS[i].tab===t);
+function firstOf(t){
+  const idx = inTab(t);
+  if(t==="record"){ const u = idx.find(i=>!state.recorded.has(ITEMS[i].key)); if(u!==undefined) return u; }
+  return idx[0];
+}
+function applyHash(){
+  const h = decodeURIComponent(location.hash.replace(/^#/,""));
+  const sec = /^([RA])(\d+)$/i.exec(h);
+  if(sec){
+    const num = sec[1].toUpperCase()+sec[2], i = ITEMS.findIndex(it=>it.sec===num);
+    if(i>=0){ state.tab = ITEMS[i].tab; state.i = i; return true; }
+  }
+  if(h==="review" || h==="record" || h==="start"){ state.tab = h==="review" ? "review" : "record"; state.i = firstOf(state.tab); return true; }
+  return false;
+}
+function setTab(t){
+  if(state.tab===t) return;
+  state.tab = t; state.i = firstOf(t);
+  try{ history.replaceState(null, "", "#"+t); }catch(_){}
+  render(); window.scrollTo({top:0});
+}
 
 if(!CONFIGURED){
   $("status").textContent = "not set up";
@@ -429,6 +472,7 @@ async function start(){
     await loadProgress(db);
     await loadConfig(db);
     await loadPending();
+    if(!applyHash()) state.i = firstOf(state.tab);
     $("app").classList.remove("hidden");
     render();
     syncPending();
@@ -441,6 +485,9 @@ async function start(){
     $("setup").classList.remove("hidden");
     $("setup").innerHTML = info.html;
   }
+  window.addEventListener("hashchange", ()=>{ if(applyHash()){ render(); window.scrollTo({top:0}); } });
+  $("tabRecord").onclick = ()=> setTab("record");
+  $("tabReview").onclick = ()=> setTab("review");
   window.addEventListener("online", ()=>{ $("status").textContent="ready"; syncPending(); });
   window.addEventListener("offline", ()=>{ $("status").textContent="offline (saving here)"; });
 }
@@ -448,7 +495,16 @@ async function start(){
 async function loadProgress(db){
   try{
     const snap = await getDocs(collection(db,"afd_ui_prompts"));
-    snap.forEach(d => { if(d.data().status === "recorded") state.recorded.add(d.id); });
+    // "This week": lines recorded in the last 7 days, and by how many phones
+    // (each phone signs in anonymously; `by` is saved with every new take).
+    const weekAgo = Date.now() - 7*864e5, people = new Set(); let lines = 0;
+    snap.forEach(d => { const x = d.data() || {};
+      if(x.status !== "recorded") return;
+      state.recorded.add(d.id);
+      const t = x.recordedAt && typeof x.recordedAt.toMillis === "function" ? x.recordedAt.toMillis() : 0;
+      if(t > weekAgo){ lines++; if(x.by) people.add(x.by); }
+    });
+    state.week = { lines, people: people.size };
   }catch(e){ /* offline: rely on local */ }
 }
 async function loadPending(){
@@ -490,14 +546,46 @@ function suggestedSet(){ try{ return new Set(JSON.parse(localStorage.getItem("af
 function markSuggested(key){ const s=suggestedSet(); s.add(key); try{ localStorage.setItem("afd_ui_suggested", JSON.stringify([...s])); }catch(_){} }
 
 function updateProgress(){
-  const total = RECORDABLE.length;
-  const done = RECORDABLE.filter(it => state.recorded.has(it.key)).length;
-  $("barfill").style.width = Math.round(done/total*100)+"%";
-  $("count").textContent = done+" of "+total+" recorded";
-  $("remaining").textContent = (total-done)+" to go";
+  const rec = state.tab === "record";
+  const startDone = START.filter(it => state.recorded.has(it.key)).length;
+  let frac, count, rest;
+  if(rec && startDone < START.length){
+    // First the welcome page: a short goal with a visible result.
+    frac = startDone/START.length;
+    count = "Start here: "+startDone+" of "+START.length+" recorded";
+    rest = "then "+(RECORDABLE.length-START.length)+" more";
+  } else if(rec){
+    const done = RECORDABLE.filter(it => state.recorded.has(it.key)).length;
+    frac = done/RECORDABLE.length;
+    count = done+" of "+RECORDABLE.length+" recorded";
+    rest = (RECORDABLE.length-done)+" to go";
+  } else {
+    const sug = suggestedSet(), review = ITEMS.filter(it=>it.tab==="review");
+    const n = review.filter(it=>sug.has(it.key)).length;
+    frac = n/review.length;
+    count = "You've suggested "+n+" of "+review.length+" lines";
+    rest = state.suggestOpen ? "suggestions open" : "suggestions closed — ask Marty";
+  }
+  $("barfill").style.width = Math.round(frac*100)+"%";
+  $("count").textContent = count;
+  $("remaining").textContent = rest;
+  const w = state.week;
+  $("week").textContent = (rec && w && w.lines)
+    ? "This week: "+w.lines+" line"+(w.lines===1?"":"s")+" recorded"+(w.people ? " by "+w.people+(w.people===1?" person":" people") : "")+" — thank you"
+    : "";
+  $("welcomeDone").classList.toggle("hidden", !(rec && startDone === START.length));
 }
+const TABNOTE = {
+  record: '<b>قُلها بالحَكلي كما تقولها لصديق — لا توجد طريقة خاطئة.</b><small>Say it in Hakli the way you would say it to a friend — there is no wrong way. The Arabic only tells you what the line means.</small>',
+  review: '<b>اقرأ النصّ العربيّ، واقترح كيف يكتبه أهل ظفار.</b><small>Read the Arabic on the app\'s screens, and suggest how a Dhofari speaker would put it. Nothing changes until Marty approves it.</small>'
+};
 
 function render(){
+  if(!ITEMS[state.i] || ITEMS[state.i].tab !== state.tab) state.i = firstOf(state.tab);
+  $("tabRecord").setAttribute("aria-selected", state.tab==="record");
+  $("tabReview").setAttribute("aria-selected", state.tab==="review");
+  $("tabnote").innerHTML = TABNOTE[state.tab];
+  $("nextpending").classList.toggle("hidden", state.tab!=="record");
   const it = ITEMS[state.i];
   $("cur-sec").textContent = it.section;
   $("cur-gloss").textContent = it.en;
@@ -561,13 +649,22 @@ function renderList(){
   // Jump menu: every section with its number and size, so nobody scrolls past
   // 150 rows to reach theirs.
   const jump = document.createElement("div"); jump.className="jump";
-  jump.innerHTML = '<div class="jumptitle">Sections · الأقسام</div>' + SECTIONS.filter(s=>s.items.length).map(s=>
-    '<a href="#sec-'+s.num+'"><b>'+s.num+'</b> '+escHtml(s.name.replace(/^Screen · /,"").split(" · ")[0])+' <span>'+s.items.length+'</span></a>').join("");
+  const secs = SECTIONS.filter(s=>s.tab===state.tab && s.items.length);
+  jump.innerHTML = '<div class="jumptitle">Sections · الأقسام</div>' + secs.map(s=>
+    '<a href="#'+s.num+'" data-sec="'+s.num+'"'+(s.start?' class="start"':'')+'><b>'+s.num+'</b> '+escHtml(s.name)+' <span>'+s.items.length+'</span></a>').join("");
+  // The chips only scroll; a link to #R1 from outside opens that section instead.
+  jump.querySelectorAll("a").forEach(a=> a.onclick = (e)=>{ e.preventDefault();
+    const h = document.getElementById("sec-"+a.dataset.sec); if(h) h.scrollIntoView({behavior:"smooth"}); });
   el.appendChild(jump);
-  SECTIONS.forEach(sec=>{
-    if(!sec.items.length) return;
-    const h = document.createElement("h2"); h.id = "sec-"+sec.num;
-    h.innerHTML = '<span class="num">'+sec.num+'</span> '+escHtml(sec.name)+' <a class="top" href="#list">↑</a>'; el.appendChild(h);
+  secs.forEach(sec=>{
+    const h = document.createElement("h2"); h.id = "sec-"+sec.num; h.dataset.name = sec.name;
+    h.innerHTML = '<span class="num">'+sec.num+'</span> '+escHtml(sec.name)+(sec.ar?' · '+escHtml(sec.ar):'')+
+      (sec.later?' <span class="later">for later · لاحقًا</span>':'')+' <a class="top" href="#list">↑</a>'+
+      (sec.start?'<a class="hear" href="../welcome.html" target="_blank" rel="noopener">▶ hear them on the welcome page ↗</a>':'');
+    h.querySelector(".top").onclick = (e)=>{ e.preventDefault(); el.scrollIntoView({behavior:"smooth"}); };
+    el.appendChild(h);
+    if(sec.note || sec.later){ const n = document.createElement("div"); n.className = "secnote";
+      n.textContent = sec.note || "No page plays these yet — record them when the first two sections are done."; el.appendChild(n); }
     sec.items.forEach(it=>{
       const gi = ITEMS.findIndex(x=>x.key===it.key);
       const done = !isScreen(it) && state.recorded.has(it.key), pend = state.pending.has(it.key);
@@ -666,7 +763,7 @@ async function syncPending(){
       await uploadBytes(ref(state.store, "afd_ui/"+key+".webm"), blob, { contentType: blob.type || "audio/webm" });
       await setDoc(doc(state.db,"afd_ui_prompts",key), {
         key, intent: it.en||"", kind: it.kind||"label", section: it.section||"",
-        status:"recorded", storagePath:"afd_ui/"+key+".webm",
+        status:"recorded", storagePath:"afd_ui/"+key+".webm", by: state.uid || "",
         contentType: blob.type||"audio/webm", recordedAt: serverTimestamp()
       }, { merge:true });
       state.pending.delete(key);
@@ -689,8 +786,10 @@ function nextUnrecorded(){
   return false;
 }
 
-$("prev").onclick = ()=>{ state.i=(state.i-1+ITEMS.length)%ITEMS.length; render(); };
-$("next").onclick = ()=>{ state.i=(state.i+1)%ITEMS.length; render(); };
+function step(d){ const idx = inTab(state.tab), k = idx.indexOf(state.i);
+  state.i = idx[(k+d+idx.length)%idx.length]; render(); }
+$("prev").onclick = ()=> step(-1);
+$("next").onclick = ()=> step(1);
 $("nextpending").onclick = ()=>{ if(!nextUnrecorded()) alert("Every prompt is recorded. Thank you!"); };
 
 /* ---- suggest an Arabic edit (proposal only — never edits the live prompt) ---- */

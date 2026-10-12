@@ -77,25 +77,30 @@ await scenario("L2 bilingual tier reads exactly as before", async ()=>{ const { 
   await ctx.close(); });
 
 /* ---- the review list in the prompts tool
-   Speakers work through it by number ("14.31"), so a number must never come to
-   mean a different line. prompt-numbers.json is the list as last accepted:
-   every number in it must still point at the same key. New lines may be added
-   — at the end of a section, or as a new last section — and then the file is
-   refreshed on purpose:
-       AFD_UPDATE_NUMBERS=1 node browser/run.mjs extras                        */
-// the review list keeps its numbers
+   Two tabs, two number series: R1.1 … (record in Hakli) and A1.1 … (review the
+   Arabic). Helpers work through it by number ("A5.31"), so a number must never
+   come to mean a different line. prompt-numbers.json is the list as last
+   accepted: every number in it must still point at the same key. New lines may
+   be added — at the end of a section, or as a new last section of a tab — and
+   then the file is refreshed on purpose:
+       AFD_UPDATE_NUMBERS=1 node browser/run.mjs extras
+   (Renumbered once on purpose, 10-12, before anything had been recorded.)    */
+async function readList(page){
+  return page.evaluate(()=>{ const out={ sections:{}, items:{} }, ar={};
+    for(const el of document.querySelectorAll("#list h2, #list .row")){
+      const num = el.querySelector(".num").textContent.trim();
+      if(el.tagName==="H2") out.sections[num] = el.dataset.name;
+      else{ out.items[num] = (el.querySelector(".rowtext .k")||{}).textContent || ""; ar[num] = !!el.querySelector(".rowtext .a"); } }
+    out.noArabic = Object.keys(out.items).filter(n => !ar[n]); return out; });
+}
 await scenario("the review list keeps its numbers", async ()=>{ const { page, ctx, state } = await newPage(browser, srv.url, {});
   await page.goto(srv.url + "/prompts/index.html");
   await page.waitForFunction(()=> document.querySelectorAll("#list h2").length > 5, null, { timeout:15000 });
-  const now = await page.evaluate(()=>{ const out={ sections:{}, items:{} }; let ar={};
-    for(const el of document.querySelectorAll("#list h2, #list .row")){
-      const num = el.querySelector(".num").textContent.trim();
-      if(el.tagName==="H2") out.sections[num] = el.textContent.replace(/↑/g,"").replace(/^\s*\d+\s*/,"").trim();
-      else{ out.items[num] = (el.querySelector(".rowtext .k")||{}).textContent || ""; ar[num] = !!el.querySelector(".rowtext .a"); } }
-    out.noArabic = Object.keys(out.items).filter(n => !ar[n]); return out; });
+  const rec = await readList(page);
+  await page.click("#tabReview"); await page.waitForFunction(()=> !!document.querySelector('#list h2[id="sec-A1"]'), null, { timeout:5000 });
+  const rev = await readList(page);
+  const now = { sections:Object.assign({}, rec.sections, rev.sections), items:Object.assign({}, rec.items, rev.items), noArabic:rec.noArabic.concat(rev.noArabic) };
   const file = new URL("./prompt-numbers.json", import.meta.url);
-  const last = Object.keys(now.sections).length;
-  // Sections are found by name, not position: new screens go at the end.
   const secNum = (re)=> Object.keys(now.sections).find(n => re.test(now.sections[n]));
   const keysIn = (n)=> Object.entries(now.items).filter(([m])=> m.startsWith(n+".")).map(([,k])=>k);
   const dict = secNum(/Dictionary page/), inDict = dict ? keysIn(dict) : [];
@@ -103,15 +108,20 @@ await scenario("the review list keeps its numbers", async ()=>{ const { page, ct
   ok("P1 the dictionary page has its own section, with its search, list and not-found words", !!dict && want.every(k=>inDict.includes(k)), JSON.stringify([dict, want.filter(k=>!inDict.includes(k))]));
   const wel = secNum(/Welcome page/), inWel = wel ? keysIn(wel) : [];
   const wantW = ["welcome.hint.none","welcome.enter","wt.find.1","wt.add.tap","wt.close"].map(k=>"screen:"+k);
-  ok("P6 the welcome page and walkthrough captions are listed (after the dictionary page), and howto.add is spoken item 2.6",
-     !!wel && +wel > +dict && wantW.every(k=>inWel.includes(k)) && now.items["2.6"]==="howto.add",
-     JSON.stringify([wel, dict, wantW.filter(k=>!inWel.includes(k)), now.items["2.6"]]));
-  const rec = Object.values(now.items);
-  ok("P2 the recorder's instructions and readout are listed", ["record.instr.word","record.instr.context","record.instr.definition","record.progress.word","record.progress.listening"].every(k=> rec.includes("screen:"+k)));
+  ok("P6 the welcome page and walkthrough captions are listed, in the Arabic tab", !!wel && /^A/.test(wel) && wantW.every(k=>inWel.includes(k)), JSON.stringify([wel, wantW.filter(k=>!inWel.includes(k))]));
+  const start = keysIn("R1");
+  ok("P7 R1 'start here' is the welcome page's eleven clips, in the order they are heard",
+     JSON.stringify(start) === JSON.stringify(["intro.tour.what","intro.tour.new","howto.find","howto.record","howto.review","howto.sentence","howto.meaning","howto.add","intro.tour.yours","intro.tour.waits","intro.tour.why"]), JSON.stringify(start));
+  const all = Object.values(now.items);
+  ok("P8 the four unused intro lines are retired, and the home page's find_hint can be recorded",
+     ["intro.welcome","intro.longpress","intro.hold_to_speak","intro.find"].every(k=>!all.includes(k)) && keysIn("R2").includes("find_hint"));
+  ok("P9 the record tab has only spoken lines, the Arabic tab only on-screen ones",
+     Object.values(rec.items).every(k=>!k.startsWith("screen:")) && Object.values(rev.items).every(k=>k.startsWith("screen:")));
+  ok("P2 the recorder's instructions and readout are listed", ["record.instr.word","record.instr.context","record.instr.definition","record.progress.word","record.progress.listening"].every(k=> all.includes("screen:"+k)));
   ok("P3 every listed line has Arabic to review", now.noArabic.length===0, JSON.stringify(now.noArabic.slice(0,8)));
   if(process.env.AFD_UPDATE_NUMBERS){
     fs.writeFileSync(file, JSON.stringify({ sections:now.sections, items:now.items }, null, 1) + "\n");
-    console.log("   prompt-numbers.json refreshed: " + Object.keys(now.items).length + " lines in " + last + " sections");
+    console.log("   prompt-numbers.json refreshed: " + Object.keys(now.items).length + " lines in " + Object.keys(now.sections).length + " sections");
   }
   const was = JSON.parse(fs.readFileSync(file, "utf8"));
   const moved = [];
@@ -120,6 +130,56 @@ await scenario("the review list keeps its numbers", async ()=>{ const { page, ct
   ok("P4 every number in the review list still points at the same line", moved.length===0 && Object.keys(was.items).length > 100, JSON.stringify(moved.slice(0,8)));
   const added = Object.keys(now.items).filter(n => !(n in was.items));
   ok("P5 prompt-numbers.json is up to date (refresh it when lines are added on purpose)", added.length===0, added.length+" new line(s) not in the file: "+added.slice(0,8).join(", ")+" — AFD_UPDATE_NUMBERS=1 node browser/run.mjs extras");
+  await ctx.close(); });
+
+/* ---- the prompts tool: start-here progress, links to a part, this week's count */
+await scenario("prompts tool: start here, links, this week", async ()=>{
+  const recent = { __ts: Date.now() - 864e5 }, old = { __ts: Date.now() - 30*864e5 };
+  const fsData = {
+    "afd_ui_prompts/intro.tour.what": { status:"recorded", storagePath:"afd_ui/intro.tour.what.webm", recordedAt:recent, by:"phoneA" },
+    "afd_ui_prompts/intro.tour.new":  { status:"recorded", storagePath:"afd_ui/intro.tour.new.webm",  recordedAt:recent, by:"phoneB" },
+    "afd_ui_prompts/howto.find":      { status:"recorded", storagePath:"afd_ui/howto.find.webm",      recordedAt:old,    by:"phoneA" },
+  };
+  // 1 · a fresh helper lands on the first unrecorded start-here line
+  let { page, ctx, state } = await newPage(browser, srv.url, { fs:fsData });
+  await page.goto(srv.url + "/prompts/index.html");
+  await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
+  const s1 = await page.evaluate(()=>({ key:document.getElementById("cur-key").textContent, count:document.getElementById("count").textContent,
+    week:document.getElementById("week").textContent, done:getComputedStyle(document.getElementById("welcomeDone")).display!=="none",
+    hear:!!document.querySelector("#sec-R1 a.hear") }));
+  ok("S1 a helper starts on the first unrecorded welcome clip, with 'start here' progress and a link to hear the result",
+     /R1\.4 +· +howto\.record/.test(s1.key) && /Start here: 3 of 11/.test(s1.count) && s1.hear && !s1.done, JSON.stringify(s1));
+  ok("S2 'this week' counts recent lines and the phones that made them", /This week: 2 lines recorded by 2 people/.test(s1.week), s1.week);
+  // 1b · a take saved on this phone goes up with the phone's id (for "this week")
+  await page.evaluate(()=> new Promise((res,rej)=>{ const r = indexedDB.open("afd_ui_prompts",1);
+    r.onupgradeneeded = ()=> r.result.createObjectStore("clips",{keyPath:"key"});
+    r.onsuccess = ()=>{ const t = r.result.transaction("clips","readwrite");
+      t.objectStore("clips").put({ key:"howto.record", blob:new Blob([new Uint8Array(64)], { type:"audio/webm" }) });
+      t.oncomplete = ()=>{ r.result.close(); res(); }; t.onerror = ()=>rej(t.error); };
+    r.onerror = ()=>rej(r.error); }));
+  await page.reload(); await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
+  await page.waitForFunction(()=> globalThis.__FS && globalThis.__FS["afd_ui_prompts/howto.record"], null, { timeout:8000 }).catch(()=>{});
+  const up = await page.evaluate(()=> globalThis.__FS["afd_ui_prompts/howto.record"] || null);
+  ok("S7 an uploaded take records which phone made it", !!up && up.status==="recorded" && up.by==="uAnon", JSON.stringify(up));
+  // 2 · a link to one part opens that part
+  await page.goto(srv.url + "/prompts/index.html#A5"); await page.reload();
+  await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
+  const s3 = await page.evaluate(()=>({ key:document.getElementById("cur-key").textContent, tab:document.getElementById("tabReview").getAttribute("aria-selected"),
+    rec:!document.querySelector("#list .row .k") || [...document.querySelectorAll("#list .row .k")].every(k=>k.textContent.startsWith("screen:")) }));
+  ok("S3 a link to #A5 opens the Arabic tab at section A5's first line", /^A5\.1 /.test(s3.key) && s3.tab==="true" && s3.rec, JSON.stringify(s3));
+  await page.click("#tabRecord");
+  const s4 = await page.evaluate(()=>({ key:document.getElementById("cur-key").textContent, hash:location.hash }));
+  ok("S4 switching tabs keeps you in that tab and says so in the address", /^R1\./.test(s4.key) && s4.hash==="#record", JSON.stringify(s4));
+  await ctx.close();
+  // 3 · all eleven recorded: the welcome page speaks — say so
+  const full = {}; ["intro.tour.what","intro.tour.new","howto.find","howto.record","howto.review","howto.sentence","howto.meaning","howto.add","intro.tour.yours","intro.tour.waits","intro.tour.why"]
+    .forEach(k=> full["afd_ui_prompts/"+k] = { status:"recorded", storagePath:"afd_ui/"+k+".webm" });
+  ({ page, ctx, state } = await newPage(browser, srv.url, { fs:full }));
+  await page.goto(srv.url + "/prompts/index.html");
+  await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
+  const s5 = await page.evaluate(()=>({ done:getComputedStyle(document.getElementById("welcomeDone")).display!=="none", key:document.getElementById("cur-key").textContent, count:document.getElementById("count").textContent }));
+  ok("S5 once the eleven are recorded, the welcome page is announced and the helper moves on to R2", s5.done && /^R2\.1 /.test(s5.key) && /11 of 75 recorded/.test(s5.count), JSON.stringify(s5));
+  ok("S6 the prompts tool raised no page errors", state.errors.length===0, state.errors.slice(0,2).join(" | "));
   await ctx.close(); });
 
 /* ---- 404 takes its words from the table */
