@@ -25,6 +25,7 @@ The function runs as the project default service account; it needs
 Firestore write and permission to invoke the Cloud Run service.
 """
 
+import hashlib
 import os
 import functions_framework
 import requests
@@ -88,12 +89,17 @@ def on_finalize(cloud_event):
         return
 
     audio = blob.download_as_bytes()
+    # Fixity for the export manifest: a checksum of the exact stored bytes,
+    # written even if the embed below fails, so every recording can be
+    # verified on export and import.
+    sha256 = hashlib.sha256(audio).hexdigest()
     token = id_token.fetch_id_token(GoogleAuthRequest(), EMBED_AUDIENCE)
     resp = requests.post(EMBED_URL, files={"file": (name, audio)},
                          headers={"Authorization": f"Bearer {token}"}, timeout=120)
     if resp.status_code == 400:
         # undecodable / empty audio — retrying won't help
         print(f"embed service rejected {name}: {resp.text[:200]}")
+        ref.update({"sha256": sha256})
         return
     resp.raise_for_status()                  # 5xx / cold service / auth -> retried
     r = resp.json()
@@ -110,7 +116,8 @@ def on_finalize(cloud_event):
 
     # update(), never set(): it only ever adds to a doc the recorder created.
     ref.update(
-        {"embedding": embedding,
+        {"sha256": sha256,
+         "embedding": embedding,
          "reps": reps,
          "nReps": r.get("n_reps"),
          "repDistance": r.get("rep_distance"),

@@ -76,6 +76,20 @@ service cloud.firestore {
              && sid.size() > uid6().size() + 5;
     }
 
+    // ---------------------- export-manifest field shapes ----------------------
+    // A BCP-47-ish language code: 2–3 letters, optional -subtag. Language-neutral
+    // on purpose; WHICH language is the instance's business, not the rules'.
+    function langOK(l) {
+      return l is string && l.matches('[a-z]{2,3}(-[A-Za-z0-9]{2,8})*');
+    }
+    function glossOK(g) { return g is string && g.size() > 0 && g.size() <= 80; }
+    // Keys = the instance's contact languages (afd-instance.js). Hakli: ar, en.
+    function glossesOK(gs) {
+      return gs is map && gs.keys().hasOnly(['ar','en']) && gs.size() > 0
+             && (!('ar' in gs) || glossOK(gs.ar))
+             && (!('en' in gs) || glossOK(gs.en));
+    }
+
     // ------------------------------ word entries ------------------------------
     match /afd_entries/{entryId} {
       allow read: if true;
@@ -97,7 +111,19 @@ service cloud.firestore {
                     && request.resource.data.createdBy == request.auth.uid
                     && request.resource.data.createdAt == request.time
                     && request.resource.data.keys().hasOnly(
-                         ['source','createdBy','createdAt','gloss','glossAr','domain','pic','image'])
+                         ['source','createdBy','createdAt','gloss','glossAr','domain','pic','image',
+                          'lang','concepts','glosses'])
+                    // Export-manifest fields. lang = the word's language (the
+                    // instance default, afd-instance.js); concepts starts empty
+                    // (linking is a later steward step); glosses is keyed by the
+                    // instance's contact languages ONLY — keep this key list in
+                    // step with AFDInstance.contactLanguages. `access` is reserved
+                    // and server-only, so a client can't set it.
+                    && (!('lang' in request.resource.data) || langOK(request.resource.data.lang))
+                    && (!('concepts' in request.resource.data)
+                        || (request.resource.data.concepts is list
+                            && request.resource.data.concepts.size() == 0))
+                    && (!('glosses' in request.resource.data) || glossesOK(request.resource.data.glosses))
                     && (!('gloss'   in request.resource.data) ||
                         (request.resource.data.gloss   is string && request.resource.data.gloss.size()   <= 80))
                     && (!('glossAr' in request.resource.data) ||
@@ -223,7 +249,12 @@ service cloud.firestore {
                            ['recordingId','entryId','gloss','domain','speakerId',
                             'phase','type','promptTier','repetitionIndex','capture',
                             'qc','envelope','storagePath','recordedAt','uid',
-                            'consent','viaAgent','allowPlayback','uploadedAt','source'])
+                            'consent','viaAgent','allowPlayback','uploadedAt','source',
+                            'lang'])
+                      // the language spoken in this take (instance default).
+                      // Optional so a take kept on a phone before this field
+                      // existed can still upload; the backfill fills it in.
+                      && (!('lang' in request.resource.data) || langOK(request.resource.data.lang))
                       && request.resource.data.uid == request.auth.uid
                       // the doc's own ids must match its place in the tree
                       && request.resource.data.entryId == entryId

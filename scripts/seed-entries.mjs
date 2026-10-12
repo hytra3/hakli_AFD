@@ -51,6 +51,17 @@ function entrySlug(id){
 }
 const entryIdFor = id => "ent_" + entrySlug(id);
 
+// ---- the instance config, read the same way (afd-instance.js) ----
+function readInstance(){
+  const js = readFileSync(join(here, "..", "afd-instance.js"), "utf8");
+  const m = js.match(/window\.AFDInstance\s*=\s*(\{[\s\S]*\})\s*;/);
+  if(!m) throw new Error("Could not find `window.AFDInstance = {...}` in afd-instance.js");
+  const inst = Function("return " + m[1])();
+  if(!inst.language || !inst.language.code) throw new Error("afd-instance.js has no language.code");
+  return inst;
+}
+const INSTANCE = readInstance();
+
 function entryDoc(w){
   return {
     entryId: entryIdFor(w.id),
@@ -59,6 +70,12 @@ function entryDoc(w){
     domain:  w.dom || "",
     pic:     w.pic || "",         // the pictograph `find` shows in the box
     ref:     w.ref || "",         // rough Hakli transliteration, if noted
+    // language-keyed glosses (gloss / glossAr kept until every reader moves over)
+    glosses: { ...(w.en ? { en: w.en } : {}), ...(w.ar ? { ar: w.ar } : {}) },
+    lang:    INSTANCE.language.code,
+    // NB: no `concepts` here. This is a merge-set re-run on every wordlist
+    // change, so writing [] would wipe concept links made later. The backfill
+    // adds an empty list only where the field is missing.
     seededAt: new Date().toISOString(),
   };
 }
