@@ -9,6 +9,8 @@
  *    • spoken-prompt keys (e.g. "record.hold")          → prompts/index.html
  *    • on-screen keys, prefixed "screen:" (e.g. "screen:record.hold")
  *                                                        → afd-core.js (STRINGS)
+ *    • a spoken key that welcome.html also shows as text (intro.tour.*) is
+ *      copied onto welcome.html's matching k:"…" line as well
  *  The prefix is what keeps a spoken prompt and a same-named button label from
  *  being confused. Git stays the source of truth: this only edits your working
  *  tree; you review `git diff` and push (publish-site.sh).
@@ -35,10 +37,13 @@ const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 const here = dirname(fileURLToPath(import.meta.url));
 const promptsPath = join(here, "..", "prompts", "index.html");
 const corePath    = join(here, "..", "afd-core.js");
+const welcomePath = join(here, "..", "welcome.html");
 const SCREEN = "screen:";
 
 let src  = readFileSync(promptsPath, "utf8");
 let core = readFileSync(corePath, "utf8");
+let welcome = readFileSync(welcomePath, "utf8");
+let toWelcome = 0;
 
 // Map key -> current `ar:` by reading the prompt lines (one item per line).
 function currentArMap(text){
@@ -75,6 +80,19 @@ function applyToCore(key, newAr){
   }
   return false;
 }
+// welcome.html shows the intro.tour.* lines as text: { k:"intro.tour.what", ar:"…", en:"…" }.
+// Mirror an applied spoken edit onto that line so the page and the prompt agree.
+function mirrorToWelcome(key, val){
+  const lines = welcome.split(/\r?\n/);
+  for(let i=0;i<lines.length;i++){
+    if(lines[i].includes('k:"'+key+'"') && /\bar:"[^"]*"/.test(lines[i])){
+      lines[i] = lines[i].replace(/\bar:"[^"]*"/, 'ar:"'+val+'"');
+      welcome = lines.join("\n"); toWelcome++;
+      console.log("    \u2713 also in welcome.html");
+      return;
+    }
+  }
+}
 // Rewrite the `ar:` on the single line that declares `key`. Returns false if
 // the key (or an ar: on its line) isn't found, so nothing is silently lost.
 function applyToSource(key, newAr){
@@ -85,6 +103,7 @@ function applyToSource(key, newAr){
     if(lines[i].includes('key:"'+key+'"') && /\bar:"[^"]*"/.test(lines[i])){
       lines[i] = lines[i].replace(/\bar:"[^"]*"/, 'ar:"'+val+'"');
       src = lines.join("\n");
+      mirrorToWelcome(key, val);
       return true;
     }
   }
@@ -155,8 +174,9 @@ if(applied.length){
   const toPrompts = applied.length - toCore;
   if(toPrompts) writeFileSync(promptsPath, src);
   if(toCore)    writeFileSync(corePath, core);
-  console.log("\nWrote "+applied.length+" edit(s): "+toPrompts+" into prompts/index.html, "+toCore+" into afd-core.js.");
-  console.log("  → review:  git diff prompts/index.html afd-core.js");
+  if(toWelcome) writeFileSync(welcomePath, welcome);
+  console.log("\nWrote "+applied.length+" edit(s): "+toPrompts+" into prompts/index.html, "+toCore+" into afd-core.js"+(toWelcome ? " ("+toWelcome+" also copied into welcome.html)" : "")+".");
+  console.log("  → review:  git diff prompts/index.html afd-core.js welcome.html");
   console.log("  → then commit & push to make them live.");
 } else {
   console.log("\nNo source edits made.");
