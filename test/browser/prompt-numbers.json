@@ -570,6 +570,13 @@
   "A11.97": "screen:win.queue.was",
   "A11.98": "screen:win.queue.notallowed",
   "A11.99": "screen:win.queue.hint",
-  "A11.100": "screen:win.note"
+  "A11.100": "screen:win.note",
+  "A11.101": "screen:stw.tab.coverage",
+  "A11.102": "screen:stw.cov.list",
+  "A11.103": "screen:stw.cov.summary",
+  "A11.104": "screen:stw.cov.missing",
+  "A11.105": "screen:stw.cov.covered",
+  "A11.106": "screen:stw.cov.none",
+  "A11.107": "screen:stw.cov.note"
  }
 }

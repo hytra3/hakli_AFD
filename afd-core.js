@@ -212,7 +212,12 @@ window.AFDCore = (function(){
      reconciled into a single inventory later.
 
      ⚠ ARABIC NEEDS A NATIVE/DHOFARI REVIEW. These are reasonable MSA defaults so
-     the mechanism works end to end; treat the wording as a draft, not authority. */
+     the mechanism works end to end; treat the wording as a draft, not authority.
+
+     ⚠ ADD NEW STRINGS AT THE END. The prompts tool numbers its review list by
+     position here (A11.1, A11.2, …), so a string inserted mid-list renumbers
+     every line after it. test/browser/prompt-numbers.json snapshots the numbers;
+     check that its diff only adds lines. */
   const STRINGS = {
     "slot.word":            { en:"THE WORD",           ar:"الكلمة" },
     "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة" },
@@ -738,7 +743,16 @@ window.AFDCore = (function(){
     "win.queue.was":        { en:"was: {text}", ar:"كان: {text}" },
     "win.queue.notallowed": { en:"Not allowed — this account isn't listed as the steward (`scripts/grant-steward.mjs`).", ar:"غير مسموح — هذا الحساب غير مُدرَج مشرفًا (`scripts/grant-steward.mjs`)." },
     "win.queue.hint":       { en:"Proposals only — read them here. To apply the ones you want, run `node scripts/pull-suggestions.mjs` in `~/afd`: it asks apply / remove / skip for each and writes approved wording into the right file for you (spoken prompts → `prompts/index.html`; on-screen `screen:` keys → `afd-core.js`). Then `git diff` and *publish*. Nothing on this page changes the app by itself. Guide: prompts-and-suggestions-guide.md in the project files.", ar:"هذه اقتراحات فقط — اقرأها هنا. لتطبيق ما تريد منها، شغّل `node scripts/pull-suggestions.mjs` في `~/afd`: يسأل عن كلٍّ منها (تطبيق / حذف / تخطٍّ) ويكتب الصياغة المعتمَدة في الملف الصحيح (الإرشادات المنطوقة ← `prompts/index.html`؛ مفاتيح الشاشة `screen:` ← `afd-core.js`). ثم `git diff` و*النشر*. لا شيء في هذه الصفحة يغيّر التطبيق بنفسه. الدليل: prompts-and-suggestions-guide.md في ملفات المشروع." },
-    "win.note":             { en:"Recording is closed unless it's open here. Arabic edits are proposals only — nothing a speaker types goes live until it's committed to the source. Neither window can freeze already-recorded audio; that's a separate one-time lock.", ar:"التسجيل مُغلَق ما لم يُفتَح هنا. تعديلات العربية اقتراحاتٌ فقط — لا يظهر شيءٌ يكتبه المتحدّث حتى يُعتمَد في المصدر. لا تستطيع أيٌّ من النافذتين تجميد الصوت المسجَّل من قبل؛ فذلك قفلٌ منفصل لمرّة واحدة." }
+    "win.note":             { en:"Recording is closed unless it's open here. Arabic edits are proposals only — nothing a speaker types goes live until it's committed to the source. Neither window can freeze already-recorded audio; that's a separate one-time lock.", ar:"التسجيل مُغلَق ما لم يُفتَح هنا. تعديلات العربية اقتراحاتٌ فقط — لا يظهر شيءٌ يكتبه المتحدّث حتى يُعتمَد في المصدر. لا تستطيع أيٌّ من النافذتين تجميد الصوت المسجَّل من قبل؛ فذلك قفلٌ منفصل لمرّة واحدة." },
+
+    // steward.html — Coverage tab (appended last so prompt numbers stay stable)
+    "stw.tab.coverage":     { en:"Coverage", ar:"التغطية" },
+    "stw.cov.list":         { en:"Word list", ar:"قائمة الكلمات" },
+    "stw.cov.summary":      { en:"*{n} of {total}* concepts on this list have a word card.", ar:"*{n} من {total}* من مفاهيم هذه القائمة لها بطاقة كلمة." },
+    "stw.cov.missing":      { en:"Not covered yet", ar:"لم تُغطَّ بعد" },
+    "stw.cov.covered":      { en:"Covered", ar:"مُغطّاة" },
+    "stw.cov.none":         { en:"Every concept on this list has a word card.", ar:"لكلّ مفهوم في هذه القائمة بطاقة كلمة." },
+    "stw.cov.note":         { en:"Concepts from a standard comparison list that no word card links to yet — a guide to what to ask for next. Concept names are Concepticon's (English). Links are made with `node scripts/apply-concepts.mjs`; hidden and removed words don't count.", ar:"مفاهيم من قائمة مقارنة معيارية لا ترتبط بها أيّ بطاقة كلمة بعد — دليلٌ لما يُطلَب تسجيله لاحقًا. أسماء المفاهيم من Concepticon (بالإنجليزية). تُنشأ الروابط بـ`node scripts/apply-concepts.mjs`؛ ولا تُحتسَب الكلمات المخفيّة أو المُزالة." }
   };
   function t(key, mode){
     const s = STRINGS[key];
