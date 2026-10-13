@@ -418,7 +418,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" data-cap-key="hdr.find" title="Look up a word" aria-label="Look up a word">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20.5 20.5l-4-4"/></svg>
       </a>
-      <button class="dispskin capd" id="dispSkin" data-cap="العرض" data-cap-key="hdr.display" title="How words are shown" aria-label="Change how words are shown"></button>
+      <button class="dispskin capd" id="dispSkin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
       <span class="account-wrap capd" id="recAcctWrap" data-cap="دخول" data-cap-key="hdr.signin">
         <button class="account" id="account" aria-label="Account"></button>
         <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
@@ -1985,7 +1985,9 @@ const DISP_ICON={
   sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
   script:`<span class="lbl">أ</span>`
 };
-function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.auto; }
+// The caption names the mode you're in (disp.auto / disp.script / disp.sound).
+function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.auto;
+  { const s=(AFDCore.STRINGS||{})["disp."+dispMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+dispMode); b.setAttribute("data-cap", s.ar); } } }
 function setRecType(t){
   recType=(t==="context"||t==="definition")?t:"word";
   const _host=document.getElementById("entryCardHost");   // 2c: ring the slot being filled

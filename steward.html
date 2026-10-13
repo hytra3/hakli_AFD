@@ -41,7 +41,21 @@
   body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
   .wrap{max-width:640px; margin:0 auto; padding:16px 16px 48px;}
   h1{font-size:18px; margin:8px 0 4px;}
-  .sub{font-size:13px; color:var(--muted); margin-bottom:14px;}
+  .lead{font-size:13px; color:var(--muted); margin-bottom:14px;}
+  /* Arabic + English (afd-tools.js): Arabic first, English under it in blocks,
+     beside it in buttons, tabs and badges. Arabic only: the page turns RTL. */
+  .t-ar{display:block}
+  .t-en{display:block; opacity:.72; font-size:.92em}
+  :is(.btn,.tab,.badge,.nav,a.small,.who,.meta) :is(.t-ar,.t-en){display:inline}
+  :is(.btn,.tab,.badge,.nav,a.small,.who,.meta) .t-en::before{content:" · "}
+  a.back::before{content:"← "} html[dir="rtl"] a.back::before{content:"→ "}
+  .t-switch{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:20px; padding:4px 11px; font-size:12px; cursor:pointer; white-space:nowrap}
+  .navrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
+  .navrow .nav{margin-bottom:0}
+  html[dir="rtl"] .who{text-align:left}
+  html[dir="rtl"] .tab .n{margin-left:0; margin-right:4px}
+  html[dir="rtl"] .gloss .ar{margin-left:0; margin-right:8px}
+  input[type=email], input[type=password]{direction:ltr; text-align:left}
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:12px;}
   .card h2{font-size:15px; margin:0 0 2px;}
   .btnrow{display:flex; flex-wrap:wrap; gap:8px;}
@@ -91,44 +105,46 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="nav"><a href="index.html">← Dictionary</a> · <a href="prompts/admin.html">Prompt windows</a> · <a href="prompts/index.html">Voice prompts</a></div>
-  <div class="top">
-    <div><h1>Contributed words</h1></div>
-    <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden">sign out</a></div>
+  <div class="navrow">
+    <div class="nav"><a href="index.html" class="back" data-t="tools.nav.dictionary">Dictionary</a> · <a href="prompts/admin.html" data-t="tools.nav.windows">Prompt windows</a> · <a href="prompts/index.html" data-t="tools.nav.prompts">Voice prompts</a></div>
+    <button id="langSwitch"></button>
   </div>
-  <div class="sub">Words people add from the “add a word” page. Look, listen, and take down what shouldn’t be there.</div>
+  <div class="top">
+    <div><h1 data-t="tools.nav.words">Contributed words</h1></div>
+    <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden" data-t="tools.signout">sign out</a></div>
+  </div>
+  <div class="lead" data-t="stw.lead">Words people add from the “add a word” page. Look, listen, and take down what shouldn’t be there.</div>
 
   <!-- sign in -->
   <div id="signin" class="card">
-    <h2>Steward sign-in</h2>
-    <div class="msg" id="authmsg">Sign in with the steward account.</div>
-    <input id="email" type="email" placeholder="email" autocomplete="username" />
-    <input id="pass" type="password" placeholder="password" autocomplete="current-password" />
-    <div class="btnrow" style="margin-top:12px;"><button class="btn primary" id="dosignin">Sign in</button></div>
-    <div class="tip" id="ownBrowser">Use a separate browser for the steward pages (Firefox, or a second Chrome profile). Signing in here replaces your dictionary sign-in in this browser, so words you add afterwards would be credited to the steward.</div>
+    <h2 data-t="tools.signin.title">Steward sign-in</h2>
+    <div class="msg" id="authmsg" data-t="tools.signin.hint">Sign in with the steward account.</div>
+    <input id="email" type="email" placeholder="email" data-t-ph="tools.email" autocomplete="username" />
+    <input id="pass" type="password" placeholder="password" data-t-ph="tools.password" autocomplete="current-password" />
+    <div class="btnrow" style="margin-top:12px;"><button class="btn primary" id="dosignin" data-t="tools.signin">Sign in</button></div>
+    <div class="tip" id="ownBrowser" data-t="tools.ownbrowser">Use a separate browser for the steward pages (Firefox, or a second Chrome profile). Signing in here replaces your dictionary sign-in in this browser, so words you add afterwards would be credited to the steward.</div>
   </div>
 
   <!-- panel -->
   <div id="panel" class="hidden">
     <div class="top">
       <div class="tabs" id="tabs">
-        <button class="tab on" data-tab="review">To review<span class="n" id="n-review"></span></button>
-        <button class="tab" data-tab="hidden">Hidden<span class="n" id="n-hidden"></span></button>
-        <button class="tab" data-tab="all">All<span class="n" id="n-all"></span></button>
+        <button class="tab on" data-tab="review"><span data-t="stw.tab.review">To review</span><span class="n" id="n-review"></span></button>
+        <button class="tab" data-tab="hidden"><span data-t="stw.tab.hidden">Hidden</span><span class="n" id="n-hidden"></span></button>
+        <button class="tab" data-tab="all"><span data-t="stw.tab.all">All</span><span class="n" id="n-all"></span></button>
       </div>
-      <a href="#" id="refresh" class="small">refresh</a>
+      <a href="#" id="refresh" class="small" data-t="tools.refresh">refresh</a>
     </div>
     <div class="msg" id="msg"></div>
-    <div id="list"><div class="empty">loading…</div></div>
-    <div class="note">
-      <b>Hide</b> takes a word out of the dictionary, search and shared links for everyone, and can be undone with <b>Show again</b>.
-      <b>Take down photo</b> deletes the picture for good. Neither touches anyone’s voice: withdrawing a voice stays the speaker’s own choice.
-      A word whose creator removed it is purged by the daily sweep once its voices are gone.
-    </div>
+    <div id="list"><div class="empty" data-t="tools.loading">loading…</div></div>
+    <div class="note" data-t="stw.note"></div>
   </div>
 </div>
 
+<script src="afd-core.js?v=b1013a"></script>
 <script src="afd-instance.js?v=b1013a"></script>
+<script src="afd-tools.js?v=b1013a"></script>
+<script>AFDTools.paint(); AFDTools.mountSwitch(document.getElementById("langSwitch"));</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -147,16 +163,25 @@ const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
 const ms = t => (t && typeof t.toMillis === "function") ? t.toMillis() : (typeof t === "number" ? t : 0);
 const when = t => { const m = ms(t); return m ? new Date(m).toLocaleString() : ""; };
 const notAllowed = e => e && e.code === "permission-denied";
-const NOT_STEWARD = "This account isn’t listed as the steward. On the laptop: node scripts/grant-steward.mjs <this email>";
+// Interface text: AFDCore.STRINGS via afd-tools.js, in Arabic or Arabic + English.
+const T = AFDTools.text, H = AFDTools.html;
+const code = e => (e && (e.code || e.message)) || "error";
 // What to print for the signed-in account. Sign-in is shared by every page of
 // the site, so this page can find the phone or Google account someone used in
 // the dictionary. Never fall back to the account id: it means nothing to a reader.
-const whoLabel = u => u.email || u.phoneNumber || u.displayName || "signed in";
+const whoLabel = u => u.email || u.phoneNumber || u.displayName || T("tools.signedin");
+// A message line that is redrawn when the language switch changes.
+const said = {};
+function say(id, key, vars){ said[id] = key ? [key, vars] : null; $(id).textContent = key ? T(key, vars) : ""; }
+AFDTools.onChange(()=>{
+  for(const id in said) if(said[id]) $(id).textContent = T(said[id][0], said[id][1]);
+  if(auth.currentUser && !auth.currentUser.isAnonymous) $("who").textContent = whoLabel(auth.currentUser);
+  paint();
+});
 // Why this account can't use the page, said for the account that is signed in.
-function notStewardMsg(u){
-  if(!u || !u.email) return "You’re signed in with your dictionary account" + (u && u.phoneNumber ? " (" + u.phoneNumber + ")" : "") +
-    ", not the steward account. Sign in below with the steward email and password.";
-  return "This account isn’t listed as the steward. If it should be, on the laptop: node scripts/grant-steward.mjs " + u.email;
+function notSteward(u){
+  if(!u || !u.email) say("authmsg", "tools.notsteward.dict", { phone: u && u.phoneNumber ? " (" + u.phoneNumber + ")" : "" });
+  else say("authmsg", "tools.notsteward.email", { email: u.email });
 }
 
 let words = [];            // [{ id, d }]
@@ -164,9 +189,9 @@ let tab = "review";
 
 /* ---- auth ---------------------------------------------------------------- */
 $("dosignin").onclick = async ()=>{
-  $("authmsg").textContent = "signing in…";
+  say("authmsg", "tools.signingin");
   try{ await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
-  catch(e){ $("authmsg").textContent = "Couldn’t sign in (" + (e.code||e.message||"error") + ")"; }
+  catch(e){ say("authmsg", "tools.signin.failed", { code: code(e) }); }
 };
 $("pass").addEventListener("keydown", e=>{ if(e.key === "Enter") $("dosignin").click(); });
 $("signout").onclick = e=>{ e.preventDefault(); signOut(auth); };
@@ -181,7 +206,7 @@ onAuthStateChanged(auth, async user=>{
   try{ steward = (await getDoc(doc(db, "afd_admins", user.uid))).exists(); }catch(_){}
   if(!steward){
     $("signin").classList.remove("hidden"); $("panel").classList.add("hidden");
-    $("authmsg").textContent = notStewardMsg(user);
+    notSteward(user);
     return;
   }
   $("signin").classList.add("hidden"); $("panel").classList.remove("hidden");
@@ -190,7 +215,7 @@ onAuthStateChanged(auth, async user=>{
 
 /* ---- data ---------------------------------------------------------------- */
 async function load(){
-  $("list").innerHTML = '<div class="empty">loading…</div>';
+  $("list").innerHTML = '<div class="empty">' + H("tools.loading") + '</div>';
   try{
     // The same query the dictionary runs (no composite index needed); newest first here.
     const snap = await getDocs(query(collection(db, "afd_entries"), where("source", "==", "user")));
@@ -198,15 +223,15 @@ async function load(){
                      .sort((a, b) => ms(b.d.createdAt) - ms(a.d.createdAt));
     paint();
   }catch(e){
-    $("list").innerHTML = '<div class="empty">Couldn’t load (' + esc(e.code||e.message||"error") + ').</div>';
+    $("list").innerHTML = '<div class="empty">' + H("tools.err.load", { code: code(e) }) + '</div>';
   }
 }
-$("refresh").onclick = e=>{ e.preventDefault(); $("msg").textContent = ""; load(); };
+$("refresh").onclick = e=>{ e.preventDefault(); say("msg", null); load(); };
 
 const inReview = w => !w.d.reviewedAt && !w.d.hiddenAt && !w.d.removedAt;
 const inHidden = w => !!w.d.hiddenAt;
 const FILTER = { review: inReview, hidden: inHidden, all: () => true };
-const EMPTY  = { review: "Nothing new to review.", hidden: "No hidden words.", all: "No contributed words yet." };
+const EMPTY  = { review: "stw.empty.review", hidden: "stw.empty.hidden", all: "stw.empty.all" };
 
 document.querySelectorAll("#tabs .tab").forEach(b=>{
   b.onclick = ()=>{ tab = b.dataset.tab; paint(); };
@@ -219,7 +244,7 @@ function paint(){
   $("n-all").textContent    = words.length;
   const shown = words.filter(FILTER[tab]);
   const list = $("list"); list.innerHTML = "";
-  if(!shown.length){ list.innerHTML = '<div class="empty">' + EMPTY[tab] + '</div>'; return; }
+  if(!shown.length){ list.innerHTML = '<div class="empty">' + H(EMPTY[tab]) + '</div>'; return; }
   shown.forEach(w => list.appendChild(row(w)));
 }
 
@@ -230,48 +255,49 @@ function row(w){
   el.className = "card word" + (d.hiddenAt ? " is-hidden" : "");
 
   const face = d.image ? `<img src="${esc(d.image)}" alt="" loading="lazy">` : esc(d.pic || "?");
-  const gloss = d.gloss || (d.glossAr ? "" : "(no meaning written)");
+  const gloss = d.gloss || (d.glossAr ? "" : T("stw.nomeaning"));
   const badges = [];
-  if(d.removedAt)        badges.push(`<span class="badge hid">removed by its creator · ${esc(when(d.removedAt))}</span>`);
-  else if(d.hiddenAt)    badges.push(`<span class="badge hid">hidden · ${esc(when(d.hiddenAt))}</span>`);
-  if(!d.reviewedAt && !d.removedAt) badges.push(`<span class="badge new">new</span>`);
-  else if(d.reviewedAt)  badges.push(`<span class="badge ok">reviewed · ${esc(when(d.reviewedAt))}</span>`);
+  // the words are translated; the date beside them is data
+  if(d.removedAt)        badges.push(`<span class="badge hid">${H("stw.badge.removed")} · ${esc(when(d.removedAt))}</span>`);
+  else if(d.hiddenAt)    badges.push(`<span class="badge hid">${H("stw.badge.hidden")} · ${esc(when(d.hiddenAt))}</span>`);
+  if(!d.reviewedAt && !d.removedAt) badges.push(`<span class="badge new">${H("stw.badge.new")}</span>`);
+  else if(d.reviewedAt)  badges.push(`<span class="badge ok">${H("stw.badge.reviewed")} · ${esc(when(d.reviewedAt))}</span>`);
   (d.tags || []).forEach(t => badges.push(`<span class="badge">${esc(t)}</span>`));
 
   el.innerHTML =
     `<div class="thumb">${face}</div>` +
     `<div>` +
       `<div class="gloss">${esc(gloss)}${d.glossAr ? `<span class="ar" dir="rtl">${esc(d.glossAr)}</span>` : ""}</div>` +
-      `<div class="meta">${d.domain ? esc(d.domain) + " · " : ""}added ${esc(when(d.createdAt))} · by ` +
+      `<div class="meta">${d.domain ? esc(d.domain) + " · " : ""}${H("stw.added")} ${esc(when(d.createdAt))} · ${H("stw.by")} ` +
         `<span title="${esc(d.createdBy)}">${esc(String(d.createdBy||"?").slice(0,6))}</span> · ` +
-        `<a class="small" href="index.html#${encodeURIComponent(id)}" target="_blank" rel="noopener">open</a></div>` +
+        `<a class="small" href="index.html#${encodeURIComponent(id)}" target="_blank" rel="noopener">${H("stw.open")}</a></div>` +
       `<div class="badges">${badges.join("")}</div>` +
-      `<div class="voices"><button class="btn" data-a="listen">▶ Voices</button></div>` +
+      `<div class="voices"><button class="btn" data-a="listen">${H("stw.voices")}</button></div>` +
       `<div class="actions btnrow"></div>` +
     `</div>`;
 
   el.querySelector('[data-a="listen"]').onclick = e => voices(e.currentTarget, id);
 
   const acts = el.querySelector(".actions");
-  const add = (label, cls, fn) => {
-    const b = document.createElement("button"); b.className = "btn " + cls; b.textContent = label;
+  const add = (key, cls, fn) => {
+    const b = document.createElement("button"); b.className = "btn " + cls; b.innerHTML = H(key);
     b.onclick = async ()=>{
       acts.querySelectorAll("button").forEach(x => x.disabled = true);
-      $("msg").textContent = "saving…";
-      try{ await fn(); $("msg").textContent = "Saved."; }
-      catch(e){ $("msg").textContent = notAllowed(e) ? NOT_STEWARD : "Couldn’t save (" + (e.code||e.message||"error") + ")"; }
+      say("msg", "tools.saving");
+      try{ await fn(); say("msg", "tools.saved"); }
+      catch(e){ if(notAllowed(e)) say("msg", "tools.notallowed"); else say("msg", "tools.err.save", { code: code(e) }); }
       paint();
     };
     acts.appendChild(b);
   };
 
   if(!d.removedAt){
-    if(!d.reviewedAt && !d.hiddenAt) add("Looks fine", "primary", () => markReviewed(w));
-    if(d.hiddenAt) add("Show again", "", () => setHidden(w, false));
-    else           add("Hide word", "danger", () => setHidden(w, true));
+    if(!d.reviewedAt && !d.hiddenAt) add("stw.act.fine", "primary", () => markReviewed(w));
+    if(d.hiddenAt) add("stw.act.show", "", () => setHidden(w, false));
+    else           add("stw.act.hide", "danger", () => setHidden(w, true));
   }
-  if(d.image) add("Take down photo", "danger", () => takeDownPhoto(w));
-  if(d.pic)   add("Remove emoji", "danger", () => clearField(w, "pic"));
+  if(d.image) add("stw.act.photo", "danger", () => takeDownPhoto(w));
+  if(d.pic)   add("stw.act.emoji", "danger", () => clearField(w, "pic"));
   return el;
 }
 
@@ -286,7 +312,7 @@ async function alsoReviewed(w){
   try{ await markReviewed(w); }catch(e){ console.warn("[steward] reviewedAt", e); }
 }
 async function setHidden(w, hide){
-  if(hide && !confirm("Hide this word from the dictionary, search and shared links? You can show it again later.")) return;
+  if(hide && !confirm(T("stw.confirm.hide"))) return;
   await updateDoc(doc(db, "afd_entries", w.id), { hiddenAt: hide ? serverTimestamp() : deleteField() });
   if(hide) w.d.hiddenAt = Date.now(); else delete w.d.hiddenAt;
   await alsoReviewed(w);
@@ -301,7 +327,7 @@ async function clearField(w, key){
 // (the only path the rules let a word's photo have), never from the stored URL.
 // "Already gone" counts as done, so a retry after a half-finished attempt works.
 async function takeDownPhoto(w){
-  if(!confirm("Delete this photo for good? The word keeps its emoji (if any) or gets its pattern face.")) return;
+  if(!confirm(T("stw.confirm.photo"))) return;
   await clearField(w, "image");
   try{ await deleteObject(ref(store, `afd_pics/${w.d.createdBy}/${w.id}.jpg`)); }
   catch(e){ if(e.code !== "storage/object-not-found") throw e; }
@@ -312,30 +338,31 @@ async function takeDownPhoto(w){
 let player = null;
 async function voices(btn, entryId){
   const box = btn.parentElement;
-  btn.disabled = true; btn.textContent = "loading…";
+  btn.disabled = true; btn.innerHTML = H("tools.loading");
   try{
     const snap = await getDocs(query(collection(db, "afd_entries", entryId, "recordings"),
                                      where("allowPlayback", "==", true)));
     const recs = snap.docs.map(s => s.data() || {}).filter(r => r.storagePath)
                      .sort((a, b) => ms(a.recordedAt) - ms(b.recordedAt));
     btn.remove();
-    if(!recs.length){ box.insertAdjacentHTML("beforeend", "<span>no public voices</span>"); return; }
+    if(!recs.length){ box.insertAdjacentHTML("beforeend", "<span>" + H("stw.voices.none") + "</span>"); return; }
     recs.forEach((r, i)=>{
       const b = document.createElement("button"); b.className = "btn";
-      b.textContent = "▶ " + (r.type || "voice") + " " + (i + 1);
+      const kind = { word:"stw.voice.word", context:"stw.voice.context", definition:"stw.voice.definition" }[r.type];
+      b.textContent = "▶ " + (kind ? T(kind) : (r.type || "voice")) + " " + (i + 1);
       b.title = (r.speakerId || "") + (r.recordedAt ? " · " + when(r.recordedAt) : "");
       b.onclick = async ()=>{
         try{
           if(player) player.pause();
           player = new Audio(await getDownloadURL(ref(store, r.storagePath)));
           await player.play();
-        }catch(e){ $("msg").textContent = "Couldn’t play (" + (e.code||e.message||"error") + ")"; }
+        }catch(e){ say("msg", "stw.err.play", { code: code(e) }); }
       };
       box.appendChild(b);
     });
   }catch(e){
-    btn.disabled = false; btn.textContent = "▶ Voices";
-    $("msg").textContent = "Couldn’t load voices (" + (e.code||e.message||"error") + ")";
+    btn.disabled = false; btn.innerHTML = H("stw.voices");
+    say("msg", "stw.err.voices", { code: code(e) });
   }
 }
 </script>
