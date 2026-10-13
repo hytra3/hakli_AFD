@@ -46,8 +46,8 @@
      beside it in buttons, tabs and badges. Arabic only: the page turns RTL. */
   .t-ar{display:block}
   .t-en{display:block; opacity:.72; font-size:.92em}
-  :is(.btn,.tab,.badge,.nav,a.small,.who,.meta) :is(.t-ar,.t-en){display:inline}
-  :is(.btn,.tab,.badge,.nav,a.small,.who,.meta) .t-en::before{content:" · "}
+  :is(.btn,.tab,.badge,.nav,a.small,.who,.meta,.covpick,.cov h3) :is(.t-ar,.t-en){display:inline}
+  :is(.btn,.tab,.badge,.nav,a.small,.who,.meta,.covpick,.cov h3) .t-en::before{content:" · "}
   a.back::before{content:"← "} html[dir="rtl"] a.back::before{content:"→ "}
   .t-switch{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:20px; padding:4px 11px; font-size:12px; cursor:pointer; white-space:nowrap}
   .navrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
@@ -97,6 +97,18 @@
   .actions{margin-top:10px;}
   .actions .btn{padding:7px 11px; font-size:13px;}
   .empty{font-size:13px; color:var(--muted); padding:18px 4px;}
+  .cov h3{font-size:14px; margin:16px 0 6px}
+  .cov h3 .n{color:var(--muted); font-weight:400; margin-inline-start:4px}
+  .covpick{font-size:13px; color:var(--muted)}
+  .covpick select{font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--ink); margin-inline-start:6px}
+  .covsum{margin-top:12px; font-size:14px}
+  .covbar{height:8px; background:var(--line); border-radius:4px; overflow:hidden; margin-top:8px}
+  .covbar span{display:block; height:100%; background:var(--go)}
+  .covl{list-style:none; margin:0; padding:0; columns:2 220px; column-gap:18px; font-size:13px}
+  .covl li{break-inside:avoid; padding:3px 0; direction:ltr; text-align:start}
+  .covl .field{color:var(--muted); font-size:11px}
+  .covl .cw{color:var(--go); font-size:12px}
+  .covl.done b{color:var(--go)}
   @media (max-width:420px){
     .word{grid-template-columns:64px 1fr; gap:10px;}
     .thumb{width:64px; height:64px; font-size:32px; border-radius:14px;}
@@ -132,6 +144,7 @@
         <button class="tab on" data-tab="review"><span data-t="stw.tab.review">To review</span><span class="n" id="n-review"></span></button>
         <button class="tab" data-tab="hidden"><span data-t="stw.tab.hidden">Hidden</span><span class="n" id="n-hidden"></span></button>
         <button class="tab" data-tab="all"><span data-t="stw.tab.all">All</span><span class="n" id="n-all"></span></button>
+        <button class="tab" data-tab="coverage"><span data-t="stw.tab.coverage">Coverage</span><span class="n" id="n-coverage"></span></button>
       </div>
       <a href="#" id="refresh" class="small" data-t="tools.refresh">refresh</a>
     </div>
@@ -242,11 +255,64 @@ function paint(){
   $("n-review").textContent = words.filter(inReview).length;
   $("n-hidden").textContent = words.filter(inHidden).length;
   $("n-all").textContent    = words.length;
+  if(tab === "coverage"){ paintCoverage(); return; }
   const shown = words.filter(FILTER[tab]);
   const list = $("list"); list.innerHTML = "";
   if(!shown.length){ list.innerHTML = '<div class="empty">' + H(EMPTY[tab]) + '</div>'; return; }
   shown.forEach(w => list.appendChild(row(w)));
 }
+
+/* ---- coverage: which concepts on a standard list have a word card ---------
+   Concepts come from data/concepticon.json (Concepticon + the comparison lists);
+   a card covers a concept when its `concepts` names it (scripts/apply-concepts.mjs
+   makes those links). Every word card counts, seeded or contributed, unless it
+   is hidden or removed. Loaded the first time the tab is opened. */
+let cov = null;                      // { index, lists, linked: Map(conceptId → [gloss…]) }
+let covList = "Tadmor-2009-100";     // Leipzig-Jakarta 100 first: built to be the most stable core
+async function loadCoverage(){
+  const [ref, snap] = await Promise.all([
+    fetch("data/concepticon.json").then(r => { if(!r.ok) throw new Error("concepticon.json " + r.status); return r.json(); }),
+    getDocs(collection(db, "afd_entries"))
+  ]);
+  const linked = new Map();
+  snap.docs.forEach(s => {
+    const d = s.data() || {};
+    if(d.hiddenAt || d.removedAt) return;
+    const name = d.gloss || d.glossAr || s.id;
+    (d.concepts || []).forEach(c => { if(!linked.has(c)) linked.set(c, []); linked.get(c).push(name); });
+  });
+  cov = { index: ref.concepts, lists: ref.lists, linked };
+}
+async function paintCoverage(){
+  const list = $("list");
+  if(!cov){
+    list.innerHTML = '<div class="empty">' + H("tools.loading") + '</div>';
+    try{ await loadCoverage(); }
+    catch(e){ list.innerHTML = '<div class="empty">' + H("tools.err.load", { code: code(e) }) + '</div>'; return; }
+    if(tab !== "coverage") return;
+  }
+  const L = cov.lists[covList], ids = L.concepts.map(n => "concepticon:" + n);
+  const covered = ids.filter(id => cov.linked.has(id)), missing = ids.filter(id => !cov.linked.has(id));
+  $("n-coverage").textContent = covered.length + "/" + ids.length;
+  const item = (id, words) => {
+    const c = cov.index[id.split(":")[1]] || [id, ""];
+    return `<li><b>${esc(c[0])}</b> <span class="field">${esc(c[1])}</span>${words ? ` <span class="cw">← ${esc(words.join(", "))}</span>` : ""}</li>`;
+  };
+  list.innerHTML =
+    `<div class="card cov">` +
+      `<label class="covpick">${H("stw.cov.list")} <select id="covList">` +
+        Object.entries(cov.lists).map(([k, v]) => `<option value="${esc(k)}"${k === covList ? " selected" : ""}>${esc(v.label)}</option>`).join("") +
+      `</select></label>` +
+      `<div class="covsum">${H("stw.cov.summary", { n: covered.length, total: ids.length })}</div>` +
+      `<div class="covbar"><span style="width:${(100 * covered.length / ids.length).toFixed(1)}%"></span></div>` +
+      `<h3>${H("stw.cov.missing")} <span class="n">${missing.length}</span></h3>` +
+      (missing.length ? `<ul class="covl">${missing.map(id => item(id)).join("")}</ul>` : `<div class="empty">${H("stw.cov.none")}</div>`) +
+      (covered.length ? `<h3>${H("stw.cov.covered")} <span class="n">${covered.length}</span></h3><ul class="covl done">${covered.map(id => item(id, cov.linked.get(id))).join("")}</ul>` : "") +
+      `<div class="tip">${H("stw.cov.note")}</div>` +
+    `</div>`;
+  $("covList").onchange = (e) => { covList = e.target.value; paintCoverage(); };
+}
+$("refresh").addEventListener("click", () => { cov = null; });
 
 /* ---- one word ------------------------------------------------------------ */
 function row(w){
