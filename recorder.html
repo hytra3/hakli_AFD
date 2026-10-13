@@ -494,35 +494,81 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <span><span class="bi-ar" dir="rtl" data-str="speaker.agent">أُسجِّل صوت شخصٍ آخر (لستُ المتحدِّث)</span><small class="sub">I'm recording someone else's voice (I'm not the speaker)</small></span></label>
     <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.code">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
       <input type="text" id="spkId" placeholder="spk_01" value="spk_01"></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.town">البلدة</span><small class="sub">Town</small></span>
-      <input type="text" id="spkTown" placeholder="Mirbat" data-str="form.town.eg" list="towns">
-      <!-- value = what gets stored (unchanged, English); the Arabic label shows beside it in the list -->
-      <datalist id="towns">
-        <option value="Salalah" data-str="town.salalah">صلالة</option><option value="Mirbat" data-str="town.mirbat">مرباط</option><option value="Taqah" data-str="town.taqah">طاقة</option>
-        <option value="Sadah" data-str="town.sadah">سدح</option><option value="Rakhyut" data-str="town.rakhyut">رخيوت</option><option value="Dhalkut" data-str="town.dhalkut">ضلكوت</option>
-      </datalist></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.tribe">القبيلة</span><small class="sub">Tribe</small></span>
-      <input type="text" id="spkTribe" placeholder="self-identified" data-str="form.tribe.eg"></label>
-    <div class="row">
-      <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl" data-str="speaker.age">الفئة العُمرية</span><small class="sub">Age band</small></span>
-        <select id="spkAge">
-          <option value="">—</option>
-          <option value="20s" data-str="form.age.20s">العشرينات · 20s</option>
-          <option value="30s" data-str="form.age.30s">الثلاثينات · 30s</option>
-          <option value="40s" data-str="form.age.40s">الأربعينات · 40s</option>
-          <option value="50s" data-str="form.age.50s">الخمسينات · 50s</option>
-          <option value="60s" data-str="form.age.60s">الستينات · 60s</option>
-          <option value="70s" data-str="form.age.70s">السبعينات · 70s</option>
-          <option value="80s+" data-str="form.age.80s">الثمانينات فأكثر · 80s+</option>
-        </select></label>
-      <label class="field" style="flex:1"><span><span class="bi-ar" dir="rtl" data-str="speaker.gender">الجنس</span><small class="sub">Gender</small></span>
-        <select id="spkGender">
-          <option value="" data-str="form.gender.optional">— اختياري · optional —</option>
-          <option value="f" data-str="form.gender.f">أنثى · Female</option>
-          <option value="m" data-str="form.gender.m">ذكر · Male</option>
-        </select></label>
-    </div>
-    <p class="note"><span class="bi-ar" dir="rtl" data-str="speaker.nodialect">لا حقلَ للهجة عن قصد — تُسجَّل البلدة وتُشتَقّ اللهجة لاحقًا.</span><small class="sub">No dialect field by design — locality is recorded, variety derived later.</small></p>
+    <!-- The speaker's fields come from afd-instance.js (AFDInstance.speaker):
+         which fields, their order, options and stored slot. Built right here,
+         while the page is still loading, so every later script finds the
+         same element ids it always has. -->
+    <div id="spkFields"></div>
+    <script>
+    (function buildSpeakerFields(){
+      var spec = (window.AFDInstance && window.AFDInstance.speaker) || { fields: [] };
+      var S = (window.AFDCore && window.AFDCore.STRINGS) || {};
+      var host = document.getElementById("spkFields");
+      var esc = function(t){ return String(t == null ? "" : t).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); };
+      var str = function(k, lang){ return (S[k] && S[k][lang]) || ""; };
+      // the label: Arabic line + English sub, as everywhere in the recorder
+      var label = function(k){
+        return '<span><span class="bi-ar" dir="rtl" data-str="' + esc(k) + '">' + esc(str(k, "ar")) +
+               '</span><small class="sub">' + esc(str(k, "en")) + '</small></span>';
+      };
+      // option text is repainted by paintFormTier() to suit the display mode
+      var opt = function(o){
+        return '<option value="' + esc(o.value) + '"' + (o.label ? ' data-str="' + esc(o.label) + '"' : '') + '>' +
+               esc(o.label ? str(o.label, "ar") : (o.text || "")) + '</option>';
+      };
+      var field = function(f){
+        var ph = f.placeholder ? ' placeholder="' + esc(str(f.placeholder, "en")) + '" data-str="' + esc(f.placeholder) + '"' : '';
+        var input;
+        if(f.kind === "select"){
+          input = '<select id="' + esc(f.id) + '">' + (f.options || []).map(opt).join("") + '</select>';
+        }else if(f.kind === "suggest"){
+          // value = what gets stored (unchanged, English); the label shows beside it in the list
+          input = '<input type="text" id="' + esc(f.id) + '"' + ph + ' list="' + esc(f.id) + 'List">' +
+                  '<datalist id="' + esc(f.id) + 'List">' + (f.options || []).map(opt).join("") + '</datalist>';
+        }else{
+          input = '<input type="text" id="' + esc(f.id) + '"' + ph + '>';
+        }
+        return '<label class="field"' + (f.half ? ' style="flex:1"' : '') + '>' + label(f.label) + input + '</label>';
+      };
+      var html = "", fs = spec.fields || [];
+      for(var i = 0; i < fs.length; i++){
+        if(fs[i].half && fs[i+1] && fs[i+1].half){            // two half-width fields share a row
+          html += '<div class="row">' + field(fs[i]) + field(fs[i+1]) + '</div>'; i++;
+        }else{
+          html += field(fs[i]);
+        }
+      }
+      if(spec.note) html += '<p class="note">' + label(spec.note).replace(/^<span>|<\/span>$/g, "") + '</p>';
+      host.outerHTML = html;
+
+      // Reading and writing the form by SLOT, so no other code names a field
+      // directly. A slot the instance doesn't show reads as "" and is skipped
+      // on write. The stored shape stays the same four slots for every
+      // instance (afd-upload.js writes them to the private subdoc).
+      var byId = function(f){ return document.getElementById(f.id); };
+      var getPath = function(o, path){ return path.split(".").reduce(function(a, k){ return a ? a[k] : undefined; }, o); };
+      window.AFDSpeakerForm = {
+        // the value shown for one slot ("" if that field isn't configured)
+        val: function(slot){
+          for(var i = 0; i < fs.length; i++) if(fs[i].slot === slot){ var el = byId(fs[i]); return el ? (el.value || "").trim() : ""; }
+          return "";
+        },
+        // the stored speaker fields, always all four slots
+        read: function(){
+          var v = function(slot){ for(var i = 0; i < fs.length; i++) if(fs[i].slot === slot){ var el = byId(fs[i]); return el ? el.value : ""; } return ""; };
+          return { origin: { town: v("origin.town"), tribe: v("origin.tribe") }, ageBand: v("ageBand"), gender: v("gender") };
+        },
+        // fill the form from a saved speaker record
+        write: function(rec){
+          fs.forEach(function(f){ var el = byId(f); if(el) el.value = getPath(rec || {}, f.slot) || ""; });
+        },
+        // a new speaker: clear what belongs to one person (perSpeaker)
+        clearPerSpeaker: function(){
+          fs.forEach(function(f){ var el = byId(f); if(el && f.perSpeaker) el.value = ""; });
+        }
+      };
+    })();
+    </script>
   </div>
 
   <div class="card">
@@ -1228,7 +1274,7 @@ function squareJpeg(file, size){
 $("switchSpeaker").onclick=()=>{
   // fresh person: new code, cleared details, cleared per-speaker permission
   $("spkId").value = nextSpeakerCode($("spkId").value);
-  $("spkAge").value=""; $("spkGender").value="";   // keep town + tribe: among Jibbali tribes a town is typically a tribe (edit for a roving session)
+  AFDSpeakerForm.clearPerSpeaker();   // the perSpeaker fields (afd-instance.js); town + tribe are kept
   ["cArchive","cML","cPlay"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
   switchingSpeaker=true;
   $("toMic").innerHTML=biHTML("speaker.recordfor");
@@ -1490,8 +1536,8 @@ $("toMic").onclick=async ()=>{
    town is what makes a speaker recognisable at a glance (and drives dialect), so
    it leads; the code rides along as the precise id. */
 function speakerChipHTML(){
-  const town=($("spkTown").value||"").trim(), tribe=($("spkTribe").value||"").trim();
-  const age=($("spkAge").value||"").trim(), g=($("spkGender").value||"").trim();
+  const F=AFDSpeakerForm.val;
+  const town=F("origin.town"), tribe=F("origin.tribe"), age=F("ageBand"), g=F("gender");
   const code=($("spkId").value||"").trim();
   const GS=AFDCore.STRINGS||{}, gAr=(k,d)=>((GS[k]||{}).ar)||d;     // the form's own words (form.gender.*)
   const genderTxt = g==="f" ? gAr("form.gender.f","أنثى")+" · F" : g==="m" ? gAr("form.gender.m","ذكر")+" · M" : "";
@@ -2696,8 +2742,7 @@ function speakerRecord(){
     key:"speaker",
     speakerId:$("spkId").value,
     viaAgent:!!($("agentMode") && $("agentMode").checked),
-    origin:{town:$("spkTown").value,tribe:$("spkTribe").value},
-    ageBand:$("spkAge").value, gender:$("spkGender").value,
+    ...AFDSpeakerForm.read(),   // origin {town, tribe}, ageBand, gender
     consent:{
       version:"cv_2026_08",
       archivalDeposit:$("cArchive").checked,
@@ -3012,10 +3057,7 @@ const restored = (async function restore(){
     if(spk){
       hasSavedSpeaker=true;
       $("spkId").value=spk.speakerId||"spk_01";
-      $("spkTown").value=(spk.origin&&spk.origin.town)||"";
-      $("spkTribe").value=(spk.origin&&spk.origin.tribe)||"";
-      $("spkAge").value=spk.ageBand||"";
-      $("spkGender").value=spk.gender||"";
+      AFDSpeakerForm.write(spk);
       if(spk.consent){
         $("cArchive").checked=!!spk.consent.archivalDeposit;
         $("cML").checked=!!spk.consent.mlTraining;
