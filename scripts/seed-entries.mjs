@@ -21,6 +21,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readInstance } from "./lib/instance.mjs";
 
 const DRY = process.argv.includes("--dry");
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
@@ -51,15 +52,7 @@ function entrySlug(id){
 }
 const entryIdFor = id => "ent_" + entrySlug(id);
 
-// ---- the instance config, read the same way (afd-instance.js) ----
-function readInstance(){
-  const js = readFileSync(join(here, "..", "afd-instance.js"), "utf8");
-  const m = js.match(/window\.AFDInstance\s*=\s*(\{[\s\S]*\})\s*;/);
-  if(!m) throw new Error("Could not find `window.AFDInstance = {...}` in afd-instance.js");
-  const inst = Function("return " + m[1])();
-  if(!inst.language || !inst.language.code) throw new Error("afd-instance.js has no language.code");
-  return inst;
-}
+// ---- the instance config (afd-instance.js), read by the shared helper ----
 const INSTANCE = readInstance();
 
 function entryDoc(w){
