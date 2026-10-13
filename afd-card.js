@@ -415,13 +415,26 @@ async function setConsent(rec, state){
     await updateDoc(doc(CFG.db,"afd_entries",rec.entryId,"recordings",rec.recordingId),
       { consent: state, allowPlayback: state==="public" });
     rec.consent = state; return true;
-  }catch(e){ console.warn("[AFD] consent change failed", e); CFG.banner("Couldn't change that just now — try again"); return false; }
+  }catch(e){ console.warn("[AFD] consent change failed", e); CFG.banner(AFDCore.t("voice.change.failed", CFG.mode())); return false; }
+}
+
+// "Play <name>" for a known contributor, else "Play this voice" (screen readers)
+function playLabel(rec){
+  return rec.displayName ? AFDCore.tf("voice.play.name", CFG.mode(), { name: rec.displayName })
+                         : AFDCore.t("voice.play", CFG.mode());
+}
+// A button label in the card's style: English + small Arabic in auto, else the
+// display mode's own text (as AFDCore.t gives it).
+function biLabel(key){
+  const m=CFG.mode(), s=(AFDCore.STRINGS||{})[key];
+  if(m==="auto" && s && s.ar) return escapeHtml(s.en)+' <span class="ar">'+escapeHtml(s.ar)+'</span>';
+  return escapeHtml(AFDCore.t(key, m));
 }
 
 function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   const b=document.createElement("button");
   b.className="av"; b.style.background=rec.avatar.bg;
-  b.setAttribute("aria-label", rec.displayName ? ("Play "+rec.displayName) : "Play this voice");
+  b.setAttribute("aria-label", playLabel(rec));
   if(rec.displayName) b.title=rec.displayName;
   b.innerHTML=rec.avatar.svg;
   b.addEventListener("click",()=>{ b.setAttribute("aria-pressed","true");
@@ -439,7 +452,7 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
   const row=document.createElement("div");
   row.className="voice-row"; row.setAttribute("aria-pressed","false");
   const play=document.createElement("button");
-  play.className="vr-play"; play.setAttribute("aria-label", rec.displayName ? ("Play "+rec.displayName) : "Play this voice");
+  play.className="vr-play"; play.setAttribute("aria-label", playLabel(rec));
   if(rec.displayName) play.title=rec.displayName;
   const vrWave = (rec.envelope && rec.envelope.length)
     ? `<span class="vr-wave"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${boxBars(rec.envelope, 40)}</svg></span>`
@@ -475,7 +488,7 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
       row.classList.toggle("withdrawn", withdrawn);
       ctl.classList.toggle("restore", withdrawn);
       ctl.textContent = withdrawn ? AFDCore.t("voice.shareagain", CFG.mode()) : AFDCore.t("voice.takeback", CFG.mode());
-      ctl.setAttribute("aria-label", withdrawn ? "Restore your voice" : "Withdraw your voice");
+      ctl.setAttribute("aria-label", AFDCore.t(withdrawn ? "voice.restore.label" : "voice.withdraw.label", CFG.mode()));
     };
     paint();
     ctl.addEventListener("click", async ()=>{
@@ -495,15 +508,15 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
     const erase=document.createElement("button");
     erase.className="voice-ctl erase";
     erase.textContent=AFDCore.t("voice.erase", CFG.mode());
-    erase.setAttribute("aria-label","Erase this recording");
+    erase.setAttribute("aria-label", AFDCore.t("voice.erase.label", CFG.mode()));
     let armed=false, armTimer=null;
     const disarm=()=>{ armed=false; erase.classList.remove("armed"); erase.textContent=AFDCore.t("voice.erase", CFG.mode());
-      erase.setAttribute("aria-label","Erase this recording");
+      erase.setAttribute("aria-label", AFDCore.t("voice.erase.label", CFG.mode()));
       if(armTimer){ clearTimeout(armTimer); armTimer=null; } };
     erase.addEventListener("click", async ()=>{
       if(!armed){
         armed=true; erase.classList.add("armed"); erase.textContent=AFDCore.t("voice.erase.confirm", CFG.mode());
-        erase.setAttribute("aria-label","Tap again to erase for good");
+        erase.setAttribute("aria-label", AFDCore.t("withdraw.proof.erase.confirm", CFG.mode()));
         armTimer=setTimeout(disarm, 4000);
         return;
       }
@@ -574,7 +587,9 @@ function buildVoices(container, recs, thumbEl, playBtn, setUrl){
   container.appendChild(list);
 }
 
-function slotSection(labelEn, labelAr, type, entryId, recs, thumbEl, playBtn, setUrl){
+function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
+  const L=(AFDCore.STRINGS||{})[labelKey] || { en:labelKey, ar:labelKey };
+  const labelEn=escapeHtml(L.en), labelAr=L.ar;
   const s=document.createElement("div");
   s.className="slot slot-"+type;
   const has = recs && recs.length;
@@ -866,20 +881,20 @@ async function entryCard(res, lead){
     if(currentUrl==null) currentUrl = firstPlayable;
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
     feedback(res.entryId, meta, recs, detail, hc);
-    detail.appendChild(slotSection("the word","\u0627\u0644\u0643\u0644\u0645\u0629","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
-    detail.appendChild(slotSection("used in a sentence","\u0645\u062b\u0627\u0644 \u0641\u064a \u062c\u0645\u0644\u0629","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
-    detail.appendChild(slotSection("what it means","\u0627\u0644\u0645\u0639\u0646\u0649","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
+    detail.appendChild(slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
+    detail.appendChild(slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
+    detail.appendChild(slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
     const say=document.createElement("a");
     say.className="sayit"; say.href=`${CFG.recorderUrl}#${encodeURIComponent(res.entryId)}`;
     say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-    ${CFG.mode()==="auto" ? 'Say it yourself <span class="ar">\u0633\u062c\u0651\u0644 \u0635\u0648\u062a\u0643</span>' : escapeHtml(AFDCore.t("result.sayityourself", CFG.mode()))}`;
+    ${biLabel("result.sayityourself")}`;
     detail.appendChild(say);
     // Share — any word, any reader: a heard word invites "say it your way",
     // an unheard one asks for the first voice.
     const share=document.createElement("button");
     share.type="button"; share.className="sayit shareit";
     share.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>
-    ${CFG.mode()==="auto" ? 'Share this word <span class="ar">\u0634\u0627\u0631\u0643 \u0647\u0630\u0647 \u0627\u0644\u0643\u0644\u0645\u0629</span>' : escapeHtml(AFDCore.t("card.share", CFG.mode()))}`;
+    ${biLabel("card.share")}`;
     // Get the first public voice ready as a file now (see voiceFile), so a
     // tap can hand it straight to the share sheet.
     const pubVoice = wordRecs.find(r => r.consent==="public");
