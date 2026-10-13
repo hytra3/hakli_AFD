@@ -61,6 +61,7 @@ window.AFDPrompts = [
     { key:"consent.give", en:"Hold, and say yes in your own voice", ar:"اضغط مطوّلًا، وقل «نعم» بصوتك", kind:"label" },
     { key:"consent.give.sub", en:"Your word, in your language", ar:"كلمتك، بلغتك", kind:"label" },
     { key:"consent.notnow", en:"Not now", ar:"ليس الآن", kind:"label" },
+    { key:"consent.truth.town", en:"Your town shows beside your voice only if you choose it", ar:"تظهر بلدتك بجانب صوتك فقط إن اخترت ذلك", kind:"label" },
   ]},
   { tab:"record", later:true, name:"Your voice (consent control)", ar:"صوتك", items:[
     { key:"voice.title", en:"Your voice", ar:"صوتك", kind:"label" },

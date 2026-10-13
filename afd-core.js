@@ -772,6 +772,10 @@ window.AFDCore = (function(){
     "ep.custom":            { en:"Dhofar",             ar:"ظفار" },
     "ep.none":              { en:"No emoji",           ar:"بلا رمز" },
     "ep.other":             { en:"or type one",        ar:"أو اكتب رمزًا" },
+
+    // speaker origin visibility (recorder permission card; dictionary voices)
+    "consent.origin":       { en:"Show my town to everyone who hears my voice", ar:"إظهار بلدتي لكلّ من يسمع صوتي" },
+    "consent.origin.note":  { en:"Only the town — never the tribe, age or gender. Off unless the speaker chooses it.", ar:"البلدة فقط — لا القبيلة ولا العمر ولا الجنس. لا تُعرَض إلا إذا اختار المتحدّث ذلك." }
   };
   function t(key, mode){
     const s = STRINGS[key];
