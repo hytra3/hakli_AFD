@@ -1,0 +1,383 @@
+{
+ "about": "Concept links for the dictionary's word cards. Each entry is a proposal until a steward confirms it with scripts/apply-concepts.mjs, which writes confirmed links to the word card's `concepts` and records the decision here. Concepticon IDs are written concepticon:<ID>; concepts Concepticon lacks are local:<instanceId>/<slug>, described under `local`.",
+ "links": {
+  "ent_sun": {
+   "en": "sun",
+   "ar": "الشمس",
+   "propose": [
+    "concepticon:1343"
+   ],
+   "status": "proposed"
+  },
+  "ent_moon": {
+   "en": "moon",
+   "ar": "القمر",
+   "propose": [
+    "concepticon:1313"
+   ],
+   "status": "proposed"
+  },
+  "ent_mountain": {
+   "en": "mountain",
+   "ar": "جبل",
+   "propose": [
+    "concepticon:639"
+   ],
+   "status": "proposed"
+  },
+  "ent_sand": {
+   "en": "sand",
+   "ar": "رمل",
+   "propose": [
+    "concepticon:671"
+   ],
+   "status": "proposed"
+  },
+  "ent_clouds": {
+   "en": "clouds",
+   "ar": "غيوم",
+   "propose": [
+    "concepticon:1489"
+   ],
+   "status": "proposed"
+  },
+  "ent_cave": {
+   "en": "cave",
+   "ar": "كهف",
+   "propose": [
+    "concepticon:1155"
+   ],
+   "status": "proposed"
+  },
+  "ent_valley": {
+   "en": "valley",
+   "ar": "وادي",
+   "propose": [
+    "concepticon:921"
+   ],
+   "status": "proposed"
+  },
+  "ent_rocks": {
+   "en": "rocks",
+   "ar": "صخور",
+   "propose": [
+    "concepticon:668"
+   ],
+   "status": "proposed",
+   "note": "Alternatives: 857 STONE, 2125 STONE OR ROCK. ROCK = the material / large rock; STONE = a small loose one."
+  },
+  "ent_smoke": {
+   "en": "smoke",
+   "ar": "دخان",
+   "propose": [
+    "concepticon:778"
+   ],
+   "status": "proposed",
+   "note": "The noun (smoke from a fire), not the verb."
+  },
+  "ent_camel": {
+   "en": "camel",
+   "ar": "جمل",
+   "propose": [
+    "concepticon:1871"
+   ],
+   "status": "proposed"
+  },
+  "ent_wolf": {
+   "en": "wolf",
+   "ar": "ذئب",
+   "propose": [
+    "concepticon:522"
+   ],
+   "status": "proposed"
+  },
+  "ent_deer": {
+   "en": "deer",
+   "ar": "غزال",
+   "propose": [
+    "concepticon:1936"
+   ],
+   "status": "proposed"
+  },
+  "ent_horn": {
+   "en": "horn",
+   "ar": "قرن",
+   "propose": [
+    "concepticon:1393"
+   ],
+   "status": "proposed",
+   "note": "The animal's horn, not the instrument (939)."
+  },
+  "ent_bone": {
+   "en": "bone",
+   "ar": "عظم",
+   "propose": [
+    "concepticon:1394"
+   ],
+   "status": "proposed"
+  },
+  "ent_tree": {
+   "en": "tree",
+   "ar": "شجرة",
+   "propose": [
+    "concepticon:906"
+   ],
+   "status": "proposed"
+  },
+  "ent_corn": {
+   "en": "corn",
+   "ar": "ذرة",
+   "propose": [
+    "concepticon:506"
+   ],
+   "status": "proposed",
+   "note": "ذرة can be maize or sorghum. If the word means sorghum, use 347 SORGHUM instead."
+  },
+  "ent_fig": {
+   "en": "fig",
+   "ar": "تين",
+   "propose": [
+    "concepticon:322"
+   ],
+   "status": "proposed"
+  },
+  "ent_date": {
+   "en": "date (fruit)",
+   "ar": "تمر",
+   "propose": [
+    "concepticon:3801"
+   ],
+   "status": "proposed"
+  },
+  "ent_bean": {
+   "en": "bean",
+   "ar": "فاصولياء",
+   "propose": [
+    "concepticon:832"
+   ],
+   "status": "proposed"
+  },
+  "ent_hay": {
+   "en": "hay",
+   "ar": "تبن",
+   "propose": [
+    "concepticon:342"
+   ],
+   "status": "proposed"
+  },
+  "ent_water": {
+   "en": "water",
+   "ar": "ماء",
+   "propose": [
+    "concepticon:948"
+   ],
+   "status": "proposed"
+  },
+  "ent_milk": {
+   "en": "milk",
+   "ar": "حليب",
+   "propose": [
+    "concepticon:635"
+   ],
+   "status": "proposed"
+  },
+  "ent_eggs": {
+   "en": "eggs",
+   "ar": "بيض",
+   "propose": [
+    "concepticon:744"
+   ],
+   "status": "proposed"
+  },
+  "ent_brother": {
+   "en": "brother",
+   "ar": "أخ",
+   "propose": [
+    "concepticon:1262"
+   ],
+   "status": "proposed",
+   "note": "General term. If Hakli splits by the speaker's sex: 559 BROTHER (OF MAN) / 560 BROTHER (OF WOMAN)."
+  },
+  "ent_sister": {
+   "en": "sister",
+   "ar": "أخت",
+   "propose": [
+    "concepticon:1263"
+   ],
+   "status": "proposed",
+   "note": "General term. If Hakli splits by the speaker's sex: 561 SISTER (OF MAN) / 562 SISTER (OF WOMAN)."
+  },
+  "ent_daughter": {
+   "en": "daughter",
+   "ar": "ابنة",
+   "propose": [
+    "concepticon:1357"
+   ],
+   "status": "proposed"
+  },
+  "ent_son": {
+   "en": "son",
+   "ar": "ابن",
+   "propose": [
+    "concepticon:1620"
+   ],
+   "status": "proposed"
+  },
+  "ent_boy": {
+   "en": "boy",
+   "ar": "ولد",
+   "propose": [
+    "concepticon:1366"
+   ],
+   "status": "proposed"
+  },
+  "ent_girl": {
+   "en": "girl",
+   "ar": "بنت",
+   "propose": [
+    "concepticon:1646"
+   ],
+   "status": "proposed"
+  },
+  "ent_pillow": {
+   "en": "pillow",
+   "ar": "وسادة",
+   "propose": [
+    "concepticon:1044"
+   ],
+   "status": "proposed"
+  },
+  "ent_mirror": {
+   "en": "mirror",
+   "ar": "مرآة",
+   "propose": [
+    "concepticon:1171"
+   ],
+   "status": "proposed"
+  },
+  "ent_belt": {
+   "en": "belt",
+   "ar": "حزام",
+   "propose": [
+    "concepticon:772"
+   ],
+   "status": "proposed"
+  },
+  "ent_book": {
+   "en": "book",
+   "ar": "كتاب",
+   "propose": [
+    "concepticon:963"
+   ],
+   "status": "proposed"
+  },
+  "ent_photo": {
+   "en": "photo",
+   "ar": "صورة",
+   "propose": [
+    "concepticon:3304"
+   ],
+   "status": "proposed",
+   "note": "A photograph as a thing (the noun)."
+  },
+  "ent_medicine": {
+   "en": "medicine",
+   "ar": "دواء",
+   "propose": [
+    "concepticon:1372"
+   ],
+   "status": "proposed"
+  },
+  "ent_home": {
+   "en": "home",
+   "ar": "بيت",
+   "propose": [
+    "concepticon:2406"
+   ],
+   "status": "proposed",
+   "note": "بيت fits both. Alternative: 1252 HOUSE (the building), which is on the Swadesh-type lists."
+  },
+  "ent_school": {
+   "en": "school",
+   "ar": "مدرسة",
+   "propose": [
+    "concepticon:673"
+   ],
+   "status": "proposed"
+  },
+  "ent_barber": {
+   "en": "barber",
+   "ar": "حلاق",
+   "propose": [
+    "local:hakli/barber"
+   ],
+   "status": "proposed",
+   "note": "Not in Concepticon: kept as a local concept of this dictionary."
+  },
+  "ent_white": {
+   "en": "white",
+   "ar": "أبيض",
+   "propose": [
+    "concepticon:1335"
+   ],
+   "status": "proposed"
+  },
+  "ent_red": {
+   "en": "red",
+   "ar": "أحمر",
+   "propose": [
+    "concepticon:156"
+   ],
+   "status": "proposed"
+  },
+  "ent_black": {
+   "en": "black",
+   "ar": "أسود",
+   "propose": [
+    "concepticon:163"
+   ],
+   "status": "proposed"
+  },
+  "ent_green": {
+   "en": "green",
+   "ar": "أخضر",
+   "propose": [
+    "concepticon:1425"
+   ],
+   "status": "proposed"
+  },
+  "ent_blue": {
+   "en": "blue",
+   "ar": "أزرق",
+   "propose": [
+    "concepticon:837"
+   ],
+   "status": "proposed"
+  },
+  "ent_yellow": {
+   "en": "yellow",
+   "ar": "أصفر",
+   "propose": [
+    "concepticon:1424"
+   ],
+   "status": "proposed"
+  },
+  "ent_brown": {
+   "en": "brown",
+   "ar": "بني",
+   "propose": [
+    "concepticon:2409"
+   ],
+   "status": "proposed"
+  }
+ },
+ "local": {
+  "local:hakli/barber": {
+   "glosses": {
+    "en": "barber",
+    "ar": "حلاق"
+   },
+   "definition": "A person whose trade is cutting men's hair and shaving or trimming beards."
+  }
+ }
+}
