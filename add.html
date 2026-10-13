@@ -365,14 +365,7 @@ import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
 import { uploadClip, instanceLang } from "./afd-upload.js?v=b1012f";
 import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile } from "./afd-card.js?v=b1012f";
 
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const app   = initializeApp(firebaseConfig);
 const auth  = getAuth(app);
 const db    = getFirestore(app);
