@@ -63,6 +63,66 @@ window.AFDInstance = {
     appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
   },
 
+  // The "About the speaker" form (recorder.html), built from this list.
+  // Each field names:
+  //   id     the element id (the rest of the recorder reads fields by id)
+  //   slot   where the value is stored on the speaker's PRIVATE record. The
+  //          framework has four slots today — origin.town, origin.tribe,
+  //          ageBand, gender — so an instance chooses which to show, how to
+  //          label them and what to offer. A new kind of field (a clan, a
+  //          village list) is a data change too, for when a second language
+  //          needs one.
+  //   kind   "text" | "suggest" (free text with a suggestion list) | "select"
+  //   label / placeholder / options[].label
+  //          keys in AFDCore.STRINGS, so they stay on the prompts tool's
+  //          review list and change with the display mode
+  //   options[].value
+  //          what is stored; never translated
+  //   half   sit side by side with the next half-width field
+  //   perSpeaker
+  //          cleared when the next speaker is added. Town and tribe are kept:
+  //          in a Jibbali session the next speaker is usually from the same
+  //          town and tribe.
+  // Record provenance as town + tribe, not dialect labels: the dialect
+  // classification is unsettled, so there is deliberately no dialect field.
+  speaker: {
+    fields: [
+      { id: "spkTown", slot: "origin.town", kind: "suggest",
+        label: "speaker.town", placeholder: "form.town.eg",
+        options: [
+          { value: "Salalah", label: "town.salalah" },
+          { value: "Mirbat",  label: "town.mirbat" },
+          { value: "Taqah",   label: "town.taqah" },
+          { value: "Sadah",   label: "town.sadah" },
+          { value: "Rakhyut", label: "town.rakhyut" },
+          { value: "Dhalkut", label: "town.dhalkut" }
+        ] },
+      { id: "spkTribe", slot: "origin.tribe", kind: "text",
+        label: "speaker.tribe", placeholder: "form.tribe.eg" },
+      { id: "spkAge", slot: "ageBand", kind: "select", half: true, perSpeaker: true,
+        label: "speaker.age",
+        options: [
+          { value: "",     text: "—" },
+          { value: "20s",  label: "form.age.20s" },
+          { value: "30s",  label: "form.age.30s" },
+          { value: "40s",  label: "form.age.40s" },
+          { value: "50s",  label: "form.age.50s" },
+          { value: "60s",  label: "form.age.60s" },
+          { value: "70s",  label: "form.age.70s" },
+          { value: "80s+", label: "form.age.80s" }
+        ] },
+      { id: "spkGender", slot: "gender", kind: "select", half: true, perSpeaker: true,
+        label: "speaker.gender",
+        options: [
+          { value: "",  label: "form.gender.optional" },
+          { value: "f", label: "form.gender.f" },
+          { value: "m", label: "form.gender.m" }
+        ] }
+    ],
+    // shown under the fields
+    note: "speaker.nodialect"
+  },
+
   // The speak-to-find embedding service (Cloud Run). Shared across instances
   // in future; per-instance for now.
   embedUrl: "https://afd-embed-454829954488.europe-west1.run.app"
