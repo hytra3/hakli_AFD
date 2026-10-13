@@ -714,14 +714,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata
 import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b1012f";
 import { uploadClip as sharedUploadClip } from "./afd-upload.js?v=b1012f";
 
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
 const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE_");
 

@@ -304,17 +304,10 @@ import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvata
 /* ================================================================= CONFIG */
 /* Same afd-dev project the recorder uses. Web keys identify a project;
    they authorise nothing — security lives in the rules. */
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
 /* >>> PASTE YOUR CLOUD RUN URL (no trailing slash) <<< */
-const EMBED_URL = "https://afd-embed-454829954488.europe-west1.run.app";
+const EMBED_URL = window.AFDInstance.embedUrl;   // afd-instance.js
 
 /* ---- pre-warm the matcher -------------------------------------------------
    Normally afd-embed runs at min-instances=0 (scripts/set-warm.sh off), so it

@@ -122,19 +122,13 @@
   <div id="setup" class="note hidden"></div>
 </div>
 
+<script src="../afd-instance.js?v=b1012f"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
 const $ = id => document.getElementById(id);
 const app = initializeApp(firebaseConfig);

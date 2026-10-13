@@ -46,5 +46,24 @@ window.AFDInstance = {
   contactLanguages: [
     { code: "ar", script: "Arab", dir: "rtl" },
     { code: "en", script: "Latn", dir: "ltr" }
-  ]
+  ],
+
+  // The Firebase project this instance's data lives in. One copy for every
+  // page (index, add, recorder, welcome, steward, prompts, prompts/admin).
+  // Web keys identify a project; they are not secrets — access is governed
+  // by the security rules and the API key's HTTP-referrer allowlist.
+  // NB: afd-firestore.rules also names the bucket (the word-photo URL check);
+  // rules can't read this file, so change it there too.
+  firebase: {
+    apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
+    authDomain:        "afd-dev.firebaseapp.com",
+    projectId:         "afd-dev",
+    storageBucket:     "afd-dev.firebasestorage.app",
+    messagingSenderId: "454829954488",
+    appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
+  },
+
+  // The speak-to-find embedding service (Cloud Run). Shared across instances
+  // in future; per-instance for now.
+  embedUrl: "https://afd-embed-454829954488.europe-west1.run.app"
 };

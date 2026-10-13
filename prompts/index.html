@@ -194,21 +194,15 @@
 <!-- The app's on-screen string table (window.AFDCore.STRINGS) — listed below as
      suggest-only "On-screen text" so one review pass covers every Arabic line. -->
 <script src="../afd-core.js?v=b1012f"></script>
+<script src="../afd-instance.js?v=b1012f"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-/* ---- 1. PASTE the afd-dev web config here (same six values as the main recorder) ---- */
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
+/* ---- 1. Firebase web config: shared, in ../afd-instance.js ---- */
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE_");
 
 /* ---- 2. The prompts. Add an `ar` (Arabic gloss) to any item and it will show. ---- */

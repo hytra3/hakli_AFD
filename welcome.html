@@ -178,18 +178,12 @@
      prompts tool with everything else. -->
 <script src="afd-core.js?v=b1012f"></script>
 
+<script src="afd-instance.js?v=b1012f"></script>
 <script type="module">
 /* Firebase is loaded LAZILY (dynamic import below) so the introduction TEXT always
    renders — even offline or if the CDN is unreachable. The Hakli audio is a
    progressive enhancement layered on afterward. */
-const firebaseConfig = {
-  apiKey:            "AIzaSyDsLxppuVNGLdJGcF85irDxepVL36RaqiY",
-  authDomain:        "afd-dev.firebaseapp.com",
-  projectId:         "afd-dev",
-  storageBucket:     "afd-dev.firebasestorage.app",
-  messagingSenderId: "454829954488",
-  appId:             "1:454829954488:web:c83d6d16ab17e106956b4d"
-};
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
 /* The introduction, line by line. Keys match the intro.tour.* prompts in the
    recorder's prompt tool, so each line's Hakli audio appears the moment it's
