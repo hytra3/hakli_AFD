@@ -53,11 +53,24 @@ const c = {
   entries: 0, entriesPatched: 0, entryLang: 0, entryConcepts: 0, entryGlosses: 0, entryNoGloss: 0,
   recs: 0, recsPatched: 0, recLang: 0, hashed: 0, hashSkipped: 0, hashMissingFile: 0,
 };
+// Transient errors (a slow or dropped connection) are retried a few times;
+// anything still failing is counted and reported, never thrown, so the run
+// always ends with an honest summary. Re-running picks up whatever is left.
+const TRANSIENT = new Set([4 /* DEADLINE_EXCEEDED */, 8 /* RESOURCE_EXHAUSTED */, 10 /* ABORTED */, 14 /* UNAVAILABLE */]);
+const failed = [];
 const writer = APPLY ? db.bulkWriter() : null;
-writer && writer.onWriteError((e) => { console.error(`  FAILED  ${e.documentRef.path}: ${e.message}`); return false; });
+writer && writer.onWriteError((e) => {
+  if(TRANSIENT.has(e.code) && e.failedAttempts < 4){
+    console.log(`  retry   ${e.documentRef.path}  (${e.message.split(",")[0]}, attempt ${e.failedAttempts})`);
+    return true;
+  }
+  failed.push(e.documentRef.path);
+  console.error(`  FAILED  ${e.documentRef.path}: ${e.message.split(",")[0]}`);
+  return false;
+});
 const write = (ref, patch) => {
   if(VERBOSE || !APPLY) console.log(`  ${APPLY ? "write" : "would write"}  ${ref.path}  ${JSON.stringify(patch)}`);
-  if(writer) writer.update(ref, patch);
+  if(writer) writer.update(ref, patch).catch(() => {});   // failures are counted in onWriteError
 };
 
 // ---- word cards ----
@@ -101,10 +114,16 @@ for(const snap of recs.docs){
 }
 
 if(writer) await writer.close();
+const failedEntries = failed.filter((p) => !p.includes("/recordings/")).length;
+const failedRecs = failed.length - failedEntries;
 
 console.log(`
-${tag}word cards   ${c.entries} read · ${c.entriesPatched} ${APPLY ? "updated" : "to update"}
+${tag}word cards   ${c.entries} read · ${c.entriesPatched - failedEntries} ${APPLY ? "updated" : "to update"}${failedEntries ? ` · ${failedEntries} FAILED` : ""}
                lang ${c.entryLang} · concepts ${c.entryConcepts} · glosses ${c.entryGlosses}${c.entryNoGloss ? ` · ${c.entryNoGloss} with no gloss to build from` : ""}
-${tag}recordings   ${c.recs} read · ${c.recsPatched} ${APPLY ? "updated" : "to update"}
+${tag}recordings   ${c.recs} read · ${c.recsPatched - failedRecs} ${APPLY ? "updated" : "to update"}${failedRecs ? ` · ${failedRecs} FAILED` : ""}
                lang ${c.recLang} · sha256 ${c.hashed}${c.hashMissingFile ? ` · ${c.hashMissingFile} audio missing` : ""}${c.hashSkipped ? ` · ${c.hashSkipped} checksums skipped (--no-hash)` : ""}`);
 if(!APPLY) console.log("\n(dry run — nothing written; add --apply to write)");
+if(failed.length){
+  console.log(`\n${failed.length} write(s) failed. Nothing else was affected; run the same command again to finish.`);
+  process.exitCode = 1;
+}
