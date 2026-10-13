@@ -745,7 +745,7 @@ function paintAllBtn(show){
   const v = VIEWS.find(x=>x.id===currentView) || VIEWS[0];
   allBtn.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`+
     `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-  allBtn.setAttribute("aria-label","Back to the list — "+v.en); allBtn.title = v.en;
+  allBtn.setAttribute("aria-label", AFDCore.tf("list.back", displayMode, { w: (displayMode!=="auto" && v.ar) || v.en })); allBtn.title = v.en;
   allBtn.setAttribute("data-cap", v.ar);
   allBtn.classList.toggle("hidden", !show);
 }
@@ -846,8 +846,8 @@ async function renderBrowse(){
   if(!displayItems.length){
     const e=document.createElement("div"); e.className="view-empty";
     e.textContent = currentView==="needs"
-      ? (displayMode==="auto" ? "Every word here has a voice \u2014 nothing needs recording." : "\u0643\u0644 \u0627\u0644\u0643\u0644\u0645\u0627\u062a \u0647\u0646\u0627 \u0644\u0647\u0627 \u0635\u0648\u062a.")
-      : (displayMode==="auto" ? "No words yet." : "\u0644\u0627 \u0643\u0644\u0645\u0627\u062a \u0628\u0639\u062f.");
+      ? AFDCore.t("list.allvoiced", displayMode)
+      : AFDCore.t("list.empty", displayMode);
     frag.appendChild(e);
   }
   if(my!==renderToken) return;
@@ -1156,7 +1156,7 @@ function acctWhoName(){
 }
 function syncAcctLabels(){
   const who = acctWhoName();
-  if(acctWho)  acctWho.textContent = who || "Signed in";
+  if(acctWho)  acctWho.textContent = who || AFDCore.t("setup.signedin", displayMode);
   if(acctEdit) acctEdit.innerHTML  = AFDCore.tHTML("account.edit", displayMode);
   if(acctOut)  acctOut.innerHTML   = AFDCore.tHTML("account.signout", displayMode);
 }
@@ -1175,8 +1175,8 @@ function updateAccountUi(){
     // read as an add button — show the phone mark add.html uses instead
     const initial = /^[+\d]/.test(who) ? "\u260E" : (who[0]||"?").toUpperCase();
     accountBtn.innerHTML = `<span class="acct-initial">${escapeHtml(initial)}</span>`;
-    accountBtn.setAttribute("aria-label", who ? `Signed in as ${who} — account menu` : "Account menu");
-    accountBtn.title = who || "Signed in";
+    accountBtn.setAttribute("aria-label", who ? AFDCore.tf("acct.signedin.as", displayMode, { who }) : AFDCore.t("acct.menu", displayMode));
+    accountBtn.title = who || AFDCore.t("setup.signedin", displayMode);
   };
   if(real){
     paint();
@@ -1206,7 +1206,7 @@ function updateAccountUi(){
   } else {
     closeAcctMenu();
     accountBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`;
-    accountBtn.setAttribute("aria-label", "Sign in to manage your voice");
+    accountBtn.setAttribute("aria-label", AFDCore.t("acct.signin.manage", displayMode));
     accountBtn.removeAttribute("title");
   }
   accountBtn.classList.toggle("in", real);

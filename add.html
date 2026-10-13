@@ -1097,10 +1097,10 @@ function authFailed(e){
   if(c.includes("popup-closed") || c.includes("cancelled-popup")) return;   // they changed their mind
   // In-app browsers (WhatsApp, Instagram…) often can't open Google sign-in.
   $("browserHint").classList.remove("hidden");
-  if(c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found"))
-    $("shareErr").textContent = "Email or password not recognised.";
-  else if(c.includes("email-already-in-use")) $("shareErr").textContent = "That email already has an account — sign in instead.";
-  else if(c.includes("weak-password"))        $("shareErr").textContent = "Password needs at least 6 characters.";
+  // the email-form mistakes get a line of their own (wording shared with the recorder)
+  const k = C.authErrorKey(e);
+  if(k === "auth.err.badpass" || k === "auth.err.exists" || k === "auth.err.weak")
+    $("shareErr").textContent = C.t(k, MODE);
 }
 $("googleBtn").onclick = async ()=>{
   $("shareErr").textContent = ""; wantShare = true;

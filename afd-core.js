@@ -602,7 +602,51 @@ window.AFDCore = (function(){
     "wt.add.show":          { en:"Show what it means — a photo, a picture, or say it.", ar:"أَرِ معناها — بصورة، أو رسم، أو قُلها." },
     "wt.add.share":         { en:"Share it — the word stays yours.", ar:"شارِكها — وتبقى الكلمة لك." },
     "wt.add.done":          { en:"A new word card, in your voice.", ar:"بطاقة كلمة جديدة، بصوتك." },
-    "wt.close":             { en:"That is how you add your voice to Hakli.", ar:"هكذا تُضيف صوتك إلى الحَكلي." }
+    "wt.close":             { en:"That is how you add your voice to Hakli.", ar:"هكذا تُضيف صوتك إلى الحَكلي." },
+
+    // Moved in from page code (piece 4 audit, Oct 2026): text that used to be
+    // written in English inside index / add / recorder / afd-card, so it showed
+    // in English even in the Arabic and sound modes. Arabic is provisional, as
+    // everywhere here: flagged for Dhofari review on the prompts tool's list.
+    // recorder — the coaching line after a take
+    "qc.fail.lowrate":      { en:"This device recorded at too low a quality — try another mic", ar:"سجّل هذا الجهاز بجودةٍ منخفضة جدًّا — جرّب ميكروفونًا آخر" },
+    "qc.fail.short.word":   { en:"That was very short — hold and say it twice", ar:"كان التسجيل قصيرًا جدًّا — اضغط باستمرار وقل الكلمة مرّتين" },
+    "qc.fail.short":        { en:"That was very short — hold a little longer", ar:"كان التسجيل قصيرًا جدًّا — اضغط مدّةً أطول قليلًا" },
+    "qc.fail.loud":         { en:"A bit too loud — hold the phone a little further away", ar:"الصوت مرتفعٌ قليلًا — أبعِد الهاتف قليلًا" },
+    "qc.fail.quiet":        { en:"Mostly quiet — speak a little louder, closer to the mic", ar:"التسجيل هادئٌ في معظمه — تكلّم بصوتٍ أعلى قليلًا وأقرب إلى الميكروفون" },
+    "qc.note.long":         { en:"A little long — fine to keep", ar:"طويلٌ قليلًا — لا بأس بحفظه" },
+    "qc.note.extra":        { en:"Heard more than twice — extra speech was detected", ar:"سُمِع أكثر من مرّتين — رُصِد كلامٌ إضافي" },
+    "qc.note.differ":       { en:"The two takes differ a little — fine to keep", ar:"المرّتان مختلفتان قليلًا — لا بأس بحفظه" },
+    // dictionary list
+    "list.allvoiced":       { en:"Every word here has a voice — nothing needs recording.", ar:"كل الكلمات هنا لها صوت." },
+    "list.empty":           { en:"No words yet.", ar:"لا كلمات بعد." },
+    "list.back":            { en:"Back to the list — {w}", ar:"العودة إلى القائمة — {w}" },
+    // account button (dictionary, recorder)
+    "acct.signedin.as":     { en:"Signed in as {who} — account menu", ar:"مسجَّل الدخول باسم {who} — قائمة الحساب" },
+    "acct.menu":            { en:"Account menu", ar:"قائمة الحساب" },
+    "acct.signin.manage":   { en:"Sign in to manage your voice", ar:"سجّل الدخول لإدارة صوتك" },
+    // a voice on a word card (screen-reader labels and the failure banner)
+    "voice.play":           { en:"Play this voice", ar:"شغّل هذا الصوت" },
+    "voice.play.name":      { en:"Play {name}", ar:"شغّل صوت {name}" },
+    "voice.withdraw.label": { en:"Withdraw your voice", ar:"اسحب صوتك" },
+    "voice.restore.label":  { en:"Restore your voice", ar:"استرجع صوتك" },
+    "voice.erase.label":    { en:"Erase this recording", ar:"احذف هذا التسجيل" },
+    "voice.change.failed":  { en:"Couldn't change that just now — try again", ar:"تعذّر التغيير الآن — حاول مجددًا" },
+    // sign-in errors (recorder, add a word)
+    "auth.err.domain":      { en:"This web address isn't authorised in Firebase yet. Add it under Authentication → Settings → Authorized domains.", ar:"هذا العنوان غير مُصرَّح به في Firebase بعد. أضِفه من Authentication ← Settings ← Authorized domains." },
+    "auth.err.method":      { en:"That sign-in method isn't enabled for this project.", ar:"طريقة الدخول هذه غير مفعّلة لهذا المشروع." },
+    "auth.err.badpass":     { en:"Email or password not recognised.", ar:"البريد الإلكتروني أو كلمة المرور غير صحيحة." },
+    "auth.err.exists":      { en:"That email already has an account — sign in instead.", ar:"لهذا البريد حسابٌ من قبل — سجّل الدخول بدلًا من ذلك." },
+    "auth.err.weak":        { en:"Password needs at least 6 characters.", ar:"يجب أن تتكوّن كلمة المرور من ٦ أحرف على الأقل." },
+    "auth.err.popup":       { en:"The sign-in popup was blocked. Allow popups and try again.", ar:"حُجِبت نافذة تسجيل الدخول. اسمح بالنوافذ المنبثقة وحاول مجددًا." },
+    "auth.err.other":       { en:"Sign-in failed.", ar:"تعذّر تسجيل الدخول." },
+    // "How you appear" (recorder step 1)
+    "profile.err.image":    { en:"Couldn't read that image — try another.", ar:"تعذّرت قراءة هذه الصورة — جرّب صورة أخرى." },
+    "profile.err.name":     { en:"Add a name, or choose Obscure.", ar:"أضِف اسمًا، أو اختر «مستتر»." },
+    "profile.saving":       { en:"Saving…", ar:"جارٍ الحفظ…" },
+    "profile.saved.known":  { en:"Saved — you appear by name on your own voices.", ar:"تمّ الحفظ — يظهر اسمك على تسجيلاتك أنت." },
+    "profile.saved.obscure":{ en:"Saved — you appear as a nature avatar.", ar:"تمّ الحفظ — تظهر برمزٍ من الطبيعة." },
+    "profile.err.save":     { en:"Couldn't save — check your connection and try again.", ar:"تعذّر الحفظ — تحقّق من الاتصال وحاول مجددًا." }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -610,6 +654,25 @@ window.AFDCore = (function(){
     if(mode === "sound"  && s.icon) return s.icon;
     if(mode === "script" || mode === "sound") return s.ar || s.en;
     return s.en;                             // auto
+  }
+
+  /* tf(key, mode, vars) — t() with {name} placeholders filled in. */
+  function tf(key, mode, vars){
+    return String(t(key, mode)).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars) ? String(vars[k]) : m);
+  }
+
+  /* authErrorKey(e) — the STRINGS key for a Firebase sign-in error, shared by
+     every page that signs people in. null = say nothing (they closed the popup). */
+  function authErrorKey(e){
+    const c = (e && e.code) || "";
+    if(c.includes("popup-closed") || c.includes("cancelled-popup")) return null;
+    if(c.includes("unauthorized-domain"))   return "auth.err.domain";
+    if(c.includes("operation-not-allowed")) return "auth.err.method";
+    if(c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found")) return "auth.err.badpass";
+    if(c.includes("email-already-in-use"))  return "auth.err.exists";
+    if(c.includes("weak-password"))         return "auth.err.weak";
+    if(c.includes("popup-blocked"))         return "auth.err.popup";
+    return "auth.err.other";
   }
 
   /* tHTML(key, mode) — the HTML sibling of t(), for chrome that renders bilingually.
@@ -734,7 +797,7 @@ window.AFDCore = (function(){
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,
     MIC_CONSTRAINTS, openStream,
-    STRINGS, t, tHTML,
+    STRINGS, t, tf, tHTML, authErrorKey,
     identicon, stepHistory
   };
 })();
