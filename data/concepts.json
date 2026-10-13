@@ -7,7 +7,11 @@
    "propose": [
     "concepticon:1343"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1343"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_moon": {
    "en": "moon",
@@ -15,7 +19,11 @@
    "propose": [
     "concepticon:1313"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1313"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_mountain": {
    "en": "mountain",
@@ -23,7 +31,11 @@
    "propose": [
     "concepticon:639"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:639"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_sand": {
    "en": "sand",
@@ -31,7 +43,11 @@
    "propose": [
     "concepticon:671"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:671"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_clouds": {
    "en": "clouds",
@@ -39,7 +55,11 @@
    "propose": [
     "concepticon:1489"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1489"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_cave": {
    "en": "cave",
@@ -47,7 +67,11 @@
    "propose": [
     "concepticon:1155"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1155"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_valley": {
    "en": "valley",
@@ -55,7 +79,11 @@
    "propose": [
     "concepticon:921"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:921"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_rocks": {
    "en": "rocks",
@@ -63,8 +91,13 @@
    "propose": [
     "concepticon:668"
    ],
-   "status": "proposed",
-   "note": "Alternatives: 857 STONE, 2125 STONE OR ROCK. ROCK = the material / large rock; STONE = a small loose one."
+   "status": "confirmed",
+   "note": "Alternatives: 857 STONE, 2125 STONE OR ROCK. ROCK = the material / large rock; STONE = a small loose one.",
+   "concepts": [
+    "concepticon:668",
+    "concepticon:2125"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_smoke": {
    "en": "smoke",
@@ -72,8 +105,12 @@
    "propose": [
     "concepticon:778"
    ],
-   "status": "proposed",
-   "note": "The noun (smoke from a fire), not the verb."
+   "status": "confirmed",
+   "note": "The noun (smoke from a fire), not the verb.",
+   "concepts": [
+    "concepticon:778"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_camel": {
    "en": "camel",
@@ -81,7 +118,11 @@
    "propose": [
     "concepticon:1871"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1871"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_wolf": {
    "en": "wolf",
@@ -89,7 +130,11 @@
    "propose": [
     "concepticon:522"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:522"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_deer": {
    "en": "deer",
@@ -97,7 +142,11 @@
    "propose": [
     "concepticon:1936"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1936"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_horn": {
    "en": "horn",
@@ -105,8 +154,12 @@
    "propose": [
     "concepticon:1393"
    ],
-   "status": "proposed",
-   "note": "The animal's horn, not the instrument (939)."
+   "status": "confirmed",
+   "note": "The animal's horn, not the instrument (939).",
+   "concepts": [
+    "concepticon:1393"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_bone": {
    "en": "bone",
@@ -114,7 +167,11 @@
    "propose": [
     "concepticon:1394"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1394"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_tree": {
    "en": "tree",
@@ -122,7 +179,11 @@
    "propose": [
     "concepticon:906"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:906"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_corn": {
    "en": "corn",
@@ -130,8 +191,12 @@
    "propose": [
     "concepticon:506"
    ],
-   "status": "proposed",
-   "note": "ذرة can be maize or sorghum. If the word means sorghum, use 347 SORGHUM instead."
+   "status": "confirmed",
+   "note": "ذرة can be maize or sorghum. If the word means sorghum, use 347 SORGHUM instead.",
+   "concepts": [
+    "concepticon:506"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_fig": {
    "en": "fig",
@@ -139,7 +204,11 @@
    "propose": [
     "concepticon:322"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:322"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_date": {
    "en": "date (fruit)",
@@ -147,7 +216,11 @@
    "propose": [
     "concepticon:3801"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:3801"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_bean": {
    "en": "bean",
@@ -155,7 +228,11 @@
    "propose": [
     "concepticon:832"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:832"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_hay": {
    "en": "hay",
@@ -163,7 +240,11 @@
    "propose": [
     "concepticon:342"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:342"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_water": {
    "en": "water",
@@ -171,7 +252,11 @@
    "propose": [
     "concepticon:948"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:948"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_milk": {
    "en": "milk",
@@ -179,7 +264,11 @@
    "propose": [
     "concepticon:635"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:635"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_eggs": {
    "en": "eggs",
@@ -187,7 +276,11 @@
    "propose": [
     "concepticon:744"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:744"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_brother": {
    "en": "brother",
@@ -195,8 +288,12 @@
    "propose": [
     "concepticon:1262"
    ],
-   "status": "proposed",
-   "note": "General term. If Hakli splits by the speaker's sex: 559 BROTHER (OF MAN) / 560 BROTHER (OF WOMAN)."
+   "status": "confirmed",
+   "note": "General term. If Hakli splits by the speaker's sex: 559 BROTHER (OF MAN) / 560 BROTHER (OF WOMAN).",
+   "concepts": [
+    "concepticon:1262"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_sister": {
    "en": "sister",
@@ -204,8 +301,12 @@
    "propose": [
     "concepticon:1263"
    ],
-   "status": "proposed",
-   "note": "General term. If Hakli splits by the speaker's sex: 561 SISTER (OF MAN) / 562 SISTER (OF WOMAN)."
+   "status": "confirmed",
+   "note": "General term. If Hakli splits by the speaker's sex: 561 SISTER (OF MAN) / 562 SISTER (OF WOMAN).",
+   "concepts": [
+    "concepticon:1263"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_daughter": {
    "en": "daughter",
@@ -213,7 +314,11 @@
    "propose": [
     "concepticon:1357"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1357"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_son": {
    "en": "son",
@@ -221,7 +326,11 @@
    "propose": [
     "concepticon:1620"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1620"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_boy": {
    "en": "boy",
@@ -229,7 +338,11 @@
    "propose": [
     "concepticon:1366"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1366"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_girl": {
    "en": "girl",
@@ -237,7 +350,11 @@
    "propose": [
     "concepticon:1646"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1646"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_pillow": {
    "en": "pillow",
@@ -245,7 +362,11 @@
    "propose": [
     "concepticon:1044"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1044"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_mirror": {
    "en": "mirror",
@@ -253,7 +374,11 @@
    "propose": [
     "concepticon:1171"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1171"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_belt": {
    "en": "belt",
@@ -261,7 +386,11 @@
    "propose": [
     "concepticon:772"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:772"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_book": {
    "en": "book",
@@ -269,7 +398,11 @@
    "propose": [
     "concepticon:963"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:963"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_photo": {
    "en": "photo",
@@ -277,8 +410,12 @@
    "propose": [
     "concepticon:3304"
    ],
-   "status": "proposed",
-   "note": "A photograph as a thing (the noun)."
+   "status": "confirmed",
+   "note": "A photograph as a thing (the noun).",
+   "concepts": [
+    "concepticon:3304"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_medicine": {
    "en": "medicine",
@@ -286,7 +423,11 @@
    "propose": [
     "concepticon:1372"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1372"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_home": {
    "en": "home",
@@ -294,8 +435,13 @@
    "propose": [
     "concepticon:2406"
    ],
-   "status": "proposed",
-   "note": "بيت fits both. Alternative: 1252 HOUSE (the building), which is on the Swadesh-type lists."
+   "status": "confirmed",
+   "note": "بيت fits both. Alternative: 1252 HOUSE (the building), which is on the Swadesh-type lists.",
+   "concepts": [
+    "concepticon:2406",
+    "concepticon:1252"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_school": {
    "en": "school",
@@ -303,7 +449,11 @@
    "propose": [
     "concepticon:673"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:673"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_barber": {
    "en": "barber",
@@ -311,8 +461,12 @@
    "propose": [
     "local:hakli/barber"
    ],
-   "status": "proposed",
-   "note": "Not in Concepticon: kept as a local concept of this dictionary."
+   "status": "confirmed",
+   "note": "Not in Concepticon: kept as a local concept of this dictionary.",
+   "concepts": [
+    "local:hakli/barber"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_white": {
    "en": "white",
@@ -320,7 +474,11 @@
    "propose": [
     "concepticon:1335"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1335"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_red": {
    "en": "red",
@@ -328,7 +486,11 @@
    "propose": [
     "concepticon:156"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:156"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_black": {
    "en": "black",
@@ -336,7 +498,11 @@
    "propose": [
     "concepticon:163"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:163"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_green": {
    "en": "green",
@@ -344,7 +510,11 @@
    "propose": [
     "concepticon:1425"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1425"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_blue": {
    "en": "blue",
@@ -352,7 +522,11 @@
    "propose": [
     "concepticon:837"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:837"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_yellow": {
    "en": "yellow",
@@ -360,7 +534,11 @@
    "propose": [
     "concepticon:1424"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:1424"
+   ],
+   "decidedAt": "2026-10-13"
   },
   "ent_brown": {
    "en": "brown",
@@ -368,7 +546,11 @@
    "propose": [
     "concepticon:2409"
    ],
-   "status": "proposed"
+   "status": "confirmed",
+   "concepts": [
+    "concepticon:2409"
+   ],
+   "decidedAt": "2026-10-13"
   }
  },
  "local": {
