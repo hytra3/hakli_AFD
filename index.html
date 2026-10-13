@@ -254,7 +254,7 @@ body.has-results .control .addbtn{display:inline-flex}
       </span>
       <div class="view-menu" id="viewMenu" role="menu" aria-hidden="true"></div>
     </span>
-    <button class="skin capd" id="skin" data-cap="العرض" data-cap-key="hdr.display" title="How words are shown" aria-label="Change how words are shown"></button>
+    <button class="skin capd" id="skin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
     <span class="account-wrap capd" id="acctWrap" data-cap="دخول" data-cap-key="hdr.signin">
       <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
       <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
@@ -1123,7 +1123,9 @@ const SKIN_ICON = {
   sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
   script:`<span class="lbl">أ</span>`,
 };
-function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto; }
+// The caption names the mode you're in (disp.auto / disp.script / disp.sound).
+function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto;
+  { const s=(AFDCore.STRINGS||{})["disp."+displayMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+displayMode); b.setAttribute("data-cap", s.ar); } } }
 $("skin").addEventListener("click", ()=>{
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
   setDisplayMode(next); updateSkinIcon(); syncAcctLabels();

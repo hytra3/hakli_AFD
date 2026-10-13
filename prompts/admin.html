@@ -25,7 +25,20 @@
   body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
   .wrap{max-width:520px; margin:0 auto; padding:16px 16px 48px;}
   h1{font-size:18px; margin:8px 0 4px;}
-  .sub{font-size:13px; color:var(--muted); margin-bottom:18px;}
+  .lead{font-size:13px; color:var(--muted); margin-bottom:18px;}
+  /* Arabic + English (../afd-tools.js): Arabic first, English under it in blocks,
+     beside it in buttons, badges and links. Arabic only: the page turns RTL. */
+  .t-ar{display:block}
+  .t-en{display:block; opacity:.72; font-size:.92em}
+  :is(.btn,.state,.nav,a.small,.who,h2) :is(.t-ar,.t-en){display:inline}
+  :is(.btn,.state,.nav,a.small,.who,h2) .t-en::before{content:" · "}
+  a.back::before{content:"← "} html[dir="rtl"] a.back::before{content:"→ "}
+  .t-switch{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:20px; padding:4px 11px; font-size:12px; cursor:pointer; white-space:nowrap}
+  .navrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
+  .navrow .nav{margin-bottom:0}
+  html[dir="rtl"] .who{text-align:left}
+  code{direction:ltr; unicode-bidi:isolate}
+  input[type=email], input[type=password]{direction:ltr; text-align:left}
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px; margin-top:16px;}
   .card h2{font-size:15px; margin:0 0 2px;}
   /* The STATE is the feedback, not the buttons: a badge that says OPEN/CLOSED
@@ -67,62 +80,68 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="nav"><a href="../index.html">← Dictionary</a> · <a href="../steward.html">Contributed words</a> · <a href="index.html">Voice prompts</a></div>
-  <div class="top">
-    <div><h1>Prompt windows</h1></div>
-    <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden">sign out</a></div>
+  <div class="navrow">
+    <div class="nav"><a href="../index.html" class="back" data-t="tools.nav.dictionary">Dictionary</a> · <a href="../steward.html" data-t="tools.nav.words">Contributed words</a> · <a href="index.html" data-t="tools.nav.prompts">Voice prompts</a></div>
+    <button id="langSwitch"></button>
   </div>
-  <div class="sub">Open or close the recording and Arabic-edit windows. Both close themselves when the time runs out — you don't have to come back.</div>
+  <div class="top">
+    <div><h1 data-t="tools.nav.windows">Prompt windows</h1></div>
+    <div class="who"><span id="who"></span> <a href="#" id="signout" class="small hidden" data-t="tools.signout">sign out</a></div>
+  </div>
+  <div class="lead" data-t="win.lead">Open or close the recording and Arabic-edit windows. Both close themselves when the time runs out — you don't have to come back.</div>
 
   <!-- sign in -->
   <div id="signin" class="card">
-    <h2>Steward sign-in</h2>
-    <div class="msg" id="authmsg">Sign in with the steward account.</div>
-    <input id="email" type="email" placeholder="email" autocomplete="username" />
-    <input id="pass" type="password" placeholder="password" autocomplete="current-password" />
-    <div class="btnrow" style="margin-top:12px;"><button class="btn primary" id="dosignin">Sign in</button></div>
-    <div class="tip" id="ownBrowser">Use a separate browser for the steward pages (Firefox, or a second Chrome profile). Signing in here replaces your dictionary sign-in in this browser, so words you add afterwards would be credited to the steward.</div>
+    <h2 data-t="tools.signin.title">Steward sign-in</h2>
+    <div class="msg" id="authmsg" data-t="tools.signin.hint">Sign in with the steward account.</div>
+    <input id="email" type="email" placeholder="email" data-t-ph="tools.email" autocomplete="username" />
+    <input id="pass" type="password" placeholder="password" data-t-ph="tools.password" autocomplete="current-password" />
+    <div class="btnrow" style="margin-top:12px;"><button class="btn primary" id="dosignin" data-t="tools.signin">Sign in</button></div>
+    <div class="tip" id="ownBrowser" data-t="tools.ownbrowser">Use a separate browser for the steward pages (Firefox, or a second Chrome profile). Signing in here replaces your dictionary sign-in in this browser, so words you add afterwards would be credited to the steward.</div>
   </div>
 
   <!-- panel -->
   <div id="panel" class="hidden">
     <div class="card win" id="rec-card">
-      <h2>🎙️ Recording</h2>
+      <h2><span aria-hidden="true">🎙️</span> <span data-t="win.recording">Recording</span></h2>
       <div class="state closed" id="rec-state">—</div>
       <div class="btnrow">
-        <button class="btn" data-win="recording" data-days="30">Open 30 days</button>
-        <button class="btn" data-win="recording" data-days="7">Open 7 days</button>
-        <button class="btn danger" data-win="recording" data-close="1">Close now</button>
+        <button class="btn" data-win="recording" data-days="30" data-t="win.open.30d">Open 30 days</button>
+        <button class="btn" data-win="recording" data-days="7" data-t="win.open.7d">Open 7 days</button>
+        <button class="btn danger" data-win="recording" data-close="1" data-t="win.close">Close now</button>
       </div>
     </div>
 
     <div class="card win" id="sug-card">
-      <h2>✍️ Arabic edits</h2>
+      <h2><span aria-hidden="true">✍️</span> <span data-t="win.suggestions">Arabic edits</span></h2>
       <div class="state closed" id="sug-state">—</div>
       <div class="btnrow">
-        <button class="btn" data-win="suggestions" data-hours="8">Open 8 hours</button>
-        <button class="btn" data-win="suggestions" data-hours="2">Open 2 hours</button>
-        <button class="btn danger" data-win="suggestions" data-close="1">Close now</button>
+        <button class="btn" data-win="suggestions" data-hours="8" data-t="win.open.8h">Open 8 hours</button>
+        <button class="btn" data-win="suggestions" data-hours="2" data-t="win.open.2h">Open 2 hours</button>
+        <button class="btn danger" data-win="suggestions" data-close="1" data-t="win.close">Close now</button>
       </div>
     </div>
 
     <div class="card" id="queuecard">
       <div class="top">
-        <h2>✍️ Edit suggestions</h2>
-        <a href="#" id="refreshq" class="small">refresh</a>
+        <h2><span aria-hidden="true">✍️</span> <span data-t="win.queue">Edit suggestions</span></h2>
+        <a href="#" id="refreshq" class="small" data-t="tools.refresh">refresh</a>
       </div>
-      <div class="note queuehint">Proposals only — read them here. To apply the ones you want, run <code>node scripts/pull-suggestions.mjs</code> in <code>~/afd</code>: it asks apply / remove / skip for each and writes approved wording into the right file for you (spoken prompts → <code>prompts/index.html</code>; on-screen <code>screen:</code> keys → <code>afd-core.js</code>). Then <code>git diff</code> and <b>publish</b>. Nothing on this page changes the app by itself. Guide: <i>prompts-and-suggestions-guide.md</i> in the project files.</div>
+      <div class="note queuehint" data-t="win.queue.hint"></div>
       <div id="queue"><div class="qempty">—</div></div>
     </div>
 
     <div class="msg" id="msg"></div>
-    <div class="note">Recording is closed unless it's open here. Arabic edits are proposals only — nothing a speaker types goes live until it's committed to the source. Neither window can freeze already-recorded audio; that's a separate one-time lock.</div>
+    <div class="note" data-t="win.note"></div>
   </div>
 
   <div id="setup" class="note hidden"></div>
 </div>
 
+<script src="../afd-core.js?v=b1013a"></script>
 <script src="../afd-instance.js?v=b1013a"></script>
+<script src="../afd-tools.js?v=b1013a"></script>
+<script>AFDTools.paint(); AFDTools.mountSwitch(document.getElementById("langSwitch"));</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -134,16 +153,28 @@ const $ = id => document.getElementById(id);
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// Interface text: AFDCore.STRINGS via ../afd-tools.js, in Arabic or Arabic + English.
+const T = AFDTools.text, H = AFDTools.html;
+const code = e => (e && (e.code || e.message)) || "error";
+// A message line that is redrawn when the language switch changes.
+const said = {};
+function say(id, key, vars){ said[id] = key ? [key, vars] : null; $(id).textContent = key ? T(key, vars) : ""; }
+AFDTools.onChange(()=>{
+  for(const id in said) if(said[id]) $(id).textContent = T(said[id][0], said[id][1]);
+  ["recording","suggestions"].forEach(paintState);
+  if(!$("panel").classList.contains("hidden")) loadQueue();
+});
 
 function fmt(ts){
   try{ return new Date(ts.toMillis()).toLocaleString(); }catch(_){ return "?"; }
 }
-// How long is left, in plain words: "29 days", "5 h 12 min", "8 min".
+// How long is left, in plain words: "29 days", "5 h 12 min", "8 min" — as a
+// [key, vars] pair, so it can be said in either language.
 function left(ms){
   const m = Math.max(0, Math.round(ms/60000)), h = Math.floor(m/60), d = Math.floor(h/24);
-  if(d >= 2) return d + " days";
-  if(h >= 1) return h + " h " + (m % 60) + " min";
-  return Math.max(1, m) + " min";
+  if(d >= 2) return ["win.left.days", { n: d }];
+  if(h >= 1) return ["win.left.hm", { h, m: m % 60 }];
+  return ["win.left.m", { m: Math.max(1, m) }];
 }
 const until = {};                                   // name → openUntil ms (for the countdown)
 function paintState(name){
@@ -152,8 +183,8 @@ function paintState(name){
   const open = !!u && u > Date.now();
   el.className = "state " + (open ? "open" : "closed");
   el.innerHTML = open
-    ? "<b>OPEN</b> " + left(u - Date.now()) + " left · until " + new Date(u).toLocaleString()
-    : "<b>CLOSED</b>";
+    ? H("win.state.open", { left: AFDTools.pair(...left(u - Date.now())), until: new Date(u).toLocaleString() })
+    : H("win.state.closed");
   if(card) card.classList.toggle("is-open", open);
   const closeBtn = document.querySelector('#panel .btn[data-win="'+name+'"][data-close]');
   if(closeBtn) closeBtn.disabled = !open;            // nothing to close
@@ -167,23 +198,25 @@ async function refresh(){
       paintState(name);
     }catch(e){
       const el = $(name === "recording" ? "rec-state" : "sug-state");
-      el.className = "state closed"; el.innerHTML = "<b>?</b> couldn't read state";
+      el.className = "state closed"; el.innerHTML = H("win.state.unknown");
     }
   }
 }
 // Count down on screen, and flip to CLOSED by itself when a window lapses.
 setInterval(()=>{ if(!$("panel").classList.contains("hidden")) ["recording","suggestions"].forEach(paintState); }, 30000);
+// true when the window was saved
 async function setWindow(name, ms){
-  $("msg").textContent = "saving…";
+  say("msg", "tools.saving");
   try{
     const until = Timestamp.fromMillis(ms > 0 ? Date.now() + ms : 0);
     await setDoc(doc(db,"afd_ui_config",name), { openUntil: until }, { merge:true });
-    $("msg").textContent = ms > 0 ? (name + " opened.") : (name + " closed.");
+    say("msg", (ms > 0 ? "win.opened." : "win.closed.") + name);
     await refresh();
+    return true;
   }catch(e){
-    $("msg").textContent = (e.code === "permission-denied")
-      ? "Not allowed — this account isn't listed as the steward. On the laptop: node scripts/grant-steward.mjs <this email>"
-      : "Couldn't save (" + (e.code||e.message||"error") + ")";
+    if(e.code === "permission-denied") say("msg", "tools.notallowed");
+    else say("msg", "tools.err.save", { code: code(e) });
+    return false;
   }
 }
 
@@ -191,11 +224,11 @@ async function loadQueue(){
   const q = $("queue");
   const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const when = r => { try{ return (r.createdAt && r.createdAt.toMillis) ? new Date(r.createdAt.toMillis()).toLocaleString() : ""; }catch(_){ return ""; } };
-  q.innerHTML = '<div class="qempty">loading…</div>';
+  q.innerHTML = '<div class="qempty">' + H("tools.loading") + '</div>';
   try{
     const snap = await getDocs(collection(db,"afd_ui_suggestions"));
     const rows = []; snap.forEach(d => rows.push(d.data()));
-    if(!rows.length){ q.innerHTML = '<div class="qempty">No suggestions yet.</div>'; return; }
+    if(!rows.length){ q.innerHTML = '<div class="qempty">' + H("win.queue.empty") + '</div>'; return; }
     const groups = {}; rows.forEach(r => { (groups[r.key] = groups[r.key] || []).push(r); });
     const ms = r => (r.createdAt && r.createdAt.toMillis) ? r.createdAt.toMillis() : 0;
     let html = "";
@@ -204,7 +237,7 @@ async function loadQueue(){
       html += '<div class="qgroup"><div class="qkey">'+esc(key)+'</div>';
       items.forEach(r=>{
         html += '<div class="qitem">'
-             +  '<div class="qwas" dir="rtl">was: '+esc(r.arSeen)+'</div>'
+             +  '<div class="qwas" dir="rtl">'+esc(T("win.queue.was", { text: r.arSeen }))+'</div>'
              +  '<div class="qsug" dir="rtl">'+esc(r.arSuggested)+'</div>'
              +  (r.note ? '<div class="qmeta">“'+esc(r.note)+'”</div>' : '')
              +  '<div class="qmeta">'+esc(when(r))+'</div>'
@@ -215,8 +248,8 @@ async function loadQueue(){
     q.innerHTML = html;
   }catch(e){
     q.innerHTML = '<div class="qempty">' + ((e.code === "permission-denied")
-      ? "Not allowed — this account isn't listed as the steward (scripts/grant-steward.mjs)."
-      : "Couldn\'t load ("+esc(e.code||e.message||"error")+").") + '</div>';
+      ? H("win.queue.notallowed")
+      : H("tools.err.load", { code: code(e) })) + '</div>';
   }
 }
 $("refreshq").onclick = (e)=>{ e.preventDefault(); loadQueue(); };
@@ -226,24 +259,24 @@ document.querySelectorAll("#panel .btn[data-win]").forEach(b=>{
     const name = b.getAttribute("data-win");
     const days = +b.getAttribute("data-days") || 0;
     const hours = +b.getAttribute("data-hours") || 0;
-    const label = b.textContent;
     b.disabled = true;
-    await setWindow(name, b.getAttribute("data-close") ? 0 : (days*24 + hours) * 3600 * 1000);
+    const saved = await setWindow(name, b.getAttribute("data-close") ? 0 : (days*24 + hours) * 3600 * 1000);
     // brief ✓ on the button you pressed — the badge above is the lasting signal
-    if(!/^Not allowed|^Couldn/.test($("msg").textContent)){
-      b.classList.add("done"); b.textContent = "✓ " + label;
-      setTimeout(()=>{ b.classList.remove("done"); b.textContent = label; paintState(name); }, 1500);
+    if(saved){
+      const key = b.getAttribute("data-t");
+      b.classList.add("done"); b.innerHTML = "✓ " + H(key);
+      setTimeout(()=>{ b.classList.remove("done"); b.innerHTML = H(key); paintState(name); }, 1500);
     }
     b.disabled = false; paintState(name);
   };
 });
 
 $("dosignin").onclick = async ()=>{
-  $("authmsg").textContent = "signing in…";
+  say("authmsg", "tools.signingin");
   try{
     await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value);
   }catch(e){
-    $("authmsg").textContent = "Sign-in failed (" + (e.code||"error") + ").";
+    say("authmsg", "tools.signin.failed", { code: code(e) });
   }
 };
 $("signout").onclick = (e)=>{ e.preventDefault(); signOut(auth); };
@@ -253,7 +286,7 @@ onAuthStateChanged(auth, async (u)=>{
   if(u && real){
     $("signin").classList.add("hidden");
     $("panel").classList.remove("hidden");
-    $("who").textContent = u.email || u.phoneNumber || u.displayName || "signed in";
+    $("who").textContent = u.email || u.phoneNumber || u.displayName || T("tools.signedin");
     $("signout").classList.remove("hidden");
     await refresh();
     loadQueue();

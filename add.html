@@ -389,6 +389,8 @@ const SKIN_ICON = {
 function applyMode(){
   document.body.setAttribute("data-tier", MODE);
   $("skin").innerHTML = SKIN_ICON[MODE] || SKIN_ICON.auto;
+  // the caption names the mode you're in (disp.auto / disp.script / disp.sound)
+  const cap = C.STRINGS["disp." + MODE]; if(cap) $("skin").setAttribute("data-cap", cap.ar);
 }
 applyMode();
 $("skin").addEventListener("click", ()=>{
@@ -396,7 +398,6 @@ $("skin").addEventListener("click", ()=>{
   C.setDisplayMode(MODE); applyMode();
   try{ paintAuth(); }catch(_){}               // the one plain-text label
 });
-try{ const cap = C.STRINGS["hdr.display"]; if(cap && cap.ar) $("skin").setAttribute("data-cap", cap.ar); }catch(_){}
 C.attachQuietToggle($("skin"));               // long-press = quiet, as on the dictionary
 
 /* ---------------- strings ---------------- */

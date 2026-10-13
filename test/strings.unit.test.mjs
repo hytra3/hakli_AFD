@@ -29,13 +29,15 @@ const S = C.STRINGS;
 const I = sandbox.window.AFDInstance;
 
 const FILES = ["index.html", "add.html", "recorder.html", "welcome.html", "steward.html",
-               "prompts/index.html", "prompts/admin.html", "afd-card.js", "afd-core.js"];
+               "prompts/index.html", "prompts/admin.html", "afd-card.js", "afd-core.js", "afd-tools.js"];
 // literal keys in the ways the pages ask for text
 const PATTERNS = [
   /\b(?:AFDCore|C)\.t(?:f|HTML)?\(\s*"([a-z][\w.]*\w)"/g,      // AFDCore.t("k") / tf / tHTML, C.t("k")
   /\bt(?:Bi|Msg)\(\s*"([a-z][\w.]*\w)"/g,                     // recorder: tBi("k") / tMsg("k")
   /\bset\(\s*"[\w-]+"\s*,\s*"([a-z][\w.]*\w)"/g,              // recorder: set("elementId","k")
-  /\bdata-(?:str|k|cap-key)="([a-z][\w.]*\w)"/g,              // markup
+  /\bdata-(?:str|k|cap-key|t|t-ph)="([a-z][\w.]*\w)"/g,       // markup
+  /\b(?:T|H|say\(\s*"[\w-]+"\s*,)\(?\s*"([a-z][\w.]*\w)"/g,       // tool pages: T("k"), H("k"), say("id","k")
+  /"((?:stw|win|tools|disp)\.[a-z][\w.]*\w)"/g,                // tool-page keys kept in tables
   /\bbiLabel\(\s*"([a-z][\w.]*\w)"/g,                         // afd-card.js
   /\bslotSection\(\s*"([a-z][\w.]*\w)"/g,
 ];
@@ -48,7 +50,8 @@ function keysIn(src){
 describe("interface strings", () => {
   for(const f of FILES){
     it(`every key ${f} asks for is in the list`, () => {
-      const missing = [...keysIn(read(f))].filter(k => !(k in S));
+      // real keys are dotted ("area.thing"); a bare word is an example in a comment
+      const missing = [...keysIn(read(f))].filter(k => k.includes(".") && !(k in S));
       assert.deepEqual(missing, [], `${f} asks for keys that aren't in AFDCore.STRINGS`);
     });
   }
@@ -66,6 +69,10 @@ describe("interface strings", () => {
   it("every string has both English and Arabic", () => {
     const half = Object.entries(S).filter(([, v]) => !v.en || !v.ar).map(([k]) => k);
     assert.deepEqual(half, []);
+  });
+  it("the window messages built from a name exist for both windows", () => {
+    for(const w of ["recording", "suggestions"]) for(const v of ["opened", "closed"])
+      assert.ok(`win.${v}.${w}` in S, `win.${v}.${w}`);
   });
   it("placeholders match between the two languages", () => {
     // {xAr} in the Arabic is the same value as {x}, written in Arabic numerals
