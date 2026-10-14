@@ -24,6 +24,18 @@ await scenario("a steward edits a seeded word's text and emoji", async ()=>{
   await page.evaluate(()=>[...document.querySelectorAll(".wt-btn")].find(b=>/Edit word/.test(b.textContent)).click());
   const before = await page.evaluate(()=>({ en:document.querySelector('[data-f="en"]').value, ar:document.querySelector('[data-f="ar"]').value, pic:document.querySelector('[data-f="pic"]').value }));
   ok("the editor opens with the word's current text and emoji", before.en==="sun" && before.ar==="الشمس" && before.pic==="☀️", JSON.stringify(before));
+  await page.waitForSelector(".ep-tab", { timeout:5000 });
+  const pk = await page.evaluate(()=>({
+    sug: [...document.querySelectorAll(".ep-sug .ep-e")].map(b=>b.dataset.e),
+    tabs: [...document.querySelectorAll(".ep-tab")].map(t=>t.textContent),
+    needed: [...document.querySelectorAll(".ep-grid .ep-e")].map(b=>b.dataset.e) }));
+  ok("picker: suggests the word's own emoji (sun → ☀️)", pk.sug.includes("\u2600\uFE0F"), JSON.stringify(pk.sug));
+  ok("picker: 'not in the dictionary yet' first, then Dhofar, then the list's fields", /Not in the dictionary yet/.test(pk.tabs[0]) && /Dhofar/.test(pk.tabs[1]) && /^The physical world/.test(pk.tabs[2]) && /^The body/.test(pk.tabs[3]), JSON.stringify(pk.tabs));
+  ok("picker: 'not in the dictionary yet' leaves out words already here (sun)", pk.needed.length > 20 && !pk.needed.includes("\u2600\uFE0F") && pk.needed.includes("\u{1F525}"), JSON.stringify(pk.needed.slice(0,12)));
+  await page.evaluate(()=>[...document.querySelectorAll(".ep-tab")].find(t=>/^Animals/.test(t.textContent)).click());
+  await page.evaluate(()=>document.querySelector('.ep-grid .ep-e[data-e="\u{1F415}"]').click());
+  const picked = await page.evaluate(()=>({ v: document.querySelector('[data-f="pic"]').value, cur: document.querySelector(".ep-cur").textContent }));
+  ok("picker: tapping an emoji fills the box and the preview", picked.v==="\u{1F415}" && picked.cur==="\u{1F415}", JSON.stringify(picked));
   await page.fill('[data-f="en"]', "  the  sun ");
   await page.fill('[data-f="pic"]', "\u{1F31E}");
   if(SHOTS) await page.screenshot({ path: SHOTS + "/edit-word.png", fullPage:true });

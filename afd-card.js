@@ -348,6 +348,95 @@ function parseTags(str){
   }
   return out.slice(0,6);
 }
+/* ---- emoji picker for Edit word (10-14) ----------------------------------
+   Built on data/concept-emoji.json: one suggested emoji per concept on the
+   comparison lists (Leipzig-Jakarta first), grouped by Concepticon's semantic
+   fields, plus the dictionary's own Dhofar group. On top: this word's own
+   suggestion — from its linked concept, else by matching its English to a
+   concept — and a "not in the dictionary yet" row: list concepts no word card
+   covers, a nudge for what to collect next. The text box stays for anything
+   else; picking only fills it. */
+let _emojiData = null;
+function emojiData(){
+  return _emojiData || (_emojiData = fetch(new URL("data/concept-emoji.json", document.baseURI))
+    .then(r => r.ok ? r.json() : null).catch(() => null));
+}
+const normGloss = (g) => String(g||"").toLowerCase().replace(/\(.*?\)/g," ").replace(/[^a-z ]+/g," ").replace(/\s+/g," ").trim();
+function glossKeys(g){                         // "STONE OR ROCK" → ["stone","rock"]; "rocks" also tries "rock"
+  const out = new Set();
+  for(const part of normGloss(g).split(/ or /)){ const p = part.trim(); if(p){ out.add(p); if(p.endsWith("s")) out.add(p.slice(0,-1)); } }
+  return out;
+}
+function conceptsFor(data, meta){
+  const ids = new Set((meta.concepts||[]).map(c => String(c).replace(/^concepticon:/,"")).filter(id => data.concepts[id]));
+  if(!ids.size){
+    const mine = glossKeys(meta.gloss || (meta.glosses && meta.glosses.en) || "");
+    for(const [id, c] of Object.entries(data.concepts)) for(const k of glossKeys(c.gloss)) if(mine.has(k)) ids.add(id);
+  }
+  return [...ids];
+}
+async function stillNeeded(data){
+  // list concepts (lead list) that no word card links to or names in English
+  const covered = new Set(), names = new Set();
+  const take = (d)=>{ (d.concepts||[]).forEach(c => covered.add(String(c).replace(/^concepticon:/,"")));
+                      glossKeys(d.gloss || (d.glosses && d.glosses.en) || "").forEach(k => names.add(k)); };
+  (window.AFDWords||[]).forEach(w => take({ gloss:w.en }));
+  try{ (await getDocs(collection(CFG.db,"afd_entries"))).forEach(sn => { const d=sn.data()||{}; if(!d.removedAt && !d.hiddenAt) take(d); }); }catch(_){}
+  return Object.entries(data.concepts).filter(([id, c]) => c.lj && c.emoji && !covered.has(id)
+    && ![...glossKeys(c.gloss)].some(k => names.has(k)));
+}
+function emojiPicker(host, entryId, meta, m){
+  const ar = m !== "auto";
+  host.innerHTML =
+    `<div class="ep-now"><span class="ep-cur" aria-live="polite"></span>`+
+    `<input type="text" data-f="pic" maxlength="32" autocomplete="off" aria-label="${escapeHtml(AFDCore.t("card.edit.pic", m))}" placeholder="${escapeHtml(AFDCore.t("ep.other", m))}">`+
+    `<button type="button" class="ep-none">${AFDCore.tHTML("ep.none", m)}</button></div>`+
+    `<div class="ep-sug" hidden></div><div class="ep-tabs" role="tablist"></div><div class="ep-grid"></div>`;
+  const inp = host.querySelector("input"), cur = host.querySelector(".ep-cur");
+  const sug = host.querySelector(".ep-sug"), tabs = host.querySelector(".ep-tabs"), grid = host.querySelector(".ep-grid");
+  const show = ()=>{ cur.textContent = inp.value || "—"; host.querySelectorAll(".ep-e").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.e === inp.value))); };
+  const set = (e)=>{ inp.value = e; show(); };
+  inp.addEventListener("input", show);
+  host.querySelector(".ep-none").onclick = ()=> set("");
+  const btn = (e, title)=>`<button type="button" class="ep-e" data-e="${escapeHtml(e)}" title="${escapeHtml(title||"")}" aria-label="${escapeHtml(title||e)}">${escapeHtml(e)}</button>`;
+  host.addEventListener("click", (ev)=>{ const b = ev.target.closest(".ep-e"); if(b) set(b.dataset.e); });
+  const fieldName = (data, f)=> ar ? ((data.fields[f]||{}).ar || f) : f;
+  let built = false;
+  async function open(){
+    if(built) return; built = true;
+    const data = await emojiData(); if(!data){ grid.innerHTML = ""; return; }
+    // this word's own suggestion(s)
+    const mineIds = conceptsFor(data, meta).filter(id => data.concepts[id].emoji);
+    if(mineIds.length){
+      sug.hidden = false;
+      sug.innerHTML = `<span class="ep-lab">${AFDCore.tHTML("ep.suggested", m)}</span>` +
+        [...new Set(mineIds.map(id => data.concepts[id].emoji))].map(e => btn(e, mineIds.find(id => data.concepts[id].emoji===e) && data.concepts[mineIds.find(id => data.concepts[id].emoji===e)].gloss.toLowerCase())).join("");
+    }
+    // groups: still needed · Dhofar · each field that has a picture
+    const groups = [];
+    const needed = await stillNeeded(data);
+    if(needed.length) groups.push({ key:"needed", label:AFDCore.tHTML("ep.needed", m), items: needed.map(([id,c]) => [c.emoji, c.gloss.toLowerCase()]) });
+    if((data.custom||[]).length) groups.push({ key:"custom", label:AFDCore.tHTML("ep.custom", m), items: data.custom.map(c => [c.emoji, c.label]) });
+    // fields in the order the lead list first meets them (data.fields keeps it),
+    // concepts in list order — object keys alone would sort by Concepticon ID
+    const byField = new Map(Object.keys(data.fields||{}).map(f => [f, []]));
+    for(const id of (data.order || Object.keys(data.concepts))){ const c = data.concepts[id]; if(!c || !c.emoji) continue;
+      if(!byField.has(c.field)) byField.set(c.field, []); byField.get(c.field).push([c.emoji, c.gloss.toLowerCase()]); }
+    for(const [f, items] of byField) if(items.length) groups.push({ key:f, label:escapeHtml(fieldName(data, f)), items });
+    tabs.innerHTML = groups.map((g,i) => `<button type="button" class="ep-tab" role="tab" data-i="${i}" aria-selected="${i===0}">${g.label}</button>`).join("");
+    const paint = (i)=>{
+      const seen = new Set();
+      grid.innerHTML = groups[i].items.filter(([e]) => !seen.has(e) && seen.add(e)).map(([e,t]) => btn(e,t)).join("");
+      tabs.querySelectorAll(".ep-tab").forEach(t => { const on = +t.dataset.i === i; t.setAttribute("aria-selected", String(on));
+        if(on && t.scrollIntoView) try{ t.scrollIntoView({ inline:"nearest", block:"nearest" }); }catch(_){} });
+      show();
+    };
+    tabs.addEventListener("click", (ev)=>{ const t = ev.target.closest(".ep-tab"); if(t) paint(+t.dataset.i); });
+    if(groups.length) paint(0);
+  }
+  return { set, open };
+}
+
 async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFace){
   const u = CFG.user(); if(!u) return;
   const creator = meta.source==="user" && meta.createdBy===u.uid;
@@ -383,12 +472,14 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFa
     const fe=document.createElement("div"); fe.className="wt-tags wt-edit"; fe.hidden=true;
     const fld=(key, f, dir, max)=>`<label class="wt-field"><span>${AFDCore.tHTML(key, m)}</span>`+
       `<input type="text" data-f="${f}" dir="${dir}" maxlength="${max}" autocomplete="off"></label>`;
-    fe.innerHTML=fld("card.edit.en","en","ltr",80)+fld("card.edit.ar","ar","rtl",80)+fld("card.edit.pic","pic","auto",32)+
+    fe.innerHTML=fld("card.edit.en","en","ltr",80)+fld("card.edit.ar","ar","rtl",80)+
+      `<div class="wt-field ep-host"><span>${AFDCore.tHTML("card.edit.pic", m)}</span><div class="ep"></div></div>`+
       (meta.image ? `<p class="wt-note">${AFDCore.tHTML("card.edit.photo", m)}</p>` : "")+
       `<button type="button" class="wt-btn wt-save">${AFDCore.tHTML("card.edit.save", m)}</button>`;
     const inF=(f)=>fe.querySelector(`[data-f="${f}"]`);
-    const fill=()=>{ inF("en").value=meta.gloss||""; inF("ar").value=meta.glossAr||""; inF("pic").value=meta.pic||""; };
-    eb.onclick=()=>{ fe.hidden=!fe.hidden; if(!fe.hidden){ fill(); inF("en").focus(); } };
+    const picker=emojiPicker(fe.querySelector(".ep"), entryId, meta, m);
+    const fill=()=>{ inF("en").value=meta.gloss||""; inF("ar").value=meta.glossAr||""; picker.set(meta.pic||""); };
+    eb.onclick=()=>{ fe.hidden=!fe.hidden; if(!fe.hidden){ fill(); picker.open(); inF("en").focus(); } };
     fe.querySelector(".wt-save").onclick=async ()=>{
       const en=inF("en").value.trim().replace(/\s+/g," ").slice(0,80);
       const ar=inF("ar").value.trim().replace(/\s+/g," ").slice(0,80);

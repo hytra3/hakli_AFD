@@ -765,7 +765,13 @@ window.AFDCore = (function(){
     "stw.cov.missing":      { en:"Not covered yet", ar:"لم تُغطَّ بعد" },
     "stw.cov.covered":      { en:"Covered", ar:"مُغطّاة" },
     "stw.cov.none":         { en:"Every concept on this list has a word card.", ar:"لكلّ مفهوم في هذه القائمة بطاقة كلمة." },
-    "stw.cov.note":         { en:"Concepts from a standard comparison list that no word card links to yet — a guide to what to ask for next. Concept names are Concepticon's (English). Links are made with `node scripts/apply-concepts.mjs`; hidden and removed words don't count.", ar:"مفاهيم من قائمة مقارنة معيارية لا ترتبط بها أيّ بطاقة كلمة بعد — دليلٌ لما يُطلَب تسجيله لاحقًا. أسماء المفاهيم من Concepticon (بالإنجليزية). تُنشأ الروابط بـ`node scripts/apply-concepts.mjs`؛ ولا تُحتسَب الكلمات المخفيّة أو المُزالة." }
+    "stw.cov.note":         { en:"Concepts from a standard comparison list that no word card links to yet — a guide to what to ask for next. Concept names are Concepticon's (English). Links are made with `node scripts/apply-concepts.mjs`; hidden and removed words don't count.", ar:"مفاهيم من قائمة مقارنة معيارية لا ترتبط بها أيّ بطاقة كلمة بعد — دليلٌ لما يُطلَب تسجيله لاحقًا. أسماء المفاهيم من Concepticon (بالإنجليزية). تُنشأ الروابط بـ`node scripts/apply-concepts.mjs`؛ ولا تُحتسَب الكلمات المخفيّة أو المُزالة." },
+    // the emoji picker in Edit word (added 10-14, kept last so review numbers hold)
+    "ep.suggested":         { en:"For this word",      ar:"لهذه الكلمة" },
+    "ep.needed":            { en:"Not in the dictionary yet", ar:"ليست في القاموس بعد" },
+    "ep.custom":            { en:"Dhofar",             ar:"ظفار" },
+    "ep.none":              { en:"No emoji",           ar:"بلا رمز" },
+    "ep.other":             { en:"or type one",        ar:"أو اكتب رمزًا" },
   };
   function t(key, mode){
     const s = STRINGS[key];

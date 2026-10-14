@@ -189,3 +189,29 @@
 .afdcard .ldots-row{display:flex; justify-content:center; padding:14px 0; color:var(--resin)}
 .afdcard .ldots-row .ldots span{width:9px; height:9px}
 @media (prefers-reduced-motion:reduce){ .afdcard .ldots span{animation:none; opacity:.8} }
+
+/* emoji picker in Edit word (10-14) */
+.afdcard .ep{display:flex; flex-direction:column; gap:8px; width:100%}
+.afdcard .ep-now{display:flex; align-items:center; gap:8px}
+.afdcard .ep-cur{width:44px; height:44px; flex:0 0 auto; display:grid; place-items:center; font-size:26px;
+  border:1.5px solid var(--mist-2); border-radius:12px; background:var(--cloud); color:var(--mist)}
+.afdcard .ep-now input{flex:1; min-width:0; font:15px var(--sans); padding:9px 10px; border:1.5px solid var(--mist-2); border-radius:10px}
+.afdcard .ep-none{flex:0 0 auto; border:1px solid var(--mist-2); background:transparent; color:var(--mist);
+  border-radius:10px; padding:9px 10px; font:600 12px/1 var(--sans); cursor:pointer}
+.afdcard .ep-none .ar, .afdcard .ep-none .bi-ar{margin-inline-start:4px}
+.afdcard .ep-sug{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.afdcard .ep-sug[hidden]{display:none}
+.afdcard .ep-lab{font:600 12px/1 var(--sans); color:var(--resin); margin-inline-end:4px}
+.afdcard .ep-lab .ar, .afdcard .ep-lab .bi-ar{margin-inline-start:4px; font-weight:500}
+.afdcard .ep-tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; scrollbar-width:thin}
+.afdcard .ep-tab{flex:0 0 auto; border:1px solid var(--mist-2); background:transparent; color:var(--mountain);
+  border-radius:999px; padding:6px 11px; font:600 12px/1.2 var(--sans); cursor:pointer; white-space:nowrap}
+.afdcard .ep-tab .ar, .afdcard .ep-tab .bi-ar{margin-inline-start:5px; font-weight:500; color:var(--mist)}
+.afdcard .ep-tab[aria-selected="true"]{background:var(--mountain); border-color:var(--mountain); color:var(--cloud)}
+.afdcard .ep-tab[aria-selected="true"] .ar, .afdcard .ep-tab[aria-selected="true"] .bi-ar{color:rgba(255,255,255,.75)}
+.afdcard .ep-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(42px, 1fr)); gap:4px;
+  max-height:184px; overflow-y:auto}
+.afdcard .ep-e{height:42px; border:1.5px solid transparent; background:transparent; border-radius:10px;
+  font-size:24px; line-height:1; cursor:pointer}
+.afdcard .ep-e:hover{background:var(--mist-2)}
+.afdcard .ep-e[aria-pressed="true"]{border-color:var(--resin); background:rgba(198,135,63,.12)}

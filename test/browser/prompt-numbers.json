@@ -587,6 +587,11 @@
   "A11.104": "screen:stw.cov.missing",
   "A11.105": "screen:stw.cov.covered",
   "A11.106": "screen:stw.cov.none",
-  "A11.107": "screen:stw.cov.note"
+  "A11.107": "screen:stw.cov.note",
+  "A11.108": "screen:ep.suggested",
+  "A11.109": "screen:ep.needed",
+  "A11.110": "screen:ep.custom",
+  "A11.111": "screen:ep.none",
+  "A11.112": "screen:ep.other"
  }
 }

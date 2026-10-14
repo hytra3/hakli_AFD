@@ -1,0 +1,1833 @@
+{
+ "about": "Emoji for the Edit word picker (10-14). One suggested emoji per Concepticon concept on the dictionary's comparison lists (Leipzig-Jakarta first, then Swadesh 100/200), grouped by Concepticon's semantic field; null where a concept can't be pictured (I, this, not, who…) — those words keep their identicon. `custom` is the dictionary's own group: things the lists don't name but Dhofar keeps meeting. Edit freely; git is the record.",
+ "source": "concepticon.json (glosses and fields), emoji chosen by hand",
+ "lead": "Tadmor-2009-100",
+ "concepts": {
+  "221": {
+   "gloss": "FIRE",
+   "field": "The physical world",
+   "emoji": "🔥",
+   "lj": true
+  },
+  "1221": {
+   "gloss": "NOSE",
+   "field": "The body",
+   "emoji": "👃",
+   "lj": true
+  },
+  "695": {
+   "gloss": "GO",
+   "field": "Motion",
+   "emoji": "🚶",
+   "lj": true
+  },
+  "948": {
+   "gloss": "WATER",
+   "field": "The physical world",
+   "emoji": "💧",
+   "lj": true
+  },
+  "674": {
+   "gloss": "MOUTH",
+   "field": "The body",
+   "emoji": "👄",
+   "lj": true
+  },
+  "1205": {
+   "gloss": "TONGUE",
+   "field": "The body",
+   "emoji": "👅",
+   "lj": true
+  },
+  "946": {
+   "gloss": "BLOOD",
+   "field": "The body",
+   "emoji": "🩸",
+   "lj": true
+  },
+  "1394": {
+   "gloss": "BONE",
+   "field": "The body",
+   "emoji": "🦴",
+   "lj": true
+  },
+  "1215": {
+   "gloss": "THOU",
+   "field": "Kinship",
+   "emoji": null,
+   "lj": true
+  },
+  "670": {
+   "gloss": "ROOT",
+   "field": "Agriculture and vegetation",
+   "emoji": "🫚",
+   "lj": true
+  },
+  "1446": {
+   "gloss": "COME",
+   "field": "Motion",
+   "emoji": null,
+   "lj": true
+  },
+  "1402": {
+   "gloss": "BREAST",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "658": {
+   "gloss": "RAIN (PRECIPITATION)",
+   "field": "The physical world",
+   "emoji": "🌧️",
+   "lj": true
+  },
+  "1209": {
+   "gloss": "I",
+   "field": "Kinship",
+   "emoji": null,
+   "lj": true
+  },
+  "1405": {
+   "gloss": "NAME",
+   "field": "Speech and language",
+   "emoji": "🏷️",
+   "lj": true
+  },
+  "1392": {
+   "gloss": "LOUSE",
+   "field": "Animals",
+   "emoji": null,
+   "lj": true
+  },
+  "1257": {
+   "gloss": "WING",
+   "field": "The body",
+   "emoji": "🪽",
+   "lj": true
+  },
+  "2615": {
+   "gloss": "FLESH OR MEAT",
+   "field": "The body",
+   "emoji": "🥩",
+   "lj": true
+  },
+  "2121": {
+   "gloss": "ARM OR HAND",
+   "field": "The body",
+   "emoji": "✋",
+   "lj": true
+  },
+  "1504": {
+   "gloss": "FLY (INSECT)",
+   "field": "Animals",
+   "emoji": "🪰",
+   "lj": true
+  },
+  "1233": {
+   "gloss": "NIGHT",
+   "field": "Time",
+   "emoji": "🌙",
+   "lj": true
+  },
+  "1247": {
+   "gloss": "EAR",
+   "field": "The body",
+   "emoji": "👂",
+   "lj": true
+  },
+  "1333": {
+   "gloss": "NECK",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "1406": {
+   "gloss": "FAR",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "2575": {
+   "gloss": "DO OR MAKE",
+   "field": "Basic actions and technology",
+   "emoji": "🛠️",
+   "lj": true
+  },
+  "1252": {
+   "gloss": "HOUSE",
+   "field": "The house",
+   "emoji": "🏠",
+   "lj": true
+  },
+  "2125": {
+   "gloss": "STONE OR ROCK",
+   "field": "The physical world",
+   "emoji": "🪨",
+   "lj": true
+  },
+  "887": {
+   "gloss": "BITTER",
+   "field": "Sense perception",
+   "emoji": null,
+   "lj": true
+  },
+  "1458": {
+   "gloss": "SAY",
+   "field": "Speech and language",
+   "emoji": "🗣️",
+   "lj": true
+  },
+  "1380": {
+   "gloss": "TOOTH",
+   "field": "The body",
+   "emoji": "🦷",
+   "lj": true
+  },
+  "1040": {
+   "gloss": "HAIR",
+   "field": "The body",
+   "emoji": "💇",
+   "lj": true
+  },
+  "1202": {
+   "gloss": "BIG",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "1493": {
+   "gloss": "ONE",
+   "field": "Quantity",
+   "emoji": "1️⃣",
+   "lj": true
+  },
+  "1235": {
+   "gloss": "WHO",
+   "field": "Cognition",
+   "emoji": null,
+   "lj": true
+  },
+  "262": {
+   "gloss": "HE OR SHE OR IT",
+   "field": "Kinship",
+   "emoji": null,
+   "lj": true
+  },
+  "2133": {
+   "gloss": "STRIKE OR BEAT",
+   "field": "Basic actions and technology",
+   "emoji": "👊",
+   "lj": true
+  },
+  "2098": {
+   "gloss": "FOOT OR LEG",
+   "field": "The body",
+   "emoji": "🦵",
+   "lj": true
+  },
+  "1393": {
+   "gloss": "HORN (ANATOMY)",
+   "field": "The body",
+   "emoji": "🐂",
+   "lj": true
+  },
+  "1214": {
+   "gloss": "THIS",
+   "field": "Miscellaneous function words",
+   "emoji": null,
+   "lj": true
+  },
+  "227": {
+   "gloss": "FISH",
+   "field": "Animals",
+   "emoji": "🐟",
+   "lj": true
+  },
+  "1174": {
+   "gloss": "YESTERDAY",
+   "field": "Time",
+   "emoji": null,
+   "lj": true
+  },
+  "1401": {
+   "gloss": "DRINK",
+   "field": "Food and drink",
+   "emoji": "🥤",
+   "lj": true
+  },
+  "163": {
+   "gloss": "BLACK",
+   "field": "Sense perception",
+   "emoji": "⬛",
+   "lj": true
+  },
+  "1838": {
+   "gloss": "NAVEL",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "1442": {
+   "gloss": "STAND",
+   "field": "Spatial relations",
+   "emoji": "🧍",
+   "lj": true
+  },
+  "1403": {
+   "gloss": "BITE",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "1291": {
+   "gloss": "BACK",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "960": {
+   "gloss": "WIND",
+   "field": "The physical world",
+   "emoji": "🌬️",
+   "lj": true
+  },
+  "778": {
+   "gloss": "SMOKE (EXHAUST)",
+   "field": "The physical world",
+   "emoji": "💨",
+   "lj": true
+  },
+  "1236": {
+   "gloss": "WHAT",
+   "field": "Cognition",
+   "emoji": null,
+   "lj": true
+  },
+  "1801": {
+   "gloss": "CHILD (DESCENDANT)",
+   "field": "Kinship",
+   "emoji": "👶",
+   "lj": true
+  },
+  "744": {
+   "gloss": "EGG",
+   "field": "Food and drink",
+   "emoji": "🥚",
+   "lj": true
+  },
+  "1447": {
+   "gloss": "GIVE",
+   "field": "Possession",
+   "emoji": "🎁",
+   "lj": true
+  },
+  "1231": {
+   "gloss": "NEW",
+   "field": "Time",
+   "emoji": "🆕",
+   "lj": true
+  },
+  "1428": {
+   "gloss": "BURNING",
+   "field": "The physical world",
+   "emoji": "🔥",
+   "lj": true
+  },
+  "1240": {
+   "gloss": "NOT",
+   "field": "Miscellaneous function words",
+   "emoji": "🚫",
+   "lj": true
+  },
+  "1035": {
+   "gloss": "GOOD",
+   "field": "Emotions and values",
+   "emoji": "👍",
+   "lj": true
+  },
+  "3626": {
+   "gloss": "KNOW",
+   "field": "Cognition",
+   "emoji": "🧠",
+   "lj": true
+  },
+  "1371": {
+   "gloss": "KNEE",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "671": {
+   "gloss": "SAND",
+   "field": "The physical world",
+   "emoji": "🏜️",
+   "lj": true
+  },
+  "1355": {
+   "gloss": "LAUGH",
+   "field": "Emotions and values",
+   "emoji": "😂",
+   "lj": true
+  },
+  "1408": {
+   "gloss": "HEAR",
+   "field": "Sense perception",
+   "emoji": "👂",
+   "lj": true
+  },
+  "1228": {
+   "gloss": "EARTH (SOIL)",
+   "field": "The physical world",
+   "emoji": "🟤",
+   "lj": true
+  },
+  "628": {
+   "gloss": "LEAF",
+   "field": "Agriculture and vegetation",
+   "emoji": "🍃",
+   "lj": true
+  },
+  "156": {
+   "gloss": "RED",
+   "field": "Sense perception",
+   "emoji": "🟥",
+   "lj": true
+  },
+  "1224": {
+   "gloss": "LIVER",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "2486": {
+   "gloss": "HIDE",
+   "field": "Spatial relations",
+   "emoji": "🫣",
+   "lj": true
+  },
+  "763": {
+   "gloss": "SKIN",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "1421": {
+   "gloss": "SUCK",
+   "field": "Food and drink",
+   "emoji": null,
+   "lj": true
+  },
+  "700": {
+   "gloss": "CARRY",
+   "field": "Motion",
+   "emoji": "🎒",
+   "lj": true
+  },
+  "587": {
+   "gloss": "ANT",
+   "field": "Animals",
+   "emoji": "🐜",
+   "lj": true
+  },
+  "1210": {
+   "gloss": "HEAVY",
+   "field": "Sense perception",
+   "emoji": "🏋️",
+   "lj": true
+  },
+  "1749": {
+   "gloss": "TAKE",
+   "field": "Possession",
+   "emoji": null,
+   "lj": true
+  },
+  "1229": {
+   "gloss": "OLD",
+   "field": "Time",
+   "emoji": "👴",
+   "lj": true
+  },
+  "1336": {
+   "gloss": "EAT",
+   "field": "Food and drink",
+   "emoji": "🍽️",
+   "lj": true
+  },
+  "471": {
+   "gloss": "UPPER LEG (THIGH)",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "1244": {
+   "gloss": "THICK",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "1203": {
+   "gloss": "LONG",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "175": {
+   "gloss": "BLOW (OF WIND)",
+   "field": "Motion",
+   "emoji": "🌬️",
+   "lj": true
+  },
+  "1803": {
+   "gloss": "WOOD",
+   "field": "The physical world",
+   "emoji": "🪵",
+   "lj": true
+  },
+  "1519": {
+   "gloss": "RUN",
+   "field": "Motion",
+   "emoji": "🏃",
+   "lj": true
+  },
+  "1280": {
+   "gloss": "FALL",
+   "field": "Motion",
+   "emoji": "🍂",
+   "lj": true
+  },
+  "1248": {
+   "gloss": "EYE",
+   "field": "The body",
+   "emoji": "👁️",
+   "lj": true
+  },
+  "646": {
+   "gloss": "ASH",
+   "field": "The physical world",
+   "emoji": null,
+   "lj": true
+  },
+  "1220": {
+   "gloss": "TAIL",
+   "field": "The body",
+   "emoji": null,
+   "lj": true
+  },
+  "2009": {
+   "gloss": "DOG",
+   "field": "Animals",
+   "emoji": "🐕",
+   "lj": true
+  },
+  "1839": {
+   "gloss": "CRY",
+   "field": "Emotions and values",
+   "emoji": "😢",
+   "lj": true
+  },
+  "1917": {
+   "gloss": "TIE",
+   "field": "Basic actions and technology",
+   "emoji": "🪢",
+   "lj": true
+  },
+  "1409": {
+   "gloss": "SEE",
+   "field": "Sense perception",
+   "emoji": "👀",
+   "lj": true
+  },
+  "717": {
+   "gloss": "SWEET",
+   "field": "Sense perception",
+   "emoji": "🍯",
+   "lj": true
+  },
+  "1218": {
+   "gloss": "ROPE",
+   "field": "Basic actions and technology",
+   "emoji": "🪢",
+   "lj": true
+  },
+  "1388": {
+   "gloss": "SHADE",
+   "field": "The physical world",
+   "emoji": "⛱️",
+   "lj": true
+  },
+  "937": {
+   "gloss": "BIRD",
+   "field": "Animals",
+   "emoji": "🐦",
+   "lj": true
+  },
+  "1274": {
+   "gloss": "SALT",
+   "field": "Food and drink",
+   "emoji": "🧂",
+   "lj": true
+  },
+  "1246": {
+   "gloss": "SMALL",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "1243": {
+   "gloss": "WIDE",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "1430": {
+   "gloss": "STAR",
+   "field": "The physical world",
+   "emoji": "⭐",
+   "lj": true
+  },
+  "1460": {
+   "gloss": "IN",
+   "field": "Spatial relations",
+   "emoji": null,
+   "lj": true
+  },
+  "1884": {
+   "gloss": "HARD",
+   "field": "Sense perception",
+   "emoji": null,
+   "lj": true
+  },
+  "1033": {
+   "gloss": "GRIND",
+   "field": "Food and drink",
+   "emoji": null,
+   "lj": true
+  },
+  "98": {
+   "gloss": "ALL",
+   "field": "Quantity",
+   "emoji": null
+  },
+  "1577": {
+   "gloss": "AND",
+   "field": "Cognition",
+   "emoji": null
+  },
+  "619": {
+   "gloss": "ANIMAL",
+   "field": "Animals",
+   "emoji": "🐾"
+  },
+  "1461": {
+   "gloss": "AT",
+   "field": "Spatial relations",
+   "emoji": null
+  },
+  "1292": {
+   "gloss": "BAD",
+   "field": "Emotions and values",
+   "emoji": "👎"
+  },
+  "1204": {
+   "gloss": "BARK",
+   "field": "Agriculture and vegetation",
+   "emoji": null
+  },
+  "1157": {
+   "gloss": "BECAUSE",
+   "field": "Cognition",
+   "emoji": null
+  },
+  "1251": {
+   "gloss": "BELLY",
+   "field": "The body",
+   "emoji": null
+  },
+  "904": {
+   "gloss": "BERRY",
+   "field": "Agriculture and vegetation",
+   "emoji": "🫐"
+  },
+  "1407": {
+   "gloss": "BREATHE",
+   "field": "The body",
+   "emoji": null
+  },
+  "1304": {
+   "gloss": "CHILD (YOUNG HUMAN)",
+   "field": "Kinship",
+   "emoji": "🧒"
+  },
+  "1489": {
+   "gloss": "CLOUD",
+   "field": "The physical world",
+   "emoji": "☁️"
+  },
+  "2483": {
+   "gloss": "COLD (OF WEATHER)",
+   "field": "Sense perception",
+   "emoji": "🥶"
+  },
+  "1420": {
+   "gloss": "COUNT",
+   "field": "Quantity",
+   "emoji": "🔢"
+  },
+  "1432": {
+   "gloss": "CUT",
+   "field": "Basic actions and technology",
+   "emoji": "✂️"
+  },
+  "1225": {
+   "gloss": "DAY (NOT NIGHT)",
+   "field": "Time",
+   "emoji": "☀️"
+  },
+  "1494": {
+   "gloss": "DIE",
+   "field": "The body",
+   "emoji": "⚰️"
+  },
+  "1418": {
+   "gloss": "DIG",
+   "field": "Agriculture and vegetation",
+   "emoji": "⛏️"
+  },
+  "1230": {
+   "gloss": "DIRTY",
+   "field": "Sense perception",
+   "emoji": null
+  },
+  "1398": {
+   "gloss": "DRY",
+   "field": "Sense perception",
+   "emoji": "🏜️"
+  },
+  "379": {
+   "gloss": "BLUNT",
+   "field": "Sense perception",
+   "emoji": null
+  },
+  "2": {
+   "gloss": "DUST",
+   "field": "The physical world",
+   "emoji": null
+  },
+  "323": {
+   "gloss": "FAT (ORGANIC SUBSTANCE)",
+   "field": "The body",
+   "emoji": null
+  },
+  "1217": {
+   "gloss": "FATHER",
+   "field": "Kinship",
+   "emoji": "👨"
+  },
+  "1419": {
+   "gloss": "FEAR (BE AFRAID)",
+   "field": "Emotions and values",
+   "emoji": "😨"
+  },
+  "1201": {
+   "gloss": "FEATHER",
+   "field": "The body",
+   "emoji": "🪶"
+  },
+  "1242": {
+   "gloss": "FEW",
+   "field": "Quantity",
+   "emoji": null
+  },
+  "1423": {
+   "gloss": "FIGHT",
+   "field": "Warfare and hunting",
+   "emoji": "🤺"
+  },
+  "493": {
+   "gloss": "FIVE",
+   "field": "Quantity",
+   "emoji": "5️⃣"
+  },
+  "1574": {
+   "gloss": "FLOAT",
+   "field": "Motion",
+   "emoji": null
+  },
+  "2003": {
+   "gloss": "FLOW",
+   "field": "Motion",
+   "emoji": "🌊"
+  },
+  "239": {
+   "gloss": "FLOWER",
+   "field": "Agriculture and vegetation",
+   "emoji": "🌸"
+  },
+  "1441": {
+   "gloss": "FLY (MOVE THROUGH AIR)",
+   "field": "Motion",
+   "emoji": "🕊️"
+  },
+  "249": {
+   "gloss": "FOG",
+   "field": "The physical world",
+   "emoji": "🌫️"
+  },
+  "1301": {
+   "gloss": "FOOT",
+   "field": "The body",
+   "emoji": "🦶"
+  },
+  "1500": {
+   "gloss": "FOUR",
+   "field": "Quantity",
+   "emoji": "4️⃣"
+  },
+  "1431": {
+   "gloss": "FREEZE",
+   "field": "The physical world",
+   "emoji": "🧊"
+  },
+  "606": {
+   "gloss": "GRASS",
+   "field": "Agriculture and vegetation",
+   "emoji": "🌿"
+  },
+  "1425": {
+   "gloss": "GREEN",
+   "field": "Sense perception",
+   "emoji": "🟩"
+  },
+  "1334": {
+   "gloss": "GUTS",
+   "field": "The body",
+   "emoji": null
+  },
+  "1277": {
+   "gloss": "HAND",
+   "field": "The body",
+   "emoji": "✋"
+  },
+  "1211": {
+   "gloss": "HE",
+   "field": "Kinship",
+   "emoji": "👨"
+  },
+  "1256": {
+   "gloss": "HEAD",
+   "field": "The body",
+   "emoji": "👤"
+  },
+  "1223": {
+   "gloss": "HEART",
+   "field": "The body",
+   "emoji": "❤️"
+  },
+  "136": {
+   "gloss": "HERE",
+   "field": "Miscellaneous function words",
+   "emoji": "📍"
+  },
+  "1433": {
+   "gloss": "HIT",
+   "field": "Basic actions and technology",
+   "emoji": "👊"
+  },
+  "1448": {
+   "gloss": "HOLD",
+   "field": "Possession",
+   "emoji": "🤲"
+  },
+  "1239": {
+   "gloss": "HOW",
+   "field": "Cognition",
+   "emoji": null
+  },
+  "1435": {
+   "gloss": "HUNT",
+   "field": "Warfare and hunting",
+   "emoji": "🏹"
+  },
+  "1200": {
+   "gloss": "HUSBAND",
+   "field": "Kinship",
+   "emoji": "🤵"
+  },
+  "617": {
+   "gloss": "ICE",
+   "field": "The physical world",
+   "emoji": "🧊"
+  },
+  "1459": {
+   "gloss": "IF",
+   "field": "Cognition",
+   "emoji": null
+  },
+  "1417": {
+   "gloss": "KILL",
+   "field": "The body",
+   "emoji": "⚔️"
+  },
+  "1410": {
+   "gloss": "KNOW (SOMETHING)",
+   "field": "Cognition",
+   "emoji": "🧠"
+  },
+  "624": {
+   "gloss": "LAKE",
+   "field": "The physical world",
+   "emoji": "🏞️"
+  },
+  "244": {
+   "gloss": "LEFT",
+   "field": "Spatial relations",
+   "emoji": "⬅️"
+  },
+  "1297": {
+   "gloss": "LEG",
+   "field": "The body",
+   "emoji": "🦵"
+  },
+  "1411": {
+   "gloss": "LIE (REST)",
+   "field": "Spatial relations",
+   "emoji": "🛌"
+  },
+  "1422": {
+   "gloss": "BE ALIVE",
+   "field": "The body",
+   "emoji": "🌱"
+  },
+  "2106": {
+   "gloss": "MALE PERSON",
+   "field": "Kinship",
+   "emoji": "👨"
+  },
+  "1198": {
+   "gloss": "MANY",
+   "field": "Quantity",
+   "emoji": null
+  },
+  "1216": {
+   "gloss": "MOTHER",
+   "field": "Kinship",
+   "emoji": "👩"
+  },
+  "639": {
+   "gloss": "MOUNTAIN",
+   "field": "The physical world",
+   "emoji": "⛰️"
+  },
+  "1267": {
+   "gloss": "NARROW",
+   "field": "Spatial relations",
+   "emoji": null
+  },
+  "1942": {
+   "gloss": "NEAR",
+   "field": "Spatial relations",
+   "emoji": null
+  },
+  "197": {
+   "gloss": "OTHER",
+   "field": "Miscellaneous function words",
+   "emoji": null
+  },
+  "683": {
+   "gloss": "PERSON",
+   "field": "Kinship",
+   "emoji": "🧑"
+  },
+  "1413": {
+   "gloss": "PLAY",
+   "field": "Emotions and values",
+   "emoji": "🎲"
+  },
+  "1455": {
+   "gloss": "PULL",
+   "field": "Basic actions and technology",
+   "emoji": null
+  },
+  "1452": {
+   "gloss": "PUSH",
+   "field": "Motion",
+   "emoji": null
+  },
+  "1253": {
+   "gloss": "RAIN (RAINING)",
+   "field": "The physical world",
+   "emoji": "🌧️"
+  },
+  "1725": {
+   "gloss": "CORRECT (RIGHT)",
+   "field": "Emotions and values",
+   "emoji": "✅"
+  },
+  "1019": {
+   "gloss": "RIGHT",
+   "field": "Spatial relations",
+   "emoji": "➡️"
+  },
+  "666": {
+   "gloss": "RIVER",
+   "field": "The physical world",
+   "emoji": "🏞️"
+  },
+  "667": {
+   "gloss": "ROAD",
+   "field": "Motion",
+   "emoji": "🛣️"
+  },
+  "1728": {
+   "gloss": "ROTTEN",
+   "field": "Agriculture and vegetation",
+   "emoji": null
+  },
+  "1449": {
+   "gloss": "RUB",
+   "field": "Basic actions and technology",
+   "emoji": null
+  },
+  "1436": {
+   "gloss": "SCRATCH",
+   "field": "The body",
+   "emoji": null
+  },
+  "1474": {
+   "gloss": "SEA",
+   "field": "The physical world",
+   "emoji": "🌊"
+  },
+  "714": {
+   "gloss": "SEED",
+   "field": "Agriculture and vegetation",
+   "emoji": "🌰"
+  },
+  "1457": {
+   "gloss": "SEW",
+   "field": "Clothing and grooming",
+   "emoji": "🪡"
+  },
+  "1396": {
+   "gloss": "SHARP",
+   "field": "Sense perception",
+   "emoji": "🔪"
+  },
+  "1645": {
+   "gloss": "SHORT",
+   "field": "Spatial relations",
+   "emoji": null
+  },
+  "1261": {
+   "gloss": "SING",
+   "field": "Speech and language",
+   "emoji": "🎵"
+  },
+  "1416": {
+   "gloss": "SIT",
+   "field": "Spatial relations",
+   "emoji": "🪑"
+  },
+  "2613": {
+   "gloss": "SKIN (HUMAN)",
+   "field": "The body",
+   "emoji": null
+  },
+  "1732": {
+   "gloss": "SKY",
+   "field": "The physical world",
+   "emoji": "🌌"
+  },
+  "1585": {
+   "gloss": "SLEEP",
+   "field": "The body",
+   "emoji": "😴"
+  },
+  "1586": {
+   "gloss": "SMELL (PERCEIVE)",
+   "field": "Sense perception",
+   "emoji": "👃"
+  },
+  "1234": {
+   "gloss": "SMOOTH",
+   "field": "Sense perception",
+   "emoji": null
+  },
+  "730": {
+   "gloss": "SNAKE",
+   "field": "Animals",
+   "emoji": "🐍"
+  },
+  "784": {
+   "gloss": "SNOW",
+   "field": "The physical world",
+   "emoji": "❄️"
+  },
+  "1241": {
+   "gloss": "SOME",
+   "field": "Quantity",
+   "emoji": null
+  },
+  "1440": {
+   "gloss": "SPIT",
+   "field": "The body",
+   "emoji": null
+  },
+  "1437": {
+   "gloss": "SPLIT",
+   "field": "Basic actions and technology",
+   "emoji": "🪓"
+  },
+  "1414": {
+   "gloss": "SQUEEZE",
+   "field": "Basic actions and technology",
+   "emoji": null
+  },
+  "1434": {
+   "gloss": "STAB",
+   "field": "Basic actions and technology",
+   "emoji": "🗡️"
+  },
+  "1295": {
+   "gloss": "STICK",
+   "field": "The physical world",
+   "emoji": "🪵"
+  },
+  "857": {
+   "gloss": "STONE",
+   "field": "The physical world",
+   "emoji": "🪨"
+  },
+  "1404": {
+   "gloss": "STRAIGHT",
+   "field": "Spatial relations",
+   "emoji": "📏"
+  },
+  "1343": {
+   "gloss": "SUN",
+   "field": "The physical world",
+   "emoji": "☀️"
+  },
+  "1573": {
+   "gloss": "SWELL",
+   "field": "Basic actions and technology",
+   "emoji": null
+  },
+  "1439": {
+   "gloss": "SWIM",
+   "field": "Motion",
+   "emoji": "🏊"
+  },
+  "78": {
+   "gloss": "THAT",
+   "field": "Miscellaneous function words",
+   "emoji": null
+  },
+  "1937": {
+   "gloss": "THERE",
+   "field": "Miscellaneous function words",
+   "emoji": null
+  },
+  "817": {
+   "gloss": "THEY",
+   "field": "Kinship",
+   "emoji": "👥"
+  },
+  "2308": {
+   "gloss": "THIN",
+   "field": "Spatial relations",
+   "emoji": null
+  },
+  "2271": {
+   "gloss": "THINK",
+   "field": "Cognition",
+   "emoji": "💭"
+  },
+  "492": {
+   "gloss": "THREE",
+   "field": "Quantity",
+   "emoji": "3️⃣"
+  },
+  "1456": {
+   "gloss": "THROW",
+   "field": "Motion",
+   "emoji": "🤾"
+  },
+  "906": {
+   "gloss": "TREE",
+   "field": "Agriculture and vegetation",
+   "emoji": "🌳"
+  },
+  "1444": {
+   "gloss": "TURN AROUND",
+   "field": "Motion",
+   "emoji": "🔄"
+  },
+  "1498": {
+   "gloss": "TWO",
+   "field": "Quantity",
+   "emoji": "2️⃣"
+  },
+  "1278": {
+   "gloss": "VOMIT",
+   "field": "The body",
+   "emoji": "🤮"
+  },
+  "1443": {
+   "gloss": "WALK",
+   "field": "Motion",
+   "emoji": "🚶"
+  },
+  "2110": {
+   "gloss": "WARM (OF WEATHER)",
+   "field": "The physical world",
+   "emoji": "🌡️"
+  },
+  "1453": {
+   "gloss": "WASH",
+   "field": "Basic actions and technology",
+   "emoji": "🧼"
+  },
+  "1212": {
+   "gloss": "WE",
+   "field": "Kinship",
+   "emoji": "👥"
+  },
+  "1726": {
+   "gloss": "WET",
+   "field": "Sense perception",
+   "emoji": "💦"
+  },
+  "1238": {
+   "gloss": "WHEN",
+   "field": "Cognition",
+   "emoji": "⏰"
+  },
+  "1237": {
+   "gloss": "WHERE",
+   "field": "Cognition",
+   "emoji": "❓"
+  },
+  "1335": {
+   "gloss": "WHITE",
+   "field": "Sense perception",
+   "emoji": "⬜"
+  },
+  "1199": {
+   "gloss": "WIFE",
+   "field": "Kinship",
+   "emoji": "👰"
+  },
+  "1454": {
+   "gloss": "WIPE",
+   "field": "Basic actions and technology",
+   "emoji": "🧽"
+  },
+  "1340": {
+   "gloss": "WITH",
+   "field": "Miscellaneous function words",
+   "emoji": null
+  },
+  "962": {
+   "gloss": "WOMAN",
+   "field": "Kinship",
+   "emoji": "👩"
+  },
+  "420": {
+   "gloss": "FOREST",
+   "field": "The physical world",
+   "emoji": "🌲"
+  },
+  "1219": {
+   "gloss": "WORM",
+   "field": "Animals",
+   "emoji": "🪱"
+  },
+  "1213": {
+   "gloss": "YOU",
+   "field": "Kinship",
+   "emoji": null
+  },
+  "1226": {
+   "gloss": "YEAR",
+   "field": "Time",
+   "emoji": "📅"
+  },
+  "1424": {
+   "gloss": "YELLOW",
+   "field": "Sense perception",
+   "emoji": "🟨"
+  },
+  "2102": {
+   "gloss": "BURN",
+   "field": "Basic actions and technology",
+   "emoji": "🔥"
+  },
+  "72": {
+   "gloss": "CLAW",
+   "field": "Animals",
+   "emoji": null
+  },
+  "1287": {
+   "gloss": "COLD",
+   "field": "Sense perception",
+   "emoji": "🥶"
+  },
+  "1429": {
+   "gloss": "FULL",
+   "field": "Quantity",
+   "emoji": null
+  },
+  "1554": {
+   "gloss": "MAN",
+   "field": "Kinship",
+   "emoji": "👨"
+  },
+  "1313": {
+   "gloss": "MOON",
+   "field": "The physical world",
+   "emoji": "🌙"
+  },
+  "2108": {
+   "gloss": "RAINING OR RAIN",
+   "field": "The physical world",
+   "emoji": "🌧️"
+  },
+  "1395": {
+   "gloss": "ROUND",
+   "field": "Spatial relations",
+   "emoji": "⚪"
+  },
+  "2272": {
+   "gloss": "HOT OR WARM",
+   "field": "Sense perception",
+   "emoji": "🥵"
+  }
+ },
+ "custom": [
+  {
+   "emoji": "🐪",
+   "label": "camel"
+  },
+  {
+   "emoji": "🐐",
+   "label": "goat"
+  },
+  {
+   "emoji": "🐄",
+   "label": "cow"
+  },
+  {
+   "emoji": "🦌",
+   "label": "gazelle"
+  },
+  {
+   "emoji": "🐆",
+   "label": "leopard"
+  },
+  {
+   "emoji": "🦅",
+   "label": "eagle"
+  },
+  {
+   "emoji": "🦂",
+   "label": "scorpion"
+  },
+  {
+   "emoji": "🦎",
+   "label": "lizard"
+  },
+  {
+   "emoji": "🌴",
+   "label": "date palm"
+  },
+  {
+   "emoji": "🫒",
+   "label": "olive"
+  },
+  {
+   "emoji": "🥥",
+   "label": "coconut"
+  },
+  {
+   "emoji": "🍌",
+   "label": "banana"
+  },
+  {
+   "emoji": "🌾",
+   "label": "grain"
+  },
+  {
+   "emoji": "🪴",
+   "label": "plant"
+  },
+  {
+   "emoji": "🌵",
+   "label": "desert plant"
+  },
+  {
+   "emoji": "🏔️",
+   "label": "jebel"
+  },
+  {
+   "emoji": "🏝️",
+   "label": "coast"
+  },
+  {
+   "emoji": "🌫️",
+   "label": "khareef mist"
+  },
+  {
+   "emoji": "🌦️",
+   "label": "khareef rain"
+  },
+  {
+   "emoji": "🕳️",
+   "label": "cave"
+  },
+  {
+   "emoji": "🏞️",
+   "label": "wadi"
+  },
+  {
+   "emoji": "🏖️",
+   "label": "beach"
+  },
+  {
+   "emoji": "⛵",
+   "label": "dhow"
+  },
+  {
+   "emoji": "🐚",
+   "label": "shell"
+  },
+  {
+   "emoji": "🦈",
+   "label": "shark"
+  },
+  {
+   "emoji": "🐢",
+   "label": "turtle"
+  },
+  {
+   "emoji": "🦀",
+   "label": "crab"
+  },
+  {
+   "emoji": "🐙",
+   "label": "octopus"
+  },
+  {
+   "emoji": "🫖",
+   "label": "coffee pot"
+  },
+  {
+   "emoji": "☕",
+   "label": "coffee"
+  },
+  {
+   "emoji": "🍵",
+   "label": "tea"
+  },
+  {
+   "emoji": "🥛",
+   "label": "milk"
+  },
+  {
+   "emoji": "🧈",
+   "label": "ghee"
+  },
+  {
+   "emoji": "🍚",
+   "label": "rice"
+  },
+  {
+   "emoji": "🫓",
+   "label": "bread"
+  },
+  {
+   "emoji": "🍖",
+   "label": "meat"
+  },
+  {
+   "emoji": "🍯",
+   "label": "honey"
+  },
+  {
+   "emoji": "⛺",
+   "label": "tent"
+  },
+  {
+   "emoji": "🕌",
+   "label": "mosque"
+  },
+  {
+   "emoji": "🏺",
+   "label": "pot"
+  },
+  {
+   "emoji": "🪔",
+   "label": "lamp"
+  },
+  {
+   "emoji": "🗡️",
+   "label": "khanjar"
+  },
+  {
+   "emoji": "🪵",
+   "label": "firewood"
+  },
+  {
+   "emoji": "💨",
+   "label": "frankincense smoke"
+  },
+  {
+   "emoji": "🌰",
+   "label": "frankincense"
+  },
+  {
+   "emoji": "🧕",
+   "label": "woman"
+  },
+  {
+   "emoji": "👳",
+   "label": "man"
+  },
+  {
+   "emoji": "👵",
+   "label": "grandmother"
+  },
+  {
+   "emoji": "👴",
+   "label": "grandfather"
+  },
+  {
+   "emoji": "👪",
+   "label": "family"
+  },
+  {
+   "emoji": "🟫",
+   "label": "brown"
+  },
+  {
+   "emoji": "🟦",
+   "label": "blue"
+  },
+  {
+   "emoji": "🟧",
+   "label": "orange"
+  },
+  {
+   "emoji": "🟪",
+   "label": "purple"
+  },
+  {
+   "emoji": "🩶",
+   "label": "grey"
+  }
+ ],
+ "fields": {
+  "The physical world": {
+   "ar": "الطبيعة"
+  },
+  "The body": {
+   "ar": "الجسم"
+  },
+  "Motion": {
+   "ar": "الحركة"
+  },
+  "Kinship": {
+   "ar": "القرابة"
+  },
+  "Agriculture and vegetation": {
+   "ar": "النبات والزراعة"
+  },
+  "Speech and language": {
+   "ar": "الكلام"
+  },
+  "Animals": {
+   "ar": "الحيوانات"
+  },
+  "Time": {
+   "ar": "الوقت"
+  },
+  "Spatial relations": {
+   "ar": "الأماكن والاتجاهات"
+  },
+  "Basic actions and technology": {
+   "ar": "الأفعال والأدوات"
+  },
+  "The house": {
+   "ar": "البيت"
+  },
+  "Sense perception": {
+   "ar": "الحواس"
+  },
+  "Quantity": {
+   "ar": "الكمية والأعداد"
+  },
+  "Cognition": {
+   "ar": "التفكير"
+  },
+  "Miscellaneous function words": {
+   "ar": "كلمات وظيفية"
+  },
+  "Food and drink": {
+   "ar": "الطعام والشراب"
+  },
+  "Possession": {
+   "ar": "الملكية"
+  },
+  "Emotions and values": {
+   "ar": "المشاعر والقيم"
+  },
+  "Warfare and hunting": {
+   "ar": "الحرب والصيد"
+  },
+  "Clothing and grooming": {
+   "ar": "اللباس"
+  }
+ },
+ "order": [
+  "221",
+  "1221",
+  "695",
+  "948",
+  "674",
+  "1205",
+  "946",
+  "1394",
+  "1215",
+  "670",
+  "1446",
+  "1402",
+  "658",
+  "1209",
+  "1405",
+  "1392",
+  "1257",
+  "2615",
+  "2121",
+  "1504",
+  "1233",
+  "1247",
+  "1333",
+  "1406",
+  "2575",
+  "1252",
+  "2125",
+  "887",
+  "1458",
+  "1380",
+  "1040",
+  "1202",
+  "1493",
+  "1235",
+  "262",
+  "2133",
+  "2098",
+  "1393",
+  "1214",
+  "227",
+  "1174",
+  "1401",
+  "163",
+  "1838",
+  "1442",
+  "1403",
+  "1291",
+  "960",
+  "778",
+  "1236",
+  "1801",
+  "744",
+  "1447",
+  "1231",
+  "1428",
+  "1240",
+  "1035",
+  "3626",
+  "1371",
+  "671",
+  "1355",
+  "1408",
+  "1228",
+  "628",
+  "156",
+  "1224",
+  "2486",
+  "763",
+  "1421",
+  "700",
+  "587",
+  "1210",
+  "1749",
+  "1229",
+  "1336",
+  "471",
+  "1244",
+  "1203",
+  "175",
+  "1803",
+  "1519",
+  "1280",
+  "1248",
+  "646",
+  "1220",
+  "2009",
+  "1839",
+  "1917",
+  "1409",
+  "717",
+  "1218",
+  "1388",
+  "937",
+  "1274",
+  "1246",
+  "1243",
+  "1430",
+  "1460",
+  "1884",
+  "1033",
+  "98",
+  "1577",
+  "619",
+  "1461",
+  "1292",
+  "1204",
+  "1157",
+  "1251",
+  "904",
+  "1407",
+  "1304",
+  "1489",
+  "2483",
+  "1420",
+  "1432",
+  "1225",
+  "1494",
+  "1418",
+  "1230",
+  "1398",
+  "379",
+  "2",
+  "323",
+  "1217",
+  "1419",
+  "1201",
+  "1242",
+  "1423",
+  "493",
+  "1574",
+  "2003",
+  "239",
+  "1441",
+  "249",
+  "1301",
+  "1500",
+  "1431",
+  "606",
+  "1425",
+  "1334",
+  "1277",
+  "1211",
+  "1256",
+  "1223",
+  "136",
+  "1433",
+  "1448",
+  "1239",
+  "1435",
+  "1200",
+  "617",
+  "1459",
+  "1417",
+  "1410",
+  "624",
+  "244",
+  "1297",
+  "1411",
+  "1422",
+  "2106",
+  "1198",
+  "1216",
+  "639",
+  "1267",
+  "1942",
+  "197",
+  "683",
+  "1413",
+  "1455",
+  "1452",
+  "1253",
+  "1725",
+  "1019",
+  "666",
+  "667",
+  "1728",
+  "1449",
+  "1436",
+  "1474",
+  "714",
+  "1457",
+  "1396",
+  "1645",
+  "1261",
+  "1416",
+  "2613",
+  "1732",
+  "1585",
+  "1586",
+  "1234",
+  "730",
+  "784",
+  "1241",
+  "1440",
+  "1437",
+  "1414",
+  "1434",
+  "1295",
+  "857",
+  "1404",
+  "1343",
+  "1573",
+  "1439",
+  "78",
+  "1937",
+  "817",
+  "2308",
+  "2271",
+  "492",
+  "1456",
+  "906",
+  "1444",
+  "1498",
+  "1278",
+  "1443",
+  "2110",
+  "1453",
+  "1212",
+  "1726",
+  "1238",
+  "1237",
+  "1335",
+  "1199",
+  "1454",
+  "1340",
+  "962",
+  "420",
+  "1219",
+  "1213",
+  "1226",
+  "1424",
+  "2102",
+  "72",
+  "1287",
+  "1429",
+  "1554",
+  "1313",
+  "2108",
+  "1395",
+  "2272"
+ ]
+}

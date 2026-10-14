@@ -8,6 +8,18 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Emoji picker in Edit word (10-14)** — built on `data/concept-emoji.json`: one emoji
+  per concept on the comparison lists (240 concepts, 169 picturable; 68 of the 100 on
+  Leipzig-Jakarta), grouped by Concepticon's semantic fields in the order the
+  Leipzig-Jakarta list meets them. On top, "For this word" (from the word's linked
+  concept, else its English matched to a concept). First tab: "Not in the dictionary
+  yet" — list concepts no word card covers (a nudge for what to collect next). Second:
+  **Dhofar**, the dictionary's own group (`custom` in the same file — camel, date palm,
+  khareef mist, dhow, frankincense, khanjar…; add freely). The text box stays for
+  anything else. Concepts that can't be pictured (I, this, not, who) map to null and
+  keep the identicon. Field tab names have Arabic in the data file, so the review list
+  isn't touched by them.
+
 - **Waiting dots + one fallback picture (10-14)** — the list's bouncing dots now also
   show under a card while it opens and on a play button while its voice loads (after a
   250 ms beat, so fast answers don't flicker). A word with no emoji or photo shows the
