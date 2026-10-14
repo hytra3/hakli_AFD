@@ -222,6 +222,11 @@ async function listPlayable(entryId){
              // labelled public but uploaded hidden (its speaker card was withdrawn)
              // must offer Restore, not Withdraw — Restore reopens the card.
              consent: (v.consent && v.consent!=="public") ? v.consent : (v.allowPlayback ? "public" : "withdrawn"),
+             // Hidden but never withdrawn: uploaded private (the "let other people
+             // listen" box was unticked, or the speaker card was closed). Its owner
+             // is told plainly that only they can hear it, and offered Share — not
+             // "Restore", which reads as undoing something they never did.
+             neverShared: v.consent==="public" && v.allowPlayback!==true,
              mine: !!(CFG.user() && v.uid===CFG.user().uid),
              envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
              avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) };
@@ -483,19 +488,28 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
        the recorder's review card as "Record again", before anything is saved.) */
     const ctl=document.createElement("button");
     ctl.className="voice-ctl";
+    // Who can hear this take, said in words, only while the answer is "just you".
+    const status=document.createElement("span");
+    status.className="vr-status";
     const paint=()=>{
       const withdrawn = rec.consent==="withdrawn";
+      const fresh = withdrawn && rec.neverShared===true;     // private from the start
       row.classList.toggle("withdrawn", withdrawn);
       ctl.classList.toggle("restore", withdrawn);
-      ctl.textContent = withdrawn ? AFDCore.t("voice.shareagain", CFG.mode()) : AFDCore.t("voice.takeback", CFG.mode());
-      ctl.setAttribute("aria-label", AFDCore.t(withdrawn ? "voice.restore.label" : "voice.withdraw.label", CFG.mode()));
+      status.hidden = !withdrawn;
+      status.textContent = withdrawn ? "\u{1F512} " + AFDCore.t("voice.private", CFG.mode()) : "";
+      ctl.textContent = !withdrawn ? AFDCore.t("voice.takeback", CFG.mode())
+                      : fresh ? AFDCore.t("voice.share", CFG.mode())
+                      : AFDCore.t("voice.shareagain", CFG.mode());
+      ctl.setAttribute("aria-label", AFDCore.t(!withdrawn ? "voice.withdraw.label"
+                      : fresh ? "voice.share.label" : "voice.restore.label", CFG.mode()));
     };
     paint();
     ctl.addEventListener("click", async ()=>{
       ctl.disabled=true;
       const ok=await setConsent(rec, rec.consent==="public" ? "withdrawn" : "public");
       ctl.disabled=false;
-      if(ok) paint();
+      if(ok){ if(rec.consent==="public") rec.neverShared=false; paint(); }
     });
     controls.appendChild(ctl);
 
@@ -532,6 +546,7 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
     controls.appendChild(erase);
 
     row.appendChild(controls);
+    row.appendChild(status);                 // own line under the voice, never squeezing the play button
   }
   return row;
 }

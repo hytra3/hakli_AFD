@@ -637,6 +637,10 @@ window.AFDCore = (function(){
     "voice.restore.label":  { en:"Restore your voice", ar:"استرجع صوتك" },
     "voice.erase.label":    { en:"Erase this recording", ar:"احذف هذا التسجيل" },
     "voice.change.failed":  { en:"Couldn't change that just now — try again", ar:"تعذّر التغيير الآن — حاول مجددًا" },
+    // a voice its owner shares for the first time (card voice row; added 10-14, kept last so review numbers hold)
+    "voice.share":          { en:"Let others listen",  ar:"اسمح للآخرين بالاستماع" },
+    "voice.private":        { en:"Only you can hear this", ar:"أنت فقط تسمع هذا" },
+    "voice.share.label":    { en:"Let other people listen to your voice", ar:"اسمح للآخرين بالاستماع إلى صوتك" },
     // sign-in errors (recorder, add a word)
     "auth.err.domain":      { en:"This web address isn't authorised in Firebase yet. Add it under Authentication → Settings → Authorized domains.", ar:"هذا العنوان غير مُصرَّح به في Firebase بعد. أضِفه من Authentication ← Settings ← Authorized domains." },
     "auth.err.method":      { en:"That sign-in method isn't enabled for this project.", ar:"طريقة الدخول هذه غير مفعّلة لهذا المشروع." },

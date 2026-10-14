@@ -91,7 +91,10 @@
       border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); cursor:pointer}
 .afdcard .voice-ctl.restore{border-color:var(--resin); color:var(--resin)}
 .afdcard .voice-ctl:disabled{opacity:.5; cursor:default}
-.afdcard .voice-row.withdrawn{opacity:.62}
+/* dim the voice itself, not its controls: "only you can hear this" and Share must stay readable */
+.afdcard .voice-row.withdrawn .vr-play{opacity:.62}
+.afdcard .vr-status{flex-basis:100%; order:3; font:500 12px/1.3 var(--sans); color:var(--resin); margin-top:6px}
+.afdcard .vr-status[hidden]{display:none}
 .afdcard .voice-row.withdrawn .av-sm{filter:grayscale(.7)}
 /* own-take management, after the recording is saved: Withdraw/Restore · Erase.
      (Try again lives at recording time in the recorder, not here.) The row wraps
