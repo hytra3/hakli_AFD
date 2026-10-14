@@ -8,6 +8,18 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Word card: "+ Add a recording" + Edit word (10-14)** — punch list items 2 and 3.
+  - THE WORD now has its own "+ Add a recording" under it, like sentence and meaning
+    (it goes to the recorder on that word). "Say it yourself" stays for now.
+  - **Edit word** (✏️, beside Tags): English, Arabic and emoji. A steward on any word,
+    seeded ones included; a contributor on their own word. Writes `gloss`, `glossAr`,
+    `glosses`, `pic` + `editedAt`/`editedBy`; rules allow only those fields
+    (`faceEditOK`). `seed-entries.mjs` now leaves an edited word's text and emoji alone.
+    Photos aren't edited here yet (a steward can still take one down). **Deploy the
+    Firestore rules before publishing**, or saving an edit fails. Tests: 8 new cases in
+    `test/entries.rules.test.mjs` (emulator), `test/browser/edit-word.browser.mjs`,
+    `test/browser/card-add.browser.mjs`.
+
 - **Private voices say so (10-14)** — first real speaker session: takes uploaded with
   "Let other people listen" unticked were invisible to everyone else, and their owner
   saw only a greyed row with "Restore" (wrong word for something never shared). Now an

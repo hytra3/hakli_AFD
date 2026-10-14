@@ -193,6 +193,54 @@ describe("entry — immutable once added, except remove-my-word and tags", () =>
   });
 });
 
+describe("entry — edit the word's face (text + emoji, 10-14)", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await setDoc(entry(c.firestore()), { source: "user", createdBy: "uA", createdAt: 1, glossAr: "قهوة", pic: "☕" });
+      await setDoc(entry(c.firestore(), "ent_sun"), { gloss: "sun", glossAr: "الشمس", pic: "☀️", glosses: { en: "sun", ar: "الشمس" } });
+    });
+  });
+  const stamp = (uid) => ({ editedAt: serverTimestamp(), editedBy: uid });
+  it("the creator can edit their own word's text and emoji", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uA")),
+      { gloss: "coffee", glossAr: "قهوة", glosses: { en: "coffee", ar: "قهوة" }, pic: "🫖", ...stamp("uA") }));
+  });
+  it("a steward can edit any word, seeded included", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward"), "ent_sun"),
+      { gloss: "the sun", glosses: { en: "the sun", ar: "الشمس" }, pic: "🌞", ...stamp("uSteward") }));
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward")), { gloss: "coffee", ...stamp("uSteward") }));
+  });
+  it("text and emoji can be cleared", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uA")), { gloss: "", glossAr: "", glosses: deleteField(), pic: deleteField(), ...stamp("uA") }));
+  });
+  it("someone else can't edit — not a contributed word, not a seeded one", async () => {
+    await assertFails(updateDoc(entry(fsAs("uB")), { gloss: "spam", ...stamp("uB") }));
+    await assertFails(updateDoc(entry(fsAs("uA"), "ent_sun"), { gloss: "spam", ...stamp("uA") }));
+  });
+  it("must be stamped with the editor and now", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee" }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee", editedAt: 5, editedBy: "uA" }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee", editedAt: serverTimestamp(), editedBy: "uSteward" }));
+  });
+  it("sizes and shapes are checked", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "x".repeat(81), ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { pic: "", ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { pic: "x".repeat(33), ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { glosses: { fr: "café" }, ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: 7, ...stamp("uA") }));
+  });
+  it("nothing else rides along — no photo, voices' entry, tags or removal", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee", tags: ["x"], ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee", source: "seed", ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee", removedAt: serverTimestamp(), ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uSteward")), { image: "https://example.org/x.jpg", ...stamp("uSteward") }));
+  });
+  it("a removed word can't be edited", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => { await updateDoc(entry(c.firestore()), { removedAt: 1 }); });
+    await assertFails(updateDoc(entry(fsAs("uA")), { gloss: "coffee", ...stamp("uA") }));
+  });
+});
+
 describe("entry — steward review (steward.html)", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (c) => {

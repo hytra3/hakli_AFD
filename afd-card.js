@@ -4,7 +4,7 @@
    SDK-agnostic: the host injects db, storage, live getters for the signed-in
    user and display mode, the recorder URL, and a banner() via initCard().
    AFDCore is read from the global (afd-core.js must load before this module). */
-import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs, serverTimestamp }
+import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs, serverTimestamp, deleteField }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -334,7 +334,7 @@ function parseTags(str){
   }
   return out.slice(0,6);
 }
-async function wordTools(entryId, meta, recs, cardEl, detail, paintTags){
+async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFace){
   const u = CFG.user(); if(!u) return;
   const creator = meta.source==="user" && meta.createdBy===u.uid;
   const canTag = creator || await amSteward();
@@ -359,6 +359,41 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags){
       }catch(e){ console.warn("[AFD] tags", e); CFG.banner(AFDCore.t("card.failed", m)); }
     };
     box.appendChild(tb); box.appendChild(ed);
+
+    /* Edit the word's face — English, Arabic, emoji (10-14). Same people as
+       tags: a steward on any word, the creator on their own (the rules check
+       the same, plus editedAt/editedBy). A photo, if the word has one, still
+       shows in place of the emoji. */
+    const eb=document.createElement("button"); eb.type="button"; eb.className="wt-btn";
+    eb.innerHTML="\u270F\uFE0F "+AFDCore.tHTML("card.edit", m);
+    const fe=document.createElement("div"); fe.className="wt-tags wt-edit"; fe.hidden=true;
+    const fld=(key, f, dir, max)=>`<label class="wt-field"><span>${AFDCore.tHTML(key, m)}</span>`+
+      `<input type="text" data-f="${f}" dir="${dir}" maxlength="${max}" autocomplete="off"></label>`;
+    fe.innerHTML=fld("card.edit.en","en","ltr",80)+fld("card.edit.ar","ar","rtl",80)+fld("card.edit.pic","pic","auto",32)+
+      (meta.image ? `<p class="wt-note">${AFDCore.tHTML("card.edit.photo", m)}</p>` : "")+
+      `<button type="button" class="wt-btn wt-save">${AFDCore.tHTML("card.edit.save", m)}</button>`;
+    const inF=(f)=>fe.querySelector(`[data-f="${f}"]`);
+    const fill=()=>{ inF("en").value=meta.gloss||""; inF("ar").value=meta.glossAr||""; inF("pic").value=meta.pic||""; };
+    eb.onclick=()=>{ fe.hidden=!fe.hidden; if(!fe.hidden){ fill(); inF("en").focus(); } };
+    fe.querySelector(".wt-save").onclick=async ()=>{
+      const en=inF("en").value.trim().replace(/\s+/g," ").slice(0,80);
+      const ar=inF("ar").value.trim().replace(/\s+/g," ").slice(0,80);
+      const pic=inF("pic").value.trim().slice(0,32);
+      const glosses={}; if(en) glosses.en=en; if(ar) glosses.ar=ar;
+      const sv=fe.querySelector(".wt-save"); sv.disabled=true;
+      try{
+        await updateDoc(doc(CFG.db,"afd_entries",entryId), {
+          gloss:en, glossAr:ar,
+          glosses: Object.keys(glosses).length ? glosses : deleteField(),
+          pic: pic || deleteField(),
+          editedAt: serverTimestamp(), editedBy: u.uid });
+        meta.gloss=en; meta.glossAr=ar; meta.glosses=glosses; if(pic) meta.pic=pic; else delete meta.pic;
+        if(typeof paintFace==="function") paintFace(meta);
+        fe.hidden=true;
+      }catch(e){ console.warn("[AFD] edit word", e); CFG.banner(AFDCore.t("card.failed", m)); }
+      finally{ sv.disabled=false; }
+    };
+    box.appendChild(eb); box.appendChild(fe);
   }
 
   if(creator){
@@ -868,6 +903,22 @@ async function entryCard(res, lead){
   const paintTags=(ts)=>{ tagsEl.innerHTML=(CFG.mode()==="sound"?[]:(ts||[])).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join(""); };
   paintTags(meta.tags);
   if(gc) gc.appendChild(tagsEl);
+  // Repaint the picture and the text after an in-place edit (word tools), the
+  // same way the header was first drawn; tags and voice counts stay put.
+  const paintFace=(mt)=>{
+    if(mt.image) thumbEl.innerHTML = `<img src="${escapeHtml(mt.image)}" alt="">`;
+    else if(mt.pic) thumbEl.textContent = mt.pic;
+    else if(CFG.mode()==="script" && (mt.glossAr||mt.ref)) thumbEl.textContent = mt.glossAr||mt.ref;
+    else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
+    thumbEl.dataset.pic = mt.pic || "";
+    if(!gc || CFG.mode()==="sound") return;
+    [...gc.childNodes].forEach(n=>{ if(n.nodeType===3 || (n.classList && n.classList.contains("glossar"))) n.remove(); });
+    const ar = mt.glossAr || mt.ref || "";
+    const parts = CFG.mode()==="script"
+      ? (ar ? [Object.assign(document.createElement("span"), { className:"glossar solo", textContent:ar })] : [])
+      : [document.createTextNode(mt.gloss||""), ...(mt.glossAr ? [Object.assign(document.createElement("span"), { className:"glossar", textContent:mt.glossAr })] : [])];
+    gc.prepend(...parts);
+  };
   let hc=null;
   if(gc){ hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
     entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`;
@@ -926,7 +977,7 @@ async function entryCard(res, lead){
                    share.innerHTML = state==="link" ? AFDCore.tHTML("card.share.link", CFG.mode()) : shareLabel; });
     share.addEventListener("click", (e)=>{ e.stopPropagation(); onShare(); });
     detail.appendChild(share);
-    wordTools(res.entryId, meta, recs, el, detail, paintTags);
+    wordTools(res.entryId, meta, recs, el, detail, paintTags, paintFace);
     return firstPlayable;
   }
 

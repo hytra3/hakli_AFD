@@ -88,11 +88,20 @@ const { getFirestore } = await import("firebase-admin/firestore");
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
 const db = getFirestore();
 
-let n = 0;
+let n = 0, kept = 0;
 for(const w of words){
   const id = entryIdFor(w.id);
-  await db.collection("afd_entries").doc(id).set(entryDoc(w), { merge: true });
+  const ref = db.collection("afd_entries").doc(id);
+  const data = entryDoc(w);
+  // A word whose text or emoji was edited in the app (editedAt, 10-14) keeps the
+  // edit: the wordlist no longer owns those fields for it.
+  const cur = await ref.get();
+  if(cur.exists && cur.get("editedAt")){
+    for(const k of ["gloss","glossAr","glosses","pic"]) delete data[k];
+    kept++;
+  }
+  await ref.set(data, { merge: true });
   n++;
   process.stdout.write(`\r  seeded ${n}/${words.length}  ${id}          `);
 }
-console.log(`\nDone. ${n} entry docs written to project "${PROJECT_ID}".`);
+console.log(`\nDone. ${n} entry docs written to project "${PROJECT_ID}".` + (kept ? ` ${kept} kept their in-app edits.` : ""));

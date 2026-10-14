@@ -527,6 +527,13 @@ window.AFDCore = (function(){
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." },
     // the word slot's own "+ add" (added 10-14, kept last so review numbers hold)
     "slot.add.word":        { en:"Add a recording",    ar:"أضف تسجيلًا" },
+    // edit a word's text and emoji (word tools; added 10-14)
+    "card.edit":            { en:"Edit word",          ar:"عدّل الكلمة" },
+    "card.edit.en":         { en:"English",            ar:"الإنجليزية" },
+    "card.edit.ar":         { en:"Arabic",             ar:"العربية" },
+    "card.edit.pic":        { en:"Emoji",              ar:"رمز تعبيري" },
+    "card.edit.photo":      { en:"This word has a photo, which shows instead of the emoji.", ar:"لهذه الكلمة صورة، وهي تظهر بدل الرمز التعبيري." },
+    "card.edit.save":       { en:"Save",               ar:"احفظ" },
     // Speak-to-find (index.html) — what a slow or failed search says. One line per
     // KIND of failure, so the person (and a screenshot) can tell them apart.
     // Added at the END so the prompts tool's section.item numbers don't shift.

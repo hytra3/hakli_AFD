@@ -161,4 +161,7 @@
 .afdcard .wt-tags[hidden]{display:none}
 .afdcard .wt-tags input{font:15px var(--sans); padding:9px 10px; border:1.5px solid var(--mist-2); border-radius:10px; width:100%; box-sizing:border-box}
 .afdcard .wt-note{margin:0; font:12px/1.4 var(--sans); color:var(--mist)}
+.afdcard .wt-field{display:flex; flex-direction:column; gap:3px; width:100%; font:600 12px/1.3 var(--sans); color:var(--mist)}
+.afdcard .wt-edit input[data-f="pic"]{font-size:22px; width:5.5em}
+.afdcard .wt-field .ar, .afdcard .wt-field .bi-ar{margin-inline-start:6px; font-weight:500}
 

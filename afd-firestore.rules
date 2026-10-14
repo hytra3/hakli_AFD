@@ -168,6 +168,29 @@ service cloud.firestore {
       //      image / pic — take a picture down: each may only be REMOVED,
       //                    never set (the steward deletes the photo bytes too).
       function isContributed() { return resource.data.get('source', '') == 'user'; }
+      //  • EDIT THE WORD'S FACE (10-14) — English and Arabic text and the emoji.
+      //    A steward on any word (seeded ones included: the seed script leaves an
+      //    edited word's text alone from then on); a contributor on their own
+      //    word. Stamped with who and when. Voices, photo, tags and everything
+      //    else are untouched by this branch. Glosses may be cleared (an
+      //    audio-first word needs none); `glosses` then goes with them.
+      function textOK(k) {
+        return !(k in request.resource.data)
+               || (request.resource.data[k] is string && request.resource.data[k].size() <= 80);
+      }
+      function picOK() {
+        return !('pic' in request.resource.data)
+               || (request.resource.data.pic is string
+                   && request.resource.data.pic.size() > 0 && request.resource.data.pic.size() <= 32);
+      }
+      function faceEditOK() {
+        return onlyChanged(['gloss','glossAr','glosses','pic','editedAt','editedBy'])
+               && !('removedAt' in resource.data)
+               && request.resource.data.editedAt == request.time
+               && request.resource.data.editedBy == request.auth.uid
+               && textOK('gloss') && textOK('glossAr') && picOK()
+               && (!('glosses' in request.resource.data) || glossesOK(request.resource.data.glosses));
+      }
       allow update: if (isCreator()
                         && !('removedAt' in resource.data)
                         && onlyChanged(['removedAt'])
@@ -175,6 +198,7 @@ service cloud.firestore {
                     || ((isCreator() || isSteward())
                         && onlyChanged(['tags'])
                         && tagsOK(request.resource.data.tags))
+                    || ((isCreator() || isSteward()) && faceEditOK())
                     || (isSteward() && isContributed()
                         && onlyChanged(['reviewedAt'])
                         && request.resource.data.reviewedAt == request.time)
