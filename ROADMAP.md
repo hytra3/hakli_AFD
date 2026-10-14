@@ -19,6 +19,9 @@ within each group.
     hear, newest first, with the reason (never-shared / card-closed / withdrawn) and a
     link to the word. `--days N`, `--speaker spk_…`, `--who` (contributor emails).
     The steward page still can't see private takes — by design in the rules.
+  - **"Let other people listen" now starts ticked** on add.html and in the recorder
+    (incl. "switch speaker"). Archive deposit and ML training stay opt-in. A returning
+    speaker's saved choice still wins. Steward page stays blind to private takes (decided).
 
 - **"Add a word" — say it, show it, share it (10-07)** — `add.html`, the page the
   WhatsApp link opens. The 45 seed words are examples; the community adds the rest.

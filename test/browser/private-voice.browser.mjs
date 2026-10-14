@@ -45,5 +45,16 @@ await scenario("owner sees a private voice and can share it", async ()=>{
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 
+await scenario("new speakers start with listening ticked; archive and ML stay opt-in", async ()=>{
+  for(const pg of ["add.html", "recorder.html"]){
+    const { page, state } = await newPage(browser, srv.url, { user:ME, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+    await page.goto(srv.url + "/" + pg); await page.waitForTimeout(800);
+    const c = await page.evaluate(()=>({ play: document.getElementById("cPlay").checked,
+      archive: document.getElementById("cArchive").checked, ml: document.getElementById("cML").checked }));
+    ok(pg + ": listening ticked, archive + ML unticked", c.play && !c.archive && !c.ml, JSON.stringify(c));
+    ok(pg + ": no page errors", !state.errors.length, state.errors.join(" | "));
+  }
+});
+
 await browser.close(); srv.close();
 finish();
