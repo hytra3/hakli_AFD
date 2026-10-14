@@ -525,6 +525,8 @@ window.AFDCore = (function(){
     "import.loaded":        { en:"Voice note loaded — listen, then keep it", ar:"حُمّلت الرسالة الصوتية — استمع ثم احفظها" },
     "import.fail":          { en:"Couldn't read that file. In WhatsApp, share the voice note to this phone's Files, then load it from there.", ar:"تعذّرت قراءة الملف. في واتساب شارك الرسالة الصوتية إلى «الملفات» في هذا الهاتف ثم حمّلها من هناك." },
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." },
+    // the word slot's own "+ add" (added 10-14, kept last so review numbers hold)
+    "slot.add.word":        { en:"Add a recording",    ar:"أضف تسجيلًا" },
     // Speak-to-find (index.html) — what a slow or failed search says. One line per
     // KIND of failure, so the person (and a screenshot) can tell them apart.
     // Added at the END so the prompts tool's section.item numbers don't shift.

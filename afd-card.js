@@ -608,11 +608,15 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   const s=document.createElement("div");
   s.className="slot slot-"+type;
   const has = recs && recs.length;
-  // the word slot's "add" is the detail-level "Say it yourself"; context/meaning
-  // carry their own add links, with the type in the hash for the recorder.
-  const addLink = type==="word" ? "" :
-    `<a class="slot-add" href="${CFG.recorderUrl}#${encodeURIComponent(entryId)}|${type}">` +
-    `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${escapeHtml(AFDCore.t(type==="context"?"slot.add.sentence":"slot.add.meaning", CFG.mode()))}</a>`;
+  // Every slot carries its own "+ add" right under it (10-14: the word's own used
+  // to be only the "Say it yourself" button at the foot of the card, which people
+  // didn't find). The word goes to the recorder on that word (#entryId — the
+  // recorder's default tab is Word); sentence/meaning add the type to the hash.
+  const addKey = { word:"slot.add.word", context:"slot.add.sentence", definition:"slot.add.meaning" }[type] || "slot.add.meaning";
+  const addHash = encodeURIComponent(entryId) + (type==="word" ? "" : "|" + type);
+  const addLink =
+    `<a class="slot-add" href="${CFG.recorderUrl}#${addHash}">` +
+    `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${escapeHtml(AFDCore.t(addKey, CFG.mode()))}</a>`;
   s.innerHTML =
     `<div class="slot-head"><span class="slot-label">${CFG.mode()==="auto" ? labelEn+' <span class="ar">'+escapeHtml(labelAr)+'</span>' : '<span class="ar solo">'+escapeHtml(labelAr)+'</span>'}</span>` +
     `<span class="slot-empty"${has?" hidden":""}>${escapeHtml(AFDCore.t("slot.none", CFG.mode()))}</span></div>` +

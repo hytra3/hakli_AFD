@@ -155,6 +155,7 @@
   "A2.31": "screen:card.fb.first",
   "A2.32": "screen:card.fb.new",
   "A2.33": "screen:card.failed",
+  "A2.34": "screen:slot.add.word",
   "A3.1": "screen:add.title",
   "A3.2": "screen:add.step.say",
   "A3.3": "screen:add.step.show",
