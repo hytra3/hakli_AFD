@@ -22,6 +22,8 @@ within each group.
   - **"Let other people listen" now starts ticked** on add.html and in the recorder
     (incl. "switch speaker"). Archive deposit and ML training stay opt-in. A returning
     speaker's saved choice still wins. Steward page stays blind to private takes (decided).
+  - **Recorder session list hides "skipped" rows** — "Speaker doesn't know this word" taps
+    stay saved and still go in the export; they just no longer bury the real takes.
 
 - **"Add a word" — say it, show it, share it (10-07)** — `add.html`, the page the
   WhatsApp link opens. The 45 seed words are examples; the community adds the rest.
