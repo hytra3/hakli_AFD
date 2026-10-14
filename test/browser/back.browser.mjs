@@ -44,7 +44,7 @@ await scenario("I4 two searches in a row are one step: Back → list, Back → l
 
 await scenario("I5 results → recorder → Back → the results are still there; Back again → list", async ()=>{ const { page, ctx, state } = await openIndex("/");
   await search(page);
-  await page.click("#results .card.open a.sayit"); await page.waitForLoadState("load"); await page.waitForTimeout(900);
+  await page.click("#results .card.open .slot-word a.slot-add"); await page.waitForLoadState("load"); await page.waitForTimeout(900);
   const at = rel(page);
   await page.goBack(); await ready(page); await page.waitForTimeout(700);
   const a = await ist(page);

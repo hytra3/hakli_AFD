@@ -954,11 +954,8 @@ async function entryCard(res, lead){
     detail.appendChild(slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
     detail.appendChild(slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
     detail.appendChild(slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
-    const say=document.createElement("a");
-    say.className="sayit"; say.href=`${CFG.recorderUrl}#${encodeURIComponent(res.entryId)}`;
-    say.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-    ${biLabel("result.sayityourself")}`;
-    detail.appendChild(say);
+    // (10-14) No separate "Say it yourself" button any more: the word slot's own
+    // "+ Add a recording" above does the same thing, right where the voice goes.
     // Share — any word, any reader: a heard word invites "say it your way",
     // an unheard one asks for the first voice.
     const share=document.createElement("button");
@@ -983,16 +980,18 @@ async function entryCard(res, lead){
 
   // A word with no voice used to swallow the tap silently, which reads as
   // "broken". Instead: open the card, say (in the reader's tier) that nobody has
-  // recorded it yet, and draw the eye to "Say it yourself" — the one thing to do.
+  // recorded it yet, and draw the eye to the word's "+ Add a recording" — the
+  // one thing to do. The note sits just above THE WORD, so the add is under it.
   function noVoice(){
     el.classList.add("open");
-    const say = detail.querySelector(".sayit");
+    const say = detail.querySelector(".slot-word .slot-add");
+    const wordSlot = detail.querySelector(".slot-word");
     let n = detail.querySelector(".novoice");
     if(!n){
       n = document.createElement("div"); n.className = "novoice"; n.setAttribute("role","status");
       n.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>` +
                     `<span>${AFDCore.tHTML("card.novoice", CFG.mode())}</span>`;
-      if(say) detail.insertBefore(n, say); else detail.appendChild(n);
+      if(wordSlot) detail.insertBefore(n, wordSlot); else detail.appendChild(n);
     }
     playBtn.classList.remove("afd-novoice-shake"); void playBtn.offsetWidth; playBtn.classList.add("afd-novoice-shake");
     if(say){ say.classList.remove("afd-novoice-pulse"); void say.offsetWidth; say.classList.add("afd-novoice-pulse"); }

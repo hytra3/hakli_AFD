@@ -130,7 +130,10 @@ body{
 .stage{position:relative; width:min(66vw,248px); aspect-ratio:1;
          transition:width .35s ease}
 body.has-results .stage{width:104px}
-body.has-results .control{background:#F3F7F5; box-shadow:0 8px 14px -8px rgba(31,58,52,.08)}
+/* (10-14) the sticky mic panel hangs from the header like a drawer: rounded at the
+   bottom to match the cards' radius, square where it meets the header */
+body.has-results .control{background:#F3F7F5; box-shadow:0 8px 14px -8px rgba(31,58,52,.08);
+                          border-radius:0 0 var(--r) var(--r)}
 .ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--mist-2);
         opacity:0; transform:scale(.6)}
 body.rec .ring{animation:ripple 1.8s ease-out infinite}
@@ -225,6 +228,9 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
   align-items:center; justify-content:center; border:1.5px dashed var(--resin); border-radius:50%;
   background:var(--cloud); color:var(--resin); text-decoration:none; box-shadow:0 2px 8px rgba(31,58,52,.10)}
 body.has-results .control .addbtn{display:inline-flex}
+/* inside the rounded panel, keep the side buttons (and their captions) off its edges */
+body.has-results .control .allbtn{inset-inline-start:14px}
+body.has-results .control .addbtn{inset-inline-end:22px}
 .control .addbtn.capd::after{color:var(--resin)}
 /* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
      escape hatch under search candidates for a real new word that looked near one */

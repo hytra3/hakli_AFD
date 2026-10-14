@@ -10,7 +10,10 @@ within each group.
 
 - **Word card: "+ Add a recording" + Edit word (10-14)** — punch list items 2 and 3.
   - THE WORD now has its own "+ Add a recording" under it, like sentence and meaning
-    (it goes to the recorder on that word). "Say it yourself" stays for now.
+    (it goes to the recorder on that word). The big "Say it yourself" button below the
+    slots is gone (a duplicate); a word with no voice now nudges "+ Add a recording".
+  - The sticky hold-and-speak panel is rounded at the bottom (card radius) and its side
+    buttons sit in from the edges.
   - **Edit word** (✏️, beside Tags): English, Arabic and emoji. A steward on any word,
     seeded ones included; a contributor on their own word. Writes `gloss`, `glossAr`,
     `glosses`, `pic` + `editedAt`/`editedBy`; rules allow only those fields

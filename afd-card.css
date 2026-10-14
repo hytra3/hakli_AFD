@@ -142,9 +142,9 @@
 .afdcard .novoice .sub{display:block; color:var(--mist); font-size:12.5px; margin-top:2px}
 .afdcard .play.afd-novoice-shake{animation:afd-shake .45s ease}
 @keyframes afd-shake{20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
-.afdcard .sayit.afd-novoice-pulse{animation:afd-pulse 1.2s ease 2}
+.afdcard .sayit.afd-novoice-pulse, .afdcard .slot-add.afd-novoice-pulse{animation:afd-pulse 1.2s ease 2}
 @keyframes afd-pulse{50%{border-color:var(--resin); box-shadow:0 0 0 4px rgba(198,135,63,.18)}}
-@media (prefers-reduced-motion:reduce){ .afdcard .play.afd-novoice-shake, .afdcard .sayit.afd-novoice-pulse{animation:none} }
+@media (prefers-reduced-motion:reduce){ .afdcard .play.afd-novoice-shake, .afdcard .sayit.afd-novoice-pulse, .afdcard .slot-add.afd-novoice-pulse{animation:none} }
 /* tags (free labels: a dialect, "Mehri", "loanword"…) and the word tools under an open card */
 .afdcard .tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px}
 .afdcard .tags:empty{display:none}
