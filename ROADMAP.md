@@ -8,6 +8,23 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Private voices say so (10-14)** — first real speaker session: takes uploaded with
+  "Let other people listen" unticked were invisible to everyone else, and their owner
+  saw only a greyed row with "Restore" (wrong word for something never shared). Now an
+  owner's hidden take says **"Only you can hear this"** on its own line; a take that was
+  private from the start offers **"Let others listen"**, one withdrawn after sharing
+  still offers Restore. Same consent write as before (`setConsent`), no rule change.
+  Test: `test/browser/private-voice.browser.mjs`.
+  - `scripts/find-hidden-voices.mjs` — read-only admin list of every take others can't
+    hear, newest first, with the reason (never-shared / card-closed / withdrawn) and a
+    link to the word. `--days N`, `--speaker spk_…`, `--who` (contributor emails).
+    The steward page still can't see private takes — by design in the rules.
+  - **"Let other people listen" now starts ticked** on add.html and in the recorder
+    (incl. "switch speaker"). Archive deposit and ML training stay opt-in. A returning
+    speaker's saved choice still wins. Steward page stays blind to private takes (decided).
+  - **Recorder session list hides "skipped" rows** — "Speaker doesn't know this word" taps
+    stay saved and still go in the export; they just no longer bury the real takes.
+
 - **"Add a word" — say it, show it, share it (10-07)** — `add.html`, the page the
   WhatsApp link opens. The 45 seed words are examples; the community adds the rest.
   One word at a time: hold to say it (twice), optionally show it (photo / emoji /

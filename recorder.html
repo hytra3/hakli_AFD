@@ -578,7 +578,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <span><span class="bi-ar" dir="rtl" data-str="consent.archive">حفظ هذه التسجيلات في أرشيفٍ لغوي</span><small class="sub">Keep these recordings in a language archive</small></span></label>
     <label class="check"><input type="checkbox" id="cML">
       <span><span class="bi-ar" dir="rtl" data-str="consent.ml">استخدام هذه التسجيلات لتعليم الحاسوب فهم الحَكلي</span><small class="sub">Use these recordings to teach a computer to understand Hakli</small></span></label>
-    <label class="check"><input type="checkbox" id="cPlay">
+    <label class="check"><input type="checkbox" id="cPlay" checked>
       <span><span class="bi-ar" dir="rtl" data-str="consent.play">السماح للآخرين بالاستماع إلى هذه التسجيلات في التطبيق</span><small class="sub">Let other people listen to these recordings in the app</small></span></label>
     <label class="field"><span><span class="bi-ar" dir="rtl" data-str="consent.attr">كيف يُنسَب التسجيل إلى المتحدِّث؟</span><small class="sub">How should the speaker be credited?</small></span>
       <select id="cAttr">
@@ -1268,7 +1268,9 @@ $("switchSpeaker").onclick=()=>{
   // fresh person: new code, cleared details, cleared per-speaker permission
   $("spkId").value = nextSpeakerCode($("spkId").value);
   AFDSpeakerForm.clearPerSpeaker();   // the perSpeaker fields (afd-instance.js); town + tribe are kept
-  ["cArchive","cML","cPlay"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
+  // a new person starts from the defaults: listening on, archive + ML opt-in (10-14)
+  ["cArchive","cML"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
+  if($("cPlay")) $("cPlay").checked=true;
   switchingSpeaker=true;
   $("toMic").innerHTML=biHTML("speaker.recordfor");
   show("setup");
@@ -2789,7 +2791,9 @@ function renderClips(){
   // The take's word: Arabic in the sound/script tiers (was always the English gloss).
   const arOf=(k)=>{ const w=(window.AFDWords||[]).find(x=>entryIdFor(x.id)===k.entryId); return w&&w.ar; };
   const nameOf=(k)=>{ const ar=arOf(k); return dispMode==="auto" ? k.gloss+(ar?' · '+ar:'') : (ar||k.gloss); };
-  if(!mine.length){
+  // "Speaker doesn't know this word" taps stay saved (they go in the export) but
+  // aren't listed: a column of "skipped" rows buried the real takes (10-14).
+  if(!real.length){
     // Stacked like sumLines: Arabic line, English line under it in auto only.
     // (One "ar · en" line let bidi scramble the other-account count.)
     const S=AFDCore.STRINGS||{}, line=(lang)=>
@@ -2799,10 +2803,7 @@ function renderClips(){
       (dispMode==="auto" ? '<small class="sub">'+line("en")+'</small>' : '')+'</p>';
     return;
   }
-  $("clips").innerHTML=mine.slice().reverse().map((k,i)=>{
-    const n=mine.length-1-i;
-    if(k.skipped) return '<div class="clip"><div class="name"><b>'+nameOf(k)+
-      '</b><span>'+T("clip.skipped")+'</span></div></div>';
+  $("clips").innerHTML=mine.map((k,n)=>({k,n})).filter(x=>!x.k.skipped).reverse().map(({k,n})=>{
     const badge=k.synced?'<span class="sync up">'+T("clip.uploaded")+'</span>'
                         :'<span class="sync pend">'+T("clip.onphone")+'</span>';
     return '<div class="clip"><div class="name"><b>'+nameOf(k)+'</b><span>'+

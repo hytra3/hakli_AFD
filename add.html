@@ -268,7 +268,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <p class="hint" data-k="add.share.hint"></p>
 
     <div class="card">
-      <label class="check"><input type="checkbox" id="cPlay"><span data-k="consent.play"></span></label>
+      <label class="check"><input type="checkbox" id="cPlay" checked><span data-k="consent.play"></span></label>
       <p class="note hidden" id="hiddenNote" data-k="add.share.hidden" style="margin:-4px 0 6px 36px"></p>
       <label class="check"><input type="checkbox" id="cArchive"><span data-k="consent.archive"></span></label>
       <label class="check"><input type="checkbox" id="cML"><span data-k="consent.ml"></span></label>
@@ -451,7 +451,7 @@ function freshDraft(){
   return {
     key:"current", entryId:C.mintEntryId(), createdAt:Date.now(),
     word:null, meaning:null, pic:"", photo:null, glossAr:"",
-    consent:{ play:false, archive:false, ml:false, touched:false },
+    consent:{ play:true, archive:false, ml:false, touched:false },   // listening in the app is on by default (10-14); archive + ML stay opt-in
     up:{ uid:null, speakerId:null, photo:false, photoPath:"", entry:false,
          wordId:null, word:false, meaningId:null, meaning:false }
   };
