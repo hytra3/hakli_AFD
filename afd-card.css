@@ -175,3 +175,17 @@
 .afdcard .wt-edit input[data-f="pic"]{font-size:22px; width:5.5em}
 .afdcard .wt-field .ar, .afdcard .wt-field .bi-ar{margin-inline-start:6px; font-weight:500}
 
+
+/* waiting (10-14): the bouncing dots the list shows while it loads, small, on a
+   play button while its voice is on its way and under an opening card */
+.afdcard .ldots{display:inline-flex; gap:4px; align-items:center}
+.afdcard .ldots span{width:6px; height:6px; border-radius:50%; background:currentColor; animation:afd-ld 1s ease-in-out infinite}
+.afdcard .ldots span:nth-child(2){animation-delay:.15s}
+.afdcard .ldots span:nth-child(3){animation-delay:.3s}
+@keyframes afd-ld{0%,100%{opacity:.35; transform:translateY(0)} 50%{opacity:1; transform:translateY(-4px)}}
+.afdcard .play .ldots{display:none}
+.afdcard .play.loading svg{display:none}
+.afdcard .play.loading .ldots{display:inline-flex}
+.afdcard .ldots-row{display:flex; justify-content:center; padding:14px 0; color:var(--resin)}
+.afdcard .ldots-row .ldots span{width:9px; height:9px}
+@media (prefers-reduced-motion:reduce){ .afdcard .ldots span{animation:none; opacity:.8} }

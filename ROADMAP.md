@@ -8,6 +8,13 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Waiting dots + one fallback picture (10-14)** — the list's bouncing dots now also
+  show under a card while it opens and on a play button while its voice loads (after a
+  250 ms beat, so fast answers don't flicker). A word with no emoji or photo shows the
+  identicon in every tier — the Arabic-only tier used to put the word itself in the
+  box, which overflowed on long words. Test: `loading.browser.mjs` (harness gained
+  `__FS_DELAY` to simulate a slow connection).
+
 - **More of the list on a phone (10-14)** — on a 412px-wide phone, whole words on
   screen while scrolling went from 4 to 7.
   - The mic panel folds into one slim row (small mic, hint beside it, the + still there)

@@ -118,11 +118,12 @@ async function applyBox(thumbEl, mode, recs){
     return d.pic ? asText(d.pic) : asIcon();
   }
   // Script tier: the Arabic word already sits beside the box, so the box keeps
-  // the PICTURE (the constant visual anchor across all tiers). The script word
-  // stands in only when there's no picture at all.
+  // the PICTURE (the constant visual anchor across all tiers). With no picture,
+  // the identicon, as in the other tiers (10-14: the script word used to stand
+  // in here, overflowing on long words and repeating the text beside it).
   if(mode==="script"){
     if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
-    return d.pic ? asText(d.pic) : (d.script ? asText(d.script) : asIcon());
+    return d.pic ? asText(d.pic) : asIcon();
   }
   // auto
   if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
@@ -130,10 +131,23 @@ async function applyBox(thumbEl, mode, recs){
   return asIcon();
 }
 
-function playInto(btn, url){
+/* Waiting, made visible (10-14): three bouncing dots in place of the play
+   triangle while a voice is on its way, and under an opening card while its
+   voices load. Only after a short beat, so a fast answer never flickers. */
+const DOTS = '<span class="ldots" aria-hidden="true"><span></span><span></span><span></span></span>';
+function busyBtn(btn){
+  if(!btn) return ()=>{};
+  let on=false; const t=setTimeout(()=>{ on=true; btn.classList.add("loading"); btn.setAttribute("aria-busy","true"); }, 250);
+  const safety=setTimeout(()=>done(), 15000);
+  function done(){ clearTimeout(t); clearTimeout(safety); if(on){ btn.classList.remove("loading"); btn.removeAttribute("aria-busy"); } }
+  return done;
+}
+function playInto(btn, url, done){
   try{ audioEl.pause(); }catch(_){}
+  done = done || busyBtn(btn);
   audioEl = new Audio(url);
-  audioEl.play().catch(()=>{});
+  ["playing","error","abort"].forEach(ev=> audioEl.addEventListener(ev, done, { once:true }));
+  audioEl.play().catch(done);
 }
 
 // Briefly memoised: the dictionary asks for the same word's counts several
@@ -879,7 +893,7 @@ async function entryCard(res, lead){
   }else{
     glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
   }
-  const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>`;
+  const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>${DOTS}</button>`;
   const chevHtml  = lead ? "" : `<span class="card-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>`;
 
   el.innerHTML =
@@ -895,7 +909,9 @@ async function entryCard(res, lead){
   // A contributor's photo (add.html "show it") outranks the emoji.
   if(meta.image) thumbEl.innerHTML = `<img src="${escapeHtml(meta.image)}" alt="">`;
   else if(meta.pic) thumbEl.textContent = meta.pic;   // picture first in every tier
-  else if(CFG.mode()==="script" && scriptLabel) thumbEl.textContent = scriptLabel;
+  // No picture → the identicon, in every tier (10-14: the Arabic-only tier used to
+  // put the word itself here, which overflowed on long words and repeated the
+  // text right beside it — and made the same card look different by tier).
   else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
   // compact voice counts on the collapsed header (wordless icons, tier-safe)
   const gc=el.querySelector(".gloss");
@@ -908,7 +924,6 @@ async function entryCard(res, lead){
   const paintFace=(mt)=>{
     if(mt.image) thumbEl.innerHTML = `<img src="${escapeHtml(mt.image)}" alt="">`;
     else if(mt.pic) thumbEl.textContent = mt.pic;
-    else if(CFG.mode()==="script" && (mt.glossAr||mt.ref)) thumbEl.textContent = mt.glossAr||mt.ref;
     else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
     thumbEl.dataset.pic = mt.pic || "";
     if(!gc || CFG.mode()==="sound") return;
@@ -943,7 +958,12 @@ async function entryCard(res, lead){
   // half-loaded card (seen on a slow phone: the note, then the voice under it).
   function loadDetail(){ return detailP || (detailP = buildDetail()); }
   async function buildDetail(){
-    const recs = await (playable || listPlayable(res.entryId));
+    let dots=null;
+    const dotsT=setTimeout(()=>{ dots=document.createElement("div"); dots.className="ldots-row"; dots.setAttribute("role","status");
+      dots.setAttribute("aria-label", AFDCore.t("tools.loading", CFG.mode())); dots.innerHTML=DOTS; detail.prepend(dots); }, 250);
+    let recs;
+    try{ recs = await (playable || listPlayable(res.entryId)); }
+    finally{ clearTimeout(dotsT); if(dots) dots.remove(); }
     const wordRecs    = recs.filter(r => (r.type||"word")==="word");
     const contextRecs = recs.filter(r => r.type==="context");
     const defRecs     = recs.filter(r => r.type==="definition");
@@ -998,8 +1018,9 @@ async function entryCard(res, lead){
     try{ n.scrollIntoView({ block:"nearest", behavior:"smooth" }); }catch(_){}
   }
   playBtn.addEventListener("click", (e)=>{ e.stopPropagation();
-    if(currentUrl){ playInto(playBtn, currentUrl); }
-    else loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl); else noVoice(); });
+    if(currentUrl){ playInto(playBtn, currentUrl); return; }
+    const done = busyBtn(playBtn);             // dots from the tap, through the load, until it sounds
+    loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl, done); else { done(); noVoice(); } }, done);
   });
   el.querySelector(".head").addEventListener("click", (e)=>{
     if(e.target.closest(".play")) return;
