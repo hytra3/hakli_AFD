@@ -74,7 +74,7 @@ await scenario("I6 a linked word: header says dictionary; the list button is lab
   await ctx.close(); });
 
 await scenario("I8 header reads 'speak to find' while listening and finding, 'dictionary' back home", async ()=>{ const { page, ctx } = await openIndex("/", { matcher:()=>"hang" });
-  const tile = await page.innerText(".addword");
+  const tile = await page.getAttribute("#addBtn", "title");
   await page.dispatchEvent("#mic", "pointerdown", { pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });
   await page.waitForTimeout(500);
   const during = await ist(page);
@@ -84,7 +84,7 @@ await scenario("I8 header reads 'speak to find' while listening and finding, 'di
   await page.click("#mastGlyph"); await page.waitForTimeout(600);
   const home = await ist(page);
   ok("I8 header reads 'speak to find' while listening and finding, 'dictionary' back home", during.mastEn==="speak to find" && finding.mastEn==="speak to find" && home.mastEn==="dictionary", JSON.stringify([during.mastEn, finding.mastEn, home.mastEn]));
-  ok("I9 the tile atop the list says 'Add a word'", /^Add a word$/.test(tile.trim()), JSON.stringify(tile));
+  ok("I9 the + in the mic panel says 'Add a word'", /^Add a word$/.test((tile||"").trim()), JSON.stringify(tile));
   await ctx.close(); });
 await scenario("I10 too-short hold → header back to 'dictionary'", async ()=>{ const { page, ctx } = await openIndex("/");
   await hold(page, "#mic", 30); await page.waitForTimeout(900);
@@ -164,7 +164,7 @@ const sayWord = async (page)=>{
   await page.waitForTimeout(1500); };
 await scenario("A1 phone Back walks share → show → say, staying on the page", async ()=>{ const { page, ctx } = await newPage(browser, srv.url, { fs:FS, init:AUTO });
   await page.goto(srv.url + "/index.html"); await ready(page);
-  await page.click(".addword"); await page.waitForLoadState("load"); await page.waitForTimeout(1200);
+  await page.click("#addBtn"); await page.waitForLoadState("load"); await page.waitForTimeout(1200);
   const cap0 = await page.getAttribute("#acct", "data-cap");
   await sayWord(page);
   await page.click("#sayNext"); await page.waitForTimeout(500);

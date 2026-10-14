@@ -44,6 +44,16 @@
         box-shadow:0 6px 16px rgba(31,58,52,.22)}
 .afdcard .card.lead .play{width:60px; height:60px; background:var(--resin)}
 .afdcard .play svg{width:42%;height:42%}
+/* (10-14) list cards, tighter: smaller picture and play button, English and
+   Arabic on one line, counts underneath — about five words to a phone screen
+   instead of three or four. The lead (best-match) card keeps its full size. */
+.afdcard .card:not(.lead){padding:10px 12px; gap:10px}
+.afdcard .card:not(.lead) .head{gap:12px}
+.afdcard .card:not(.lead) .thumb{width:52px; height:52px; border-radius:12px; font-size:22px}
+.afdcard .card:not(.lead) .gloss{font-size:20px; display:flex; flex-wrap:wrap; align-items:baseline; column-gap:10px}
+.afdcard .card:not(.lead) .gloss .glossar{margin:0; text-align:left}   /* Arabic right after the English */
+.afdcard .card:not(.lead) .gloss .tags, .afdcard .card:not(.lead) .gloss .head-counts{flex-basis:100%}
+.afdcard .card:not(.lead) .play{width:44px; height:44px}
 /* the word's own voice, drawn inside its box in place of a letter */
   .afdcard .thumb-wave{width:78%; height:56%; fill:rgba(255,255,255,.92); display:block}
 .afdcard .voice-row .vr-wave{flex:1; height:26px; min-width:0; margin:0 6px; display:block}

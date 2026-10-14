@@ -8,6 +8,18 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **More of the list on a phone (10-14)** — on a 412px-wide phone, whole words on
+  screen while scrolling went from 4 to 7.
+  - The mic panel folds into one slim row (small mic, hint beside it, the + still there)
+    once the list scrolls, and opens again at the top (`body.compact`, set on scroll,
+    with a short lock so it can't flicker).
+  - The "3 / 47 with a voice" meter moved into the panel's foot (`body.browsing`); folded,
+    it's a thin line.
+  - The "Add a word" tile atop the list is gone — the panel's + does the same and stays
+    on screen.
+  - List cards are tighter: 52px picture, 44px play, Arabic beside the English, ~72px a
+    card (was ~92). The best-match card keeps its size. Test: `layout.browser.mjs`.
+
 - **Word card: "+ Add a recording" + Edit word (10-14)** — punch list items 2 and 3.
   - THE WORD now has its own "+ Add a recording" under it, like sentence and meaning
     (it goes to the recorder on that word). The big "Say it yourself" button below the

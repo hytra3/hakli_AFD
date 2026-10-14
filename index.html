@@ -88,9 +88,10 @@ body{
 .view-menu .vm-t:empty{display:none}
 .view-menu .vm-ar{font-family:var(--serif); font-size:15px; direction:rtl; text-align:start}
 .view-menu .vm-en{font-family:var(--sans); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-top:1px}
-.coverage{display:flex; align-items:center; gap:10px; padding:2px 2px 12px; color:var(--mist); font-size:12px}
+.coverage{display:none; align-items:center; gap:10px; width:calc(100% - 44px); margin:-6px 0 0; color:var(--mist); font-size:12px}
+body.browsing.has-results .coverage{display:flex}
 .cov-label{flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums}
-.cov-bar{flex:1; height:6px; background:var(--mist-2); border-radius:3px; overflow:hidden}
+.cov-bar{flex:1; height:6px; background:var(--mist-2); border-radius:3px; overflow:hidden; transition:height .25s ease}
 .cov-fill{height:100%; width:0; background:var(--mountain); border-radius:3px; transition:width .5s ease}
 .vm-sep{height:1px; background:var(--mist-2); margin:5px 4px}
 .view-empty{padding:26px 16px; text-align:center; color:var(--mist); font-size:14px}
@@ -174,7 +175,7 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 .hint .code{display:block; margin-top:8px; direction:ltr; font:500 10.5px/1 var(--sans);
   letter-spacing:.12em; text-transform:uppercase; color:var(--mist)}
 /* ---------------------------------------------------------------- results */
-  .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px}
+  .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:10px; margin-top:10px}
 /* header account button — sign in to manage your own voice */
   .account{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
       color:var(--mountain);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
@@ -231,6 +232,22 @@ body.has-results .control .addbtn{display:inline-flex}
 /* inside the rounded panel, keep the side buttons (and their captions) off its edges */
 body.has-results .control .allbtn{inset-inline-start:14px}
 body.has-results .control .addbtn{inset-inline-end:22px}
+/* (10-14) Scrolling the list folds the mic panel into one slim row — small mic,
+   its hint beside it, the + still at hand, the coverage meter a thin line along
+   the foot — and it opens again back at the top (body.compact, set on scroll).
+   Same mic, same place: a search is always one hold away. */
+.control{transition:padding .25s ease}
+body.compact .control{flex-direction:row; justify-content:center; gap:14px; padding:20px 0 16px}   /* the top ~14px sits under the header */
+body.compact .stage{width:52px}
+body.compact .control .allbtn, body.compact .control .addbtn{top:24px}   /* centred on the 52px mic: 20 + (52-44)/2 */
+body.compact .control .capd::after{display:none}
+body.compact .hint{font-size:17px; text-align:start; max-width:calc(100% - 200px)}
+body.compact .hint .ar{display:inline; margin:0 0 0 8px; font-size:14px}
+body.compact .hint .ar.solo{display:inline; margin:0}
+body.compact .hint .code{display:none}
+body.compact .coverage{position:absolute; left:22px; right:22px; bottom:6px; width:auto; margin:0}
+body.compact .cov-label{display:none}
+body.compact .cov-bar{height:3px}
 .control .addbtn.capd::after{color:var(--resin)}
 /* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
      escape hatch under search candidates for a real new word that looked near one */
@@ -288,6 +305,8 @@ body.has-results .control .addbtn{inset-inline-end:22px}
         </button>
       </div>
       <p class="hint" id="hint"><span class="ar solo">تكلّم</span></p>
+      <!-- how many words have a voice: browse only, at the panel's foot (10-14) -->
+      <div class="coverage" id="coverage" aria-live="polite"><span class="cov-label"></span><div class="cov-bar"><div class="cov-fill"></div></div></div>
     </div>
 
     <div class="results afdcard hidden" id="results"></div>
@@ -297,6 +316,26 @@ body.has-results .control .addbtn{inset-inline-end:22px}
   <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 
 <script type="module">
+/* ---- fold the mic panel while the list scrolls (10-14) ----
+   Compact past a short scroll, full again at the very top. A pause after each
+   switch, and only folding when the page would still scroll afterwards, keeps
+   it from flickering at the edge (the panel's height change moves the page). */
+{
+  let lockUntil = 0;
+  const set = (on)=>{ if(document.body.classList.contains("compact") === on) return;
+    document.body.classList.toggle("compact", on); lockUntil = Date.now() + 350; };
+  const onScroll = ()=>{
+    const b = document.body;
+    if(!b.classList.contains("has-results")){ set(false); return; }
+    if(Date.now() < lockUntil) return;
+    const y = window.scrollY || 0;
+    if(!b.classList.contains("compact")){
+      if(y > 24 && document.documentElement.scrollHeight - innerHeight > 320) set(true);
+    } else if(y <= 2) set(false);
+  };
+  addEventListener("scroll", onScroll, { passive:true });
+  addEventListener("resize", onScroll, { passive:true });
+}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -667,7 +706,7 @@ const steps = AFDCore.stepHistory((step)=>{
 async function render(results, quiet){   // quiet: a return to old results (Back / Forward) — don't autoplay again
   const my = ++renderToken; deepEntry = null;
   lastResults = results; setMastView("find");
-  resultsEl.innerHTML=""; hint.classList.add("small");
+  resultsEl.innerHTML=""; setBrowsing(false); hint.classList.add("small");
   paintAllBtn(true); reskinPending = false;
   const best = results[0];
 
@@ -709,7 +748,7 @@ async function render(results, quiet){   // quiet: a return to old results (Back
 async function openEntry(entryId){
   const my = ++renderToken; deepEntry = entryId;
   lastResults = [{entryId, distance:0}]; setMastView("dictionary");   // a word opened by link is the dictionary, not a search
-  resultsEl.innerHTML=""; hint.classList.add("small");
+  resultsEl.innerHTML=""; setBrowsing(false); hint.classList.add("small");
   setHintKey("result.here");
   const lead = await entryCard({entryId, distance:0}, true);
   if(my!==renderToken) return;                 // superseded by a newer render/open
@@ -770,11 +809,10 @@ function showAll(){
 }
 /* coverage meter: how many words already have a spoken recording, as a glanceable
    goal that shrinks the wall of zeros into progress. */
-function coverageMeterEl(){
-  const d=document.createElement("div"); d.className="coverage"; d.id="coverage";
-  d.innerHTML='<span class="cov-label"></span><div class="cov-bar"><div class="cov-fill"></div></div>';
-  return d;
-}
+// The coverage meter sits in the mic panel (static markup) and shows only while
+// the whole list is on screen: body.browsing, set when renderBrowse paints and
+// cleared by anything else that takes over the results (10-14).
+function setBrowsing(on){ document.body.classList.toggle("browsing", !!on); }
 function setCoverage(withVoice, total){
   const el=$("coverage"); if(!el) return;
   const pct = total ? Math.round(withVoice/total*100) : 0;
@@ -845,8 +883,6 @@ async function renderBrowse(){
   }
 
   const frag = document.createDocumentFragment();
-  frag.appendChild(coverageMeterEl());
-  frag.appendChild(addWordButton());
   if(currentView==="needs" && displayItems.length) frag.appendChild(askWordsButton(displayItems));
   for(const it of displayItems) frag.appendChild(it.card.el);
   if(!displayItems.length){
@@ -858,6 +894,7 @@ async function renderBrowse(){
   }
   if(my!==renderToken) return;
   resultsEl.replaceChildren(frag);
+  setBrowsing(true);
 
   // Fill the meter: known already for the needs view; otherwise count in the
   // background so the plain list isn't held up waiting on it.
@@ -880,14 +917,8 @@ function startNewEntry(){
   location.href = "add.html";
 }
 
-function addWordButton(){
-  const b=document.createElement("button");
-  b.className="addword";
-  b.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`+
-    `<span>${escapeHtml(AFDCore.t("add.title", displayMode))}</span>`;   // "Add a word" — "Add it…" has no "it" up here
-  b.addEventListener("click", startNewEntry);
-  return b;
-}
+// (10-14) The "Add a word" tile atop the list is gone: the amber + in the mic
+// panel says the same, and it stays on screen while the list scrolls.
 
 
 /* "Needs a voice" → ask someone for them. A specific ask ("can you say one of
@@ -945,7 +976,7 @@ function renderEmpty(best){
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       ${escapeHtml(AFDCore.t("entry.addnew", displayMode))}
     </button>`;
-  resultsEl.innerHTML=""; resultsEl.appendChild(div);
+  resultsEl.innerHTML=""; setBrowsing(false); resultsEl.appendChild(div);
   const nb=div.querySelector("#newEntryBtn"); if(nb) nb.addEventListener("click", startNewEntry);
   resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");
 }
