@@ -34,7 +34,7 @@ def _stub_modules():
     google = mod("google")
     cloud = mod("google.cloud")
     google.cloud = cloud
-    cloud.firestore = mod("google.cloud.firestore", Client=mock.MagicMock)
+    cloud.firestore = mod("google.cloud.firestore", Client=mock.MagicMock, SERVER_TIMESTAMP="<server-time>")
     cloud.storage = mod("google.cloud.storage", Client=mock.MagicMock)
     mod("google.cloud.firestore_v1")
     mod("google.cloud.firestore_v1.base_query", FieldFilter=lambda *a: a)
@@ -553,6 +553,48 @@ class Revoke(unittest.TestCase):
         self.assertEqual(revoke.doc_path({"document": ok}), ok)
         self.assertIsNone(revoke.doc_path({"subject": "documents/afd_speakers/s"}))
         self.assertIsNone(revoke.doc_path({}))
+
+
+class VoiceCounts(unittest.TestCase):
+    """voice_counts/main.py — recounts a word's public voices onto its card."""
+
+    def setUp(self):
+        self.m = _load("voice_counts_main", "voice_counts/main.py")
+
+    def _snap(self, d):
+        s = mock.MagicMock(); s.to_dict.return_value = d; return s
+
+    def _entry(self, recs):
+        ref = mock.MagicMock()
+        ref.collection.return_value.where.return_value.stream.return_value = [self._snap(d) for d in recs]
+        self.m._db.collection.return_value.document.return_value = ref
+        return ref
+
+    def test_recounts_public_voices_by_type(self):
+        ref = self._entry([{"type": "word"}, {"type": "word"}, {"phase": "context"}, {}, {"type": "definition"}, {"type": "odd"}])
+        self.m.on_recording_write({"document": "afd_entries/ent_sun/recordings/r1"})
+        self.m._db.collection.return_value.document.assert_called_with("ent_sun")
+        args = ref.update.call_args[0][0]
+        self.assertEqual(args["voices"], {"word": 3, "context": 1, "definition": 1})
+        # only voices others can hear are queried
+        self.assertEqual(ref.collection.return_value.where.call_args.kwargs["filter"], ("allowPlayback", "==", True))
+
+    def test_entry_from_subject_when_no_document_attribute(self):
+        ref = self._entry([])
+        self.m.on_recording_write({"subject": "documents/afd_entries/ent_u_x/recordings/r9"})
+        self.m._db.collection.return_value.document.assert_called_with("ent_u_x")
+        self.assertEqual(ref.update.call_args[0][0]["voices"], {"word": 0, "context": 0, "definition": 0})
+
+    def test_a_reaped_word_is_not_recreated(self):
+        ref = self._entry([])
+        ref.update.side_effect = sys.modules["google.api_core.exceptions"].NotFound()
+        self.m.on_recording_write({"document": "afd_entries/ent_gone/recordings/r1"})   # no raise
+        ref.set.assert_not_called()
+
+    def test_other_paths_are_ignored(self):
+        ref = self._entry([])
+        self.m.on_recording_write({"document": "afd_speakers/spk_x/private/profile"})
+        ref.update.assert_not_called()
 
 
 if __name__ == "__main__":

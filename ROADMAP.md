@@ -8,6 +8,21 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **The dictionary opens in 2 requests, not 92 (10-15)** — `renderBrowse` reads every
+  word card in ONE `getDocs(afd_entries)` and hands each card its doc (`entryCard`
+  takes `res.meta`), and each card's 🔊💬📖 counts come from the card's own `voices`
+  field (`primeCounts`) instead of a recordings query per word. `voices` is kept by a
+  new Cloud Function, **`afd-voice-counts`** (`voice_counts/main.py`): it fires on any
+  write under `afd_entries/{id}/recordings/{rid}` and RECOUNTS that word
+  (allowPlayback only) — upload, withdraw, restore, erase, purge — so it can't drift.
+  Server-only field (clients can't write it; no rule change). A word without
+  `voices` still counts itself, so the app works before the deploy (48 requests
+  then). Deploy: `bash scripts/deploy-voice-counts.sh`, then once
+  `node scripts/backfill-voice-counts.mjs`. Tests: `VoiceCounts` in
+  `test/test_functions.py`.
+- **Arabic-edits window: 24 hours (was 8)** — speakers in Dhofar and the steward in
+  Utah are 10 hours apart. Key `win.open.8h` kept (review numbers).
+
 - **Emoji picker in Edit word (10-14)** — built on `data/concept-emoji.json`: one emoji
   per concept on the comparison lists (240 concepts, 169 picturable; 68 of the 100 on
   Leipzig-Jakarta), grouped by Concepticon's semantic fields in the order the

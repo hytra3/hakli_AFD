@@ -343,7 +343,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1014d";
+import { initCard, entryCard, primeCounts, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1014d";
 
 
 /* ================================================================= CONFIG */
@@ -834,14 +834,23 @@ async function renderBrowse(){
   const words = window.AFDWords || [];
   const seedIds = words.map(w=>AFDCore.entryIdFor(w.id));
   const seen = new Set(seedIds);
+  // ONE read of every word card (10-15). Each card then builds from the doc it's
+  // handed, and its 🔊💬📖 counts come from the doc's `voices` (kept by the
+  // afd-voice-counts function) — no per-word read or count query. Was ~91
+  // round-trips a page load. A word without `voices` yet still counts itself.
+  // No answer at all (offline) → each card falls back to its own read, as before.
+  let all = null;
+  try{ all = await getDocs(collection(db,"afd_entries")); }catch(e){ console.warn("[AFD] browse: entries", e); }
+  if(my!==renderToken) return;
+  const byId = new Map(all ? all.docs.map(d=>[d.id, d.data()||{}]) : []);
   const seedCards = await Promise.all(seedIds.map(id =>
-    entryCard({entryId: id}, false).catch(()=>null)));
+    entryCard(byId.has(id) ? {entryId: id, meta: byId.get(id)} : {entryId: id}, false).catch(()=>null)));
   if(my!==renderToken) return;
 
   let userDocs = [];
   try{
-    const snap = await getDocs(query(collection(db,"afd_entries"), where("source","==","user")));
-    if(my!==renderToken) return;
+    if(!all) throw new Error("no entries read");
+    const snap = { docs: all.docs.filter(d=>(d.data()||{}).source==="user") };
     // a word its creator removed leaves the list at once (the purge deletes it
     // later); one a steward hid (steward.html) stays out until shown again
     userDocs = snap.docs.filter(d=>{ const x=d.data()||{};
@@ -855,12 +864,12 @@ async function renderBrowse(){
     const me = currentUser && currentUser.uid;
     const heard = await Promise.all(userDocs.map(d =>
       ((d.data()||{}).createdBy===me && me) ? true :
-      entryCounts(d.id).then(c => (c.word + c.context + c.definition) > 0).catch(()=>false)));
+      (primeCounts(d.id, (d.data()||{}).voices), entryCounts(d.id)).then(c => (c.word + c.context + c.definition) > 0).catch(()=>false)));
     if(my!==renderToken) return;
     userDocs = userDocs.filter((d,i) => heard[i]);
   }catch(e){ console.warn("[AFD] browse: user entries", e); }
   const userCards = await Promise.all(userDocs.map(d =>
-    entryCard({entryId: d.id}, false).catch(()=>null)));
+    entryCard({entryId: d.id, meta: d.data()||{}}, false).catch(()=>null)));
   if(my!==renderToken) return;
 
   // Unified list carrying the metadata the views need (creation date; entryId for counts).

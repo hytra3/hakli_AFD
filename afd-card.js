@@ -155,6 +155,15 @@ function playInto(btn, url, done){
 // each ask is a Firestore query. 15 s keeps one render to one read per word
 // while a new or withdrawn voice still shows on the next look.
 const _countsCache = new Map();   // entryId -> { at, p }
+// A word card whose doc carries `voices` (kept by the afd-voice-counts function,
+// 10-15) needs no query at all: the list primes the cache from the one read of
+// afd_entries. Primed counts hold for the same 15 s as a fetched answer.
+function primeCounts(entryId, voices){
+  if(!voices || typeof voices !== "object") return false;
+  const c = { word: +voices.word || 0, context: +voices.context || 0, definition: +voices.definition || 0 };
+  _countsCache.set(entryId, { at: Date.now(), p: Promise.resolve(c) });
+  return true;
+}
 function entryCounts(entryId){
   const hit = _countsCache.get(entryId);
   if(hit && Date.now() - hit.at < 15000) return hit.p;
@@ -955,7 +964,11 @@ async function entryCard(res, lead){
 
   // entry metadata (public). Fall back gracefully if absent.
   let meta={}, known=null;      // known: true/false once Firestore has answered; null if it couldn't
-  try{ const sn = await getDoc(doc(CFG.db,"afd_entries",res.entryId)); known=sn.exists(); if(known) meta=sn.data(); }catch(_){}
+  // The list hands over the doc it already read (res.meta, 10-15) — one read of
+  // afd_entries for every card instead of one getDoc each.
+  if(res.meta){ known=true; meta={ ...res.meta }; }
+  else{ try{ const sn = await getDoc(doc(CFG.db,"afd_entries",res.entryId)); known=sn.exists(); if(known) meta=sn.data(); }catch(_){} }
+  primeCounts(res.entryId, meta.voices);
   // No signal (or a slow one) → the entry doc can't load, and every card used to
   // collapse into an anonymous identicon. The 40 seeded words ship with the app
   // (afd-words.js), so fill picture / gloss / domain from there. Firestore still
@@ -1129,4 +1142,4 @@ async function entryCard(res, lead){
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { primeCounts, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

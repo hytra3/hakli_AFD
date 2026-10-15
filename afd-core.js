@@ -739,7 +739,7 @@ window.AFDCore = (function(){
     "win.queue":            { en:"Edit suggestions", ar:"اقتراحات التعديل" },
     "win.open.30d":         { en:"Open 30 days", ar:"افتح ٣٠ يومًا" },
     "win.open.7d":          { en:"Open 7 days", ar:"افتح ٧ أيام" },
-    "win.open.8h":          { en:"Open 8 hours", ar:"افتح ٨ ساعات" },
+    "win.open.8h":          { en:"Open 24 hours", ar:"افتح ٢٤ ساعة" },   // key name historical (was 8 h) — kept so review numbers hold
     "win.open.2h":          { en:"Open 2 hours", ar:"افتح ساعتين" },
     "win.close":            { en:"Close now", ar:"أغلِق الآن" },
     "win.state.open":       { en:"*OPEN* {left} left · until {until}", ar:"*مفتوحة* — بقي {left} · حتى {until}" },
