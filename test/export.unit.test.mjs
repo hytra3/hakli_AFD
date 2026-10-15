@@ -157,8 +157,11 @@ describe("archive deposit", () => {
     "afd_entries/ent_sun/recordings/r_other": { uid: "uB", speakerId: "spk_uB_01", consent: "public", allowPlayback: true, storagePath: "afd/uB/r_other.webm" },
     "afd_speakers/spk_uB_01": { stewardUid: "uB", consent: "public", grant: { archivalDeposit: false } },
     "afd_speakers/spk_uB_01/private/profile": { origin: { town: "Mirbat", tribe: "Q" } },
+    // ticked "archive" but never recorded spoken consent
+    "afd_entries/ent_sun/recordings/r_nospoken": { uid: "uC", speakerId: "spk_uC_01", consent: "public", allowPlayback: true, storagePath: "afd/uC/r_ns.webm" },
+    "afd_speakers/spk_uC_01": { stewardUid: "uC", consent: "public", grant: { version: "cv_2026_10", archivalDeposit: true } },
   };
-  const OBJ2 = { ...OBJ, "afd/uB/r_other.webm": Buffer.from("other") };
+  const OBJ2 = { ...OBJ, "afd/uB/r_other.webm": Buffer.from("other"), "afd/uC/r_ns.webm": Buffer.from("nospoken") };
   let a, A;
   const SA = archiveSpeakerCode("hakli", "spk_uA_01");
   const L = (n) => A[n].toString("utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
@@ -173,6 +176,12 @@ describe("archive deposit", () => {
     assert.deepEqual(L("speakers.jsonl").map(s => s.speakerId), [SA]);
     assert.deepEqual(L("recordings.jsonl").map(r => r.recordingId), ["r_pub"]);   // r_wd withdrawn, r_del erased, r_other not granted
     assert.ok(!A["audio/r_wd.webm"] && !A["audio/r_other.webm"] && !A["audio/r_del.webm"]);
+  });
+  it("a speaker who ticked archive but has no spoken consent is left out, and named", () => {
+    assert.deepEqual(a.noSpokenConsent, ["spk_uC_01"]);
+    assert.equal(a.summary.speakersNoSpokenConsent, 1);
+    assert.ok(!A["audio/r_ns.webm"]);
+    assert.ok(!a.files.some(f => f.data.toString("utf8").includes("spk_uC_01")));
   });
   it("speaker details come in a block marked restricted", () => {
     const s = L("speakers.jsonl")[0];
