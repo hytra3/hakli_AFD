@@ -245,6 +245,7 @@ async function buildArchive({ db, bucket, instance, concepts, now = new Date(), 
   const add = (name, data) => { files.push({ name, data }); checksums.push(`${sha256(data)}  ${name}`); };
   const counts = { speakers: 0, speakersNotGranted: 0, entries: 0, recordings: 0, recordingsNotShared: 0,
                    audio: 0, wav: 0, consentAudio: 0, images: 0 };
+  const noSpokenConsent = [];                 // granted archiving but no spoken consent on file: left out, listed
   async function fetchFile(storagePath, name, expectSha){
     const f = bucket.file(storagePath);
     const [exists] = await f.exists();
@@ -261,6 +262,9 @@ async function buildArchive({ db, bucket, instance, concepts, now = new Date(), 
   for(const s of spkSnap.docs){
     const d = s.data() || {};
     if(!(d.grant && d.grant.archivalDeposit === true) || d.consent !== "public"){ counts.speakersNotGranted++; continue; }
+    // A deposit promises each speaker's spoken consent: no recording, no deposit.
+    const proof = d.grant.audioPath ? (await bucket.file(d.grant.audioPath).exists())[0] : false;
+    if(!proof){ noSpokenConsent.push(s.id); continue; }
     const priv = await s.ref.collection("private").doc("profile").get();
     spk.set(s.id, { card: d, private: priv.exists ? plain(priv.data() || {}) : null });
   }
@@ -343,7 +347,7 @@ async function buildArchive({ db, bucket, instance, concepts, now = new Date(), 
   add("olac.xml", Buffer.from(olac(instance, now, counts, speakers, depositor, access), "utf8"));
   add("README.txt", Buffer.from(archiveReadme(instance, now, counts, access, !!toWav), "utf8"));
   files.push({ name: "checksums.sha256", data: Buffer.from(checksums.join("\n") + "\n") });
-  return { files, summary: counts, warnings };
+  return { files, summary: { ...counts, speakersNoSpokenConsent: noSpokenConsent.length }, warnings, noSpokenConsent };
 }
 
 function olac(instance, now, c, speakers, depositor, access){

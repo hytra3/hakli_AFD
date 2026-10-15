@@ -75,13 +75,18 @@ if(PROFILE === "archive" && WANT_WAV){
   if(!toWav) console.log("  (ffmpeg not found — originals only; install it for WAV copies: sudo apt install ffmpeg)");
 }
 
-const { files, summary, warnings } = await buildPackage({
+const { files, summary, warnings, noSpokenConsent = [] } = await buildPackage({
   db: getFirestore(), bucket: getStorage().bucket(), instance, concepts, profile: PROFILE, now,
   generator: `scripts/export-package.mjs ${commit}`.trim(), toWav, depositor: DEPOSITOR });
 
 const bytes = files.reduce((n, f) => n + f.data.length, 0);
 if(PROFILE === "archive"){
   console.log(`  speakers ${summary.speakers} (${summary.speakersNotGranted} without archive consent left out) · consent audio ${summary.consentAudio}`);
+  if(noSpokenConsent.length){
+    console.log(`  ⚠ ${noSpokenConsent.length} speaker(s) ticked "archive" but have no spoken consent on file — left out:`);
+    for(const id of noSpokenConsent) console.log(`      ${id}`);
+    console.log(`    To include them, record their spoken consent in the recorder (permission card), then run this again.`);
+  }
   console.log(`  word cards ${summary.entries} · recordings ${summary.recordings} (${summary.recordingsNotShared} withdrawn or erased left out)`);
   console.log(`  audio ${summary.audio} · WAV copies ${summary.wav} · photos ${summary.images}`);
 }else{
