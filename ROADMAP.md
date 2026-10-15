@@ -8,6 +8,13 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Word arrows in the recorder (10-15)** — ← → beside the word counter in
+  recording mode, to step past a word without recording it and without the
+  "speaker doesn't know this word" mark a skip saves. Off mid-take and while a
+  take waits for Keep / Record again; hidden on steps 1–2 and in listening mode
+  (which has its own Previous / Next row). Arrows follow the existing
+  "Next word →" convention. Test: recorder.browser.mjs.
+
 - **Resin dots on every wait (10-15)** — `AFDCore.dotsHTML()` (inline) /
   `dotsHTML(true)` (centred block), one look on every page, so a wait is visible
   to someone who can't read "Saving…". Now on: a spoken search (matcher, then
