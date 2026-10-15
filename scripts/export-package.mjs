@@ -6,10 +6,14 @@
  *  image files, checksums.sha256, a README). See scripts/lib/export.mjs for
  *  exactly what each profile includes.
  *
- *  Profiles so far:
+ *  Profiles:
  *    community   the full private backup: everything needed to restore or move
  *                the dictionary, withdrawn voices and speakers' private details
  *                included. Never publish it.
+ *    archive     a deposit for a language archive: speakers who granted
+ *                archiving, their shared takes, their spoken consent, speaker
+ *                details marked restricted, olac.xml, and WAV copies when ffmpeg
+ *                is installed (check: ffmpeg -version).
  *
  *  The zip is written OUTSIDE the repo (default ~/afd-exports/), so a publish
  *  can never sweep it into git.
@@ -19,6 +23,8 @@
  *    node scripts/export-package.mjs                     # community backup
  *    node scripts/export-package.mjs --dry               # count only, write nothing
  *    node scripts/export-package.mjs --out ~/backups     # another folder
+ *    node scripts/export-package.mjs --profile archive --depositor "Marty Heaton"
+ *    node scripts/export-package.mjs --profile archive --no-wav   # originals only
  *  Then check it:
  *    cd ~/afd-exports && mkdir t && cd t && unzip -q ../hakli_community_*.afd.zip && sha256sum -c checksums.sha256
  *  Env:
@@ -28,6 +34,7 @@ import { readFileSync, mkdirSync, statSync, renameSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
+import { makeWavConverter } from "./lib/wav.mjs";
 import { execSync } from "node:child_process";
 import { readInstance } from "./lib/instance.mjs";
 import { buildPackage } from "./lib/export.mjs";
@@ -36,6 +43,8 @@ import { ZipWriter } from "./lib/zip.mjs";
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 const DRY = args.includes("--dry");
+const DEPOSITOR = opt("--depositor", "");
+const WANT_WAV = !args.includes("--no-wav");
 const PROFILE = opt("--profile", "community");
 const OUT = resolve(opt("--out", join(homedir(), "afd-exports")).replace(/^~/, homedir()));
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
@@ -59,14 +68,27 @@ initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID, storage
 
 const now = new Date();
 console.log(`export · ${PROFILE} · project=${PROJECT_ID}${DRY ? " · dry run" : ""}`);
+// Uncompressed copies for an archive (scripts/lib/wav.mjs). No ffmpeg → originals only.
+let toWav = null;
+if(PROFILE === "archive" && WANT_WAV){
+  toWav = makeWavConverter();
+  if(!toWav) console.log("  (ffmpeg not found — originals only; install it for WAV copies: sudo apt install ffmpeg)");
+}
+
 const { files, summary, warnings } = await buildPackage({
   db: getFirestore(), bucket: getStorage().bucket(), instance, concepts, profile: PROFILE, now,
-  generator: `scripts/export-package.mjs ${commit}`.trim() });
+  generator: `scripts/export-package.mjs ${commit}`.trim(), toWav, depositor: DEPOSITOR });
 
 const bytes = files.reduce((n, f) => n + f.data.length, 0);
-console.log(`  word cards ${summary.entries} · recordings ${summary.recordings} (${summary.recordingsWithdrawn} withdrawn, ${summary.recordingsErasedSkipped} erased left out)`);
-console.log(`  speakers ${summary.speakers} · consent audio ${summary.consentAudio} · withdrawal audio ${summary.withdrawalAudio}`);
-console.log(`  audio ${summary.audio} · photos ${summary.images} · avatars ${summary.avatars} · prompts ${summary.prompts} (${summary.promptAudio} recorded)`);
+if(PROFILE === "archive"){
+  console.log(`  speakers ${summary.speakers} (${summary.speakersNotGranted} without archive consent left out) · consent audio ${summary.consentAudio}`);
+  console.log(`  word cards ${summary.entries} · recordings ${summary.recordings} (${summary.recordingsNotShared} withdrawn or erased left out)`);
+  console.log(`  audio ${summary.audio} · WAV copies ${summary.wav} · photos ${summary.images}`);
+}else{
+  console.log(`  word cards ${summary.entries} · recordings ${summary.recordings} (${summary.recordingsWithdrawn} withdrawn, ${summary.recordingsErasedSkipped} erased left out)`);
+  console.log(`  speakers ${summary.speakers} · consent audio ${summary.consentAudio} · withdrawal audio ${summary.withdrawalAudio}`);
+  console.log(`  audio ${summary.audio} · photos ${summary.images} · avatars ${summary.avatars} · prompts ${summary.prompts} (${summary.promptAudio} recorded)`);
+}
 console.log(`  ${files.length} files, ${(bytes / 1048576).toFixed(1)} MB`);
 for(const w of warnings) console.log(`  ⚠ ${w}`);
 
@@ -79,4 +101,6 @@ for(const f of files) zip.add(f.name, f.data, now);
 zip.close();
 renameSync(part, final);                       // a half-written zip never carries the final name
 console.log(`\nWrote ${final} (${(statSync(final).size / 1048576).toFixed(1)} MB)`);
-console.log("PRIVATE: withdrawn voices and speakers' private details are inside. Keep it safe; don't publish it.");
+console.log(PROFILE === "archive"
+  ? "Speaker details inside are RESTRICTED (dialect research only): set the archive's access conditions to match."
+  : "PRIVATE: withdrawn voices and speakers' private details are inside. Keep it safe; don't publish it.");

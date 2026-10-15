@@ -15,9 +15,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { buildPackage, plain, MANIFEST_VERSION } from "../scripts/lib/export.mjs";
+import { buildPackage, plain, MANIFEST_VERSION, archiveSpeakerCode } from "../scripts/lib/export.mjs";
 import { ZipWriter } from "../scripts/lib/zip.mjs";
 import { readInstance } from "../scripts/lib/instance.mjs";
+import { makeWavConverter } from "../scripts/lib/wav.mjs";
 
 const ts = (iso) => ({ toDate: () => new Date(iso) });
 const sha = (b) => createHash("sha256").update(b).digest("hex");
@@ -35,7 +36,8 @@ function fakeDb(docs){
   };
   const snapOrMissing = (p) => p in docs ? snap(p) : { exists: false, data: () => undefined };
   return {
-    collection: (c) => ({ get: async () => ({ docs: Object.keys(docs).filter(p => p.split("/").length === 2 && p.startsWith(c + "/")).map(snap) }) }),
+    collection: (c) => ({ get: async () => ({ docs: Object.keys(docs).filter(p => p.split("/").length === 2 && p.startsWith(c + "/")).map(snap) }),
+                          doc: (id) => ({ get: async () => snapOrMissing(`${c}/${id}`) }) }),
     collectionGroup: (c) => ({ get: async () => ({ docs: Object.keys(docs).filter(p => p.split("/").at(-2) === c).map(snap) }) }),
   };
 }
@@ -145,5 +147,81 @@ describe("large packages", () => {
     const out = execFileSync("python3", ["-c",
       "import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); n=z.namelist(); print(len(n), z.read(n[-1]).decode())", p]).toString().trim();
     assert.equal(out, "70000 69999");
+  });
+});
+
+// ---- archive deposit --------------------------------------------------------
+describe("archive deposit", () => {
+  // a second speaker who did NOT grant archiving, with a public take
+  const DOCS2 = { ...DOCS,
+    "afd_entries/ent_sun/recordings/r_other": { uid: "uB", speakerId: "spk_uB_01", consent: "public", allowPlayback: true, storagePath: "afd/uB/r_other.webm" },
+    "afd_speakers/spk_uB_01": { stewardUid: "uB", consent: "public", grant: { archivalDeposit: false } },
+    "afd_speakers/spk_uB_01/private/profile": { origin: { town: "Mirbat", tribe: "Q" } },
+  };
+  const OBJ2 = { ...OBJ, "afd/uB/r_other.webm": Buffer.from("other") };
+  let a, A;
+  const SA = archiveSpeakerCode("hakli", "spk_uA_01");
+  const L = (n) => A[n].toString("utf8").trim().split("\n").filter(Boolean).map(JSON.parse);
+  before(async () => {
+    a = await buildPackage({ db: fakeDb(DOCS2), bucket: fakeBucket(OBJ2), instance: readInstance(), profile: "archive",
+      concepts: JSON.parse(readFileSync(new URL("../data/concepts.json", import.meta.url), "utf8")),
+      now: new Date("2026-10-13T12:00:00Z"), depositor: "Marty Heaton",
+      toWav: async (bytes) => Buffer.concat([Buffer.from("RIFF"), bytes]) });
+    A = Object.fromEntries(a.files.map(f => [f.name, f.data]));
+  });
+  it("only speakers who granted archiving, only their shared takes", () => {
+    assert.deepEqual(L("speakers.jsonl").map(s => s.speakerId), [SA]);
+    assert.deepEqual(L("recordings.jsonl").map(r => r.recordingId), ["r_pub"]);   // r_wd withdrawn, r_del erased, r_other not granted
+    assert.ok(!A["audio/r_wd.webm"] && !A["audio/r_other.webm"] && !A["audio/r_del.webm"]);
+  });
+  it("speaker details come in a block marked restricted", () => {
+    const s = L("speakers.jsonl")[0];
+    assert.equal(s.restricted.access, "restricted");
+    assert.deepEqual(s.restricted.origin, { town: "Taqah", tribe: "T" });
+    assert.equal(s.restricted.ageBand, "60s");
+    assert.match(JSON.parse(A["manifest.json"]).access.speakerDetails, /RESTRICTED/);
+  });
+  it("the spoken consent comes along", () => {
+    assert.equal(L("speakers.jsonl")[0].grant.audioFile, `consent/${SA}/g1.webm`);
+    assert.ok(A[`consent/${SA}/g1.webm`]);
+  });
+  it("no account ids, steward identities, withdrawal proofs, avatars, prompts or embeddings", () => {
+    const all = Object.keys(A);
+    assert.ok(!all.some(f => /^(withdrawals|avatars|prompts)\//.test(f)), all.join());
+    assert.ok(!A["stewards.jsonl"] && !A["prompts.jsonl"]);
+    const text = ["recordings.jsonl", "speakers.jsonl", "entries.jsonl"].map(n => A[n].toString()).join("\n");
+    for(const k of ['"uid"', '"stewardUid"', '"createdBy"', '"embeddingModel"', '"storagePath"', '"audioPath"']) assert.ok(!text.includes(k), k);
+    assert.ok(!text.includes("uA"), "an account id leaked: " + text.match(/.{20}uA.{20}/));
+  });
+  it("speakers have deposit codes: stable, and with no account-id fragment", () => {
+    assert.match(SA, /^S[0-9A-F]{8}$/);
+    assert.equal(SA, archiveSpeakerCode("hakli", "spk_uA_01"));
+    assert.equal(L("recordings.jsonl")[0].speakerId, SA);
+    assert.ok(!Object.keys(A).some(f => f.includes("spk_")), "an app speaker code in a file name");
+  });
+  it("only the words those takes are of", () => {
+    assert.deepEqual(L("entries.jsonl").map(e => e.entryId), ["ent_sun"]);
+  });
+  it("each take gets a WAV copy beside the original", () => {
+    const r = L("recordings.jsonl")[0];
+    assert.equal(r.wavFile, "wav/r_pub.wav");
+    assert.ok(A["wav/r_pub.wav"]);
+  });
+  it("olac.xml is well-formed and names the depositor, speakers by code, and restricted access", () => {
+    const x = A["olac.xml"].toString();
+    execFileSync("python3", ["-c", "import sys,xml.dom.minidom as m; m.parseString(sys.stdin.buffer.read())"], { input: x });
+    assert.match(x, /olac:code="depositor">Marty Heaton</);
+    assert.ok(x.includes(`olac:code="speaker">${SA}<`));
+    assert.match(x, /accessRights>[^<]*RESTRICTED/);
+    assert.match(x, /private use/);                   // qhk is ours, not ISO
+  });
+  it("a real Opus take converts to a playable WAV (ffmpeg)", { skip: !makeWavConverter() && "ffmpeg not installed" }, async () => {
+    const dir = mkdtempSync(join(tmpdir(), "afdwav-")), src = join(dir, "t.webm");
+    execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=1", "-c:a", "libopus", src]);
+    const wav = await makeWavConverter()(readFileSync(src), "webm");
+    assert.equal(wav.subarray(0, 4).toString(), "RIFF");
+    assert.equal(wav.subarray(8, 12).toString(), "WAVE");
+    assert.equal(wav.readUInt16LE(34), 16);           // 16-bit PCM
+    assert.ok(wav.length > 48000 * 2 * 0.9, String(wav.length));   // about a second of audio
   });
 });
