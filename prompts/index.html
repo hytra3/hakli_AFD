@@ -277,7 +277,9 @@ const state = { i:0, tab:"record", recorded:new Set(), pending:new Map(), stream
 
 /* ---- tabs and links ----
    #record / #review open a tab; #R1, #A3 … open a section at its first item, so
-   each helper can be sent a link to just their part (e.g. hakli.app/prompts/#R1). */
+   each helper can be sent a link to just their part (e.g. hakli.app/prompts/#R1);
+   #A2.41, #R1.4 … open that one line (10-15). The address bar follows the line
+   on the card, so a copied link always points at what's on screen. */
 const START = ITEMS.filter(it=>it.start);
 const inTab = (t)=> ITEMS.map((it,i)=>i).filter(i=>ITEMS[i].tab===t);
 function firstOf(t){
@@ -287,6 +289,13 @@ function firstOf(t){
 }
 function applyHash(){
   const h = decodeURIComponent(location.hash.replace(/^#/,""));
+  const line = /^([RA])(\d+)\.(\d+)$/i.exec(h);
+  if(line){
+    const num = line[1].toUpperCase()+line[2]+"."+(+line[3]), i = ITEMS.findIndex(it=>it.num===num);
+    if(i>=0){ state.tab = ITEMS[i].tab; state.i = i; return true; }
+    const s = ITEMS.findIndex(it=>it.sec===line[1].toUpperCase()+line[2]);   // a line past the end: its section
+    if(s>=0){ state.tab = ITEMS[s].tab; state.i = s; return true; }
+  }
   const sec = /^([RA])(\d+)$/i.exec(h);
   if(sec){
     const num = sec[1].toUpperCase()+sec[2], i = ITEMS.findIndex(it=>it.sec===num);
@@ -479,6 +488,8 @@ function render(){
   $("tabnote").innerHTML = TABNOTE[state.tab];
   $("nextpending").classList.toggle("hidden", state.tab!=="record");
   const it = ITEMS[state.i];
+  // the address names the line on the card (no hashchange: replaceState is silent)
+  try{ if(it && it.num && location.hash !== "#"+it.num) history.replaceState(null, "", "#"+it.num); }catch(_){}
   $("cur-sec").textContent = it.section;
   $("cur-gloss").textContent = it.en;
   $("cur-ar").textContent = it.ar || "";
