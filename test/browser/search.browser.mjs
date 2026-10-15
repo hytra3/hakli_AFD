@@ -128,5 +128,21 @@ await scenario("K — the display mode is changed while a search is waiting", as
      !after.hidden && !/[A-Za-z]{4}/.test(after.hint.replace(/HTTP 503/i,"")) && /في البحث مشكلة/.test(after.hint) && !/[A-Za-z]{3}/.test(after.firstGloss) && /[\u0600-\u06FF]/.test(after.firstGloss), JSON.stringify(after));
   await ctx.close(); });
 
+// L — the wait shows: dots while the matcher works, and on while the card is built
+await scenario("L — bouncing dots through the wait, gone when the card is up", async ()=>{ const { page, state, ctx } = await open(()=>({ ...HIT, delay:1200 }));
+  const dots = ()=> page.evaluate(()=> getComputedStyle(document.querySelector(".control .waitdots")).display !== "none");
+  ok("L no dots over the idle list", !(await dots()));
+  await hold(page); await page.waitForTimeout(500);
+  ok("L dots while the matcher works", await dots());
+  await page.evaluate(()=>{ globalThis.__FS_DELAY = 1500; });        // a slow card build after the answer
+  await page.waitForFunction(()=> /Here it is|Did you mean/.test(document.getElementById("hint").innerText), null, { timeout:8000 });
+  const mid = await page.evaluate(()=>({ dots: getComputedStyle(document.querySelector(".control .waitdots")).display !== "none",
+    cards: document.querySelectorAll("#results .card").length }));
+  ok("L dots stay up under 'Here it is' until the card is built", mid.dots && mid.cards === 0, JSON.stringify(mid));
+  await page.waitForSelector("#results .card.lead", { timeout:10000 }); await page.waitForTimeout(100);
+  ok("L dots gone once the card is on screen", !(await dots()) && !(await resultsHidden(page)));
+  ok("L no page errors", !state.errors.length, state.errors.join(" | "));
+  await ctx.close(); });
+
 await browser.close(); srv.close();
 finish();

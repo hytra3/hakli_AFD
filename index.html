@@ -290,6 +290,12 @@ body.compact .typecount{display:none}
   .loadingdots span{width:11px;height:11px;border-radius:50%;background:var(--resin);animation:ld 1s ease-in-out infinite}
   .loadingdots span:nth-child(2){animation-delay:.15s}
   .loadingdots span:nth-child(3){animation-delay:.3s}
+  /* (10-15) the same bouncing dots in the mic panel while a search is on its
+     way: through the matcher's answer (body.busy) and on until the first card
+     is drawn (body.rendering) — the gap that used to show a hint over nothing */
+  .waitdots{display:none; padding:14px 0 4px}
+  body.busy .waitdots, body.rendering .waitdots{display:flex}
+  body.compact .waitdots{padding:0}
   @keyframes ld{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-7px)}}
 </style>
 </head>
@@ -340,6 +346,7 @@ body.compact .typecount{display:none}
         <button class="typex" id="typeX" type="button">×</button>
       </div>
       <p class="typecount" id="typeCount" aria-live="polite"></p>
+      <div class="loadingdots waitdots" role="status" aria-label="Loading"><span></span><span></span><span></span></div>
       <!-- how many words have a voice: browse only, at the panel's foot (10-14) -->
       <div class="coverage" id="coverage" aria-live="polite"><span class="cov-label"></span><div class="cov-bar"><div class="cov-fill"></div></div></div>
     </div>
@@ -754,10 +761,14 @@ async function render(results, quiet){   // quiet: a return to old results (Back
   console.log("[AFD] best", best.distance, "margin", (margin===Infinity?"∞":margin.toFixed(3)), "→", confident?"confident":"maybe");
   setHintKey(confident ? "result.here" : "result.pick");
 
-  // lead card
-  const lead = await entryCard(best, true);
+  // lead card — the wait dots stay up until it is on screen
+  document.body.classList.add("rendering");
+  let lead;
+  try{ lead = await entryCard(best, true); }
+  finally{ if(my===renderToken) document.body.classList.remove("rendering"); }
   if(my!==renderToken) return;                 // a newer render/open superseded us
   if(!lead.removed) resultsEl.appendChild(lead.el);   // removed by its creator: search catches up on its next reload
+  resultsEl.classList.remove("hidden"); document.body.classList.add("has-results");   // show it now, not after the rest
   // the rest
   for(const res of results.slice(1)){
     if(res.distance > MAYBE_MAX) break;
@@ -786,7 +797,10 @@ async function openEntry(entryId){
   lastResults = [{entryId, distance:0}]; setMastView("dictionary");   // a word opened by link is the dictionary, not a search
   resultsEl.innerHTML=""; setBrowsing(false); hint.classList.add("small");
   setHintKey("result.here");
-  const lead = await entryCard({entryId, distance:0}, true);
+  document.body.classList.add("rendering");
+  let lead;
+  try{ lead = await entryCard({entryId, distance:0}, true); }
+  finally{ if(my===renderToken) document.body.classList.remove("rendering"); }
   if(my!==renderToken) return;                 // superseded by a newer render/open
   if(lead.missing){
     // A mistyped or cut-off link: there is no such word. Say so over the whole
@@ -920,6 +934,7 @@ function setCoverage(withVoice, total){
 
 async function renderBrowse(){
   const my = ++renderToken; deepEntry = null; lastResults = null; setMastView("dictionary");
+  document.body.classList.remove("rendering");   // a search's card build this list superseded
   paintAllBtn(false); reskinPending = false;
   hint.classList.remove("small");
   // A cold Firestore connection makes the header reads slow, so show a loading
