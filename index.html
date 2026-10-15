@@ -249,6 +249,32 @@ body.compact .coverage{position:absolute; left:22px; right:22px; bottom:6px; wid
 body.compact .cov-label{display:none}
 body.compact .cov-bar{height:3px}
 .control .addbtn.capd::after{color:var(--resin)}
+/* Typed search (10-15): ⌨ beside the mic, the mirror of the +. Only over the
+   whole list (the back control takes that spot over a word or results), and
+   never in sound mode. It opens a box in the hint's place that narrows the list
+   as you type. The mic stays the way in; this is its quiet sibling. */
+.control .typebtn{position:absolute; inset-inline-start:22px; top:44px; width:44px; height:44px; display:none;
+  align-items:center; justify-content:center; border:1.5px solid var(--mist-2); border-radius:50%;
+  background:var(--cloud); color:var(--mountain); cursor:pointer; padding:0; box-shadow:0 2px 8px rgba(31,58,52,.10)}
+body.browsing.has-results:not([data-mode="sound"]) .control .typebtn{display:inline-flex}
+body.typing .control .typebtn{background:var(--mountain); border-color:var(--mountain); color:var(--cloud)}
+body.compact .control .typebtn{top:24px}
+.typebox{display:none; align-items:center; gap:8px; width:calc(100% - 40px); max-width:460px; margin:6px auto 2px;
+  background:var(--cloud); border:1.5px solid var(--resin); border-radius:16px; padding:8px 8px 8px 14px;
+  box-shadow:0 2px 8px rgba(31,58,52,.06)}
+body.typing .typebox{display:flex}
+body.typing .hint{display:none}
+.typebox svg{flex:0 0 auto; color:var(--mist)}
+.typebox input{flex:1; min-width:0; border:0; outline:0; background:transparent; color:var(--ink); font:20px/1.3 var(--sans)}
+.typebox input::placeholder{color:var(--mist); font-size:15px}
+.typebox input::-webkit-search-cancel-button{display:none}
+.typebox .typex{flex:0 0 auto; width:36px; height:36px; border:0; border-radius:50%; background:transparent; color:var(--mist);
+  font-size:22px; line-height:1; cursor:pointer}
+.typecount{display:none; margin:2px 0 6px; font:13px/1.3 var(--sans); color:var(--mist); text-align:center}
+body.typing .typecount{display:block}
+.typecount a{color:var(--resin); font-weight:600}
+body.compact .typebox{width:auto; flex:1; max-width:calc(100% - 200px); margin:0}
+body.compact .typecount{display:none}
 /* growable dictionary: an explicit "add a word" tile atop browse, and a quiet
      escape hatch under search candidates for a real new word that looked near one */
   .addword{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:460px;
@@ -291,6 +317,9 @@ body.compact .cov-bar{height:3px}
   <main>
     <div class="control">
       <button class="allbtn capd hidden" id="allBtn" type="button" data-cap="كل الكلمات"></button>
+      <button class="typebtn capd" id="typeBtn" type="button" data-cap="اكتب" data-cap-key="find.type.cap" title="Type a word" aria-label="Type a word" aria-pressed="false">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7 14h10"/></svg>
+      </button>
       <a class="addbtn capd" id="addBtn" href="add.html" data-cap="أضِف كلمة" data-cap-key="add.title" title="Add a word" aria-label="Add a word">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </a>
@@ -305,6 +334,12 @@ body.compact .cov-bar{height:3px}
         </button>
       </div>
       <p class="hint" id="hint"><span class="ar solo">تكلّم</span></p>
+      <div class="typebox" id="typeBox" role="search">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input type="search" id="typeIn" dir="auto" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <button class="typex" id="typeX" type="button">×</button>
+      </div>
+      <p class="typecount" id="typeCount" aria-live="polite"></p>
       <!-- how many words have a voice: browse only, at the panel's foot (10-14) -->
       <div class="coverage" id="coverage" aria-live="polite"><span class="cov-label"></span><div class="cov-bar"><div class="cov-fill"></div></div></div>
     </div>
@@ -343,7 +378,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, primeCounts, primeAllSpellings, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1015e";
+import { initCard, entryCard, primeCounts, primeAllSpellings, spellingsFor, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1015e";
 
 
 /* ================================================================= CONFIG */
@@ -483,6 +518,7 @@ function stopStream(){
 
 async function startHold(){
   if(holding) return; holding=true;
+  closeTyping();                       // speaking replaces typing
   cancelSearch();                      // pressing the mic again abandons a search still in flight
   resultsEl.classList.add("hidden");
   let s = await ensureStream();
@@ -812,7 +848,68 @@ function showAll(){
 // The coverage meter sits in the mic panel (static markup) and shows only while
 // the whole list is on screen: body.browsing, set when renderBrowse paints and
 // cleared by anything else that takes over the results (10-14).
-function setBrowsing(on){ document.body.classList.toggle("browsing", !!on); }
+function setBrowsing(on){ document.body.classList.toggle("browsing", !!on); if(!on) closeTyping(); }
+
+/* ---- typed search (10-15) ------------------------------------------------
+   The ⌨ beside the mic opens a box in the hint's place; each keystroke narrows
+   the list on screen. A word matches when what's typed appears in any of its
+   spellings, its Arabic or its English, all folded the same forgiving way
+   (AFDCore.spellingKey: vowel marks, alef forms, ى/ي, ة/ه … don't matter).
+   Nothing leaves the phone: it filters the list already loaded. */
+let typing = false, typed = "", browseItems = null;
+const typeBtn = $("typeBtn"), typeBox = $("typeBox"), typeIn = $("typeIn"), typeCount = $("typeCount");
+function itemKeys(it){
+  if(!it._keys) it._keys = spellingsFor(it.entryId).then(list => {
+    const K = AFDCore.spellingKey, m = it.meta || {};
+    const keys = [K(m.gloss || ""), K(m.glossAr || "")];
+    for(const x of list || []) if(!x.hidden) keys.push(K(x.text));
+    return keys.filter(Boolean);
+  }).catch(() => []);
+  return it._keys;
+}
+async function applyTyped(){
+  if(!browseItems) return;
+  const q = AFDCore.spellingKey(typed), mine = typed;
+  const ask = resultsEl.querySelector(".askwords"), empty = resultsEl.querySelector(".view-empty");
+  if(!q){
+    browseItems.forEach(it => { it.card.el.style.display = ""; });
+    if(ask) ask.style.display = ""; if(empty) empty.style.display = "";
+    typeCount.textContent = "";
+    return;
+  }
+  const keys = await Promise.all(browseItems.map(itemKeys));
+  if(mine !== typed || !typing) return;            // a newer keystroke (or a close) won
+  let n = 0;
+  browseItems.forEach((it, i) => { const hit = keys[i].some(k => k.includes(q)); it.card.el.style.display = hit ? "" : "none"; if(hit) n++; });
+  if(ask) ask.style.display = "none"; if(empty) empty.style.display = "none";
+  typeCount.innerHTML = n ? escapeHtml(AFDCore.tf("find.type.count", displayMode, { n }))
+                          : `<a href="add.html">${escapeHtml(AFDCore.t("find.type.none", displayMode))}</a>`;
+}
+function paintTypeLabels(){
+  const L = AFDCore.t("find.type", displayMode);
+  typeBtn.title = L; typeBtn.setAttribute("aria-label", L);
+  typeIn.placeholder = AFDCore.t("find.type.ph", displayMode); typeIn.setAttribute("aria-label", L);
+  $("typeX").setAttribute("aria-label", AFDCore.t("find.type.close", displayMode));
+  if(window.afdCap) window.afdCap(typeBtn, "find.type.cap");
+}
+function openTyping(){
+  if(typing){ typeIn.focus(); return; }
+  typing = true; document.body.classList.add("typing"); typeBtn.setAttribute("aria-pressed", "true");
+  paintTypeLabels(); typeIn.value = typed; typeIn.focus(); applyTyped();
+}
+function closeTyping(){
+  if(!typing) return;
+  typing = false; typed = ""; typeIn.value = "";
+  document.body.classList.remove("typing"); typeBtn.setAttribute("aria-pressed", "false");
+  applyTyped();
+}
+typeBtn.addEventListener("click", () => { if(typing) closeTyping(); else openTyping(); });
+$("typeX").addEventListener("click", () => { closeTyping(); typeBtn.focus(); });
+typeIn.addEventListener("input", () => { typed = typeIn.value; applyTyped(); });
+typeIn.addEventListener("keydown", (e) => {
+  if(e.key === "Escape"){ e.stopPropagation(); closeTyping(); typeBtn.focus(); }
+  if(e.key === "Enter"){ e.preventDefault(); typeIn.blur(); }      // close the phone keyboard, keep the results
+});
 function setCoverage(withVoice, total){
   const el=$("coverage"); if(!el) return;
   const pct = total ? Math.round(withVoice/total*100) : 0;
@@ -876,7 +973,7 @@ async function renderBrowse(){
   // Unified list carrying the metadata the views need (creation date; entryId for counts).
   let items = [];
   seedCards.forEach((c,i)=>{ if(c) items.push({ card:c, entryId:seedIds[i], createdAt:0,
-    meta:{ pic:words[i].pic, gloss:words[i].en, glossAr:words[i].ar } }); });
+    meta:{ pic:words[i].pic, gloss:words[i].en, glossAr:words[i].ar, ...(byId.get(seedIds[i])||{}) } }); });
   userCards.forEach((c,i)=>{ if(c){ const x=userDocs[i].data()||{}, t=x.createdAt; items.push({ card:c, entryId:userDocs[i].id, createdAt:(t&&t.toMillis?t.toMillis():0), meta:x }); } });
 
   const allItems = items;
@@ -905,6 +1002,8 @@ async function renderBrowse(){
   if(my!==renderToken) return;
   resultsEl.replaceChildren(frag);
   setBrowsing(true);
+  browseItems = displayItems;
+  if(typing){ if(displayMode==="sound") closeTyping(); else applyTyped(); }
 
   // Fill the meter: known already for the needs view; otherwise count in the
   // background so the plain list isn't held up waiting on it.
@@ -1172,6 +1271,8 @@ const SKIN_ICON = {
 };
 // The caption names the mode you're in (disp.auto / disp.script / disp.sound).
 function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto;
+  document.body.dataset.mode = displayMode;      // CSS: no ⌨ in sound mode
+  if(typeof paintTypeLabels === "function") try{ paintTypeLabels(); }catch(_){}
   { const s=(AFDCore.STRINGS||{})["disp."+displayMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+displayMode); b.setAttribute("data-cap", s.ar); } } }
 $("skin").addEventListener("click", ()=>{
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
@@ -1299,7 +1400,7 @@ updateAccountUi();
    still in flight, or a hold that hid the list and found nothing — each used to
    leave Home doing nothing but scroll. */
 function goHome(){
-  cancelSearch();
+  cancelSearch(); closeTyping();
   const atHome = mastView==="dictionary" && currentView==="all" && !deepEntry && !lastResults
                  && !resultsEl.classList.contains("hidden") && !location.hash;
   if(atHome) setIdleHint(); else { currentView = "all"; showAll(); }

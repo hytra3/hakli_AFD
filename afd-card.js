@@ -108,12 +108,12 @@ async function applyBox(thumbEl, mode, recs){
   const asText = t => { thumbEl.textContent = t || (d.letter || "•"); };
   const asWave = async () => paintBox(thumbEl, recs && recs[0] ? await envelopeFor(recs[0]) : null);
   const asIcon = () => { thumbEl.innerHTML = AFDCore.identicon(d.entry || d.script || d.letter); };
-  // Sound tier paints the voice's shape — but a word with NO voice yet has no
-  // shape. Fall back to its picture (the non-reader anchor), never to the
-  // English initial in data-letter, which means nothing to a non-reader.
+  // Sound tier (10-15): the box keeps the word's PICTURE, as in the other tiers.
+  // It used to swap to a voice's shape once the card opened — so the same word
+  // looked different by tier and by open/closed, and a word with no voice of
+  // its own borrowed the shape of a sentence. The picture is the non-reader's
+  // anchor; the voices' shapes stay in their own rows below.
   if(mode==="sound"){
-    const env = recs && recs[0] ? await envelopeFor(recs[0]) : null;
-    if(env && env.length) return paintBox(thumbEl, env);
     if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
     return d.pic ? asText(d.pic) : asIcon();
   }
@@ -300,7 +300,7 @@ async function listPlayable(entryId){
 
 function playVoiceInto(rec, thumbEl, playBtn, setUrl){
   setUrl(rec.url);
-  if(thumbEl && thumbEl.querySelector("svg")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
+  if(thumbEl && thumbEl.querySelector(".thumb-wave")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
   playInto(playBtn, rec.url);
 }
 
@@ -1338,4 +1338,4 @@ async function entryCard(res, lead){
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { primeCounts, primeAllSpellings, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { primeCounts, primeAllSpellings, spellingsFor, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
