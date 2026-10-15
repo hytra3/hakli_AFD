@@ -40,6 +40,7 @@ const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
 const { getAuth } = await import("firebase-admin/auth");
 
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+await (await import("./lib/preflight.mjs")).preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const db = getFirestore();
 const auth = getAuth();
 const col = db.collection("afd_admins");

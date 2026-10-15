@@ -51,6 +51,7 @@ const { getFirestore } = await import("firebase-admin/firestore");
 const { getAuth }      = await import("firebase-admin/auth");
 
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+await (await import("./lib/preflight.mjs")).preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const db = getFirestore();
 
 // A Firestore Timestamp, an ISO string (recordedAt is written by the phone) or nothing.

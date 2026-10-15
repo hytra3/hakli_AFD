@@ -44,6 +44,7 @@ const { getFirestore } = await import("firebase-admin/firestore");
 const { getStorage }   = await import("firebase-admin/storage");
 
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID, storageBucket: BUCKET });
+await (await import("./lib/preflight.mjs")).preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const db = getFirestore();
 const bucket = getStorage().bucket();
 
