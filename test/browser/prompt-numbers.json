@@ -452,6 +452,8 @@
   "A9.37": "screen:voice.share",
   "A9.38": "screen:voice.private",
   "A9.39": "screen:voice.share.label",
+  "A9.40": "screen:grant.archive.hint",
+  "A9.41": "screen:grant.needed",
   "A10.1": "screen:welcome.hint.none",
   "A10.2": "screen:welcome.hint.some",
   "A10.3": "screen:welcome.listen",
