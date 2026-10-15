@@ -1,6 +1,6 @@
 // The community backup is encrypted (age), an empty archive isn't written, and
 // the scripts say quickly and clearly when Google can't be reached.
-import { describe, it } from "node:test";
+import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, existsSync, writeFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -95,6 +95,17 @@ os.waitpid(pid, 0)
 });
 
 describe("reaching Google", () => {
+  // CI runs every test file inside the emulators (firebase emulators:exec), which
+  // sets FIRESTORE_EMULATOR_HOST — and checkGoogle rightly skips itself then. So
+  // these tests clear it while they run, or they never see the errors they test.
+  let savedEmu;
+  before(() => { savedEmu = process.env.FIRESTORE_EMULATOR_HOST; delete process.env.FIRESTORE_EMULATOR_HOST; });
+  after(() => { if(savedEmu !== undefined) process.env.FIRESTORE_EMULATOR_HOST = savedEmu; });
+  it("talking to the emulator: no check at all", async () => {
+    process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
+    try{ await checkGoogle({ probe: () => { throw new Error("should not probe"); }, token: async () => { throw new Error("no"); } }); }
+    finally{ delete process.env.FIRESTORE_EMULATOR_HOST; }
+  });
   const okToken = async () => ({ access_token: "t" });
   it("network down: says so quickly, with the IPv4 fix", async () => {
     const saved = process.env.NODE_OPTIONS; delete process.env.NODE_OPTIONS;
