@@ -85,5 +85,35 @@ await scenario("speaker chip", async ()=>{
   await ctx.close();
 });
 
+await scenario("arrows beside the word counter step through words while recording", async ()=>{
+  const { page, ctx, state } = await newPage(browser, srv.url, { fs:FS, user:USER });
+  await ctx.addInitScript(mode("auto"));
+  await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1500);
+  await toRecorder(page);
+  const at = ()=> page.evaluate(()=> document.getElementById("progress").innerText.match(/WORD (\d+) OF (\d+)/));
+  const nav = ()=> page.evaluate(()=>{ const n=document.getElementById("wordNav");
+    return { shown: getComputedStyle(n).display !== "none", prev: document.getElementById("wordPrev").getAttribute("aria-label"),
+             off: document.getElementById("wordNext").disabled }; });
+  const n0 = await nav();
+  ok("recording mode: ← → beside the counter, labelled", n0.shown && n0.prev === "Previous word" && !n0.off, JSON.stringify(n0));
+  const w1 = await at();
+  await page.click("#wordNext"); await page.waitForTimeout(500);
+  const w2 = await at();
+  ok("→ moves to the next word", w1 && w2 && +w2[1] === +w1[1] + 1, JSON.stringify([w1 && w1[0], w2 && w2[0]]));
+  const skips = await page.evaluate(()=> JSON.stringify(localStorage).includes("skipped"));
+  ok("…without leaving a 'doesn't know this word' mark", !skips);
+  await page.click("#wordPrev"); await page.waitForTimeout(500);
+  ok("← goes back", +(await at())[1] === +w1[1]);
+  await page.evaluate(()=>{ document.getElementById("reviewCard").classList.remove("hidden"); paintWordNav(); });
+  ok("a take waiting for Keep / Record again turns them off", (await nav()).off);
+  await page.evaluate(()=>{ document.getElementById("reviewCard").classList.add("hidden"); paintWordNav(); });
+  await page.click("#progressWrap"); await page.waitForSelector("#setup:not(.hidden)", { timeout:5000 });
+  ok("not on the speaker step", !(await nav()).shown);
+  await page.click("#listenOnlyBtn"); await page.waitForSelector("#recorder:not(.hidden)", { timeout:5000 }); await page.waitForTimeout(500);
+  ok("not in listening mode (it has its own Previous / Next row)", !(await nav()).shown);
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close(); srv.close();
 finish();

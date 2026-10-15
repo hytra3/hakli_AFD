@@ -74,6 +74,14 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
 .rec-topbar .stepdots.is-static{cursor:default}
 #progress{display:inline-block; min-width:0}
 .rec-topbar .stepdots .step-back{color:var(--ink-soft)}
+/* (10-15) step past a word without recording or skipping it: two small round
+   arrows beside the word counter, recording mode only (listening has its own
+   Previous / Next row). Off while a take is being made or waits for review. */
+.wordnav{display:inline-flex; gap:6px; flex:0 0 auto}
+.wordnav.hidden{display:none}
+.wordnav button{width:32px; height:32px; border-radius:50%; border:1.5px solid var(--hairline); background:var(--paper);
+  color:var(--mountain); display:inline-flex; align-items:center; justify-content:center; padding:0; cursor:pointer}
+.wordnav button:disabled{opacity:.35; cursor:default}
 /* the way back to the word you came from (see paintFromChip) */
 .fromchip{display:inline-flex;align-items:center;gap:8px;max-width:100%;margin:0 0 12px;padding:5px 14px 5px 8px;
   border:1.5px solid var(--hairline);border-radius:22px;background:var(--paper);color:var(--mountain);text-decoration:none}
@@ -421,6 +429,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <div class="rec-left">
       <a class="rec-home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
       <p class="stepdots" id="progressWrap" role="button" tabindex="0" title="Back to the speaker step"><span class="step-back" aria-hidden="true">‹ </span><span id="progress">STEP 3 / 3 · WORD 1 OF 40</span></p>
+      <span class="wordnav hidden" id="wordNav">
+        <button type="button" id="wordPrev"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+        <button type="button" id="wordNext"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </span>
     </div>
     <div class="topbtns">
       <a class="dispskin capd" id="findLink" href="index.html" data-cap="ابحث" data-cap-key="hdr.find" title="Look up a word" aria-label="Look up a word">
@@ -1715,6 +1727,7 @@ function paintStepHeader(which){
   wrap.tabIndex = canBack ? 0 : -1;
   if(canBack) wrap.setAttribute("role","button"); else wrap.removeAttribute("role");
   const back=wrap.querySelector(".step-back"); if(back) back.style.display = canBack ? "" : "none";
+  paintWordNav(which);
   if(onRec) return;                                   // renderPrompt → setProgress paints step 3
   const src=document.querySelector("#"+which+" > .stepdots");
   if(!src) return;
@@ -1775,6 +1788,27 @@ $("listenOnlyBtn").onclick=enterListenMode;
 $("listenOnlyBtn2").onclick=enterListenMode;
 
 $("nextWord").onclick=()=>{ idx=(idx+1)%WORDS.length; renderPrompt(); window.scrollTo(0,0); };
+/* The arrows beside the word counter (recording mode): move without recording
+   and without the "doesn't know this word" mark a skip leaves. Not mid-take,
+   and not while a take waits for Keep / Record again (it would be lost). */
+function paintWordNav(which){
+  const nav=$("wordNav"); if(!nav) return;
+  which = which || currentStep();
+  let listening=false, busy=false;
+  try{ listening = !!listenOnly; busy = !!recording; }catch(_){}   // early in page load, before those exist
+  nav.classList.toggle("hidden", which!=="recorder" || listening);
+  const pending = busy || !$("reviewCard").classList.contains("hidden");
+  $("wordPrev").disabled = pending; $("wordNext").disabled = pending;
+  const P=AFDCore.t("nav.prev",dispMode), N=AFDCore.t("nav.next",dispMode);
+  $("wordPrev").title=P; $("wordPrev").setAttribute("aria-label",P);
+  $("wordNext").title=N; $("wordNext").setAttribute("aria-label",N);
+}
+function stepWord(d){
+  if(recording || !$("reviewCard").classList.contains("hidden")) return;
+  idx=(idx+d+WORDS.length)%WORDS.length; renderPrompt(); window.scrollTo(0,0);
+}
+$("wordPrev").onclick=()=>stepWord(-1);
+$("wordNext").onclick=()=>stepWord(1);
 $("prevWord").onclick=()=>{ idx=(idx-1+WORDS.length)%WORDS.length; renderPrompt(); window.scrollTo(0,0); };
 
 /* ================= microphone ================= */
@@ -1924,7 +1958,7 @@ function renderPrompt(){
   $("playGloss").innerHTML  = '▶ '+AFDCore.tHTML("action.hear.word",dispMode);
   $("hearOthers").innerHTML = wordless ? '<span class="bicon" role="img" aria-label="Hear how others said it">🗣️</span>'
                                        : AFDCore.tHTML("action.hear.others",dispMode);
-  $("reviewCard").classList.add("hidden");
+  $("reviewCard").classList.add("hidden"); paintWordNav();
   $("compareCard").classList.add("hidden");
   $("silLabel").textContent=AFDCore.t("status.ready",dispMode);
   liveBars=[]; drawBars([],false);
@@ -2264,7 +2298,7 @@ recBtn.addEventListener("pointercancel",()=>{ if(recording && mode!=="tap") stop
 
 function startRec(){
   if(recording||!stream) return;
-  recording=true; chunks=[]; liveBars=[];
+  recording=true; chunks=[]; liveBars=[]; paintWordNav();
   recStart=Date.now(); mode=null;
   recBtn.classList.add("recording");
   recBtn.innerHTML='<span class="dot"></span>'+(dispMode==="sound"?"":AFDCore.tHTML("record.holding",dispMode))+'<span class="timer">0.0s</span>';
@@ -2289,7 +2323,7 @@ function startRec(){
 
 function stopRec(){
   if(!recording) return;
-  recording=false; mode=null;
+  recording=false; mode=null; paintWordNav();
   notRecordingWaiters.splice(0).forEach(r=>{ try{ r(); }catch(_){} });
   if(timerId){ clearInterval(timerId); timerId=null; }
   recBtn.classList.remove("recording");
@@ -2313,7 +2347,7 @@ async function onRecStop(){
 }
 function showReview(){
   renderQC(lastQC);
-  $("reviewCard").classList.remove("hidden");
+  $("reviewCard").classList.remove("hidden"); paintWordNav();
   try{ $("reviewCard").scrollIntoView({behavior:"smooth", block:"center"}); }catch(_){}
   recBtn.classList.add("hidden");        // nothing to collide with while reviewing
   $("skipBtn").classList.add("hidden");
@@ -2596,7 +2630,7 @@ function row(ok,label,val,msg,forceClass){
 /* ================= keep / redo / skip ================= */
 $("redoBtn").onclick=()=>{
   lastImported=false;
-  $("reviewCard").classList.add("hidden");
+  $("reviewCard").classList.add("hidden"); paintWordNav();
   recBtn.classList.remove("hidden");
   $("skipBtn").classList.remove("hidden");
   $("silLabel").textContent=AFDCore.t("status.ready",dispMode);
@@ -2644,7 +2678,7 @@ $("keepBtn").onclick=async ()=>{
   try{ await idbPut(STORE,rec); await saveSpeaker(); }
   catch(e){ alert(tMsg("save.failed")+" "+e); }
   renderClips();
-  $("reviewCard").classList.add("hidden");
+  $("reviewCard").classList.add("hidden"); paintWordNav();
   await syncOne(rec);                 // upload first so the comparison includes it
   showCompare(WORDS[idx], rec);
 };
