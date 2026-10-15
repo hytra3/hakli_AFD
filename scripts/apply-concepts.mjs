@@ -32,6 +32,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { describe, parseAnswer, planWrites } from "./lib/concepts.mjs";
+import { preflightOrExit } from "./lib/preflight.mjs";
 
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
@@ -91,6 +92,7 @@ if(APPLY){
   const { initializeApp, applicationDefault } = await import("firebase-admin/app");
   const { getFirestore } = await import("firebase-admin/firestore");
   initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+  await preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
   const db = getFirestore();
   const current = {};
   for(const entryId of Object.keys(data.links)){

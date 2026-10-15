@@ -31,6 +31,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
+import { preflightOrExit } from "./lib/preflight.mjs";
 
 const DRY = process.argv.includes("--dry");
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
@@ -96,6 +97,7 @@ function applyToSource(key, newAr){
 const { initializeApp, applicationDefault } = await import("firebase-admin/app");
 const { getFirestore, FieldValue } = await import("firebase-admin/firestore");
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+await preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const db = getFirestore();
 
 // --- tidy: drop the stale `open` field left over from the boolean switch ---

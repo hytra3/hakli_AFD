@@ -37,6 +37,7 @@ const { initializeApp, applicationDefault } = await import("firebase-admin/app")
 const { getAuth } = await import("firebase-admin/auth");
 
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+await (await import("./lib/preflight.mjs")).preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const auth = getAuth();
 console.log(`grant-reader · project=${PROJECT_ID}`);
 

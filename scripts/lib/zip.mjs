@@ -1,7 +1,9 @@
 /*  A small zip writer: STORE method (no compression — the audio is already
  *  compressed, and stored files can be checked and extracted by any tool),
  *  with ZIP64 records when the package grows past 4 GB or 65,535 files.
- *  Writes entry by entry to a file descriptor, so memory holds one file at a time.
+ *  Writes entry by entry to a file (pass a path), or into memory (pass nothing,
+ *  then take .buffer() after close()) — for a zip that goes straight on to be
+ *  encrypted and must never touch the disk unencrypted.
  */
 import { openSync, writeSync, closeSync } from "node:fs";
 import { crc32 } from "node:zlib";
@@ -12,8 +14,9 @@ const u64 = (n) => { const b = Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); r
 const MAX32 = 0xFFFFFFFF;
 
 export class ZipWriter {
-  constructor(path){ this.fd = openSync(path, "w"); this.offset = 0; this.central = []; }
-  #write(buf){ writeSync(this.fd, buf); this.offset += buf.length; }
+  constructor(path){ this.fd = path ? openSync(path, "w") : null; this.chunks = []; this.offset = 0; this.central = []; }
+  #write(buf){ if(this.fd === null) this.chunks.push(buf); else writeSync(this.fd, buf); this.offset += buf.length; }
+  buffer(){ return Buffer.concat(this.chunks); }
   add(name, data, date = new Date()){
     const nameBuf = Buffer.from(name, "utf8");
     const crc = crc32(data), size = data.length, at = this.offset;
@@ -47,6 +50,6 @@ export class ZipWriter {
     }
     this.#write(Buffer.concat([u32(0x06054b50), u16(0), u16(0), u16(Math.min(n, 0xFFFF)), u16(Math.min(n, 0xFFFF)),
                                u32(Math.min(cdSize, MAX32)), u32(Math.min(cdStart, MAX32)), u16(0)]));
-    closeSync(this.fd);
+    if(this.fd !== null) closeSync(this.fd);
   }
 }

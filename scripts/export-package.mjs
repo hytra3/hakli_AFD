@@ -18,15 +18,22 @@
  *  The zip is written OUTSIDE the repo (default ~/afd-exports/), so a publish
  *  can never sweep it into git.
  *
+ *  The community backup is ENCRYPTED (age, with a passphrase: sudo apt install
+ *  age). age asks for the passphrase itself; press Enter on an empty one and it
+ *  makes up a strong one and prints it. Either way, put it in the password
+ *  manager: without it the backup can't be opened. The unencrypted zip never
+ *  touches the disk. A README in the folder says how to open and check it.
+ *  An archive deposit is not encrypted (the archive must open it), and isn't
+ *  written at all when no speaker qualifies.
+ *
  *  Run:
  *    gcloud auth application-default login
- *    node scripts/export-package.mjs                     # community backup
+ *    node scripts/export-package.mjs                     # community backup (encrypted)
  *    node scripts/export-package.mjs --dry               # count only, write nothing
  *    node scripts/export-package.mjs --out ~/backups     # another folder
- *    node scripts/export-package.mjs --profile archive --depositor "Marty Heaton"
+ *    node scripts/export-package.mjs --profile archive --depositor "marty heaton"
  *    node scripts/export-package.mjs --profile archive --no-wav   # originals only
- *  Then check it:
- *    cd ~/afd-exports && mkdir t && cd t && unzip -q ../hakli_community_*.afd.zip && sha256sum -c checksums.sha256
+ *  Then check it: see ~/afd-exports/README.txt ("Open and check a backup").
  *  Env:
  *    AFD_PROJECT_ID (default afd-dev) · AFD_BUCKET (default afd-dev.firebasestorage.app)
  */
@@ -39,6 +46,9 @@ import { execSync } from "node:child_process";
 import { readInstance } from "./lib/instance.mjs";
 import { buildPackage } from "./lib/export.mjs";
 import { ZipWriter } from "./lib/zip.mjs";
+import { ageAvailable, encryptTo, BACKUPS_README } from "./lib/encrypt.mjs";
+import { preflightOrExit } from "./lib/preflight.mjs";
+import { writeFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
@@ -46,6 +56,7 @@ const DRY = args.includes("--dry");
 const DEPOSITOR = opt("--depositor", "");
 const WANT_WAV = !args.includes("--no-wav");
 const PROFILE = opt("--profile", "community");
+const ENCRYPT = PROFILE === "community" && !args.includes("--no-encrypt");
 const OUT = resolve(opt("--out", join(homedir(), "afd-exports")).replace(/^~/, homedir()));
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 const BUCKET = process.env.AFD_BUCKET || "afd-dev.firebasestorage.app";
@@ -54,6 +65,11 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..");
 if(!DRY && (OUT + "/").startsWith(resolve(repo) + "/")){
   console.error(`Refusing to write inside the repo (${OUT}): a publish would commit it. Use --out somewhere else.`);
+  process.exit(1);
+}
+// The backup holds private details: no age, no backup (rather than a plain one).
+if(!DRY && ENCRYPT && !ageAvailable()){
+  console.error("The community backup is encrypted with age, which isn't installed. Run:\n  sudo apt install age\nthen try again.");
   process.exit(1);
 }
 const instance = readInstance();
@@ -65,6 +81,7 @@ const { initializeApp, applicationDefault } = await import("firebase-admin/app")
 const { getFirestore } = await import("firebase-admin/firestore");
 const { getStorage } = await import("firebase-admin/storage");
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID, storageBucket: BUCKET });
+await preflightOrExit();
 
 const now = new Date();
 console.log(`export · ${PROFILE} · project=${PROJECT_ID}${DRY ? " · dry run" : ""}`);
@@ -97,15 +114,35 @@ if(PROFILE === "archive"){
 console.log(`  ${files.length} files, ${(bytes / 1048576).toFixed(1)} MB`);
 for(const w of warnings) console.log(`  ⚠ ${w}`);
 
+// An archive deposit with nobody in it is not a deposit.
+if(PROFILE === "archive" && !summary.speakers){
+  console.log("\nNo speaker qualifies for the archive yet, so there's nothing to deposit" + (DRY ? "." : " — nothing written."));
+  process.exit(0);
+}
 if(DRY){ console.log("\n(dry run — nothing written)"); process.exit(0); }
 mkdirSync(OUT, { recursive: true });
+try{ writeFileSync(join(OUT, "README.txt"), BACKUPS_README); }catch(_){}
 const name = `${instance.instanceId}_${PROFILE}_${now.toISOString().slice(0, 10)}.afd.zip`;
-const final = join(OUT, name), part = final + ".part";
-const zip = new ZipWriter(part);
-for(const f of files) zip.add(f.name, f.data, now);
-zip.close();
-renameSync(part, final);                       // a half-written zip never carries the final name
+let final = join(OUT, name);
+if(ENCRYPT){
+  final += ".age";
+  const zip = new ZipWriter();                 // in memory: the unencrypted zip never touches the disk
+  for(const f of files) zip.add(f.name, f.data, now);
+  zip.close();
+  console.log("\nEncrypting. age will ask for a passphrase. Press Enter on an empty one and age makes up a");
+  console.log("strong one and prints it. Either way, save it in your password manager BEFORE you go on.\n");
+  try{ await encryptTo(final, zip.buffer()); }
+  catch(e){ console.error(`\n${e.message}`); process.exit(1); }
+}else{
+  const part = final + ".part";
+  const zip = new ZipWriter(part);
+  for(const f of files) zip.add(f.name, f.data, now);
+  zip.close();
+  renameSync(part, final);                     // a half-written zip never carries the final name
+}
 console.log(`\nWrote ${final} (${(statSync(final).size / 1048576).toFixed(1)} MB)`);
 console.log(PROFILE === "archive"
   ? "Speaker details inside are RESTRICTED (dialect research only): set the archive's access conditions to match."
-  : "PRIVATE: withdrawn voices and speakers' private details are inside. Keep it safe; don't publish it.");
+  : ENCRYPT
+    ? "Encrypted. To open and check it: see README.txt in the same folder."
+    : "NOT ENCRYPTED (--no-encrypt): withdrawn voices and speakers' private details are inside, readable by anyone with the file.");

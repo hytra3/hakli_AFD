@@ -29,6 +29,7 @@
 import { createHash } from "node:crypto";
 import { readInstance } from "./lib/instance.mjs";
 import { planEntry, planRecording } from "./lib/manifest-backfill.mjs";
+import { preflightOrExit } from "./lib/preflight.mjs";
 
 const APPLY      = process.argv.includes("--apply");
 const HASH       = !process.argv.includes("--no-hash");
@@ -44,6 +45,7 @@ const { getFirestore } = await import("firebase-admin/firestore");
 const { getStorage }   = await import("firebase-admin/storage");
 
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID, storageBucket: BUCKET });
+await preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const db = getFirestore();
 const bucket = getStorage().bucket();
 

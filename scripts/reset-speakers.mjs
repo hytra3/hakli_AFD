@@ -27,6 +27,7 @@ const { initializeApp, applicationDefault } = await import("firebase-admin/app")
 const { getFirestore } = await import("firebase-admin/firestore");
 
 initializeApp({ credential: applicationDefault(), projectId: PROJECT_ID });
+await (await import("./lib/preflight.mjs")).preflightOrExit();   // fail fast, with what to do, if Google is unreachable or not signed in
 const db = getFirestore();
 
 console.log(`${tag}reset-speakers · project=${PROJECT_ID}`);
