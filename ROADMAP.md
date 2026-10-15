@@ -8,6 +8,22 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Typed search: ⌨ beside the mic (10-15; option A of three, chosen 10-15)** —
+  the round ⌨ "اكتب" mirrors the + on the mic's other side, over the whole list
+  only (the back control owns that spot over a word or results) and never in
+  sound mode. It opens a box in the hint's place; each keystroke narrows the list
+  already loaded (nothing leaves the phone), matching any spelling, the Arabic or
+  the English, all folded by `AFDCore.spellingKey`. "Matches: n" under the box;
+  nothing found links to Add a word. ×, Escape, Home, the mic or leaving the list
+  close it; a display-mode change keeps it (sound mode closes it). The mic stays
+  the way in. Rejected: a filter box atop the list (scrolls away, reads as the
+  primary way in) and a view-menu item (readers wouldn't find it).
+  Strings `find.type*` are A1.25–A1.30. Test: `test/browser/typed.browser.mjs`.
+- **Sound mode keeps the word's picture in the box (10-15)** — an open card used
+  to swap its picture for a voice's waveform (and, with no word voice, borrowed a
+  sentence's), so a word looked different by tier and open/closed. The picture is
+  the constant anchor now; voice shapes stay in their rows.
+
 - **Spellings: the word written in Arabic letters (10-15; decided 10-15, don't
   relitigate)** — asked for by a user. Each word card can carry the Hakli word
   spelled in Arabic letters, beside the Arabic and English translations.
@@ -30,8 +46,7 @@ within each group.
   spellings in ONE collection-group query (`primeAllSpellings`). Each spelling
   stores a **`searchKey`** (`AFDCore.spellingKey`: harakat, tatweel, the alef
   family, ى/ي, ة/ه, ؤ/و, ئ/ي, lone hamza folded; sound-bearing letters like ڛ
-  kept) for **forgiving typed search — not built yet**: where a text box goes on
-  an audio-first home page is its own design call. Speak-to-find stays the spine;
+  kept) for **forgiving typed search** (built: see ⌨ above). Speak-to-find stays the spine;
   spellings never drive sort order. Export: the community backup keeps every
   spelling (writer, hidden ones); an archive deposit carries visible ones without
   writer uids. **Deploy rules first** (`firebase deploy --only firestore:rules`),

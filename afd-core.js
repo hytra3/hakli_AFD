@@ -794,7 +794,16 @@ window.AFDCore = (function(){
     "card.spell.hide":      { en:"Hide",               ar:"أخفِ" },
     "card.spell.show":      { en:"Show again",         ar:"أظهِرها مجددًا" },
     "card.spell.hidden":    { en:"hidden",             ar:"مخفيّة" },
-    "add.show.spell":       { en:"Write it in Hakli",  ar:"اكتبها بالحَكلي" }
+    "add.show.spell":       { en:"Write it in Hakli",  ar:"اكتبها بالحَكلي" },
+    // Typed search (index.html): the ⌨ beside the mic opens a box that narrows
+    // the list as you type, matching spellings, Arabic and English. Added at the
+    // END so the prompts tool's section.item numbers don't shift.
+    "find.type":            { en:"Type a word",        ar:"اكتب كلمة" },
+    "find.type.cap":        { en:"Type",               ar:"اكتب" },
+    "find.type.ph":         { en:"In Hakli, Arabic or English", ar:"بالحَكلي أو العربية أو الإنجليزية" },
+    "find.type.close":      { en:"Close",              ar:"إغلاق" },
+    "find.type.count":      { en:"Matches: {n}",       ar:"المطابقات: {n}" },
+    "find.type.none":       { en:"No word matches — add it?", ar:"لا كلمة مطابقة — هل تضيفها؟" }
   };
   function t(key, mode){
     const s = STRINGS[key];
