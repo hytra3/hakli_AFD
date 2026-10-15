@@ -984,7 +984,23 @@ cannot say *why this matters* or *your voice stays yours* — that is the text's
 - `waits` kept for now (fieldwork connectivity reassurance); one-line drop if trimmed.
 - Copy (Arabic + English) is draft — **not yet reviewed by local speakers.**
 
-## Speaker origin visibility — hidden by default, dialect-scoped, opt-in public (decision; not yet built)
+## Speaker origin visibility — hidden by default, dialect-scoped, opt-in public (built 2026-10-13)
+
+**Built (2026-10-13), as decided below plus these choices:**
+- **Readers** are a Firebase custom claim, `dialectReader` (scripts/grant-reader.mjs, Admin SDK;
+  `--list` / `--revoke`). They READ `/private` — town, tribe, age band and gender, all of it,
+  for variety analysis — and never write. The claim counts for nothing on an anonymous sign-in.
+- **Opt-in public is the TOWN ONLY**, in its own doc `afd_speakers/{id}/public/origin`
+  `{town}`, so tribe, age and gender can never come along. It is readable only while the card
+  is `public` AND `grant.publicOrigin` is true — turning it off, or withdrawing, hides it at
+  once even before the doc is taken down. Only the speaker's steward writes it, only then.
+- **The speaker chooses it**: a fourth permission on the recorder's permission card ("Show my
+  town to everyone who hears my voice"), off by default, saved as `grant.publicOrigin`
+  (consent version `cv_2026_10`). Spoken line `consent.truth.town` added to the consent prompts.
+- The dictionary shows the town under that speaker's voices (afd-card.js `publicTown`),
+  in the display mode's words when it is one of the suggested towns.
+- **Archive deposits** carry reader-level origin, marked restricted access (export `archive` profile).
+
 
 **The point of collecting town/tribe is dialect derivation, not public display** — so
 origin/tribe/pseudonym should reach the people doing linguistic work, not the open

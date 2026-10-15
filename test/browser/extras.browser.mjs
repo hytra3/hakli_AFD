@@ -3,6 +3,8 @@
 // numbers; the not-found page takes its words from the table.
 import fs from "node:fs";
 import { ROOT, serve, launch, newPage, hold, hintText, ok, scenario, finish, shot } from "./lib.mjs";
+// how many spoken prompts the table holds (afd-prompts.js), so adding one isn't a test failure
+const PROMPT_TOTAL = (fs.readFileSync(ROOT + "/afd-prompts.js", "utf8").match(/\{ key:"[a-z]/g) || []).length;
 
 const fast = (p, body)=> p==="/index.html" ? Buffer.from(String(body).replace("[120000, 60000]", "[2500, 1500]")) : undefined;
 const srv = await serve(ROOT, fast);
@@ -178,7 +180,7 @@ await scenario("prompts tool: start here, links, this week", async ()=>{
   await page.goto(srv.url + "/prompts/index.html");
   await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
   const s5 = await page.evaluate(()=>({ done:getComputedStyle(document.getElementById("welcomeDone")).display!=="none", key:document.getElementById("cur-key").textContent, count:document.getElementById("count").textContent }));
-  ok("S5 once the eleven are recorded, the welcome page is announced and the helper moves on to R2", s5.done && /^R2\.1 /.test(s5.key) && /11 of 75 recorded/.test(s5.count), JSON.stringify(s5));
+  ok("S5 once the eleven are recorded, the welcome page is announced and the helper moves on to R2", s5.done && /^R2\.1 /.test(s5.key) && new RegExp("11 of " + PROMPT_TOTAL + " recorded").test(s5.count), JSON.stringify(s5));
   ok("S6 the prompts tool raised no page errors", state.errors.length===0, state.errors.slice(0,2).join(" | "));
   await ctx.close(); });
 

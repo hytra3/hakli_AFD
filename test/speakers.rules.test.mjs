@@ -171,3 +171,86 @@ describe("steward-only /private origin subdoc", () => {
     await assertFails(getDoc(priv(asPublic(), "spk_uSelf0_01")));
   });
 });
+
+// ---- speaker origin visibility (ROADMAP): readers, and the opt-in public town ----
+const pubTown  = (db, sid) => doc(db, "afd_speakers", sid, "public", "origin");
+const asReader = () => testEnv.authenticatedContext("uReader", { dialectReader: true }).firestore();
+const asAnonReader = () => testEnv.authenticatedContext("uAnonR", { dialectReader: true, firebase: { sign_in_provider: "anonymous" } }).firestore();
+const SID = "spk_uSelf0_01";
+async function seedSpeaker({ consent = "public", publicOrigin = false } = {}){
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(card(db, SID), { ...cleanCard, consent, grant: { ...cleanCard.grant, publicOrigin } });
+    await setDoc(priv(db, SID), { origin: { town: "Taqah", tribe: "T" }, ageBand: "60s", gender: "f" });
+  });
+}
+
+describe("qualified dialect readers (tier 2)", () => {
+  it("a reader may read any speaker's private details", async () => {
+    await seedSpeaker();
+    await assertSucceeds(getDoc(priv(asReader(), SID)));
+  });
+  it("…but may not write them", async () => {
+    await seedSpeaker();
+    await assertFails(setDoc(priv(asReader(), SID), { origin: { town: "X", tribe: "" } }));
+  });
+  it("the claim on an anonymous sign-in counts for nothing", async () => {
+    await seedSpeaker();
+    await assertFails(getDoc(priv(asAnonReader(), SID)));
+  });
+  it("an ordinary account still can't read them", async () => {
+    await seedSpeaker();
+    await assertFails(getDoc(priv(asOther(), SID)));
+  });
+});
+
+describe("opt-in public town (tier 3)", () => {
+  it("the steward writes the town when the speaker chose it", async () => {
+    await seedSpeaker({ publicOrigin: true });
+    await assertSucceeds(setDoc(pubTown(asSelf(), SID), { town: "Taqah", updatedAt: 1 }));
+  });
+  it("…and anyone can then read it", async () => {
+    await seedSpeaker({ publicOrigin: true });
+    await testEnv.withSecurityRulesDisabled(async (c) => setDoc(pubTown(c.firestore(), SID), { town: "Taqah" }));
+    await assertSucceeds(getDoc(pubTown(asPublic(), SID)));
+  });
+  it("not chosen: it can't be written", async () => {
+    await seedSpeaker({ publicOrigin: false });
+    await assertFails(setDoc(pubTown(asSelf(), SID), { town: "Taqah" }));
+  });
+  it("only the town — tribe, age or gender are refused", async () => {
+    await seedSpeaker({ publicOrigin: true });
+    await assertFails(setDoc(pubTown(asSelf(), SID), { town: "Taqah", tribe: "T" }));
+    await assertFails(setDoc(pubTown(asSelf(), SID), { town: "Taqah", ageBand: "60s" }));
+    await assertFails(setDoc(pubTown(asSelf(), SID), { town: "" }));
+  });
+  it("only that one doc", async () => {
+    await seedSpeaker({ publicOrigin: true });
+    await assertFails(setDoc(doc(asSelf(), "afd_speakers", SID, "public", "other"), { town: "Taqah" }));
+  });
+  it("only the speaker's steward", async () => {
+    await seedSpeaker({ publicOrigin: true });
+    await assertFails(setDoc(pubTown(asOther(), SID), { town: "Taqah" }));
+    await assertFails(setDoc(pubTown(asReader(), SID), { town: "Taqah" }));
+  });
+  it("turned off later: hidden at once, even before the doc is taken down", async () => {
+    await seedSpeaker({ publicOrigin: false });
+    await testEnv.withSecurityRulesDisabled(async (c) => setDoc(pubTown(c.firestore(), SID), { town: "Taqah" }));
+    await assertFails(getDoc(pubTown(asPublic(), SID)));
+  });
+  it("a withdrawn speaker's town is hidden too", async () => {
+    await seedSpeaker({ publicOrigin: true, consent: "withdrawn" });
+    await testEnv.withSecurityRulesDisabled(async (c) => setDoc(pubTown(c.firestore(), SID), { town: "Taqah" }));
+    await assertFails(getDoc(pubTown(asPublic(), SID)));
+  });
+  it("the steward can take it down", async () => {
+    await seedSpeaker({ publicOrigin: false });
+    await testEnv.withSecurityRulesDisabled(async (c) => setDoc(pubTown(c.firestore(), SID), { town: "Taqah" }));
+    await assertSucceeds(deleteDoc(pubTown(asSelf(), SID)));
+  });
+  it("the private details stay private even when the town is public", async () => {
+    await seedSpeaker({ publicOrigin: true });
+    await assertFails(getDoc(priv(asPublic(), SID)));
+    await assertFails(getDoc(priv(asOther(), SID)));
+  });
+});

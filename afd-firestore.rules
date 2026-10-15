@@ -382,10 +382,44 @@ service cloud.firestore {
 
       allow delete: if false;
 
-      // Steward-only origin (town, tribe, real pseudonym).
+      // Speaker origin visibility (ROADMAP), three tiers:
+      //  1. steward-only by default — the speaker's steward reads and writes
+      //     /private (town, tribe, age band, gender);
+      //  2. qualified dialect readers — accounts given the `dialectReader` custom
+      //     claim (scripts/grant-reader.mjs, Admin SDK) may READ /private, for
+      //     variety analysis; never write;
+      //  3. opt-in public — the TOWN ONLY, in /public/origin, and only while the
+      //     speaker's own grant says publicOrigin and the card is public. Tribe,
+      //     age and gender never leave /private.
+      function isDialectReader() {
+        return notAnon() && request.auth.token.get('dialectReader', false) == true;
+      }
       match /private/{doc} {
-        allow read, write: if notAnon()
+        allow read: if notAnon()
+          && (get(/databases/$(database)/documents/afd_speakers/$(speakerId)).data.stewardUid == request.auth.uid
+              || isDialectReader());
+        allow write: if notAnon()
           && get(/databases/$(database)/documents/afd_speakers/$(speakerId)).data.stewardUid == request.auth.uid;
+      }
+      match /public/{doc} {
+        function card() { return get(/databases/$(database)/documents/afd_speakers/$(speakerId)).data; }
+        function townShown() {
+          return card().get('consent', '') == 'public'
+                 && card().get('grant', {}).get('publicOrigin', false) == true;
+        }
+        allow read: if townShown();
+        // only this one doc, only the town, only by the speaker's steward, only
+        // while the speaker has chosen it
+        allow create, update: if notAnon()
+          && doc == 'origin'
+          && card().stewardUid == request.auth.uid
+          && card().get('grant', {}).get('publicOrigin', false) == true
+          && request.resource.data.keys().hasOnly(['town', 'updatedAt'])
+          && request.resource.data.town is string
+          && request.resource.data.town.size() > 0
+          && request.resource.data.town.size() <= 80;
+        // the steward takes it down (when the speaker turns it off)
+        allow delete: if notAnon() && card().stewardUid == request.auth.uid;
       }
     }
 

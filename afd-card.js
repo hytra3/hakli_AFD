@@ -209,6 +209,33 @@ function stewardProfile(uid){
   })());
   return _stewardCache.get(uid);
 }
+// ---- speaker's town (opt-in public, tier 3 of origin visibility) ----------
+// Shown under a voice only when its speaker chose it (grant.publicOrigin); the
+// rules refuse the read otherwise, which we take as "no town". One read per
+// speaker, cached. The town is stored as entered (English); its label comes
+// from the instance's speaker form when it's one of the suggested towns.
+const _townCache = new Map();      // speakerId -> Promise<string|null>
+function publicTown(speakerId){
+  if(!speakerId || !CFG.db) return Promise.resolve(null);
+  if(!_townCache.has(speakerId)) _townCache.set(speakerId, (async ()=>{
+    try{
+      const sn = await getDoc(doc(CFG.db,"afd_speakers",speakerId,"public","origin"));
+      return sn.exists() ? (String((sn.data()||{}).town||"").trim() || null) : null;
+    }catch(_){ return null; }
+  })());
+  return _townCache.get(speakerId);
+}
+function townLabel(town, mode){
+  const f = ((window.AFDInstance && window.AFDInstance.speaker && window.AFDInstance.speaker.fields) || [])
+              .find(x => x.slot === "origin.town");
+  const o = f && (f.options || []).find(x => x.value === town && x.label);
+  return o ? AFDCore.t(o.label, mode) : town;
+}
+// the caption under a voice's avatar: a known contributor's name, the town, or both
+function avCaption(rec){
+  return [rec.displayName, rec.town ? townLabel(rec.town, CFG.mode()) : ""].filter(Boolean);
+}
+
 function photoAvatar(bg, url){
   return { bg, svg:`<img src="${url}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit">` };
 }
@@ -258,6 +285,7 @@ async function listPlayable(entryId){
   // Overlay contributor identity: a "known" steward's own (non-proxied) voices
   // get their photo, or a name monogram if they set no picture. Cache dedupes
   // repeated owners, so this is at most one read per distinct contributor.
+  await Promise.all(out.map(async rec=>{ rec.town = await publicTown(rec.speakerId); }));
   await Promise.all(out.map(async rec=>{
     if(rec.viaAgent || !rec.uid) return;         // proxied voices stay pseudonymous
     const p = await stewardProfile(rec.uid);
@@ -593,10 +621,11 @@ function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   b.innerHTML=rec.avatar.svg;
   b.addEventListener("click",()=>{ b.setAttribute("aria-pressed","true");
     playVoiceInto(rec, thumbEl, playBtn, setUrl); });
-  if(rec.displayName){                       // "known" contributor — caption the avatar with the name
+  const cap = avCaption(rec);
+  if(cap.length){                            // a "known" contributor's name and/or the speaker's town
     const wrap=document.createElement("span"); wrap.className="av-wrap";
-    const nm=document.createElement("span"); nm.className="av-name"; nm.textContent=rec.displayName;
-    wrap.appendChild(b); wrap.appendChild(nm);
+    wrap.appendChild(b);
+    cap.forEach((t,i)=>{ const nm=document.createElement("span"); nm.className = i===0 && rec.displayName ? "av-name" : "av-name av-town"; nm.textContent=t; wrap.appendChild(nm); });
     return wrap;
   }
   return b;
@@ -612,8 +641,9 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
     ? `<span class="vr-wave"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${boxBars(rec.envelope, 40)}</svg></span>`
     : `<span class="vr-wave"></span>`;
   const avSm=`<span class="av-sm" style="background:${rec.avatar.bg}">${rec.avatar.svg}</span>`;
-  const avBlock = rec.displayName
-    ? `<span class="av-wrap">${avSm}<span class="av-name">${escapeHtml(rec.displayName)}</span></span>`
+  const cap = avCaption(rec);
+  const avBlock = cap.length
+    ? `<span class="av-wrap">${avSm}${cap.map((t,i)=>`<span class="av-name${i===0 && rec.displayName ? "" : " av-town"}">${escapeHtml(t)}</span>`).join("")}</span>`
     : avSm;
   play.innerHTML=avBlock+
     vrWave+

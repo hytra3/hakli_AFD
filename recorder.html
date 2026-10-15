@@ -175,6 +175,7 @@ h1 .sub{font-size:15px}
 .btn .sub{text-align:center}
 .btn:not(.secondary):not(.ghost) .sub{color:rgba(255,255,255,.85)}
 .check .sub{font-size:11px}
+.check .note-sm{display:block;font-size:12px;opacity:.75;margin-top:4px}
 .stepdots .sub{display:inline;margin:0;font-size:10px}
 .rec .sub, #wdRecBtn .sub{color:rgba(255,255,255,.88)}
 /* Long Arabic NOTES read as proper RTL paragraphs (right-aligned); the English
@@ -580,6 +581,17 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <span><span class="bi-ar" dir="rtl" data-str="consent.ml">استخدام هذه التسجيلات لتعليم الحاسوب فهم الحَكلي</span><small class="sub">Use these recordings to teach a computer to understand Hakli</small></span></label>
     <label class="check"><input type="checkbox" id="cPlay" checked>
       <span><span class="bi-ar" dir="rtl" data-str="consent.play">السماح للآخرين بالاستماع إلى هذه التسجيلات في التطبيق</span><small class="sub">Let other people listen to these recordings in the app</small></span></label>
+    <!-- Opt-in public origin (ROADMAP: speaker origin visibility, tier 3): the
+         town only, shown beside this speaker's voices. Off by default; part of
+         the spoken consent like the others. Hidden if this instance's speaker
+         form has no town field. -->
+    <label class="check" id="cOriginRow"><input type="checkbox" id="cOrigin">
+      <span><span class="bi-ar" dir="rtl" data-str="consent.origin">إظهار بلدتي لكلّ من يسمع صوتي</span><small class="sub">Show my town to everyone who hears my voice</small>
+      <span class="bi-ar note-sm" dir="rtl" data-str="consent.origin.note">البلدة فقط — لا القبيلة ولا العمر ولا الجنس. لا تُعرَض إلا إذا اختار المتحدّث ذلك.</span><small class="sub">Only the town — never the tribe, age or gender. Off unless the speaker chooses it.</small></span></label>
+    <script>
+      if(!((window.AFDInstance && window.AFDInstance.speaker && window.AFDInstance.speaker.fields) || []).some(f => f.slot === "origin.town"))
+        document.getElementById("cOriginRow").hidden = true;
+    </script>
     <label class="field"><span><span class="bi-ar" dir="rtl" data-str="consent.attr">كيف يُنسَب التسجيل إلى المتحدِّث؟</span><small class="sub">How should the speaker be credited?</small></span>
       <select id="cAttr">
         <option value="pseudonymous" data-str="form.attr.pseudonymous">بالاسم الرمزي فقط · By a code name only</option>
@@ -1269,7 +1281,7 @@ $("switchSpeaker").onclick=()=>{
   $("spkId").value = nextSpeakerCode($("spkId").value);
   AFDSpeakerForm.clearPerSpeaker();   // the perSpeaker fields (afd-instance.js); town + tribe are kept
   // a new person starts from the defaults: listening on, archive + ML opt-in (10-14)
-  ["cArchive","cML"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
+  ["cArchive","cML","cOrigin"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
   if($("cPlay")) $("cPlay").checked=true;
   switchingSpeaker=true;
   $("toMic").innerHTML=biHTML("speaker.recordfor");
@@ -2741,10 +2753,11 @@ function speakerRecord(){
     viaAgent:!!($("agentMode") && $("agentMode").checked),
     ...AFDSpeakerForm.read(),   // origin {town, tribe}, ageBand, gender
     consent:{
-      version:"cv_2026_08",
+      version:"cv_2026_10",        // cv_2026_10 adds publicOrigin (show the town publicly)
       archivalDeposit:$("cArchive").checked,
       mlTraining:$("cML").checked,
       publicPlayback:$("cPlay").checked,
+      publicOrigin:!!($("cOrigin") && $("cOrigin").checked),
       attribution:$("cAttr").value,
       grantedAt:new Date().toISOString()
     },
@@ -3058,6 +3071,7 @@ const restored = (async function restore(){
         $("cArchive").checked=!!spk.consent.archivalDeposit;
         $("cML").checked=!!spk.consent.mlTraining;
         $("cPlay").checked=!!spk.consent.publicPlayback;
+        if($("cOrigin")) $("cOrigin").checked=!!spk.consent.publicOrigin;
         $("cAttr").value=spk.consent.attribution||"pseudonymous";
       }
     }

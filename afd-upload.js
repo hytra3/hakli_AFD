@@ -14,7 +14,7 @@
 
    Bump the ?v= on every import when this file changes.
    ============================================================================ */
-import { doc, getDoc, setDoc, serverTimestamp }
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, uploadBytes, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -168,6 +168,22 @@ export async function uploadClip({ db, store, uid }, rec, speaker){
         ageBand: speaker.ageBand || "", gender: speaker.gender || "",
         updatedAt: serverTimestamp() },
       { merge: true });
+  }
+
+  // Opt-in public town (ROADMAP: speaker origin visibility, tier 3). The town
+  // alone goes into a separate public doc, never the private subdoc (which also
+  // holds tribe, age and gender). Written after the card, whose grant the rule
+  // checks; taken down when the speaker turns the permission off. A hidden card
+  // keeps its grant untouched (above), so its public town is left as it is —
+  // the read rule already hides it while the card isn't public.
+  if(!cardHidden){
+    const wantTown = speaker.consent.publicOrigin === true && org.town && org.town.trim();
+    const pubRef = doc(db, "afd_speakers", speakerId, "public", "origin");
+    if(wantTown){
+      await setDoc(pubRef, { town: org.town.trim().slice(0, 80), updatedAt: serverTimestamp() });
+    }else if(card && card.grant && card.grant.publicOrigin){
+      try{ await deleteDoc(pubRef); }catch(e){ console.warn("[AFD] public town", e); }
+    }
   }
 
   return true;
