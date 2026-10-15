@@ -720,7 +720,7 @@ function holdRecorder({ btn, label, maxMs, type, onTake, onError }){
     const ms = Date.now()-t0, mime = rec.mimeType || "audio/webm";
     rec = null;
     if(ms < 400){ label.innerHTML = bi("add.say.short"); return; }
-    busy = true; btn.disabled = true; label.innerHTML = bi("status.checking");
+    busy = true; btn.disabled = true; label.innerHTML = C.dotsHTML() + bi("status.checking");
     const blob = new Blob(chunks, { type:mime });
     const q = await analyse(blob, mic ? mic.sampleRate : 0);
     busy = false; btn.disabled = false; idle();
@@ -998,7 +998,7 @@ async function share(){
   const u = realUser();
   if(sharing || !u || !draft.word) return;
   sharing = true; wantShare = false;
-  const btn = $("shareBtn"); btn.disabled = true; btn.innerHTML = bi("add.share.saving");
+  const btn = $("shareBtn"); btn.disabled = true; btn.innerHTML = C.dotsHTML() + bi("add.share.saving");
   $("shareErr").textContent = "";
   let step = "start";
   try{
@@ -1136,6 +1136,13 @@ function authFailed(e){
   if(k === "auth.err.badpass" || k === "auth.err.exists" || k === "auth.err.weak")
     $("shareErr").textContent = C.t(k, MODE);
 }
+/* A sign-in step on its way (10-15): dots on the button pressed, which stays
+   disabled until the answer comes back. */
+async function withDots(btn, fn){
+  const d = document.createElement("span"); d.innerHTML = C.dotsHTML(); const dots = d.firstChild;
+  btn.disabled = true; btn.appendChild(dots);
+  try{ return await fn(); }finally{ dots.remove(); btn.disabled = false; }
+}
 $("googleBtn").onclick = async ()=>{
   $("shareErr").textContent = ""; wantShare = true;
   try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
@@ -1143,12 +1150,12 @@ $("googleBtn").onclick = async ()=>{
 };
 $("emailBtn").onclick = async ()=>{
   $("shareErr").textContent = ""; wantShare = true;
-  try{ await signInWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value); }
+  try{ await withDots($("emailBtn"), ()=> signInWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); }
   catch(e){ wantShare = false; authFailed(e); }
 };
 $("signupBtn").onclick = async ()=>{
   $("shareErr").textContent = ""; wantShare = true;
-  try{ await createUserWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value); }
+  try{ await withDots($("signupBtn"), ()=> createUserWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); }
   catch(e){ wantShare = false; authFailed(e); }
 };
 $("notYou").onclick = ()=> signOut(auth);
@@ -1176,7 +1183,8 @@ $("phoneBtn").onclick = async ()=>{
   $("shareErr").textContent = "";
   const n = phoneNumber();
   if(!/^\+\d{8,15}$/.test(n)){ $("shareErr").innerHTML = bi("add.auth.phone.bad"); return; }
-  $("phoneBtn").disabled = true;
+  const pd = document.createElement("span"); pd.innerHTML = C.dotsHTML(); const phoneDots = pd.firstChild;
+  $("phoneBtn").disabled = true; $("phoneBtn").appendChild(phoneDots);
   try{
     if(!recaptcha) recaptcha = new RecaptchaVerifier(auth, "recaptcha", { size:"invisible" });
     phoneConfirm = await signInWithPhoneNumber(auth, n, recaptcha);
@@ -1185,12 +1193,12 @@ $("phoneBtn").onclick = async ()=>{
   }catch(e){
     phoneFailed(e);
     try{ recaptcha && recaptcha.clear(); }catch(_){} recaptcha = null;     // a fresh one next time
-  }finally{ $("phoneBtn").disabled = false; }
+  }finally{ phoneDots.remove(); $("phoneBtn").disabled = false; }
 };
 $("codeBtn").onclick = async ()=>{
   if(!phoneConfirm) return;
   $("shareErr").textContent = ""; wantShare = true;
-  try{ await phoneConfirm.confirm($("authCode").value.trim()); }
+  try{ await withDots($("codeBtn"), ()=> phoneConfirm.confirm($("authCode").value.trim())); }
   catch(e){ wantShare = false; phoneFailed(e); }
 };
 $("authCode").addEventListener("keydown", e=>{ if(e.key === "Enter") $("codeBtn").click(); });
@@ -1203,7 +1211,7 @@ $("linkBtn").onclick = async ()=>{
   const email = $("authEmail").value.trim();
   if(!email){ $("authEmail").focus(); return; }
   try{
-    await sendSignInLinkToEmail(auth, email, { url: location.origin + location.pathname, handleCodeInApp: true });
+    await withDots($("linkBtn"), ()=> sendSignInLinkToEmail(auth, email, { url: location.origin + location.pathname, handleCodeInApp: true }));
     try{ localStorage.setItem("afd.linkEmail", email); }catch(_){}
     $("linkSent").classList.remove("hidden");
   }catch(e){ authFailed(e); }

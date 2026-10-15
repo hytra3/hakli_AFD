@@ -330,7 +330,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   /* word changed: dim the old card at once. The new card brings its own fade-in
      (afd-card.css "rise", which starts at opacity:0) — don't override it here,
      or the card stays invisible. */
-  #entryCardHost.swapping{ opacity:.3; }
+  #entryCardHost{ position:relative; }
+  #entryCardHost.swapping > .card{ opacity:.3; transition:opacity .15s ease; }
+  /* the word card on its way (10-15): resin dots in the empty box on first
+     load, and over the faded old card while the next word's loads */
+  #entryCardHost .host-wait{ min-height:320px; display:flex; align-items:center; justify-content:center;
+    border-radius:22px; background:rgba(255,255,255,.45); }
+  #entryCardHost .host-wait.over{ position:absolute; inset:0; min-height:0; background:transparent; z-index:2; pointer-events:none; }
   /* Hold the card's place while it loads (it can take a few seconds on a slow
      connection), so the instruction and record button don't jump down under
      the speaker's thumb when it arrives. */
@@ -1273,7 +1279,7 @@ function squareJpeg(file, size){
     const vis = knownSelected() ? "known" : "obscure";
     const name = (($("displayName") && $("displayName").value) || "").trim();
     if(vis==="known" && !name){ if($("profileNote")) $("profileNote").textContent=tBi("profile.err.name"); return; }
-    save.disabled=true; if($("profileNote")) $("profileNote").textContent=tBi("profile.saving");
+    save.disabled=true; if($("profileNote")) $("profileNote").innerHTML=AFDCore.dotsHTML()+AFDCore.escHtml(tBi("profile.saving"));
     try{
       const blob = (vis==="known" && f && f._blob) ? f._blob : null;
       await window.AFD.saveProfile(vis, name, blob);
@@ -1401,7 +1407,7 @@ async function wdApply(mode){
   wd.busy=true;
   const spk=wd.spk, uid=wd.uid, erasing=(mode==="deleted");
   ["wdConfirmBtn","wdAgainBtn","wdCancelBtn","wdEraseBtn"].forEach(id=>{ $(id).disabled=true; });
-  $("wdStatus").textContent=AFDCore.t("withdraw.proof.saving",dispMode);
+  $("wdStatus").innerHTML=AFDCore.dotsHTML()+AFDCore.escHtml(AFDCore.t("withdraw.proof.saving",dispMode));
   try{
     const n=await window.AFD.withdrawWithProof(uid, spk, wd.blob, mode);
     closeWithdrawProof();
@@ -1530,7 +1536,7 @@ async function grApply(){
   if(gr.busy || !gr.blob) return;
   gr.busy=true; const spk=gr.spk, uid=gr.uid;
   ["grantConfirmBtn","grantAgainBtn","grantCancelBtn"].forEach(id=>{ $(id).disabled=true; });
-  $("grantStatus").textContent=AFDCore.t("grant.proof.saving",dispMode);
+  $("grantStatus").innerHTML=AFDCore.dotsHTML()+AFDCore.escHtml(AFDCore.t("grant.proof.saving",dispMode));
   try{
     await window.AFD.grantWithProof(uid, spk, gr.blob);
     grantProofFor.add(spk);
@@ -1892,10 +1898,17 @@ $("toRecord").onclick=()=>{ show("recorder"); renderPrompt(); sizeCanvas(); };
 function renderPrompt(){
   const w=WORDS[idx];
   const host=document.getElementById("entryCardHost"), eid=entryIdFor(w.id);
-  if(host && host.dataset.entry!==eid){ host.dataset.entry=eid; if(host.firstChild) host.classList.add("swapping"); }
+  if(host && host.dataset.entry!==eid){
+    host.dataset.entry=eid;
+    host.querySelectorAll(".host-wait").forEach(n=>n.remove());
+    const wait=document.createElement("div"); wait.innerHTML=AFDCore.dotsHTML(true);
+    if(host.querySelector(".card")){ host.classList.add("swapping"); wait.className="host-wait over"; host.appendChild(wait); }
+    else { wait.className="host-wait"; host.replaceChildren(wait); }
+  }
+  const settle=()=>{ if(host && host.dataset.entry===eid){ host.classList.remove("swapping"); host.querySelectorAll(".host-wait").forEach(n=>n.remove()); } };
   if(window.AFD && window.AFD.renderCard)
-    Promise.resolve(window.AFD.renderCard(eid, host)).finally(()=>{ if(host && host.dataset.entry===eid) host.classList.remove("swapping"); });
-  else if(host) host.classList.remove("swapping");
+    Promise.resolve(window.AFD.renderCard(eid, host)).finally(settle);
+  else settle();
   if(w.image){ $("picto").innerHTML='<img src="'+String(w.image).replace(/"/g,"&quot;")+'" alt="" style="width:120px;height:120px;object-fit:cover;border-radius:22px">'; }
   else if(w.pic){ $("picto").textContent=w.pic; } else { $("picto").innerHTML=AFDCore.identicon(entryIdFor(w.id)); }
   // Display tier: auto = English + Arabic · script = Arabic only · sound = neither
@@ -2735,7 +2748,7 @@ async function syncPending(){
   let ok=0;
   try{
     for(let i=0;i<pend.length;i++){
-      btn.textContent=tBi("sync.progress",{i:(i+1),n:pend.length});
+      btn.innerHTML=AFDCore.dotsHTML()+AFDCore.escHtml(tBi("sync.progress",{i:(i+1),n:pend.length}));
       if(await syncOne(pend[i])) ok++;
     }
   }finally{ btn.textContent=label; btn.disabled=false; syncing=false; }

@@ -8,6 +8,19 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Resin dots on every wait (10-15)** — `AFDCore.dotsHTML()` (inline) /
+  `dotsHTML(true)` (centred block), one look on every page, so a wait is visible
+  to someone who can't read "Saving…". Now on: a spoken search (matcher, then
+  until the first card is drawn — the lead card shows as soon as it's built);
+  opening a word by link; the recorder's word card (first load, and over the
+  faded old card on Next word); consent / withdrawal proof saves, profile save,
+  upload progress; add.html "checking" after a take, "Sharing…", and every
+  sign-in button (phone, code, email, sign-up, email link); the steward list and
+  its voices; the prompts tool while it signs in and loads; the admin queue.
+  Left as is: quick single writes on a card (tags, spelling, consent) and the
+  welcome page (text works first, audio arrives). Tests: search scenario L,
+  `test/browser/waits.browser.mjs`.
+
 - **Typed search: ⌨ beside the mic (10-15; option A of three, chosen 10-15)** —
   the round ⌨ "اكتب" mirrors the + on the mic's other side, over the whole list
   only (the back control owns that spot over a word or results) and never in

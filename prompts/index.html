@@ -128,6 +128,7 @@
     <a class="donebanner hidden" id="welcomeDone" href="../welcome.html" target="_blank" rel="noopener">✓ صفحة الترحيب تتكلّم الحَكلي الآن — استمع ↗<br><small>The welcome page speaks Hakli now — hear it</small></a>
   </header>
 
+  <div id="appWait"></div>
   <div id="app" class="hidden">
     <div class="tabnote" id="tabnote"></div>
     <div class="card">
@@ -347,6 +348,9 @@ function classifySignInError(e){
 }
 
 async function start(){
+  // the list and the card are on their way (sign-in, then three reads): dots
+  // until they're drawn (10-15)
+  try{ $("appWait").innerHTML = AFDCore.dotsHTML(true); }catch(_){}
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -361,7 +365,7 @@ async function start(){
     await loadConfig(db);
     await loadPending();
     if(!applyHash()) state.i = firstOf(state.tab);
-    $("app").classList.remove("hidden");
+    $("app").classList.remove("hidden"); $("appWait").innerHTML = "";
     render();
     syncPending();
   });
@@ -370,7 +374,7 @@ async function start(){
   }catch(e){
     const info = classifySignInError(e);
     $("status").textContent = info.status;
-    $("setup").classList.remove("hidden");
+    $("setup").classList.remove("hidden"); $("appWait").innerHTML = "";
     $("setup").innerHTML = info.html;
   }
   window.addEventListener("hashchange", ()=>{ if(applyHash()){ render(); window.scrollTo({top:0}); } });
