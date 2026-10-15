@@ -775,7 +775,11 @@ window.AFDCore = (function(){
 
     // speaker origin visibility (recorder permission card; dictionary voices)
     "consent.origin":       { en:"Show my town to everyone who hears my voice", ar:"إظهار بلدتي لكلّ من يسمع صوتي" },
-    "consent.origin.note":  { en:"Only the town — never the tribe, age or gender. Off unless the speaker chooses it.", ar:"البلدة فقط — لا القبيلة ولا العمر ولا الجنس. لا تُعرَض إلا إذا اختار المتحدّث ذلك." }
+    "consent.origin.note":  { en:"Only the town — never the tribe, age or gender. Off unless the speaker chooses it.", ar:"البلدة فقط — لا القبيلة ولا العمر ولا الجنس. لا تُعرَض إلا إذا اختار المتحدّث ذلك." },
+
+    // archiving needs the speaker's spoken consent (recorder permission card)
+    "grant.archive.hint":   { en:"Keeping recordings in an archive needs the speaker's spoken consent — record it below before you continue.", ar:"حفظ التسجيلات في أرشيف يحتاج موافقة المتحدّث المنطوقة — سجّلها أدناه قبل المتابعة." },
+    "grant.needed":         { en:"Record the speaker's spoken consent first — or untick the archive box.", ar:"سجّل موافقة المتحدّث المنطوقة أولًا — أو ألغِ تحديد خانة الأرشيف." }
   };
   function t(key, mode){
     const s = STRINGS[key];

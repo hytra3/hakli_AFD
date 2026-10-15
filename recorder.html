@@ -145,6 +145,7 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
 h1{font-family:var(--serif);font-size:27px;font-weight:500;margin:0 0 4px;letter-spacing:-.01em;color:var(--mountain)}
 h2{font-size:15px;font-weight:600;margin:0 0 10px;color:var(--ink)}
 p.note{font-size:13px;color:var(--ink-soft);margin:6px 0 0}
+p.note.warn{color:var(--alert);font-weight:600}
 
 button{font-family:inherit;font-size:16px;cursor:pointer;border-radius:14px;border:1px solid transparent}
 button:focus-visible{outline:3px solid var(--frank);outline-offset:2px}
@@ -952,6 +953,14 @@ window.AFD.grantWithProof = async (uid, speakerId, blob)=>{
   catch(e){ console.warn("[AFD] grantWithProof: speaker merge", e); }
   return audioPath;
 };
+// Has this speaker's spoken consent been recorded? true / false, or null when it
+// can't be checked (offline): archiving needs it, so Continue asks for it first.
+window.AFD.hasGrantProof = async (speakerId)=>{
+  if(!CONFIGURED || !speakerId) return null;
+  try{ const sn=await getDoc(doc(db,"afd_speakers",speakerId));
+       return !!(sn.exists() && ((sn.data()||{}).grant||{}).audioPath); }
+  catch(e){ return null; }
+};
 // Current bulk consent state of a speaker card (public | withdrawn | deleted),
 // for the roster's Withdraw/Restore toggle. Kept fresh by withdrawSpeaker.
 window.AFD.speakerState = async (speakerId)=>{
@@ -1282,6 +1291,7 @@ $("switchSpeaker").onclick=()=>{
   AFDSpeakerForm.clearPerSpeaker();   // the perSpeaker fields (afd-instance.js); town + tribe are kept
   // a new person starts from the defaults: listening on, archive + ML opt-in (10-14)
   ["cArchive","cML","cOrigin"].forEach(id=>{ const c=$(id); if(c) c.checked=false; });
+  { const n=$("grantNote"); if(n){ n.textContent=""; n.classList.remove("warn"); } }
   if($("cPlay")) $("cPlay").checked=true;
   switchingSpeaker=true;
   $("toMic").innerHTML=biHTML("speaker.recordfor");
@@ -1421,6 +1431,27 @@ $("wdEraseBtn").onclick=()=>{
   wdApply("deleted");
 };
 
+/* ---- archiving needs spoken consent -----------------------------------------
+   Ticking "archive" asks for the speaker's spoken consent, and Continue won't
+   go on without it. Proofs recorded this session are remembered here; otherwise
+   the speaker card is checked. */
+const grantProofFor = new Set();
+async function grantProofOK(){
+  const spk=($("spkId").value||"").trim();
+  if(!spk) return false;
+  if(grantProofFor.has(spk)) return true;
+  const has = (window.AFD && window.AFD.hasGrantProof) ? await window.AFD.hasGrantProof(spk) : null;
+  if(has) grantProofFor.add(spk);
+  return has !== false;                 // null = couldn't check (offline): don't block
+}
+function archiveHint(){
+  const n=$("grantNote"); if(!n) return;
+  n.classList.remove("warn");
+  const spk=($("spkId").value||"").trim();
+  n.innerHTML = $("cArchive").checked && !grantProofFor.has(spk) ? biHTML("grant.archive.hint") : "";
+}
+$("cArchive").addEventListener("change", archiveHint);
+
 /* ---- spoken-consent-grant capture overlay --------------------------------
    The mirror of the withdrawal proof, opened from the Permission card at setup
    time. Records the speaker's own Hakli "yes" through the same one capture
@@ -1502,8 +1533,9 @@ async function grApply(){
   $("grantStatus").textContent=AFDCore.t("grant.proof.saving",dispMode);
   try{
     await window.AFD.grantWithProof(uid, spk, gr.blob);
+    grantProofFor.add(spk);
     closeGrantProof();
-    const n=$("grantNote"); if(n) n.textContent=AFDCore.t("grant.proof.saved",dispMode);
+    const n=$("grantNote"); if(n){ n.classList.remove("warn"); n.innerHTML=biHTML("grant.proof.saved"); }
   }catch(e){
     console.warn("[AFD] grantWithProof", e);
     $("grantStatus").textContent=AFDCore.t("grant.proof.err",dispMode);
@@ -1513,8 +1545,10 @@ async function grApply(){
   }
 }
 $("grantConfirmBtn").onclick=()=>grApply();
-$("grantRecordBtn").onclick=()=>{
+$("grantRecordBtn").onclick=async ()=>{
   const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
+  // settle the code first, so the consent is filed under the code the takes will use
+  if(uid && window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
   const spk=($("spkId").value||"").trim();
   if(!uid){ alert(AFDCore.t("grant.signin",dispMode)); return; }
   if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
@@ -1527,6 +1561,14 @@ $("toMic").onclick=async ()=>{
   listenOnly=false;
   // a new code goes into this account's own namespace before any take uses it
   if(window.AFD && window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
+  // Archiving needs the speaker's own spoken consent (a deposit promises it).
+  // Unknown (offline) lets them through; the archive export checks again.
+  if($("cArchive").checked && !(await grantProofOK())){
+    const n=$("grantNote"); if(n){ n.innerHTML=biHTML("grant.needed"); n.classList.add("warn"); }
+    $("grantRecordBtn").scrollIntoView({behavior:"smooth",block:"center"});
+    $("grantRecordBtn").focus();
+    return;
+  }
   if(switchingSpeaker){
     saveSpeaker();                       // the form is the live speaker; persist for reload
     switchingSpeaker=false;
