@@ -343,7 +343,7 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, primeCounts, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1015d";
+import { initCard, entryCard, primeCounts, primeAllSpellings, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1015d";
 
 
 /* ================================================================= CONFIG */
@@ -840,6 +840,7 @@ async function renderBrowse(){
   // round-trips a page load. A word without `voices` yet still counts itself.
   // No answer at all (offline) → each card falls back to its own read, as before.
   let all = null;
+  primeAllSpellings();     // every card's spellings in one read, alongside the entries (10-15)
   try{ all = await getDocs(collection(db,"afd_entries")); }catch(e){ console.warn("[AFD] browse: entries", e); }
   if(my!==renderToken) return;
   const byId = new Map(all ? all.docs.map(d=>[d.id, d.data()||{}]) : []);

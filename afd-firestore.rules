@@ -215,6 +215,47 @@ service cloud.firestore {
                             || request.resource.data.pic == resource.data.get('pic', null)));
       allow delete: if false;
 
+      // ------------------------------- spellings -------------------------------
+      // The word itself, written in letters (for Hakli: Arabic letters, tagged
+      // "qhk-Arab"). Any number per card, one per writer: the doc id IS the
+      // writer's uid, so a second save is an edit, a retry can't double up, and
+      // attribution can't be forged. No spelling is canonical, so there is no
+      // ranking or "approved" flag. A spelling is a label, not a recording:
+      // its writer may change or remove it outright. A steward may hide one
+      // (and show it again) but never edit what someone wrote.
+      // Reads are open (the dictionary reads every card's spellings in one
+      // collection-group query; see the {path=**} rule below). Hidden ones are
+      // filtered in the page: hiding is curation, not privacy.
+      match /spellings/{writer} {
+        function spellOK(d) {
+          return d.text is string && d.text.size() > 0 && d.text.size() <= 60
+                 && d.searchKey is string && d.searchKey.size() <= 60
+                 && langOK(d.lang);
+        }
+        function spellChanged(keys) {
+          return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+        }
+        allow read: if true;
+        allow create: if notAnon()
+                      && writer == request.auth.uid
+                      && request.resource.data.keys().hasOnly(['text','searchKey','lang','by','at'])
+                      && request.resource.data.by == request.auth.uid
+                      && request.resource.data.at == request.time
+                      && spellOK(request.resource.data)
+                      && exists(/databases/$(database)/documents/afd_entries/$(entryId));
+        allow update: if (notAnon()
+                          && writer == request.auth.uid
+                          && spellChanged(['text','searchKey','lang','at'])
+                          && request.resource.data.at == request.time
+                          && spellOK(request.resource.data))
+                      || (isSteward()
+                          && spellChanged(['hiddenAt'])
+                          && (!('hiddenAt' in request.resource.data)
+                              || (!('hiddenAt' in resource.data)
+                                  && request.resource.data.hiddenAt == request.time)));
+        allow delete: if notAnon() && writer == request.auth.uid;
+      }
+
       // -------------------------- contributed recordings --------------------------
       match /recordings/{recordingId} {
 
@@ -519,6 +560,13 @@ service cloud.firestore {
     match /afd_admins/{uid} {
       allow get: if signedIn() && request.auth.uid == uid;
       allow list, write: if false;
+    }
+
+    // Every card's spellings in one query (the dictionary list). Collection-
+    // group reads match this rule, not the nested one, so it has to be here.
+    // Read-only: writes go through afd_entries/{id}/spellings/{writer} above.
+    match /{path=**}/spellings/{writer} {
+      allow read: if true;
     }
 
     match /{document=**} {

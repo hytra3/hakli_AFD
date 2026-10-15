@@ -134,6 +134,10 @@ h2 .sub{font-size:14px}
 .tile .tick{position:absolute; top:8px; inset-inline-end:8px; width:24px; height:24px; border-radius:50%;
   background:var(--mountain); color:#fff; font-size:14px; display:none; align-items:center; justify-content:center}
 .tile.filled .tick{display:flex}
+/* the fifth tile, the word written in letters, runs the full width (10-15) */
+.tile.wide{grid-column:1/-1; min-height:84px; flex-direction:row; gap:12px}
+.tile.wide .ic{font-size:30px}
+#spellIn{font-size:24px}
 .panel{display:flex; flex-direction:column; gap:10px}
 .emojis{display:grid; grid-template-columns:repeat(auto-fill, minmax(48px, 1fr)); gap:6px}
 .emojis button{height:48px; border-radius:12px; border:0; background:#F3F7F5; font-size:28px; cursor:pointer}
@@ -210,6 +214,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <button class="tile" id="tileEmoji" type="button"><span class="tick">✓</span><span class="ic">😀</span><span data-k="add.show.emoji"></span></button>
       <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></button>
       <button class="tile" id="tileWrite" type="button"><span class="tick">✓</span><span class="ic">✍️</span><span data-k="add.show.write"></span></button>
+      <button class="tile wide" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
     </div>
     <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
 
@@ -246,6 +251,12 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 
     <div class="card panel" id="panelWrite" hidden>
       <input type="text" class="ar" id="glossArIn" dir="rtl" maxlength="80" placeholder="…" autocomplete="off">
+    </div>
+
+    <!-- the word itself in letters: one person's spelling, never "the" spelling -->
+    <div class="card panel" id="panelSpell" hidden>
+      <p class="note" data-k="card.spell.hint"></p>
+      <input type="text" id="spellIn" maxlength="60" placeholder="…" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="row">
@@ -450,10 +461,10 @@ async function idbDo(mode, fn){
 function freshDraft(){
   return {
     key:"current", entryId:C.mintEntryId(), createdAt:Date.now(),
-    word:null, meaning:null, pic:"", photo:null, glossAr:"",
+    word:null, meaning:null, pic:"", photo:null, glossAr:"", spelling:"",
     consent:{ play:true, archive:false, ml:false, touched:false },   // listening in the app is on by default (10-14); archive + ML stay opt-in
     up:{ uid:null, speakerId:null, photo:false, photoPath:"", entry:false,
-         wordId:null, word:false, meaningId:null, meaning:false }
+         wordId:null, word:false, meaningId:null, meaning:false, spelling:false }
   };
 }
 let draft = freshDraft();
@@ -797,10 +808,19 @@ function togglePanel(name){
   openPanel = openPanel===name ? null : name;
   paintShow();
   if(openPanel==="write") setTimeout(()=>$("glossArIn").focus(), 50);
+  if(openPanel==="spell") setTimeout(()=>$("spellIn").focus(), 50);
 }
 $("tileEmoji").onclick   = ()=>{ sayLabel("add.show.picture"); togglePanel("emoji"); };
 $("tileMeaning").onclick = ()=>{ sayLabel("add.show.meaning"); togglePanel("meaning"); };
 $("tileWrite").onclick   = ()=> togglePanel("write");
+$("tileSpell").onclick   = ()=> togglePanel("spell");
+// Spellings exist only where the instance says its language is written
+// (AFDInstance.spelling); the input takes that script's direction and tag.
+if(window.AFDInstance && window.AFDInstance.spelling){
+  $("tileSpell").hidden = false;
+  $("spellIn").dir = C.spellingDir(); $("spellIn").lang = C.spellingLang();
+}
+$("spellIn").addEventListener("input", async ()=>{ draft.spelling = $("spellIn").value.slice(0,60); draft.up.spelling = false; await saveDraft(); paintShowTiles(); });
 $("tilePhoto").onclick   = ()=>{ sayLabel("add.show.photo"); if(draft.photo){ togglePanel("photo"); } else { $("photoIn").click(); } };
 $("photoRetake").onclick = ()=> $("photoIn").click();
 $("photoRemove").onclick = async ()=>{ draft.photo=null; if(photoUrl){ URL.revokeObjectURL(photoUrl); photoUrl=null; } openPanel=null; await saveDraft(); paintShow(); };
@@ -853,26 +873,29 @@ holdRecorder({
 $("meanPlay").onclick = ()=> play(draft.meaning && draft.meaning.blob);
 $("meanRemove").onclick = async ()=>{ draft.meaning=null; $("meanMsg").classList.add("hidden"); await saveDraft(); paintShow(); };
 
-function anythingShown(){ return !!(draft.photo || draft.pic || draft.meaning || draft.glossAr.trim()); }
+function anythingShown(){ return !!(draft.photo || draft.pic || draft.meaning || draft.glossAr.trim() || (draft.spelling||"").trim()); }
 function paintShowTiles(){
   $("tilePhoto").classList.toggle("filled", !!draft.photo);
   $("tileEmoji").classList.toggle("filled", !!draft.pic);
   $("tileMeaning").classList.toggle("filled", !!draft.meaning);
   $("tileWrite").classList.toggle("filled", !!draft.glossAr.trim());
+  $("tileSpell").classList.toggle("filled", !!(draft.spelling||"").trim());
   $("showNext").innerHTML = bi(anythingShown() ? "add.next" : "add.skip");
 }
 function paintShow(){
   paintFace($("showPic"));
   paintShowTiles();
-  const panels = { photo:"panelPhoto", emoji:"panelEmoji", meaning:"panelMeaning", write:"panelWrite" };
+  const panels = { photo:"panelPhoto", emoji:"panelEmoji", meaning:"panelMeaning", write:"panelWrite", spell:"panelSpell" };
   for(const k in panels) $(panels[k]).hidden = openPanel!==k;
   $("tilePhoto").classList.toggle("open", openPanel==="photo");
   $("tileEmoji").classList.toggle("open", openPanel==="emoji");
   $("tileMeaning").classList.toggle("open", openPanel==="meaning");
   $("tileWrite").classList.toggle("open", openPanel==="write");
+  $("tileSpell").classList.toggle("open", openPanel==="spell");
   document.querySelectorAll("#emojiGrid button").forEach(b=> b.classList.toggle("on", b.textContent===draft.pic));
   $("meanReview").classList.toggle("hidden", !draft.meaning);
   if($("glossArIn").value !== draft.glossAr) $("glossArIn").value = draft.glossAr;
+  if($("spellIn").value !== (draft.spelling||"")) $("spellIn").value = draft.spelling||"";
 }
 $("showBack").onclick = ()=> show("say");
 $("showNext").onclick = ()=> show("share");
@@ -1035,6 +1058,16 @@ async function share(){
         if(!mine) throw e;
       }
       up.entry = true; await saveDraft();
+    }
+    // the word as its maker wrote it: their own spelling on the new card, one
+    // doc per writer (the id is their uid), so a retry just writes it again
+    const spelling = C.spellingText(draft.spelling||"").slice(0,60);
+    if(spelling && window.AFDInstance && window.AFDInstance.spelling && !up.spelling){
+      step = "spelling";
+      await setDoc(doc(db, "afd_entries", draft.entryId, "spellings", uid),
+        { text: spelling, searchKey: C.spellingKey(spelling).slice(0,60), lang: C.spellingLang(),
+          by: uid, at: serverTimestamp() });
+      up.spelling = true; await saveDraft();
     }
     const ctx = { db, store, uid }, spk = speakerSnapshot(up.speakerId);
     const recId = ()=> "rec_"+draft.entryId.replace(/^ent_/,"")+"_"+uid.slice(0,6)+"_"+up.speakerId+"_"+Date.now();

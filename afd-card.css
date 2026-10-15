@@ -216,3 +216,31 @@
   font-size:24px; line-height:1; cursor:pointer}
 .afdcard .ep-e:hover{background:var(--mist-2)}
 .afdcard .ep-e[aria-pressed="true"]{border-color:var(--resin); background:rgba(198,135,63,.12)}
+
+/* spellings (10-15): the word itself, written in letters. In the header it is
+   the headword — first, larger and heavier than any translation, so it never
+   reads as one more of them. Under an open card, every spelling, each
+   attributed, none ranked. */
+.afdcard .gloss .spell{display:block; font-family:var(--sans); font-size:25px; font-weight:700; color:var(--mountain);
+  unicode-bidi:isolate; text-align:start; margin-bottom:3px; line-height:1.25}
+.afdcard .card.lead .gloss .spell{font-size:30px}
+.afdcard .card:not(.lead) .gloss .spell{display:inline-block; font-size:21px; margin:0}
+/* with a spelling on top, a solo Arabic gloss steps down so the two Arabic-script
+   lines can't be taken for each other */
+.afdcard .gloss.has-spell .glossar.solo{font-size:15px; color:var(--mist); margin-top:3px}
+.afdcard .card:not(.lead) .gloss.has-spell .glossar.solo{margin:0}
+.afdcard .slot-spell[hidden]{display:none}
+.afdcard .spell-list{display:flex; flex-direction:column; gap:6px}
+.afdcard .spell-list:empty{display:none}
+.afdcard .spell-row{display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px}
+.afdcard .spell-row.is-hidden .spell-text{opacity:.45; text-decoration:line-through}
+.afdcard .spell-text{font:600 22px/1.3 var(--sans); color:var(--ink); unicode-bidi:isolate}
+.afdcard .spell-by{font:12px/1.2 var(--sans); color:var(--mist)}
+.afdcard .spell-by:empty{display:none}
+.afdcard .spell-flag{font:600 11px/1 var(--sans); color:var(--danger); border:1px solid currentColor; border-radius:999px; padding:3px 7px}
+.afdcard .spell-hide{padding:4px 9px; font-size:12px; margin-inline-start:auto}
+.afdcard .spell-tools{display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin-top:8px}
+.afdcard .spell-tools:empty{display:none}
+.afdcard .spell-edit input{font-size:20px}
+.afdcard .wt-note .sub{display:block; margin-top:2px}   /* a bilingual hint: English on its own line */
+.afdcard .spell-btns{display:flex; gap:8px; flex-wrap:wrap}

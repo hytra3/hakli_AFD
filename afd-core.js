@@ -779,7 +779,22 @@ window.AFDCore = (function(){
 
     // archiving needs the speaker's spoken consent (recorder permission card)
     "grant.archive.hint":   { en:"Keeping recordings in an archive needs the speaker's spoken consent — record it below before you continue.", ar:"حفظ التسجيلات في أرشيف يحتاج موافقة المتحدّث المنطوقة — سجّلها أدناه قبل المتابعة." },
-    "grant.needed":         { en:"Record the speaker's spoken consent first — or untick the archive box.", ar:"سجّل موافقة المتحدّث المنطوقة أولًا — أو ألغِ تحديد خانة الأرشيف." }
+    "grant.needed":         { en:"Record the speaker's spoken consent first — or untick the archive box.", ar:"سجّل موافقة المتحدّث المنطوقة أولًا — أو ألغِ تحديد خانة الأرشيف." },
+    // Spellings: the word itself written in letters, any number per card, each
+    // by whoever wrote it (afd-card.js spellingSection; add.html "show it").
+    // Added at the END so the prompts tool's section.item numbers don't shift.
+    "card.spell.label":     { en:"Written in Hakli",   ar:"مكتوبةً بالحَكلي" },
+    "card.spell.add":       { en:"Write it in Hakli",  ar:"اكتبها بالحَكلي" },
+    "card.spell.edit":      { en:"Change my spelling", ar:"عدّل كتابتي" },
+    "card.spell.hint":      { en:"Write how the word sounds, in Arabic letters, your own way. There's no single right spelling.", ar:"اكتب الكلمة كما تُنطَق، بحروفٍ عربيّة وعلى طريقتك. لا توجد كتابةٌ واحدةٌ صحيحة." },
+    "card.spell.save":      { en:"Save",               ar:"احفظ" },
+    "card.spell.remove":    { en:"Remove my spelling", ar:"احذف كتابتي" },
+    "card.spell.by":        { en:"written by {name}",  ar:"كتبها {name}" },
+    "card.spell.mine":      { en:"your spelling",      ar:"كتابتك" },
+    "card.spell.hide":      { en:"Hide",               ar:"أخفِ" },
+    "card.spell.show":      { en:"Show again",         ar:"أظهِرها مجددًا" },
+    "card.spell.hidden":    { en:"hidden",             ar:"مخفيّة" },
+    "add.show.spell":       { en:"Write it in Hakli",  ar:"اكتبها بالحَكلي" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -925,7 +940,54 @@ window.AFDCore = (function(){
     };
   }
 
+  /* ---- spellings: the word itself, written in letters --------------------
+     A word card can carry any number of spellings of the documented language,
+     each by whoever wrote it, none of them canonical — the same footing as
+     voices. Which script they are written in is the instance's business
+     (AFDInstance.spelling); this code only handles text.
+
+     spellingText(s) — what is stored: Unicode NFC, trimmed, inner whitespace
+       collapsed, invisible joiners and tatweel dropped. The writer's letters
+       and marks are otherwise kept exactly as written.
+     spellingKey(s)  — what search compares: spellingText with the variation
+       writers don't hear as a difference folded away — vowel marks, the alef
+       family (أ إ آ ٱ → ا), ى/ی → ي, ک → ك, ة → ه, ؤ → و, ئ → ي, and a lone hamza
+       ء. Letters that carry a real sound (ڛ, ڽ and the like) are left alone.
+       Stored on each spelling at write time, so a search never recomputes it;
+       change the folding and the stored keys need a backfill.
+     spellingLang()  — the BCP 47 tag stamped on every spelling: the
+       instance's language code plus its spelling script ("qhk-Arab"). */
+  function spellingText(s){
+    return String(s == null ? "" : s).normalize("NFC")
+      .replace(/[​-‍⁠﻿ـ]/g, "")
+      .replace(/\s+/g, " ").trim();
+  }
+  function spellingKey(s){
+    return spellingText(s)
+      .replace(/[ؐ-ًؚ-ٰٟۖ-ۭ]/g, "")
+      .replace(/[آأإٱ]/g, "ا")
+      .replace(/[ىی]/g, "ي")
+      .replace(/ک/g, "ك")
+      .replace(/ة/g, "ه")
+      .replace(/ؤ/g, "و")
+      .replace(/ئ/g, "ي")
+      .replace(/ء/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ").trim();
+  }
+  function spellingLang(){
+    const I = window.AFDInstance || {};
+    const code = (I.language && I.language.code) || "und";
+    const script = I.spelling && I.spelling.script;
+    return script ? code + "-" + script : code;
+  }
+  function spellingDir(){
+    const I = window.AFDInstance || {};
+    return (I.spelling && I.spelling.dir) || "auto";
+  }
+
   return {
+    spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,

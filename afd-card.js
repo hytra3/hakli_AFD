@@ -4,7 +4,7 @@
    SDK-agnostic: the host injects db, storage, live getters for the signed-in
    user and display mode, the recorder URL, and a banner() via initCard().
    AFDCore is read from the global (afd-core.js must load before this module). */
-import { doc, getDoc, updateDoc, collection, query, where, limit, getDocs, serverTimestamp, deleteField }
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, query, where, limit, getDocs, serverTimestamp, deleteField }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -781,6 +781,166 @@ function buildVoices(container, recs, thumbEl, playBtn, setUrl){
   container.appendChild(list);
 }
 
+/* ---- spellings: the word written in letters (10-15) ----------------------
+   afd_entries/{entryId}/spellings/{writerUid}: any number per card, one per
+   writer, each attributed, none canonical (no ranking, no "approved"). The
+   instance says which script (AFDInstance.spelling); with no such block the
+   whole feature stays out of sight. Never shown in sound mode: that tier is
+   for people who don't read.
+   The dictionary list primes every card's spellings with ONE collection-group
+   read (primeAllSpellings); a card shown anywhere else reads its own. */
+const _spellCache = new Map();          // entryId -> Promise<Array<spelling>>
+let _allSpellsP = null, _allSpellsAt = 0;
+function spellingsOn(){ return !!(window.AFDInstance && window.AFDInstance.spelling); }
+function spellRow(sn){
+  const d = sn.data() || {};
+  return { by: d.by || sn.id, text: String(d.text || ""), lang: d.lang || "",
+           at: d.at && d.at.toMillis ? d.at.toMillis() : 0, hidden: !!d.hiddenAt };
+}
+// oldest first: an order, not a ranking — the first writer isn't "right"
+const byWritten = (a, b) => (a.at || Infinity) - (b.at || Infinity);
+function primeAllSpellings(){
+  if(!spellingsOn() || !CFG.db) return Promise.resolve(null);
+  // a list redrawn within a minute (a display-mode change, Home) reuses the read
+  if(!_allSpellsP || Date.now() - _allSpellsAt > 60000){
+    _allSpellsAt = Date.now(); _spellCache.clear();
+    _allSpellsP = getDocs(collectionGroup(CFG.db, "spellings")).then(snap => {
+      const by = new Map();
+      for(const s of snap.docs){
+        const e = s.ref.parent && s.ref.parent.parent; if(!e) continue;
+        if(!by.has(e.id)) by.set(e.id, []);
+        by.get(e.id).push(spellRow(s));
+      }
+      for(const l of by.values()) l.sort(byWritten);
+      return by;
+    }).catch(e => { console.warn("[AFD] spellings", e); return null; });
+  }
+  return _allSpellsP;
+}
+function spellingsFor(entryId){
+  if(!spellingsOn() || !CFG.db) return Promise.resolve([]);
+  if(!_spellCache.has(entryId)) _spellCache.set(entryId, (async () => {
+    if(_allSpellsP){ const all = await _allSpellsP; if(all) return all.get(entryId) || []; }
+    try{
+      const snap = await getDocs(collection(CFG.db, "afd_entries", entryId, "spellings"));
+      return snap.docs.map(spellRow).sort(byWritten);
+    }catch(e){ console.warn("[AFD] spellings", e); return []; }
+  })());
+  return _spellCache.get(entryId);
+}
+// The card header's headword: the spellings people wrote, distinct ones only,
+// two at most then "+n". Empty when there are none (or in sound mode).
+function paintHeadSpelling(gc, list){
+  if(!gc) return;
+  let sp = gc.querySelector(".spell");
+  const shown = [...new Set((list || []).filter(x => !x.hidden).map(x => x.text))];
+  gc.classList.toggle("has-spell", shown.length > 0 && CFG.mode() !== "sound");
+  if(!shown.length || CFG.mode() === "sound"){ if(sp) sp.remove(); return; }
+  if(!sp){
+    sp = document.createElement("span"); sp.className = "spell";
+    sp.setAttribute("dir", AFDCore.spellingDir()); sp.setAttribute("lang", AFDCore.spellingLang());
+  }
+  sp.textContent = shown.slice(0, 2).join(" · ") + (shown.length > 2 ? "  +" + (shown.length - 2) : "");
+  gc.prepend(sp);
+}
+function spellingSection(entryId, gc){
+  const m = CFG.mode();
+  const sec = document.createElement("div");
+  sec.className = "slot slot-spell";
+  if(!spellingsOn() || m === "sound"){ sec.hidden = true; return sec; }
+  const L = (AFDCore.STRINGS || {})["card.spell.label"] || { en:"", ar:"" };
+  sec.innerHTML =
+    `<div class="slot-head"><span class="slot-label">${m==="auto" ? escapeHtml(L.en)+' <span class="ar">'+escapeHtml(L.ar)+'</span>' : '<span class="ar solo">'+escapeHtml(L.ar)+'</span>'}</span>` +
+    `<span class="slot-empty" hidden>${escapeHtml(AFDCore.t("slot.none", m))}</span></div>` +
+    `<div class="spell-list"></div><div class="spell-tools"></div>`;
+  const listEl = sec.querySelector(".spell-list"), toolsEl = sec.querySelector(".spell-tools"),
+        emptyEl = sec.querySelector(".slot-empty");
+  const dir = AFDCore.spellingDir(), lang = AFDCore.spellingLang();
+
+  async function paint(){
+    const list = await spellingsFor(entryId);
+    const u = CFG.user(), me = u && !u.isAnonymous ? u.uid : null;
+    const steward = me ? await amSteward() : false;
+    // others see what isn't hidden; a writer always sees their own; a steward sees all
+    const visible = list.filter(x => !x.hidden || x.by === me || steward);
+    listEl.innerHTML = "";
+    for(const x of visible){
+      const row = document.createElement("div"); row.className = "spell-row" + (x.hidden ? " is-hidden" : "");
+      const w = document.createElement("span"); w.className = "spell-text";
+      w.setAttribute("dir", dir); w.setAttribute("lang", x.lang || lang); w.textContent = x.text;
+      const cap = document.createElement("span"); cap.className = "spell-by";
+      row.appendChild(w); row.appendChild(cap);
+      if(x.by === me) cap.textContent = AFDCore.t("card.spell.mine", m);
+      else stewardProfile(x.by).then(p => { if(p && p.known && p.displayName) cap.textContent = AFDCore.tf("card.spell.by", m, { name: p.displayName }); });
+      if(x.hidden){ const h = document.createElement("span"); h.className = "spell-flag"; h.textContent = AFDCore.t("card.spell.hidden", m); row.appendChild(h); }
+      if(steward){
+        const b = document.createElement("button"); b.type = "button"; b.className = "wt-btn spell-hide";
+        b.textContent = AFDCore.t(x.hidden ? "card.spell.show" : "card.spell.hide", m);
+        b.onclick = async (e) => {
+          e.stopPropagation(); b.disabled = true;
+          try{
+            await updateDoc(doc(CFG.db, "afd_entries", entryId, "spellings", x.by),
+                            { hiddenAt: x.hidden ? deleteField() : serverTimestamp() });
+            x.hidden = !x.hidden; paint(); paintHeadSpelling(gc, list);
+          }catch(err){ console.warn("[AFD] hide spelling", err); CFG.banner(AFDCore.t("card.failed", m)); b.disabled = false; }
+        };
+        row.appendChild(b);
+      }
+      listEl.appendChild(row);
+    }
+    emptyEl.hidden = visible.length > 0 || !me;
+    // nothing written and nobody signed in to write it: no section at all
+    sec.hidden = !visible.length && !me;
+    paintTools(list, me);
+  }
+
+  function paintTools(list, me){
+    toolsEl.innerHTML = "";
+    if(!me) return;
+    const mine = list.find(x => x.by === me);
+    const open = document.createElement("button"); open.type = "button"; open.className = "wt-btn";
+    open.innerHTML = "✍️ " + AFDCore.tHTML(mine ? "card.spell.edit" : "card.spell.add", m);
+    const ed = document.createElement("div"); ed.className = "wt-tags spell-edit"; ed.hidden = true;
+    ed.innerHTML =
+      `<input type="text" maxlength="60" autocomplete="off" spellcheck="false" dir="${escapeHtml(dir)}" lang="${escapeHtml(lang)}">` +
+      `<p class="wt-note">${AFDCore.tHTML("card.spell.hint", m)}</p>` +
+      `<div class="spell-btns"><button type="button" class="wt-btn wt-save">${AFDCore.tHTML("card.spell.save", m)}</button>` +
+      (mine ? `<button type="button" class="wt-btn wt-remove">${AFDCore.tHTML("card.spell.remove", m)}</button>` : "") + `</div>`;
+    const inp = ed.querySelector("input");
+    open.onclick = (e) => { e.stopPropagation(); ed.hidden = !ed.hidden; if(!ed.hidden){ inp.value = mine ? mine.text : ""; inp.focus(); } };
+    ed.querySelector(".wt-save").onclick = async (e) => {
+      e.stopPropagation();
+      const text = AFDCore.spellingText(inp.value).slice(0, 60);
+      if(!text) return;
+      const sv = e.currentTarget; sv.disabled = true;
+      const data = { text, searchKey: AFDCore.spellingKey(text).slice(0, 60), lang: AFDCore.spellingLang() };
+      const ref_ = doc(CFG.db, "afd_entries", entryId, "spellings", me);
+      try{
+        // an edit only touches the words (a steward's "hidden" stays put);
+        // a first spelling creates the doc, attributed to its writer
+        if(mine) await updateDoc(ref_, { ...data, at: serverTimestamp() });
+        else     await setDoc(ref_, { ...data, by: me, at: serverTimestamp() });
+        if(mine) Object.assign(mine, data);
+        else list.push({ by: me, text, lang: data.lang, at: Date.now(), hidden: false });
+        paint(); paintHeadSpelling(gc, list);
+      }catch(err){ console.warn("[AFD] save spelling", err); CFG.banner(AFDCore.t("card.failed", m)); sv.disabled = false; }
+    };
+    const rm = ed.querySelector(".wt-remove");
+    if(rm) rm.onclick = async (e) => {
+      e.stopPropagation(); rm.disabled = true;
+      try{
+        await deleteDoc(doc(CFG.db, "afd_entries", entryId, "spellings", me));
+        const i = list.indexOf(mine); if(i >= 0) list.splice(i, 1);
+        paint(); paintHeadSpelling(gc, list);
+      }catch(err){ console.warn("[AFD] remove spelling", err); CFG.banner(AFDCore.t("card.failed", m)); rm.disabled = false; }
+    };
+    toolsEl.appendChild(open); toolsEl.appendChild(ed);
+  }
+
+  paint();
+  return sec;
+}
+
 function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   const L=(AFDCore.STRINGS||{})[labelKey] || { en:labelKey, ar:labelKey };
   const labelEn=escapeHtml(L.en), labelAr=L.ar;
@@ -1053,6 +1213,10 @@ async function entryCard(res, lead){
   const paintTags=(ts)=>{ tagsEl.innerHTML=(CFG.mode()==="sound"?[]:(ts||[])).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join(""); };
   paintTags(meta.tags);
   if(gc) gc.appendChild(tagsEl);
+  // the word as people wrote it, ahead of the translations (filled in when the
+  // spellings arrive; the list primes them all at once)
+  if(gc && spellingsOn() && CFG.mode()!=="sound")
+    spellingsFor(res.entryId).then(l => paintHeadSpelling(gc, l));
   // Repaint the picture and the text after an in-place edit (word tools), the
   // same way the header was first drawn; tags and voice counts stay put.
   const paintFace=(mt)=>{
@@ -1067,6 +1231,7 @@ async function entryCard(res, lead){
       ? (ar ? [Object.assign(document.createElement("span"), { className:"glossar solo", textContent:ar })] : [])
       : [document.createTextNode(mt.gloss||""), ...(mt.glossAr ? [Object.assign(document.createElement("span"), { className:"glossar", textContent:mt.glossAr })] : [])];
     gc.prepend(...parts);
+    const sp = gc.querySelector(".spell"); if(sp) gc.prepend(sp);   // the spelling stays the headword
   };
   let hc=null;
   if(gc){ hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
@@ -1106,6 +1271,7 @@ async function entryCard(res, lead){
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
     feedback(res.entryId, meta, recs, detail, hc);
     detail.appendChild(slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
+    detail.appendChild(spellingSection(res.entryId, gc));
     detail.appendChild(slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
     detail.appendChild(slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
     // (10-14) No separate "Say it yourself" button any more: the word slot's own
@@ -1172,4 +1338,4 @@ async function entryCard(res, lead){
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { primeCounts, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { primeCounts, primeAllSpellings, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
