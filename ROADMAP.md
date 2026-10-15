@@ -8,6 +8,36 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Spellings: the word written in Arabic letters (10-15; decided 10-15, don't
+  relitigate)** — asked for by a user. Each word card can carry the Hakli word
+  spelled in Arabic letters, beside the Arabic and English translations.
+  Decisions: **per card, not per voice** (a literate helper can spell a word for
+  an elder who doesn't write); **any number per card, each attributed, none
+  canonical** — there is no standard orthography, so no ranking and no
+  "approved" flag, the same footing as voices; **a mutable label**, not a
+  recording (its writer may change or remove it; a steward may hide it, never
+  edit it); **optional** everywhere; **tagged `qhk-Arab`** (instance code +
+  script, from `AFDInstance.spelling`), kept apart from the Arabic gloss (`ar`).
+  Stored at `afd_entries/{id}/spellings/{writerUid}` — one per writer, the doc id
+  is the writer, so attribution can't be forged and a retry can't double up.
+  The card shows the spellings as the **headword** (first, larger, heavier), the
+  translations under them; in script mode a solo Arabic gloss steps down so the
+  two Arabic-script lines can't be confused; never shown in sound mode. An open
+  card lists every spelling (oldest first — an order, not a ranking), with
+  "written by" for known contributors, "Write it in Hakli" / "Change my
+  spelling" for a signed-in person, and Hide / Show again for a steward.
+  add.html has a fifth "show it" tile, **Write it in Hakli**. The list reads all
+  spellings in ONE collection-group query (`primeAllSpellings`). Each spelling
+  stores a **`searchKey`** (`AFDCore.spellingKey`: harakat, tatweel, the alef
+  family, ى/ي, ة/ه, ؤ/و, ئ/ي, lone hamza folded; sound-bearing letters like ڛ
+  kept) for **forgiving typed search — not built yet**: where a text box goes on
+  an audio-first home page is its own design call. Speak-to-find stays the spine;
+  spellings never drive sort order. Export: the community backup keeps every
+  spelling (writer, hidden ones); an archive deposit carries visible ones without
+  writer uids. **Deploy rules first** (`firebase deploy --only firestore:rules`),
+  then publish. Tests: `test/spellings.rules.test.mjs` (emulator),
+  `test/spellings.unit.test.mjs`, `test/browser/spelling.browser.mjs`.
+
 - **The dictionary opens in 2 requests, not 92 (10-15)** — `renderBrowse` reads every
   word card in ONE `getDocs(afd_entries)` and hands each card its doc (`entryCard`
   takes `res.meta`), and each card's 🔊💬📖 counts come from the card's own `voices`

@@ -48,6 +48,15 @@ window.AFDInstance = {
     { code: "en", script: "Latn", dir: "ltr" }
   ],
 
+  // How the language itself is written on word cards, when people write it.
+  // Hakli has no standard orthography; literate speakers write it in Arabic
+  // letters, each their own way. A card holds any number of spellings, each
+  // attributed, none canonical. Every spelling is stamped
+  // `<language.code>-<script>` ("qhk-Arab"), which keeps it apart from the
+  // Arabic gloss ("ar") in records and in the export manifest. Omit this
+  // block for a language nobody writes, and the spelling controls go away.
+  spelling: { script: "Arab", dir: "rtl" },
+
   // The Firebase project this instance's data lives in. One copy for every
   // page (index, add, recorder, welcome, steward, prompts, prompts/admin).
   // Web keys identify a project; they are not secrets — access is governed

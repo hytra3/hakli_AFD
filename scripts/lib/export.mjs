@@ -57,6 +57,21 @@ export function recordingRecord(id, entryId, d){
   return r;
 }
 
+/** Every card's spellings, grouped by entryId, oldest first. Each is a label,
+ *  not a recording: { text, lang ("qhk-Arab"), by (writer uid), at, hiddenAt? }. */
+async function spellingsByEntry(db){
+  const by = new Map();
+  const snap = await db.collectionGroup("spellings").get();
+  for(const s of snap.docs){
+    const e = s.ref.parent && s.ref.parent.parent;
+    if(!e || !e.parent || e.parent.id !== "afd_entries") continue;
+    if(!by.has(e.id)) by.set(e.id, []);
+    by.get(e.id).push({ by: s.id, ...plain(s.data() || {}) });
+  }
+  for(const l of by.values()) l.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+  return by;
+}
+
 const jsonl = (rows) => Buffer.from(rows.map(r => JSON.stringify(r)).join("\n") + (rows.length ? "\n" : ""), "utf8");
 
 /**
@@ -96,9 +111,12 @@ async function buildCommunity({ db, bucket, instance, concepts, profile = "commu
   // ---- word cards ----
   const entries = [];
   const entrySnap = await db.collection("afd_entries").get();
+  const spellings = await spellingsByEntry(db);
   for(const s of entrySnap.docs){
     const d = s.data() || {};
     const e = { entryId: s.id, ...plain(d) };
+    // the full backup keeps every spelling, hidden ones and writers included
+    if(spellings.has(s.id)){ e.spellings = spellings.get(s.id); counts.spellings = (counts.spellings || 0) + e.spellings.length; }
     if(d.image && d.source === "user" && d.createdBy){
       const got = await fetchFile(`afd_pics/${d.createdBy}/${s.id}.jpg`, `images/${s.id}.jpg`);
       if(got){ e.imageFile = got.file; counts.images++; }
@@ -213,7 +231,7 @@ function readme(instance, profile, now, c){
     "Files",
     "  manifest.json      version, profile, counts, any warnings",
     "  instance.json      the language, contact languages, speaker form",
-    "  entries.jsonl      word cards, one per line",
+    "  entries.jsonl      word cards, one per line (spellings: the word as people wrote it, each tagged language-script)",
     "  recordings.jsonl   recordings, one per line (audioFile → audio/)",
     "  speakers.jsonl     speakers with private details and consent grant (audioFile → consent/)",
     "  stewards.jsonl     how each contributor chose to appear (avatars/)",
@@ -315,11 +333,16 @@ async function buildArchive({ db, bucket, instance, concepts, now = new Date(), 
 
   // ---- the word cards those takes are of ----
   const entries = [];
+  const spellings = await spellingsByEntry(db);
   for(const id of [...usedEntries].sort()){
     const snap = await db.collection("afd_entries").doc(id).get();
     if(!snap.exists) continue;
     const d = snap.data() || {};
     const e = strip({ entryId: id, ...plain(d) });
+    // a deposit carries the spellings anyone can see, without who wrote them
+    // (writers are accounts, not deposited speakers)
+    const sp = (spellings.get(id) || []).filter(x => !x.hiddenAt).map(({ text, lang, at }) => ({ text, lang, at }));
+    if(sp.length){ e.spellings = sp; counts.spellings = (counts.spellings || 0) + sp.length; }
     for(const k of ["reviewedAt", "hiddenAt", "removedAt", "seededAt"]) delete e[k];
     if(d.image && d.source === "user" && d.createdBy){
       if(await fetchFile(`afd_pics/${d.createdBy}/${id}.jpg`, `images/${id}.jpg`)){ e.imageFile = `images/${id}.jpg`; counts.images++; }
@@ -396,7 +419,7 @@ function archiveReadme(instance, now, c, access, wav){
     "  olac.xml           catalogue record (Dublin Core / OLAC)",
     "  manifest.json      version, counts, access conditions",
     "  instance.json      the language and contact languages",
-    "  entries.jsonl      the words (glosses, concepts), one per line",
+    "  entries.jsonl      the words (glosses, concepts, spellings), one per line",
     "  recordings.jsonl   the recordings (audioFile → audio/" + (wav ? ", wavFile → wav/" : "") + ")",
     "  speakers.jsonl     speakers by deposit code (S…), their consent, and RESTRICTED details",
     "  concepts.jsonl     concepts defined by this dictionary (others are Concepticon ids)",

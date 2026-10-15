@@ -65,14 +65,17 @@ export function doc(a, ...p){ let pp = mk(a,p); if(pp.length % 2) pp.push("auto"
   Object.defineProperty(self, "parent", { get(){ const cp=pp.slice(0,-1); return { __p:cp, id:cp[cp.length-1],
     get parent(){ return cp.length>1 ? doc({}, ...cp.slice(0,-1)) : null; } }; } });
   return self; }
+export function collectionGroup(a, id){ return { __p:[], __group:String(id), type:"collection" }; }
 export function where(f,op,v){ return { k:"where", f, op, v }; }
 export function limit(n){ return { k:"limit", n }; }
-export function query(c, ...cons){ return { __p:c.__p, cons }; }
+export function query(c, ...cons){ return { __p:c.__p, __group:c.__group, cons }; }
 function snap(ref){ const d = FS[ref.path]; return { id:ref.id, ref, exists:()=>d!==undefined, data:()=>d && JSON.parse(JSON.stringify(d), revive) }; }
 function revive(k, v){ return (v && typeof v==="object" && "__ts" in v) ? { toMillis:()=>v.__ts, toDate:()=>new Date(v.__ts), seconds:Math.floor(v.__ts/1000) } : v; }
 export async function getDoc(ref){ LOG.push("get "+ref.path); if(globalThis.__FS_FAIL){ const e=new Error("unavailable"); e.code="unavailable"; throw e; } return snap(ref); }
 export async function getDocs(q){ const pre = q.__p.join("/") + "/"; LOG.push("list "+pre); if(globalThis.__FS_DELAY) await new Promise(r=>setTimeout(r, globalThis.__FS_DELAY)); if(globalThis.__FS_FAIL){ const e=new Error("unavailable"); e.code="unavailable"; throw e; }
-  let docs = Object.keys(FS).filter(k=>k.startsWith(pre) && !k.slice(pre.length).includes("/")).map(k=>snap(doc({}, ...k.split("/"))));
+  let docs = (q.__group
+    ? Object.keys(FS).filter(k=>{ const s=k.split("/"); return s.length%2===0 && s[s.length-2]===q.__group; })
+    : Object.keys(FS).filter(k=>k.startsWith(pre) && !k.slice(pre.length).includes("/"))).map(k=>snap(doc({}, ...k.split("/"))));
   let lim = Infinity;
   for(const c of (q.cons||[])){
     if(c.k==="limit") lim = c.n;
