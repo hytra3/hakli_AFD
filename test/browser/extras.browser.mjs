@@ -171,7 +171,18 @@ await scenario("prompts tool: start here, links, this week", async ()=>{
   ok("S3 a link to #A5 opens the Arabic tab at section A5's first line", /^A5\.1 /.test(s3.key) && s3.tab==="true" && s3.rec, JSON.stringify(s3));
   await page.click("#tabRecord");
   const s4 = await page.evaluate(()=>({ key:document.getElementById("cur-key").textContent, hash:location.hash }));
-  ok("S4 switching tabs keeps you in that tab and says so in the address", /^R1\./.test(s4.key) && s4.hash==="#record", JSON.stringify(s4));
+  ok("S4 switching tabs keeps you in that tab and the address names the line on the card", /^R1\./.test(s4.key) && s4.hash==="#"+s4.key.split(" ")[0], JSON.stringify(s4));
+  // a link to one line opens that line (10-15)
+  await page.goto(srv.url + "/prompts/index.html#A2.41"); await page.reload();
+  await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
+  const s8 = await page.evaluate(()=>({ key:document.getElementById("cur-key").textContent, hash:location.hash,
+    tab:document.getElementById("tabReview").getAttribute("aria-selected") }));
+  ok("S8 a link to #A2.41 opens that line, on the Arabic tab", /^A2\.41 /.test(s8.key) && s8.hash==="#A2.41" && s8.tab==="true", JSON.stringify(s8));
+  await page.click("#next"); await page.waitForTimeout(200);
+  ok("S9 moving on updates the address to the new line", await page.evaluate(()=> location.hash==="#A2.42"));
+  await page.goto(srv.url + "/prompts/index.html#A2.999"); await page.reload();
+  await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
+  ok("S10 a line past the end opens its section", /^A2\.1 /.test(await page.textContent("#cur-key")));
   await ctx.close();
   // 3 · all eleven recorded: the welcome page speaks — say so
   const full = {}; ["intro.tour.what","intro.tour.new","howto.find","howto.record","howto.review","howto.sentence","howto.meaning","howto.add","intro.tour.yours","intro.tour.waits","intro.tour.why"]
