@@ -224,7 +224,7 @@ async function loadQueue(){
   const q = $("queue");
   const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const when = r => { try{ return (r.createdAt && r.createdAt.toMillis) ? new Date(r.createdAt.toMillis()).toLocaleString() : ""; }catch(_){ return ""; } };
-  q.innerHTML = '<div class="qempty">' + H("tools.loading") + '</div>';
+  q.innerHTML = AFDCore.dotsHTML(true);
   try{
     const snap = await getDocs(collection(db,"afd_ui_suggestions"));
     const rows = []; snap.forEach(d => rows.push(d.data()));

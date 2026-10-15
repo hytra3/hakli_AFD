@@ -228,7 +228,7 @@ onAuthStateChanged(auth, async user=>{
 
 /* ---- data ---------------------------------------------------------------- */
 async function load(){
-  $("list").innerHTML = '<div class="empty">' + H("tools.loading") + '</div>';
+  $("list").innerHTML = AFDCore.dotsHTML(true);
   try{
     // The same query the dictionary runs (no composite index needed); newest first here.
     const snap = await getDocs(query(collection(db, "afd_entries"), where("source", "==", "user")));
@@ -286,7 +286,7 @@ async function loadCoverage(){
 async function paintCoverage(){
   const list = $("list");
   if(!cov){
-    list.innerHTML = '<div class="empty">' + H("tools.loading") + '</div>';
+    list.innerHTML = AFDCore.dotsHTML(true);
     try{ await loadCoverage(); }
     catch(e){ list.innerHTML = '<div class="empty">' + H("tools.err.load", { code: code(e) }) + '</div>'; return; }
     if(tab !== "coverage") return;
@@ -404,7 +404,7 @@ async function takeDownPhoto(w){
 let player = null;
 async function voices(btn, entryId){
   const box = btn.parentElement;
-  btn.disabled = true; btn.innerHTML = H("tools.loading");
+  btn.disabled = true; btn.innerHTML = AFDCore.dotsHTML() + H("tools.loading");
   try{
     const snap = await getDocs(query(collection(db, "afd_entries", entryId, "recordings"),
                                      where("allowPlayback", "==", true)));

@@ -130,6 +130,29 @@ window.AFDCore = (function(){
       '.afd-quiet-toast small{display:block;opacity:.75;font-size:12px;margin-top:2px}';
     document.head.appendChild(st);
   }
+  /* ---- waiting dots (10-15) -----------------------------------------------
+     The resin bouncing dots, on every page: dotsHTML() for any wait on the
+     network — a save, an upload, a sign-in, a list or card loading — so a wait
+     is visible to someone who can't read "Saving…". Inline by default (beside
+     or instead of a status line); dotsHTML(true) is the larger, centred block. */
+  function injectDotsCSS(){
+    if(document.getElementById("afdDotsCSS")) return;
+    const st = document.createElement("style"); st.id = "afdDotsCSS";
+    st.textContent =
+      '.afd-dots{display:inline-flex;gap:4px;align-items:center;vertical-align:middle;color:#C6873F;margin-inline:6px}'+
+      '.afd-dots span{width:6px;height:6px;border-radius:50%;background:currentColor;animation:afdDots 1s ease-in-out infinite}'+
+      '.afd-dots span:nth-child(2){animation-delay:.15s}.afd-dots span:nth-child(3){animation-delay:.3s}'+
+      '.afd-dots.big{display:flex;justify-content:center;gap:9px;padding:28px 0;margin:0}'+
+      '.afd-dots.big span{width:11px;height:11px}'+
+      '@keyframes afdDots{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}'+
+      '@media (prefers-reduced-motion:reduce){.afd-dots span{animation:none;opacity:.8}}';
+    (document.head || document.documentElement).appendChild(st);
+  }
+  function dotsHTML(big){
+    injectDotsCSS();
+    return '<span class="afd-dots'+(big?' big':'')+'" role="status" aria-label="…"><span></span><span></span><span></span></span>';
+  }
+
   function quietToast(on){
     const mode = getDisplayMode("auto");
     if(mode === "sound") return;                 // wordless tier: the bubble says it
@@ -1002,6 +1025,6 @@ window.AFDCore = (function(){
     QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
-    identicon, stepHistory
+    identicon, stepHistory, dotsHTML, escHtml
   };
 })();
