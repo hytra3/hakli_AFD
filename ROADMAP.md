@@ -224,6 +224,22 @@ within each group.
 
 ---
 
+## Tier 2 — parked, revisit later (10-15)
+
+From the first speaker session (October punch list). Not urgent; picked up when
+something makes them matter.
+
+- **"Speaker doesn't know this word" sits just under Record** — easy to hit by mistake
+  (the first session left a run of skips on sun/moon/mountain). Wait to see whether
+  other speakers hit it too; if they do, move it further down or ask "are you sure?".
+  Skips no longer show in the session list (10-14), so they cost nothing visible.
+- **Replace a word's photo** — today a steward can only take a photo down
+  (steward.html). Uploading a new one touches the storage rules (write-once photos
+  under the creator's uid) and the entry rules (`image` is create-only).
+- **Local names for the Dhofar emoji group** — `custom` in `data/concept-emoji.json`
+  is labelled in English (frankincense, khanjar…). Add *luban* and the Arabic / Hakli
+  names when Marty sends them; data-only, no code.
+
 ## Security follow-ups
 
 - **✅ Steward-only controls (2026-09-26).** `notAnon()` meant *any* Google sign-in —
