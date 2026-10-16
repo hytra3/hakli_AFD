@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!--
+  الحَكلي — how-to clips (layer 2 of the teaching plan, 10-15)
+  One job per clip, each the walkthrough's own scene (?scene=…), looping. Tap a
+  tile to watch it; with its howto.* clip recorded, the scene is narrated in Hakli
+  once, then loops silently. Words come from afd-core.js (wt.howto.*, prompts tool
+  section A10), so a corrected line reaches this page.
+  Share one clip by its address: hakli.app/howto.html#hear (find · hear · record ·
+  sentence · meaning · add). Linked from the foot of welcome.html, not from the app.
+-->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google" content="notranslate">
+<title>الحَكلي · كيف تستعمله</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Hakli — Audio First Dictionary">
+<meta property="og:url" content="https://hakli.app/howto.html">
+<meta property="og:title" content="الحَكلي · كيف تستعمله · How to use it">
+<meta property="og:description" content="مقاطع قصيرة، لكلّ عملٍ مقطع. · Short clips, one job each.">
+<meta property="og:image" content="https://hakli.app/og-hakli-v2.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --ink:#17241F;
+    --mist:#6E8078; --frank:#C6873F; --frank-soft:#E7C9A0; --line:#D8E2DC;
+    --ar:"Amiri", serif; --en:"EB Garamond","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0; overflow-x:hidden; background:var(--fog); color:var(--mountain); font-family:var(--ar); line-height:1.6;
+    background-image:radial-gradient(120% 60% at 50% -10%, #F1F5F3 0%, var(--fog) 60%)}
+  .wrap{max-width:680px; margin:0 auto; padding:22px 16px 60px}
+  header{display:flex; align-items:center; gap:12px}
+  header a.home{display:inline-flex; color:var(--ink); border-radius:12px}
+  header a.home svg{height:44px; width:auto}
+  header a.home:focus-visible{outline:3px solid var(--frank); outline-offset:4px}
+  h1{margin:0; font-size:clamp(26px,7vw,34px); font-weight:700; color:var(--ink); flex:1}
+  .toggle{display:inline-flex; background:var(--cloud); border:1px solid var(--line); border-radius:999px; padding:4px; gap:3px}
+  .toggle button{font-family:var(--ar); font-size:15px; color:var(--mist); background:transparent; border:0; border-radius:999px; padding:6px 13px; cursor:pointer}
+  .toggle button.en{font-family:var(--en); font-style:italic}
+  .toggle button[aria-pressed="true"]{background:var(--mountain); color:#fff}
+  .lead{font-size:18px; color:var(--mist); margin:10px 2px 16px}
+  body.en .lead, body.en h1, body.en .tile .t{font-family:var(--en); font-style:italic}
+  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  @media (max-width:420px){ .tiles{grid-template-columns:repeat(2,1fr)} }
+  .tile{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-height:92px;
+    padding:10px 6px; border-radius:18px; background:var(--cloud); border:1.5px solid var(--line); cursor:pointer;
+    font-family:inherit; color:var(--mountain); box-shadow:0 6px 16px rgba(31,58,52,.07); transition:transform .12s, border-color .2s}
+  .tile:active{transform:scale(.97)}
+  .tile .ic{font-size:30px; line-height:1}
+  .tile .t{font-size:17px; font-weight:700; text-align:center; line-height:1.25}
+  .tile[aria-pressed="true"]{border-color:var(--frank); box-shadow:inset 0 0 0 1.5px var(--frank), 0 6px 16px rgba(31,58,52,.07)}
+  .tile .hk{display:none; font-size:12px; color:var(--frank)}
+  .tile.voiced .hk{display:block}
+  .stage{margin:18px auto 0; width:min(100%,380px); height:780px; overflow:hidden}
+  .stage iframe{width:100%; height:100%; border:0; display:block; background:transparent}
+  .enter-wrap{text-align:center; margin-top:14px}
+  .enter{display:inline-flex; font-size:19px; color:#fff; background:var(--mountain); border-radius:999px; padding:13px 32px;
+    text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
+  body.en .enter{font-family:var(--en); font-style:italic}
+</style>
+<link rel="icon" href="favicon.svg?v=b1015j" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1015j" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1015j">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1015j">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1015j">
+<link rel="manifest" href="manifest.webmanifest?v=b1015j">
+<meta name="theme-color" content="#17241F">
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <a class="home" href="index.html" aria-label="Open the dictionary" title="Open the dictionary"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
+    <h1 id="title"></h1>
+    <div class="toggle" id="toggle" role="group" aria-label="language">
+      <button data-m="ar" aria-pressed="true">عربي</button><button data-m="en" class="en" aria-pressed="false">English</button>
+    </div>
+  </header>
+  <p class="lead" id="lead"></p>
+  <div class="tiles" id="tiles"></div>
+  <div class="stage"><iframe id="frame" title="Hakli how-to clip" scrolling="no"></iframe></div>
+  <nav class="enter-wrap"><a class="enter" id="enter" href="index.html"></a></nav>
+</main>
+<audio id="player" preload="none"></audio>
+
+<script src="afd-core.js?v=b1015j"></script>
+<script src="afd-instance.js?v=b1015j"></script>
+<script type="module">
+const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
+const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
+const W = (k) => { const x = STR[k] || {}; return (mode==="en" ? x.en : (x.ar || x.en)) || ""; };
+// The six clips, in teaching order. `clips` = the spoken howto.* lines each scene
+// narrates (the walkthrough posts them as cues); a tile shows "Hakli" once all are recorded.
+const SEGS = [
+  { id:"find",     ic:"🎙️", clips:["howto.find"] },
+  { id:"hear",     ic:"▶️", clips:["howto.hear"] },
+  { id:"record",   ic:"➕", clips:["howto.record","howto.review"] },
+  { id:"sentence", ic:"💬", clips:["howto.sentence"] },
+  { id:"meaning",  ic:"💡", clips:["howto.meaning"] },
+  { id:"add",      ic:"🆕", clips:["howto.add"] },
+];
+let mode = "ar", cur = null;
+const urls = {}, frame = document.getElementById("frame"), player = document.getElementById("player");
+const voiced = (s) => s.clips.every(k => urls[k]);
+
+function render(){
+  document.body.classList.toggle("en", mode==="en");
+  document.documentElement.setAttribute("dir", mode==="en" ? "ltr" : "rtl");
+  document.getElementById("title").textContent = W("wt.howto.title");
+  document.getElementById("lead").textContent = W("wt.howto.lead");
+  document.getElementById("enter").textContent = mode==="en" ? (STR["welcome.enter"]||{}).en + " →" : W("welcome.enter") + " ←";
+  document.querySelectorAll("#toggle button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m===mode)));
+  document.getElementById("tiles").innerHTML = SEGS.map(s =>
+    '<button class="tile'+(voiced(s)?' voiced':'')+'" data-id="'+s.id+'" aria-pressed="'+(s.id===cur)+'">'+
+    '<span class="ic" aria-hidden="true">'+s.ic+'</span><span class="t">'+W("wt.howto."+s.id)+'</span>'+
+    '<span class="hk">'+W("wt.howto.voiced")+'</span></button>').join("");
+  document.querySelectorAll(".tile").forEach(b => b.onclick = () => show(b.dataset.id, true));
+  post({ type:"afd:lang", mode });
+}
+const post = (m) => { try{ frame.contentWindow && frame.contentWindow.postMessage(m, "*"); }catch(_){} };
+
+// Show one clip. A tap narrates it once in Hakli (when recorded), then it loops.
+let narrate = false;
+function show(id, tapped){
+  const seg = SEGS.find(s => s.id === id) || SEGS[0];
+  try{ player.pause(); }catch(_){}
+  narrate = !!tapped && voiced(seg);
+  if(cur !== seg.id){ cur = seg.id; frame.src = "hakli-welcome-walkthrough.html?v=b1015j&embed=1&scene=" + seg.id; }
+  else if(narrate){ post({ type:"afd:wt-cmd", cmd:"run" }); }
+  else{ post({ type:"afd:wt-cmd", cmd:"loop" }); }
+  history.replaceState(null, "", "#" + seg.id);
+  document.querySelectorAll(".tile").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.id===cur)));
+  if(tapped) frame.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+frame.addEventListener("load", () => { post({ type:"afd:lang", mode }); if(narrate) post({ type:"afd:wt-cmd", cmd:"run" }); });
+window.addEventListener("message", (e) => {
+  const d = e && e.data; if(!d || d.type !== "afd:wt") return;
+  if(d.ev === "cue" && narrate && urls[d.key]){ player.src = urls[d.key]; player.play().catch(()=>{}); }
+  else if(d.ev === "end"){ narrate = false; setTimeout(() => post({ type:"afd:wt-cmd", cmd:"loop" }), 1500); }
+});
+document.querySelectorAll("#toggle button").forEach(b => b.onclick = () => { mode = b.dataset.m; render(); });
+window.addEventListener("hashchange", () => show(location.hash.slice(1), false));
+
+render();
+show(location.hash.slice(1), false);
+
+/* Which howto.* clips are recorded? Loaded lazily, like the welcome page, so the
+   page works (silently) offline or without the CDN. afd_ui/ is public-read. */
+(async () => { try{
+  const [{ initializeApp }, { getFirestore, collection, getDocs }, { getStorage, ref, getDownloadURL }] = await Promise.all([
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js") ]);
+  const app = initializeApp(firebaseConfig), db = getFirestore(app), store = getStorage(app);
+  const want = new Set(SEGS.flatMap(s => s.clips)), jobs = [];
+  (await getDocs(collection(db, "afd_ui_prompts"))).forEach(d => { const x = d.data() || {};
+    if(want.has(d.id) && x.status === "recorded")
+      jobs.push(getDownloadURL(ref(store, x.storagePath || ("afd_ui/"+d.id+".webm"))).then(u => { urls[d.id] = u; }).catch(()=>{})); });
+  await Promise.all(jobs); render();
+}catch(e){ console.warn("[AFD] howto: audio unavailable — clips play silently", e); } })();
+</script>
+</body>
+</html>

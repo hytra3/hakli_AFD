@@ -170,6 +170,8 @@
   <nav class="enter-wrap">
     <a class="enter" id="enter" href="index.html">ادخل القاموس ←</a>
   </nav>
+  <!-- Layer 2 (10-15): one job per clip, for the second visit. -->
+  <nav class="enter-wrap top"><a class="enter lite" id="howtoLink" href="howto.html">مقاطع قصيرة: كيف تستعمله</a></nav>
 </main>
 
 <audio id="player" preload="none"></audio>
@@ -384,6 +386,9 @@ function render(){
     enter.textContent = (mode==="en") ? W("welcome.enter",true)+" →" : W("welcome.enter")+" ←";
     enter.className = "enter" + extra + (mode==="en" ? " en" : "");
   });
+
+  const hl = document.getElementById("howtoLink");
+  if(hl){ hl.textContent = W("wt.howto.link", mode==="en"); hl.className = "enter lite" + (mode==="en" ? " en" : ""); }
 
   const dl = document.getElementById("demoLead");
   if(dl){

@@ -642,6 +642,17 @@ window.AFDCore = (function(){
     "wt.close":             { en:"Find it. Hear it. Add your voice.", ar:"ابحث عنها. اسمعها. أضِف صوتك." },   // 10-15 welcome v2 (was "That is how you add your voice to Hakli.")
     "wt.find.hear":         { en:"Tap ▶ to hear how people say it.", ar:"انقر ▶ لتسمع كيف يقولها الناس." },
     "wt.card.say":          { en:"Tap “Say it yourself” on the card.", ar:"انقر «سجّل صوتك» على البطاقة." },
+    // the how-to page (howto.html, 10-15): one job per clip
+    "wt.howto.title":       { en:"How to use it", ar:"كيف تستعمله" },
+    "wt.howto.lead":        { en:"Short clips, one job each. Tap one to watch it.", ar:"مقاطع قصيرة، لكلّ عملٍ مقطع. انقر واحدًا لتشاهده." },
+    "wt.howto.find":        { en:"Find a word", ar:"ابحث عن كلمة" },
+    "wt.howto.hear":        { en:"Hear the voices", ar:"اسمع الأصوات" },
+    "wt.howto.record":      { en:"Add your voice", ar:"أضِف صوتك" },
+    "wt.howto.sentence":    { en:"Say it in a sentence", ar:"قُلها في جملة" },
+    "wt.howto.meaning":     { en:"Say what it means", ar:"قُل معناها" },
+    "wt.howto.add":         { en:"Add a new word", ar:"أضِف كلمة جديدة" },
+    "wt.howto.link":        { en:"More short how-to clips", ar:"مقاطع قصيرة: كيف تستعمله" },
+    "wt.howto.voiced":      { en:"In Hakli", ar:"بالحَكلي" },
 
     // Moved in from page code (piece 4 audit, Oct 2026): text that used to be
     // written in English inside index / add / recorder / afd-card, so it showed
