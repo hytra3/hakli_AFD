@@ -20,6 +20,7 @@
  *    node scripts/find-misfiled.mjs --speaker spk_5pPfA5_01
  *    node scripts/find-misfiled.mjs --email someone@example.com --apply
  *    node scripts/find-misfiled.mjs --email … --apply --skip <id>,<id>   # leave some where they are
+ *    node scripts/find-misfiled.mjs --email … --meanings [--apply]      # every meaning on a word with no word take
  *  Env: AFD_PROJECT_ID (default afd-dev), AFD_STEWARD (who to stamp)
  */
 import { execSync } from "node:child_process";
@@ -28,8 +29,13 @@ const arg = (name) => { const i = process.argv.indexOf(name); return i >= 0 ? (p
 const EMAIL = arg("--email"), SPEAKER = arg("--speaker");
 const APPLY = process.argv.includes("--apply");
 const SKIP = new Set(arg("--skip").split(",").map(s => s.trim()).filter(Boolean));
+// --meanings: you've listened and her "meanings" ARE the word (the first Dhofar
+// speaker, 10-16: every meaning was the word said twice, every sentence a real
+// sentence). Flag every MEANING take on a word they have no word take for,
+// whatever its length or burst count; sentences are never flagged.
+const MEANINGS = process.argv.includes("--meanings");
 const MAX_MS = Number(process.env.AFD_WORD_MAX_MS || 4500);
-if (!EMAIL && !SPEAKER) { console.log("Usage: node scripts/find-misfiled.mjs --email <address> | --speaker <spk_code> [--apply] [--skip id,id]"); process.exit(2); }
+if (!EMAIL && !SPEAKER) { console.log("Usage: node scripts/find-misfiled.mjs --email <address> | --speaker <spk_code> [--meanings] [--apply] [--skip id,id]"); process.exit(2); }
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 let by = process.env.AFD_STEWARD || "";
 if (!by) { try { by = execSync("gcloud config get-value account", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { by = "steward"; } }
@@ -66,14 +72,15 @@ for (const [entryId, recs] of byEntry) {
   console.log(`${(e.gloss || "") + " " + (e.glossAr || "")}`.trim() + `   https://hakli.app/#${entryId}`);
   for (const r of recs) {
     const t = typeOf(r), ms = (r.capture && r.capture.durationMs) || 0, bursts = r.qc ? r.qc.bursts : null;
-    const looksLikeWord = t !== "word" && bursts === 2 && ms > 0 && ms <= MAX_MS && !hasWord;
+    const looksLikeWord = !hasWord && (MEANINGS ? t === "definition"
+                                                : (t !== "word" && bursts === 2 && ms > 0 && ms <= MAX_MS));
     if (looksLikeWord && !SKIP.has(r.id)) flagged.push(r);
     console.log(`   ${(SLOT[t] || t).padEnd(9)} ${(ms / 1000).toFixed(1).padStart(4)} s  ${bursts == null ? "?" : bursts} burst${bursts === 1 ? "" : "s"}  ` +
                 `${r.allowPlayback ? "public " : "hidden "}  id ${r.id}${looksLikeWord ? (SKIP.has(r.id) ? "   (skipped)" : "   ← looks like the word") : ""}`);
   }
 }
 
-console.log(`\n${flagged.length} take(s) look like the word filed in another slot.`);
+console.log(`\n${flagged.length} take(s) ${MEANINGS ? "filed as a meaning on a word with no word take" : "look like the word filed in another slot"}.`);
 if (!flagged.length) process.exit(0);
 // two flagged takes on one word: only one can be "the word" by this rule of thumb — say so, move both only if asked
 const twice = [...new Set(flagged.map(r => r.entryId))].filter(id => flagged.filter(r => r.entryId === id).length > 1);
