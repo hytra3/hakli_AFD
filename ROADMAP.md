@@ -22,6 +22,14 @@ within each group.
   two lines instead of "Fatma Almash…". Tests: `word-tab`, `share-switch`.
   `scripts/word-voices.mjs` — every recording on one word, any state, with slot,
   length and speech bursts.
+  `scripts/refile-take.mjs <recordingId> word [--apply]` — the steward's correction
+  for a take on the wrong tab: changes only its slot (type/phase), stamps
+  refiledFrom/At/By; look-only without --apply. Phones can't (the rules fix a slot at
+  upload). Ask the speaker first.
+  `scripts/find-misfiled.mjs --email <addr> [--apply] [--skip id,id]` — the same
+  correction for all of one speaker's takes at once: flags sentence/meaning takes that
+  are 2 bursts, ≤ 4.5 s, on a word they have no word take for; look-only without
+  --apply. A guess from the audio's shape — listen first.
 
 - **Two fixes from the first Dhofar speaker (10-16)** — "Edit how you appear" in the
   dictionary's account menu (`recorder.html#profile`) now stays on step 1 at the "How

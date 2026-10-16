@@ -182,6 +182,9 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 .account.in{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
 .account .acct-initial{font:600 16px/1 system-ui,sans-serif}
 .account img.acct-photo{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+/* (10-16) a signed-in photo fills the circle — no padding, dark fill or border ring around it */
+.account{padding:0; overflow:hidden}
+.account:has(> img.acct-photo){background:transparent; border-color:transparent}
 .account-wrap{position:relative;flex:0 0 auto}
 .acct-menu{position:absolute;top:48px;right:0;z-index:60;min-width:210px;background:var(--cloud);
   border:1px solid var(--mist-2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px;display:none}

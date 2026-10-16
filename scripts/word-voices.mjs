@@ -32,7 +32,14 @@ const db = getFirestore();
 
 const ms = (v) => !v ? 0 : typeof v.toMillis === "function" ? v.toMillis() : (Number.isFinite(Date.parse(v)) ? Date.parse(v) : 0);
 const when = (t) => t ? new Date(t).toISOString().slice(0, 16).replace("T", " ") : "?";
-const norm = (s) => String(s || "").trim().toLowerCase();
+// Match the way the app itself matches typed words (AFDCore.spellingKey): no
+// diacritics or tatweel, one form each of alef / yeh / heh… — so "مه" finds a
+// spelling saved as "مَه" (10-16: the first run found nothing for مه).
+import { createRequire } from "node:module";
+globalThis.window = globalThis.window || {};
+createRequire(import.meta.url)("../afd-core.js");
+const KEY = (window.AFDCore && window.AFDCore.spellingKey) || ((s) => String(s || "").trim().toLowerCase());
+const norm = (s) => KEY(String(s || ""));
 
 // find the word: an entry id, else any entry whose English / Arabic / Hakli text matches
 let entries = [];
@@ -47,7 +54,9 @@ if (q.startsWith("ent_")) {
   }).map(d => d.id));
   // the word written in Hakli letters (afd_entries/{id}/spellings/{writer})
   try{ (await db.collectionGroup("spellings").get()).forEach(sp => {
-    if (norm((sp.data() || {}).text) === norm(q)) ids.add(sp.ref.parent.parent.id); }); }catch(_){}
+    const d = sp.data() || {};
+    if (norm(d.text) === norm(q) || (d.searchKey && d.searchKey === norm(q).slice(0, 60))) ids.add(sp.ref.parent.parent.id); }); }
+  catch(e){ console.warn("  (couldn't read the Hakli spellings: " + (e.code || e.message) + ")"); }
   entries = all.docs.filter(d => ids.has(d.id));
 }
 if (!entries.length) { console.log(`No word matches "${q}".`); process.exit(1); }
@@ -74,7 +83,8 @@ for (const e of entries) {
     const secs = r.capture && r.capture.durationMs ? (r.capture.durationMs / 1000).toFixed(1) + "s" : "?";
     const bursts = r.qc && r.qc.bursts != null ? `${r.qc.bursts} burst${r.qc.bursts === 1 ? "" : "s"}` : "";
     console.log(`  ${slot.padEnd(9)} ${state.padEnd(9)} ${when(ms(r.uploadedAt) || ms(r.recordedAt))}  ${secs.padStart(6)} ${bursts.padEnd(9)} ` +
-                `${await who(r.uid)}  speaker ${r.speakerId || "?"}${r.viaAgent ? " (by proxy)" : ""}${r.source === "voicenote" ? " · voice note" : ""}`);
+                `${await who(r.uid)}  speaker ${r.speakerId || "?"}${r.viaAgent ? " (by proxy)" : ""}${r.source === "voicenote" ? " · voice note" : ""}` +
+                `${r.refiledFrom ? `  (moved from ${SLOT[r.refiledFrom] || r.refiledFrom})` : ""}\n            id ${r.id}`);
   }
 }
-console.log("\nA single word said twice is ~2–4 s with 2 bursts. If one of those is filed as a sentence or meaning, it was recorded on the wrong tab.");
+console.log("\nA single word said twice is ~2–4 s with 2 bursts. If one of those is filed as a sentence or meaning, it was recorded on the wrong tab —\nmove it with:  node scripts/refile-take.mjs <id> word");

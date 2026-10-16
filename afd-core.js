@@ -641,7 +641,7 @@ window.AFDCore = (function(){
     "wt.add.done":          { en:"A new word card, in your voice.", ar:"بطاقة كلمة جديدة، بصوتك." },
     "wt.close":             { en:"Find it. Hear it. Add your voice.", ar:"ابحث عنها. اسمعها. أضِف صوتك." },   // 10-15 welcome v2 (was "That is how you add your voice to Hakli.")
     "wt.find.hear":         { en:"Tap ▶ to hear how people say it.", ar:"انقر ▶ لتسمع كيف يقولها الناس." },
-    "wt.card.say":          { en:"Tap “Say it yourself” on the card.", ar:"انقر «سجّل صوتك» على البطاقة." },
+    "wt.card.say":          { en:"Tap “+ Add a recording” on the card.", ar:"انقر «+ أضف تسجيلًا» على البطاقة." },   // (10-16) was "Say it yourself", a button the card no longer has
     // the how-to page (howto.html, 10-15): one job per clip
     "wt.howto.title":       { en:"How to use it", ar:"كيف تستعمله" },
     "wt.howto.lead":        { en:"Short clips, one job each. Tap one to watch it.", ar:"مقاطع قصيرة، لكلّ عملٍ مقطع. انقر واحدًا لتشاهده." },
