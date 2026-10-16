@@ -470,16 +470,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <p class="note" id="authNote" style="margin-bottom:10px"><span class="bi-ar" dir="rtl" data-str="setup.signin.note">يمكن لأيِّ أحدٍ أن يستمع. تسجيل الدخول مطلوبٌ فقط لإضافة تسجيل، حتى يُنسَب كلُّ صوتٍ إلى صاحبه.</span><small class="sub">Anyone can listen. Signing in is only needed to add a recording, so each word can be credited.</small></p>
 
     <div id="signedOut">
-      <button class="btn" id="googleBtn"><span class="bi-ar" dir="rtl" data-str="setup.google">متابعة عبر Google</span><small class="sub">Continue with Google</small></button>
-      <p class="note" style="text-align:center;margin:12px 0 4px"><span class="bi-ar" dir="rtl" data-str="setup.oremail">أو استخدم بريدًا إلكترونيًّا</span><small class="sub">or use an email address</small></p>
-      <label class="field"><span><span class="bi-ar" dir="rtl" data-str="setup.email">البريد الإلكتروني</span><small class="sub">Email</small></span>
-        <input type="text" id="authEmail" placeholder="you@example.com" autocomplete="username"></label>
-      <label class="field"><span><span class="bi-ar" dir="rtl" data-str="setup.password">كلمة المرور</span><small class="sub">Password</small></span>
-        <input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password"></label>
-      <div class="row">
-        <button class="btn secondary" id="signupBtn"><span class="bi-ar" dir="rtl" data-str="setup.signup">أنشئ حسابًا</span><small class="sub">Create account</small></button>
-        <button class="btn" id="emailBtn"><span class="bi-ar" dir="rtl" data-str="setup.signin">سجِّل الدخول</span><small class="sub">Sign in</small></button>
-      </div>
+      <!-- Google, a phone number (a texted code, typed here — works inside
+           WhatsApp's own browser), email + password, or an email link: the same
+           sign-in as Add and the dictionary (afd-signin.js). -->
+      <div id="signinHost"></div>
       <p class="note" id="authErr" style="color:var(--alert)"></p>
     </div>
 
@@ -783,8 +777,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
    "Your apps" -> Web app -> Config
 ================================================================*/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
-         signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
+import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs, addDoc, Timestamp }
@@ -793,6 +786,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b1016d";
 import { uploadClip as sharedUploadClip } from "./afd-upload.js?v=b1016d";
+import { mountSignIn, finishEmailLink } from "./afd-signin.js?v=b1016d";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
@@ -833,37 +827,21 @@ if(CONFIGURED) onAuthStateChanged(auth, raw=>{
   currentUser = u;
   $("signedOut").classList.toggle("hidden", !!u);
   $("signedIn").classList.toggle("hidden", !u);
-  if(u) $("whoami").textContent = u.email || u.displayName || u.uid;
+  if(u) $("whoami").textContent = u.email || u.displayName || u.phoneNumber || u.uid;   // a phone-only account has a number, not an email
   $("toMic").disabled = !u;
   $("toMic").innerHTML = u ? biHTML("auth.continue") : biHTML("auth.signinfirst");
   if(window.afdOnAuth) window.afdOnAuth(u);
 });
 
-$("googleBtn").onclick = async ()=>{
-  err("");
-  try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e){ err(friendly(e)); }
-};
-$("emailBtn").onclick = async ()=>{
-  err("");
-  try{ await signInWithEmailAndPassword(auth,$("authEmail").value.trim(),$("authPass").value); }
-  catch(e){ err(friendly(e)); }
-};
-$("signupBtn").onclick = async ()=>{
-  err("");
-  try{ await createUserWithEmailAndPassword(auth,$("authEmail").value.trim(),$("authPass").value); }
-  catch(e){ err(friendly(e)); }
-};
-$("signoutBtn").onclick = ()=> signOut(auth);
-
-// Sign-in errors, in the speaker's display mode (keys shared with add.html).
-// An unrecognised error shows Firebase's own message, which is the useful one.
-function friendly(e){
-  const k=AFDCore.authErrorKey(e);
-  if(!k) return "";
-  if(k==="auth.err.other" && e && e.message) return e.message;
-  return tBi(k);
+// The sign-in controls (afd-signin.js, shared with Add and the dictionary).
+// Labels in the recorder's own bilingual style (biHTML, defined further down).
+const biLabel = (k)=> (typeof window.biHTML === "function" ? window.biHTML(k) : AFDCore.tHTML(k, "auto"));
+if(CONFIGURED){
+  mountSignIn($("signinHost"), { auth, label: biLabel, text: (k)=> (typeof window.tBi === "function" ? window.tBi(k) : k),
+    showError: (h)=>{ const e=$("authErr"); if(e) e.innerHTML = h || ""; } });
+  finishEmailLink(auth, { label: biLabel, showError: (h)=>{ const e=$("authErr"); if(e) e.innerHTML = h || ""; } });
 }
+$("signoutBtn").onclick = ()=> signOut(auth);
 
 /* ---- upload one recording: audio to Storage, metadata to Firestore ----
    The work lives in afd-upload.js, shared with add.html, so the two pages can

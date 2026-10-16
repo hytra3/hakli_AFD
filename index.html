@@ -386,9 +386,10 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, collecti
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut }
+import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initCard, entryCard, primeCounts, primeAllSpellings, spellingsFor, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1016d";
+import { signInSheet, finishEmailLink } from "./afd-signin.js?v=b1016d";
 
 
 /* ================================================================= CONFIG */
@@ -471,6 +472,8 @@ const auth  = getAuth(app);
 // stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
 AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
   Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 30*864e5) })));
+// an email sign-in link that came back to the dictionary (signInSheet → email link)
+finishEmailLink(auth, { label: (k)=> AFDCore.tHTML(k, "auto") });
 let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
 // A *named* account, not the anonymous key the find flow may already hold.
 // This mirrors notAnon() in afd-firestore.rules: anonymous can read (search
@@ -1392,8 +1395,10 @@ if(accountBtn){
       (acctMenu && acctMenu.classList.contains("open")) ? closeAcctMenu() : openAcctMenu();
       return;
     }
-    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }   // otherwise get a named account
-    catch(err){ console.warn("[AFD] auth", err); }
+    // otherwise get a named account: the shared sign-in (afd-signin.js) in a
+    // sheet — Google, a texted code (works inside WhatsApp's own browser), or email
+    await signInSheet({ auth, label: (k)=> AFDCore.tHTML(k, displayMode === "sound" ? "script" : displayMode),
+                        titleKey: "setup.signin.title", noteKey: "setup.signin.note" });
   });
 }
 if(acctEdit) acctEdit.addEventListener("click", ()=>{ closeAcctMenu(); location.href="recorder.html#profile"; });
