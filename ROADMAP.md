@@ -1073,6 +1073,10 @@ is layer 1 only — *find it, hear it, add your voice* — in three scenes, ~35 
   frame or a background tab used to skip a step and leave the screen half-set).
 - Still to build: segments for *record for someone else (spoken consent)* and *take
   your voice back*; a typed-search beat in `?scene=find`; the helper kit.
+- **The how-to page (`howto.html`, 10-15):** the six segments as tiles; tap one to
+  watch it (narrated once in Hakli when its `howto.*` clip is recorded — R1 and R11 —
+  then looping). Each has its own link (`howto.html#hear`) for WhatsApp. Words are
+  `wt.howto.*` (end of A10). Linked from the foot of `welcome.html`, not from the app.
 
 ## Speaker origin visibility — hidden by default, dialect-scoped, opt-in public (built 2026-10-13)
 

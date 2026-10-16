@@ -29,5 +29,20 @@ await scenario("an edit in afd-prompts.js shows on the welcome page", async ()=>
   ok("the edited line appears, the old wording is gone", t.includes(EDIT) && !t.includes(P["intro.tour.yours"].ar), t.slice(0, 400));
 });
 
+await scenario("the how-to page: six one-job clips, each with its own link", async ()=>{
+  const { page, state } = await newPage(browser, srv.url, {});
+  await page.goto(srv.url + "/welcome.html"); await page.waitForTimeout(800);
+  ok("H1 the welcome page links to the how-to clips", await page.evaluate(()=> (document.getElementById("howtoLink")||{}).getAttribute && document.getElementById("howtoLink").getAttribute("href")==="howto.html"));
+  await page.goto(srv.url + "/howto.html#hear"); await page.waitForTimeout(1200);
+  const h = await page.evaluate(()=>({ n:document.querySelectorAll(".tile").length, on:[...document.querySelectorAll('.tile[aria-pressed="true"]')].map(b=>b.dataset.id),
+    src:document.getElementById("frame").getAttribute("src"), t:document.getElementById("title").textContent }));
+  ok("H2 six tiles, worded from the string table", h.n===6 && h.t==="كيف تستعمله", JSON.stringify(h));
+  ok("H3 a link to #hear opens that clip", h.on.join()==="hear" && /scene=hear/.test(h.src), JSON.stringify(h));
+  await page.click('.tile[data-id="meaning"]'); await page.waitForTimeout(600);
+  const m = await page.evaluate(()=>({ hash:location.hash, src:document.getElementById("frame").getAttribute("src") }));
+  ok("H4 tapping a tile plays that clip and the address names it", m.hash==="#meaning" && /scene=meaning/.test(m.src), JSON.stringify(m));
+  ok("H5 no page errors", !state.errors.length, state.errors.join(" | "));
+});
+
 await browser.close(); srv.close(); vSrv.close();
 finish();
