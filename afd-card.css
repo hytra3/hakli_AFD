@@ -244,3 +244,9 @@
 .afdcard .spell-edit input{font-size:20px}
 .afdcard .wt-note .sub{display:block; margin-top:2px}   /* a bilingual hint: English on its own line */
 .afdcard .spell-btns{display:flex; gap:8px; flex-wrap:wrap}
+
+/* A contributor's own photo fills its circle edge to edge (10-16): a <button>'s
+   default padding let the avatar colour show as a ring around the picture. */
+.afdcard .av, .afdcard .voice-row .av-sm, .afdcard .voices-chip .peek{padding:0; overflow:hidden}
+.afdcard .av:has(> img), .afdcard .voice-row .av-sm:has(> img), .afdcard .voices-chip .peek:has(> img){background:transparent !important}
+.afdcard .av > img, .afdcard .voice-row .av-sm > img, .afdcard .voices-chip .peek > img{width:100%; height:100%; object-fit:cover; display:block; border-radius:50%}

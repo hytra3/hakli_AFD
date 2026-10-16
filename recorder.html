@@ -1257,8 +1257,14 @@ async function loadProfileCard(){
     if(p.avatarUrl && $("avatarImg")){ $("avatarImg").src=p.avatarUrl; $("avatarPreview").classList.remove("hidden"); }
     else if($("avatarPreview")){ $("avatarPreview").classList.add("hidden"); }
     reflectVis();
-    if(location.hash==="#profile"){ const yc=$("youCard"); if(yc) yc.scrollIntoView({behavior:"smooth",block:"start"}); }
+    if(location.hash==="#profile") showProfileCard();
   }catch(e){ console.warn("[AFD] loadProfileCard", e); }
+}
+// Bring "How you appear" into view: step 1 if we're elsewhere, then scroll to it.
+function showProfileCard(){
+  if($("setup") && $("setup").classList.contains("hidden")) show("setup");
+  const yc=$("youCard"); if(!yc || yc.classList.contains("hidden")) return;
+  setTimeout(()=>{ try{ yc.scrollIntoView({behavior:"smooth",block:"start"}); }catch(_){} }, 60);
 }
 // Resize a chosen image to a small centred square JPEG — guarantees the storage
 // rule's allowed type and 2 MB cap, and keeps avatars light on slow links.
@@ -1761,6 +1767,10 @@ function paintStepHeader(which){
 let hasSavedSpeaker=false, fastPathTried=false;
 async function maybeFastPath(){
   if(fastPathTried || listenOnly) return;
+  // "Edit how you appear" (#profile, from the dictionary's account menu) wants
+  // the "How you appear" card on step 1 — never skip past it to recording (10-16:
+  // a returning speaker landed on step 3, with the card hidden behind it).
+  if(location.hash==="#profile"){ fastPathTried=true; showProfileCard(); return; }
   if(!(window.AFD && window.AFD.configured)) return;         // no backend → normal flow
   if(!(window.AFD.isSignedIn && window.AFD.isSignedIn())) return;  // wait for auth to resolve
   if(!hasSavedSpeaker) return;                               // wait for / require a saved speaker

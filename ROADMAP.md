@@ -8,6 +8,13 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Two fixes from the first Dhofar speaker (10-16)** — "Edit how you appear" in the
+  dictionary's account menu (`recorder.html#profile`) now stays on step 1 at the "How
+  you appear" card; for a returning speaker the recorder's fast path used to skip to
+  step 3 with the card hidden behind it. And a contributor's own photo now fills its
+  avatar circle: a `<button>`'s default padding let the avatar colour show as a ring
+  around the picture. Test: `profile-avatar.browser.mjs`.
+
 - **Word arrows in the recorder (10-15)** — ← → beside the word counter in
   recording mode, to step past a word without recording it and without the
   "speaker doesn't know this word" mark a skip saves. Off mid-take and while a
