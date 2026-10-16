@@ -808,6 +808,9 @@ window.AFDCore = (function(){
     "ep.custom":            { en:"Dhofar",             ar:"ظفار" },
     "ep.none":              { en:"No emoji",           ar:"بلا رمز" },
     "ep.other":             { en:"or type one",        ar:"أو اكتب رمزًا" },
+    // the recorder's "let other people listen" box applies to what's already uploaded too (added 10-16, kept last so review numbers hold)
+    "share.confirm.self":   { en:"Also let other people listen to the recordings you've already uploaded?", ar:"هل تسمح أيضًا للآخرين بالاستماع إلى التسجيلات التي رفعتها من قبل؟" },
+    "share.hide.self":      { en:"Also hide the recordings you've already uploaded? Nobody else will hear them until you tick this again.", ar:"هل تُخفي أيضًا التسجيلات التي رفعتها من قبل؟ لن يسمعها أحدٌ غيرك حتى تختار هذا مجددًا." },
 
     // speaker origin visibility (recorder permission card; dictionary voices)
     "consent.origin":       { en:"Show my town to everyone who hears my voice", ar:"إظهار بلدتي لكلّ من يسمع صوتي" },
