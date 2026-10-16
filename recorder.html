@@ -1676,17 +1676,34 @@ async function offerShare(code){
 (function(){
   const c=$("cPlay"); if(!c) return;
   c.addEventListener("change", async ()=>{
-    // Ticking the box on a speaker whose card is closed would otherwise change
-    // nothing for their takes (a withdrawn card wins) — offer to share now.
+    /* The box is the speaker's switch for EVERYTHING they've recorded, not just
+       what comes next (10-16): ticking or unticking offers to apply it to the
+       takes already uploaded too. Asked, not silent — and for someone else's
+       voice, hiding still needs their spoken word (the Withdraw flow).
+         · tick   → share every take of this speaker (the card first), erased excepted
+         · untick → hide them all (a self-speaker needs no proof; an agent records it)
+       Cancel keeps the box as set, for new takes only. */
+    const u=window.AFD && window.AFD.user && window.AFD.user();
+    const code=($("spkId").value||"").trim();
+    if(!(u && code && window.AFD.speakerState && window.AFD.withdrawSpeaker)){ renderShareChip(); return; }
+    let st=null; try{ st=await window.AFD.speakerState(code); }catch(_){}
+    if(st===null || st==="deleted"){ renderShareChip(); return; }   // nothing uploaded yet, or erased for good
+    const agent=!!($("agentMode") && $("agentMode").checked);
     if(c.checked){
-      const u=window.AFD && window.AFD.user && window.AFD.user();
-      const code=($("spkId").value||"").trim();
-      if(u && code && window.AFD.speakerState){
-        let st=null; try{ st=await window.AFD.speakerState(code); }catch(_){}
-        if(st==="withdrawn") await offerShare(code);
+      const ask = agent ? AFDCore.t("share.confirm",dispMode).split("{spk}").join(code) : AFDCore.t("share.confirm.self",dispMode);
+      if(confirm(ask)){
+        try{ await window.AFD.withdrawSpeaker(u.uid, code, "public"); }
+        catch(e){ console.warn("[AFD] share all", e); }
       }
+    }else if(agent){
+      // someone else's voice: their own spoken "no" first, as the Withdraw button asks
+      openWithdrawProof(u.uid, code);
+    }else if(confirm(AFDCore.t("share.hide.self",dispMode))){
+      try{ await window.AFD.withdrawSpeaker(u.uid, code, "withdrawn"); }
+      catch(e){ console.warn("[AFD] hide all", e); }
     }
     renderShareChip();
+    try{ renderRoster(); }catch(_){}
   });
 })();
 /* The three steps are steps in the browser history too (AFDCore.stepHistory), so
@@ -1939,8 +1956,20 @@ function setupAnalyser(){
 $("toRecord").onclick=()=>{ show("recorder"); renderPrompt(); sizeCanvas(); };
 
 /* ================= prompt ================= */
+// (10-16) A new word starts on the Word tab. The tab used to carry over from the
+// last word, so after recording a sentence or meaning, the next word opened on
+// that tab and saying the word filed it as a sentence/meaning (the first
+// speaker's "sun"). A deep link that names a slot (#ent_x|context) says which
+// tab it wants for that word: applyDeepLink sets typeHeldFor so it isn't undone.
+let promptWordIdx=-1, typeHeldFor=-1;
 function renderPrompt(){
   const w=WORDS[idx];
+  if(idx!==promptWordIdx){
+    const held = typeHeldFor===idx;
+    if(promptWordIdx!==-1 && !held && recType!=="word") setRecType("word");
+    if(!held) typeHeldFor=-1;
+    promptWordIdx=idx;
+  }
   const host=document.getElementById("entryCardHost"), eid=entryIdFor(w.id);
   if(host && host.dataset.entry!==eid){
     host.dataset.entry=eid;
@@ -2231,6 +2260,7 @@ async function applyDeepLink(){
   idx=target;
   cameFrom={ entryId, w:WORDS[target] }; paintFromChip();
   setRecType(type==="context"||type==="definition"?type:"word");
+  typeHeldFor=target;
   // If the recorder is already on screen (hash changed in place), repaint it.
   // On first load the recorder is hidden behind setup/mic; the existing
   // show("recorder") paths will renderPrompt() once the user gets there.

@@ -628,6 +628,8 @@
   "A11.109": "screen:ep.needed",
   "A11.110": "screen:ep.custom",
   "A11.111": "screen:ep.none",
-  "A11.112": "screen:ep.other"
+  "A11.112": "screen:ep.other",
+  "A11.113": "screen:share.confirm.self",
+  "A11.114": "screen:share.hide.self"
  }
 }

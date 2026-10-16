@@ -44,7 +44,7 @@ await scenario("a contributor's photo fills its circle", async ()=>{
   const r = await page.evaluate(()=>{ const b=document.querySelector(".slot-context .av"), i=b.querySelector("img"), cs=getComputedStyle(b);
     const bb=b.getBoundingClientRect(), ib=i.getBoundingClientRect();
     return { bg: cs.backgroundColor, pad: cs.paddingTop, gap: Math.round((bb.width-ib.width)*10)/10 }; });
-  if(SHOTS) await page.screenshot({ path: SHOTS + "/avatar.png", clip:{ x:0, y:250, width:412, height:300 } });
+  if(SHOTS) await page.screenshot({ path: SHOTS + "/avatar.png", clip:{ x:0, y:380, width:412, height:260 } });
   ok("the photo fills the circle: no padding, no colour behind it", r.pad==="0px" && r.gap===0 && /rgba\(0, 0, 0, 0\)|transparent/.test(r.bg), JSON.stringify(r));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });

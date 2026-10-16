@@ -8,6 +8,21 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Recorder: a new word starts on the Word tab; the share box applies to what's
+  uploaded (10-16)** — from the first Dhofar speaker. Her word for "sun" was filed as a
+  MEANING (`scripts/word-voices.mjs sun`: a 3.6 s, 2-burst "meaning"): the recorder
+  kept the last word's tab, so the next word opened on Meaning. `renderPrompt` now
+  resets to Word when the word changes; a link naming a slot (`#ent_x|context`) still
+  holds that slot for that word. And "Let other people listen" on step 1 is now the
+  speaker's switch for everything they've recorded: ticking asks "also let others
+  listen to the recordings you've already uploaded?" and shares them all (the card
+  first; erased ones never return); unticking asks to hide them all (a self-speaker
+  needs no proof; for someone else's voice it opens the spoken-withdrawal flow).
+  Cancel keeps the box for new takes only. Also: a known contributor's name wraps to
+  two lines instead of "Fatma Almash…". Tests: `word-tab`, `share-switch`.
+  `scripts/word-voices.mjs` — every recording on one word, any state, with slot,
+  length and speech bursts.
+
 - **Two fixes from the first Dhofar speaker (10-16)** — "Edit how you appear" in the
   dictionary's account menu (`recorder.html#profile`) now stays on step 1 at the "How
   you appear" card; for a returning speaker the recorder's fast path used to skip to
