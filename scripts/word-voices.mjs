@@ -83,7 +83,8 @@ for (const e of entries) {
     const secs = r.capture && r.capture.durationMs ? (r.capture.durationMs / 1000).toFixed(1) + "s" : "?";
     const bursts = r.qc && r.qc.bursts != null ? `${r.qc.bursts} burst${r.qc.bursts === 1 ? "" : "s"}` : "";
     console.log(`  ${slot.padEnd(9)} ${state.padEnd(9)} ${when(ms(r.uploadedAt) || ms(r.recordedAt))}  ${secs.padStart(6)} ${bursts.padEnd(9)} ` +
-                `${await who(r.uid)}  speaker ${r.speakerId || "?"}${r.viaAgent ? " (by proxy)" : ""}${r.source === "voicenote" ? " · voice note" : ""}`);
+                `${await who(r.uid)}  speaker ${r.speakerId || "?"}${r.viaAgent ? " (by proxy)" : ""}${r.source === "voicenote" ? " · voice note" : ""}` +
+                `${r.refiledFrom ? `  (moved from ${SLOT[r.refiledFrom] || r.refiledFrom})` : ""}\n            id ${r.id}`);
   }
 }
-console.log("\nA single word said twice is ~2–4 s with 2 bursts. If one of those is filed as a sentence or meaning, it was recorded on the wrong tab.");
+console.log("\nA single word said twice is ~2–4 s with 2 bursts. If one of those is filed as a sentence or meaning, it was recorded on the wrong tab —\nmove it with:  node scripts/refile-take.mjs <id> word");
