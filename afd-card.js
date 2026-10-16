@@ -248,6 +248,19 @@ function monogramAvatar(bg, name){
   return { bg, svg:`<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="12" text-anchor="middle" dominant-baseline="central" font-family="system-ui,sans-serif" font-weight="600" font-size="10" fill="rgba(255,255,255,.95)">${escapeHtml(initials)}</text></svg>` };
 }
 
+// The face this account's own voice wears on a card, as HTML (10-16): a known
+// steward's photo or name monogram, else the fauna avatar for uid|speaker —
+// the same seed listPlayable uses, so a question about "your voice" (AFDCore.ask
+// on Add) shows the avatar people actually see on that voice.
+async function voiceFace(uid, speakerId){
+  let av = faunaAvatar(uid ? (uid+"|"+(speakerId||"")) : (speakerId||"?"));
+  try{
+    const p = uid ? await stewardProfile(uid) : null;
+    if(p && p.known) av = p.avatarUrl ? photoAvatar(av.bg, p.avatarUrl) : monogramAvatar(av.bg, p.displayName);
+  }catch(_){}
+  return `<div style="width:100%;height:100%;background:${av.bg};display:flex;align-items:center;justify-content:center">${av.svg}</div>`;
+}
+
 async function listPlayable(entryId){
   // Everything here runs in parallel: the two queries, then one audio link per
   // voice, then the contributor profiles. One at a time, a word with a few
@@ -1346,4 +1359,4 @@ async function entryCard(res, lead){
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { primeCounts, primeAllSpellings, spellingsFor, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { voiceFace, primeCounts, primeAllSpellings, spellingsFor, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

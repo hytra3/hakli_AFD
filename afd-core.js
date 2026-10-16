@@ -842,7 +842,15 @@ window.AFDCore = (function(){
     "find.type.ph":         { en:"In Hakli, Arabic or English", ar:"بالحَكلي أو العربية أو الإنجليزية" },
     "find.type.close":      { en:"Close",              ar:"إغلاق" },
     "find.type.count":      { en:"Matches: {n}",       ar:"المطابقات: {n}" },
-    "find.type.none":       { en:"No word matches — add it?", ar:"لا كلمة مطابقة — هل تضيفها؟" }
+    "find.type.none":       { en:"No word matches — add it?", ar:"لا كلمة مطابقة — هل تضيفها؟" },
+    // 10-16: the in-page question (AFDCore.ask) and the shared sign-in (afd-signin.js).
+    // Added at the END so the review list's numbers don't move. The add.reopen.*
+    // lines are consent wording: give them to the strongest reviewer (A5's).
+    "add.reopen.sub":       { en:"Yes covers every recording you have made — not only this word. You can hide them again any time.", ar:"«نعم» تشمل كلّ تسجيلاتك — لا هذه الكلمة فقط. ويمكنك إخفاؤها مجددًا في أي وقت." },
+    "add.reopen.yes":       { en:"Let people hear",    ar:"دع الناس يسمعون" },
+    "add.reopen.no":        { en:"Keep hidden",        ar:"أبقِها مخفيّة" },
+    "auth.close":           { en:"Close",              ar:"إغلاق" },
+    "add.hear":             { en:"Hear it",            ar:"استمع" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1091,7 +1099,106 @@ window.AFDCore = (function(){
     window.addEventListener("unhandledrejection", (e)=>{ report("unhandled", e && e.reason); });
   }catch(_){}
 
+  /* ---- ask(): a yes/no question in the page, not the browser's box (10-16) --------
+     confirm() shows "hakli.app says", OK / Cancel in the phone's own language,
+     no picture and no voice — and some in-app browsers don't show it at all.
+     For a non-reader that's a coin toss, and the first question moved here is
+     a consent one (re-opening a withdrawn voice on Add).
+       ask({ mode, titleKey, subKey, yesKey, noKey, face, audio, yesIcon, noIcon })
+         → Promise<true | false>   (closing it — ✕, Escape, a tap outside — is false)
+     mode     the page's display mode: auto = Arabic + small English, else Arabic
+     face     HTML for the picture at the top (the speaker's avatar, the word…)
+     audio    a URL (or a Promise of one) for the spoken question; it plays on
+              open unless quiet mode is on (it's narration), and 🔈 replays it
+     The YES button is never the default focus, so a stray Enter answers no. */
+  const ASK_CSS = `
+.afd-ask{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(23,36,31,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.afd-ask .ask-panel{position:relative;width:100%;max-width:460px;box-sizing:border-box;max-height:92vh;overflow:auto;
+  background:var(--cloud,#fff);color:var(--ink,#17241F);border-radius:22px 22px 0 0;padding:22px 18px 20px;
+  box-shadow:0 -10px 40px rgba(0,0,0,.18);text-align:center}
+@media (min-width:600px){.afd-ask{align-items:center}.afd-ask .ask-panel{border-radius:22px}}
+.afd-ask .ask-face{width:84px;height:84px;margin:4px auto 12px;border-radius:50%;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;font-size:44px}
+.afd-ask .ask-face img{width:100%;height:100%;display:block;object-fit:cover}
+.afd-ask .ask-face svg{width:62%;height:62%;display:block}
+.afd-ask h2{margin:0;font-size:20px;line-height:1.45}
+.afd-ask .ask-sub{margin:8px 0 0;font-size:15px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
+.afd-ask .sub{display:block;font-size:12px;font-weight:400;opacity:.72;margin-top:2px}
+.afd-ask .ask-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.afd-ask .ask-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:64px;
+  padding:12px 16px;border-radius:18px;border:0;font:inherit;font-size:17px;font-weight:600;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.afd-ask .ask-btn svg{width:28px;height:28px;flex:0 0 auto}
+.afd-ask .ask-yes{background:var(--mountain,#1F3A34);color:#fff}
+.afd-ask .ask-no{background:var(--cloud,#fff);color:var(--mountain,#1F3A34);box-shadow:inset 0 0 0 1.5px var(--mountain,#1F3A34)}
+.afd-ask .ask-hear{position:absolute;top:10px;inset-inline-start:10px;width:44px;height:44px;border-radius:50%;border:0;
+  background:transparent;color:var(--mountain,#1F3A34);cursor:pointer}
+.afd-ask .ask-hear svg{width:24px;height:24px}
+.afd-ask .ask-x{position:absolute;top:10px;inset-inline-end:10px;width:44px;height:44px;border-radius:50%;border:0;
+  background:transparent;color:var(--ink-soft,#5B6E66);font-size:22px;cursor:pointer}`;
+  const ASK_ICONS = {
+    hear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+    open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M17 8.5a4 4 0 0 1 0 6M19.5 6a7.5 7.5 0 0 1 0 11"/></svg>',
+    closed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
+  };
+  function askHTML(key, mode){
+    const s = STRINGS[key]; if(!s) return escHtml(key);
+    let h = `<span dir="rtl">${escHtml(s.ar || s.en)}</span>`;
+    if(mode === "auto" && s.en && s.en !== s.ar) h += `<small class="sub">${escHtml(s.en)}</small>`;
+    return h;
+  }
+  function ask(o){
+    o = o || {};
+    const mode = o.mode || getDisplayMode("auto");
+    if(!document.getElementById("afd-ask-css")){
+      const st = document.createElement("style"); st.id = "afd-ask-css"; st.textContent = ASK_CSS;
+      document.head.appendChild(st);
+    }
+    return new Promise((resolve)=>{
+      const prevFocus = document.activeElement;
+      const w = document.createElement("div");
+      w.className = "afd-ask"; w.setAttribute("role", "alertdialog"); w.setAttribute("aria-modal", "true");
+      w.innerHTML = `<div class="ask-panel">
+        <button class="ask-hear" type="button" hidden aria-label="${escHtml(t("add.hear", "auto"))}">${ASK_ICONS.hear}</button>
+        <button class="ask-x" type="button" aria-label="${escHtml(t("auth.close", "auto"))}">✕</button>
+        ${o.face ? `<div class="ask-face">${o.face}</div>` : ""}
+        <h2 id="afdAskTitle">${askHTML(o.titleKey, mode)}</h2>
+        ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode)}</p>` : ""}
+        <div class="ask-btns">
+          <button class="ask-btn ask-yes" type="button">${ASK_ICONS[o.yesIcon || "open"]}<span>${askHTML(o.yesKey, mode)}</span></button>
+          <button class="ask-btn ask-no" type="button">${ASK_ICONS[o.noIcon || "closed"]}<span>${askHTML(o.noKey, mode)}</span></button>
+        </div></div>`;
+      w.setAttribute("aria-labelledby", "afdAskTitle");
+      let done = false, _askAudio = null;
+      const end = (v)=>{
+        if(done) return; done = true;
+        document.removeEventListener("keydown", onKey, true);
+        try{ if(_askAudio){ _askAudio.pause(); } }catch(_){}
+        w.remove();
+        try{ prevFocus && prevFocus.focus && prevFocus.focus(); }catch(_){}
+        resolve(v === true);
+      };
+      const onKey = (e)=>{ if(e.key === "Escape"){ e.stopPropagation(); end(false); } };
+      document.addEventListener("keydown", onKey, true);
+      w.addEventListener("click", (e)=>{ if(e.target === w) end(false); });
+      w.querySelector(".ask-yes").onclick = ()=> end(true);
+      w.querySelector(".ask-no").onclick  = ()=> end(false);
+      w.querySelector(".ask-x").onclick   = ()=> end(false);
+      document.body.appendChild(w);
+      w.querySelector(".ask-no").focus();          // a stray Enter answers no
+      Promise.resolve(o.audio).then((url)=>{
+        if(!url || done) return;
+        const hear = w.querySelector(".ask-hear");
+        hear.hidden = false;
+        hear.onclick = ()=>{ _askAudio = playUI(url, "asked") || _askAudio; };
+        _askAudio = playUI(url, "narration");
+      }).catch(()=>{});
+    });
+  }
+
   return {
+    ask,
     errorSink, report,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,

@@ -418,6 +418,26 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
 - **Still open:** contributed-word flood (App Check or a per-account cap) — wait
   until links go beyond hand-sharing.
 
+## Consent question + one sign-in everywhere (2026-10-16)
+
+- **✅ Re-opening a withdrawn voice on Add is asked in the page** (`AFDCore.ask`), not
+  with `confirm()`. The browser box was text only, OK / Cancel in the phone's own
+  language, and some in-app browsers never show it. Now: the speaker's own voice
+  avatar (`voiceFace`, the face their voices wear), the question in Arabic (+ English
+  in auto), a line saying yes covers *every* recording, two large labelled buttons,
+  and the spoken question (`add.reopen`, R2.10) once recorded. "Keep hidden" has the
+  focus; closing it (✕, Escape, a tap outside) is no — a withdrawal reverses only on
+  a clear yes. Consent model unchanged (per speaker, `withdrawSpeaker`).
+  `AFDCore.ask` is generic: the recorder's alerts and the remaining `confirm()`s
+  (sign out, remove my word) can move to it next.
+- **✅ One sign-in on every page** (`afd-signin.js`): Google, a texted code (typed in
+  the page — works inside WhatsApp's own browser), email + password, and an email
+  link. Was Add only; the recorder had Google + email, the dictionary's account
+  button a Google popup. The dictionary now opens it in a sheet. Phone accounts show
+  their number in the recorder.
+- New on-screen lines at the END of their sections (no renumbering): A3.57–60
+  (`add.reopen.*`, `add.hear`) and A4.33 (`auth.close`). A3.57–59 are consent wording.
+
 ## Matcher resilience (2026-10-10)
 
 What prompted it: a search on the phone sat on "Finding…" and then showed

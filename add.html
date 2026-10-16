@@ -288,34 +288,10 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 
     <div class="stack" id="authOut">
       <p class="note" style="text-align:center" data-k="add.share.signin"></p>
-      <button class="btn" id="googleBtn" type="button" data-k="setup.google"></button>
-      <!-- Phone: the code is typed right here, so it works even inside WhatsApp's
-           own browser, where Google sign-in often won't open. -->
-      <div class="stack" id="phoneBox">
-        <p class="note" style="text-align:center" data-k="add.auth.phone"></p>
-        <input type="tel" id="authPhone" placeholder="+968 9123 4567" autocomplete="tel" inputmode="tel" dir="ltr">
-        <button class="btn secondary" id="phoneBtn" type="button" data-k="add.auth.phone.send"></button>
-        <div class="stack hidden" id="codeBox">
-          <p class="note" style="text-align:center" data-k="add.auth.code"></p>
-          <input type="text" id="authCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="123456" dir="ltr">
-          <button class="btn" id="codeBtn" type="button" data-k="add.auth.code.go"></button>
-        </div>
-        <div id="recaptcha"></div>
-      </div>
-      <details id="emailBox">
-        <summary data-k="setup.oremail"></summary>
-        <div class="stack">
-          <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="username">
-          <input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password">
-          <div class="row">
-            <button class="btn secondary" id="signupBtn" type="button" data-k="setup.signup"></button>
-            <button class="btn" id="emailBtn" type="button" data-k="setup.signin"></button>
-          </div>
-          <button class="btn ghost" id="linkBtn" type="button" data-k="add.auth.link"></button>
-          <p class="note hidden" id="linkSent" data-k="add.auth.link.sent"></p>
-        </div>
-      </details>
-      <p class="note hidden" id="browserHint" style="text-align:center"></p>
+      <!-- Google, a phone number (the code is typed right here, so it works
+           inside WhatsApp's own browser), email + password, or an email link:
+           built by afd-signin.js, the same on every page. -->
+      <div id="signinHost"></div>
     </div>
 
     <div class="stack hidden" id="authIn">
@@ -363,10 +339,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
    else, speaker details and spoken consent stay in recorder.html.
 ================================================================*/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
-         signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
-         RecaptchaVerifier, signInWithPhoneNumber,
-         sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink }
+import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
          collection, query, where, limit, getDocs, addDoc, Timestamp }
@@ -374,7 +347,8 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip, instanceLang } from "./afd-upload.js?v=b1016d";
-import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile } from "./afd-card.js?v=b1016d";
+import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace } from "./afd-card.js?v=b1016d";
+import { mountSignIn, finishEmailLink } from "./afd-signin.js?v=b1016d";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const app   = initializeApp(firebaseConfig);
@@ -438,7 +412,6 @@ $("whoNote").innerHTML = bi("add.share.who");
 $("notYou").innerHTML = bi("add.share.notyou");
 $("draftText").innerHTML = bi("add.draft");
 $("draftDiscard").innerHTML = bi("add.draft.discard");
-$("browserHint").innerHTML = bi("add.share.browser");
 
 /* ---------------- the draft (IndexedDB) ----------------
    One word in progress. Blobs live here too, so a reload — or WhatsApp's
@@ -1025,8 +998,12 @@ async function share(){
     const cardSn = await getDoc(doc(db, "afd_speakers", up.speakerId));
     const cardState = cardSn.exists() ? ((cardSn.data()||{}).consent || "public") : null;
     if(draft.consent.play && cardState==="withdrawn" && up.reopen===undefined){
-      const x = C.STRINGS["add.share.reopen"];
-      up.reopen = confirm(MODE==="auto" ? x.ar+"\n\n"+x.en : x.ar);
+      // Asked in the page, with their own voice's face and the spoken question
+      // (AFDCore.ask) — never the browser's text-only OK/Cancel box. Closing it
+      // is "keep hidden": a withdrawal only reverses on a clear yes.
+      up.reopen = await C.ask({ mode: MODE, face: await voiceFace(uid, up.speakerId),
+        titleKey:"add.share.reopen", subKey:"add.reopen.sub",
+        yesKey:"add.reopen.yes", noKey:"add.reopen.no", audio: promptUrl("add.reopen") });
     }
     up.public = !!draft.consent.play && (cardState!=="withdrawn" || up.reopen===true);
     await saveDraft();
@@ -1130,110 +1107,19 @@ async function share(){
 $("shareBtn").onclick = share;
 $("shareBack").onclick = ()=> show("show");
 
-/* ---- sign-in: only here, at the end, once there's a word worth keeping ---- */
-function authFailed(e){
-  console.warn("[AFD add] sign-in", e);
-  const c = (e && e.code) || "";
-  if(c.includes("popup-closed") || c.includes("cancelled-popup")) return;   // they changed their mind
-  // In-app browsers (WhatsApp, Instagram…) often can't open Google sign-in.
-  $("browserHint").classList.remove("hidden");
-  // the email-form mistakes get a line of their own (wording shared with the recorder)
-  const k = C.authErrorKey(e);
-  if(k === "auth.err.badpass" || k === "auth.err.exists" || k === "auth.err.weak")
-    $("shareErr").textContent = C.t(k, MODE);
-}
-/* A sign-in step on its way (10-15): dots on the button pressed, which stays
-   disabled until the answer comes back. */
-async function withDots(btn, fn){
-  const d = document.createElement("span"); d.innerHTML = C.dotsHTML(); const dots = d.firstChild;
-  btn.disabled = true; btn.appendChild(dots);
-  try{ return await fn(); }finally{ dots.remove(); btn.disabled = false; }
-}
-$("googleBtn").onclick = async ()=>{
-  $("shareErr").textContent = ""; wantShare = true;
-  try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e){ wantShare = false; authFailed(e); }
-};
-$("emailBtn").onclick = async ()=>{
-  $("shareErr").textContent = ""; wantShare = true;
-  try{ await withDots($("emailBtn"), ()=> signInWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); }
-  catch(e){ wantShare = false; authFailed(e); }
-};
-$("signupBtn").onclick = async ()=>{
-  $("shareErr").textContent = ""; wantShare = true;
-  try{ await withDots($("signupBtn"), ()=> createUserWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); }
-  catch(e){ wantShare = false; authFailed(e); }
-};
+/* ---- sign-in: only here, at the end, once there's a word worth keeping ----
+   The controls are afd-signin.js (shared with the dictionary and the recorder).
+   A sign-in that succeeds carries on into sharing (wantShare → onAuthStateChanged). */
+const signIn = mountSignIn($("signinHost"), {
+  auth, label: (k)=> bi(k), text: (k)=> plain(k),
+  showError: (h)=>{ $("shareErr").innerHTML = h; },
+  onBegin: ()=>{ wantShare = true; }, onFail: ()=>{ wantShare = false; }
+});
 $("notYou").onclick = ()=> signOut(auth);
-
-/* ---- phone number: a texted code, typed right here ----
-   Works inside in-app browsers (no popup, no redirect). Firebase needs an
-   invisible reCAPTCHA to send the text; it's made on the first tap and reused. */
-let recaptcha = null, phoneConfirm = null;
-function phoneFailed(e){
-  console.warn("[AFD add] phone", e);
-  const c = (e && e.code) || "";
-  // operation-not-allowed: texts to that country are off (Firebase's SMS region policy)
-  $("shareErr").innerHTML = bi(c.includes("too-many") || c.includes("quota") ? "add.auth.toomany"
-                             : c.includes("operation-not-allowed") ? "add.auth.region"
-                             : c.includes("code") ? "add.auth.code.bad" : "add.auth.phone.bad");
-}
-function phoneNumber(){
-  let n = $("authPhone").value.replace(/[^\d+]/g, "");
-  if(n.startsWith("00")) n = "+" + n.slice(2);
-  if(!n.startsWith("+") && n.length === 8) n = "+968" + n;     // a local Omani number
-  else if(!n.startsWith("+") && n.length >= 10) n = "+" + n;   // full number, country code included, + left off
-  return n;
-}
-$("phoneBtn").onclick = async ()=>{
-  $("shareErr").textContent = "";
-  const n = phoneNumber();
-  if(!/^\+\d{8,15}$/.test(n)){ $("shareErr").innerHTML = bi("add.auth.phone.bad"); return; }
-  const pd = document.createElement("span"); pd.innerHTML = C.dotsHTML(); const phoneDots = pd.firstChild;
-  $("phoneBtn").disabled = true; $("phoneBtn").appendChild(phoneDots);
-  try{
-    if(!recaptcha) recaptcha = new RecaptchaVerifier(auth, "recaptcha", { size:"invisible" });
-    phoneConfirm = await signInWithPhoneNumber(auth, n, recaptcha);
-    $("codeBox").classList.remove("hidden");
-    $("authCode").focus();
-  }catch(e){
-    phoneFailed(e);
-    try{ recaptcha && recaptcha.clear(); }catch(_){} recaptcha = null;     // a fresh one next time
-  }finally{ phoneDots.remove(); $("phoneBtn").disabled = false; }
-};
-$("codeBtn").onclick = async ()=>{
-  if(!phoneConfirm) return;
-  $("shareErr").textContent = ""; wantShare = true;
-  try{ await withDots($("codeBtn"), ()=> phoneConfirm.confirm($("authCode").value.trim())); }
-  catch(e){ wantShare = false; phoneFailed(e); }
-};
-$("authCode").addEventListener("keydown", e=>{ if(e.key === "Enter") $("codeBtn").click(); });
-
-/* ---- email link: no password. The link comes back to this page; the draft is
-   in THIS browser's storage, so the note says to return here if the email app
-   opens the link somewhere else. ---- */
-$("linkBtn").onclick = async ()=>{
-  $("shareErr").textContent = "";
-  const email = $("authEmail").value.trim();
-  if(!email){ $("authEmail").focus(); return; }
-  try{
-    await withDots($("linkBtn"), ()=> sendSignInLinkToEmail(auth, email, { url: location.origin + location.pathname, handleCodeInApp: true }));
-    try{ localStorage.setItem("afd.linkEmail", email); }catch(_){}
-    $("linkSent").classList.remove("hidden");
-  }catch(e){ authFailed(e); }
-};
-if(isSignInWithEmailLink(auth, location.href)){
-  (async ()=>{
-    let email = null; try{ email = localStorage.getItem("afd.linkEmail"); }catch(_){}
-    if(!email) email = window.prompt(plain("add.auth.link.email")) || "";
-    try{
-      wantShare = true;
-      await signInWithEmailLink(auth, email.trim(), location.href);
-      try{ localStorage.removeItem("afd.linkEmail"); }catch(_){}
-    }catch(e){ wantShare = false; authFailed(e); }
-    history.replaceState(null, "", location.pathname);           // drop the one-time code from the address
-  })();
-}
+// An email sign-in link that came back here (the draft is in this browser's storage).
+finishEmailLink(auth, { label: (k)=> bi(k), text: (k)=> plain(k),
+  showError: (h)=>{ $("shareErr").innerHTML = h; },
+  onBegin: ()=>{ wantShare = true; }, onFail: ()=>{ wantShare = false; } });
 
 /* ---- the account badge in the header: a filled initial (☎ for a phone-only
    account) when signed in, a faint outline when not. Tap: who, and sign out —
