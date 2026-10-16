@@ -275,6 +275,7 @@
   "A4.31": "screen:auth.err.popup",
   "A4.32": "screen:auth.err.other",
   "A4.33": "screen:auth.close",
+  "A4.34": "screen:auth.recaptcha",
   "A5.1": "screen:speaker.switch",
   "A5.2": "screen:profile.title",
   "A5.3": "screen:profile.note",

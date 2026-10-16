@@ -104,6 +104,12 @@ await scenario("Sign-in by texted code on all three pages", async ()=>{
     const { page, ctx, state } = await newPage(browser, srv.url, { init:AUTO });
     await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1500);
     const vis = await page.isVisible("#signinHost #authPhone");
+    const legal = await page.evaluate(()=>{ const n=document.querySelector("#signinHost #recaptchaNote");
+      const b=document.createElement("div"); b.className="grecaptcha-badge"; document.body.appendChild(b);
+      const hidden = getComputedStyle(b).visibility==="hidden"; b.remove();
+      return { links: n ? [...n.querySelectorAll("a")].map(a=>a.getAttribute("href")) : [], text: n ? n.innerText : "", hidden }; });
+    ok("Recorder: the reCAPTCHA badge is hidden and its notice shows, with Google's two links",
+       legal.hidden && legal.links.filter(h=>/policies\.google\.com\/(privacy|terms)/.test(h)).length >= 2 && /reCAPTCHA/.test(legal.text), JSON.stringify(legal));
     await shot(page, "signin-recorder");
     await page.fill("#authPhone", "91234567");
     await page.click("#phoneBtn"); await page.waitForTimeout(500);

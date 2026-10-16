@@ -850,7 +850,10 @@ window.AFDCore = (function(){
     "add.reopen.yes":       { en:"Let people hear",    ar:"دع الناس يسمعون" },
     "add.reopen.no":        { en:"Keep hidden",        ar:"أبقِها مخفيّة" },
     "auth.close":           { en:"Close",              ar:"إغلاق" },
-    "add.hear":             { en:"Hear it",            ar:"استمع" }
+    "add.hear":             { en:"Hear it",            ar:"استمع" },
+    // Google's required notice when the reCAPTCHA badge is hidden (afd-signin.js).
+    // {privacy} and {terms} become links: keep both, as they are.
+    "auth.recaptcha":       { en:"Protected by reCAPTCHA. Google's {privacy} and {terms} apply.", ar:"محميّ بخدمة reCAPTCHA، وتنطبق {privacy} و{terms} من Google." }
   };
   function t(key, mode){
     const s = STRINGS[key];
