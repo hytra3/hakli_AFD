@@ -569,6 +569,33 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Field error log (10-16): afd-core's report() — a failed search, share or
+    // upload, or an uncaught page error. Anyone may ADD one, signed in or not
+    // (most people searching never sign in), but only in this exact, thin
+    // shape: no uid, no user agent, short strings, the server's own time, and
+    // an expiry at most 31 days out (a Firestore TTL policy on expireAt deletes
+    // them; see DEPLOY.md). Only stewards read or clear them. Never edited.
+    match /afd_client_errors/{id} {
+      function shortStr(k, n) {
+        return !(k in request.resource.data)
+               || (request.resource.data[k] is string && request.resource.data[k].size() <= n);
+      }
+      allow create: if request.resource.data.keys().hasAll(['page','where','code','at','expireAt'])
+                    && request.resource.data.keys().hasOnly(
+                         ['page','where','code','msg','build','online','os','at','expireAt'])
+                    && request.resource.data.page  is string && request.resource.data.page.size()  <= 40
+                    && request.resource.data.where is string && request.resource.data.where.size() <= 60
+                    && request.resource.data.code  is string && request.resource.data.code.size()  <= 80
+                    && shortStr('msg', 300) && shortStr('build', 16)
+                    && (!('online' in request.resource.data) || request.resource.data.online is bool)
+                    && (!('os' in request.resource.data) || request.resource.data.os in ['ios','android','other'])
+                    && request.resource.data.at == request.time
+                    && request.resource.data.expireAt is timestamp
+                    && request.resource.data.expireAt <= request.time + duration.value(31, 'd');
+      allow read, delete: if isSteward();
+      allow update: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

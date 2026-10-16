@@ -369,7 +369,7 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
          sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
-         collection, query, where, limit, getDocs }
+         collection, query, where, limit, getDocs, addDoc, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -381,6 +381,10 @@ const app   = initializeApp(firebaseConfig);
 const auth  = getAuth(app);
 const db    = getFirestore(app);
 const store = getStorage(app);
+// field error log — AFDCore.report() writes here (afd_client_errors: create-only,
+// stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
+AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
+  Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 30*864e5) })));
 initCard({ db, store, user:()=>{ const u = auth.currentUser; return (u && !u.isAnonymous) ? u : null; },
            mode:()=>"auto", banner:(m)=>console.warn("[AFD add]", m) });
 
@@ -1032,7 +1036,8 @@ async function share(){
     if(draft.photo && !up.entry && !up.photo){
       step = "photo";
       const path = "afd_pics/"+uid+"/"+draft.entryId+".jpg";
-      try{ await uploadBytes(ref(store, path), draft.photo, { contentType:"image/jpeg" }); }
+      // write-once, so the phone may keep it; private so a photo a steward takes down isn't held in a shared cache
+      try{ await uploadBytes(ref(store, path), draft.photo, { contentType:"image/jpeg", cacheControl:"private, max-age=31536000, immutable" }); }
       catch(e){
         let landed=false; try{ const m = await getMetadata(ref(store, path)); landed = !!m && m.size===draft.photo.size; }catch(_){}
         if(!landed) throw e;
@@ -1107,6 +1112,7 @@ async function share(){
     await clearDraft();
   }catch(e){
     console.warn("[AFD add] share failed at", step, e);
+    C.report("add.share." + step, e);             // field error log (afd-core)
     // Only blame the signal when the phone says it's offline. Anything else
     // (a refused write, a rules mismatch) gets the step and error code, so a
     // screenshot from the field is enough to tell what went wrong.

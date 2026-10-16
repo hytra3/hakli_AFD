@@ -59,6 +59,10 @@ export async function uploadClip({ db, store, uid }, rec, speaker){
     try{
       await uploadBytes(ref(store, path), rec.blob, {
         contentType: rec.blob.type || "audio/webm",
+        // A take never changes (write-once), so the phone may keep it. PRIVATE so
+        // no shared cache holds a copy: withdrawal rotates the playback link
+        // (revoke/), and the app never asks for the old one again.
+        cacheControl: "private, max-age=31536000, immutable",
         customMetadata: { entryId: rec.entryId, gloss: rec.gloss, recordingId: rec.recordingId }
       });
     }catch(e){

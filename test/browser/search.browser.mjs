@@ -44,6 +44,12 @@ await scenario("C — 503 twice: one retry, then names the failure and restores 
   ok("C 503 ×2 → retried once, 'having trouble' + code", state.calls.length===2 && /HTTP 503/i.test(h), `calls=${state.calls.length} ${JSON.stringify(h)}`);
   ok("C list is back on screen after the failure", !(await resultsHidden(page)) && (await page.locator("#results > *").count()) > 3);
   ok("C busy state cleared", !(await page.evaluate(()=>document.body.classList.contains("busy"))));
+  const logged = await page.evaluate(()=> Object.entries(globalThis.__FS||{})
+    .filter(([k])=> k.startsWith("afd_client_errors/")).map(([,v])=> v));
+  ok("C the failure is in the field error log, once, without a uid",
+     logged.length===1 && logged[0].where==="search" && /503/.test(logged[0].code)
+     && logged[0].page==="index.html" && !("uid" in logged[0]) && logged[0].expireAt,
+     JSON.stringify(logged));
   await ctx.close(); });
 
 // D — 503 then 200: the retry succeeds silently

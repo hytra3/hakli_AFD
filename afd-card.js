@@ -35,6 +35,10 @@ const FAUNA_KEYS = Object.keys(FAUNA);
 function hashInt(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+// A word's photo in its box (10-16). Lazy: the list has a box per word, and
+// without it opening the dictionary downloads every photo, down the page too.
+// Escaped even though the rules pin the URL: it lands in innerHTML.
+function thumbImg(url){ return `<img src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async">`; }
 
 function downsampleEnv(frames, n){
   n=n||48; if(!frames||!frames.length) return [];
@@ -114,7 +118,7 @@ async function applyBox(thumbEl, mode, recs){
   // its own borrowed the shape of a sentence. The picture is the non-reader's
   // anchor; the voices' shapes stay in their own rows below.
   if(mode==="sound"){
-    if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
+    if(d.img){ thumbEl.innerHTML = thumbImg(d.img); return; }
     return d.pic ? asText(d.pic) : asIcon();
   }
   // Script tier: the Arabic word already sits beside the box, so the box keeps
@@ -122,11 +126,11 @@ async function applyBox(thumbEl, mode, recs){
   // the identicon, as in the other tiers (10-14: the script word used to stand
   // in here, overflowing on long words and repeating the text beside it).
   if(mode==="script"){
-    if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
+    if(d.img){ thumbEl.innerHTML = thumbImg(d.img); return; }
     return d.pic ? asText(d.pic) : asIcon();
   }
   // auto
-  if(d.img){ thumbEl.innerHTML = `<img src="${d.img}" alt="">`; return; }
+  if(d.img){ thumbEl.innerHTML = thumbImg(d.img); return; }
   if(d.pic){ return asText(d.pic); }
   return asIcon();
 }
@@ -285,10 +289,14 @@ async function listPlayable(entryId){
   // Overlay contributor identity: a "known" steward's own (non-proxied) voices
   // get their photo, or a name monogram if they set no picture. Cache dedupes
   // repeated owners, so this is at most one read per distinct contributor.
-  await Promise.all(out.map(async rec=>{ rec.town = await publicTown(rec.speakerId); }));
+  // Towns and contributor profiles are independent, so they're fetched in the
+  // same round (10-16) — one network wait fewer each time a card opens.
   await Promise.all(out.map(async rec=>{
-    if(rec.viaAgent || !rec.uid) return;         // proxied voices stay pseudonymous
-    const p = await stewardProfile(rec.uid);
+    const [town, p] = await Promise.all([
+      publicTown(rec.speakerId),
+      (rec.viaAgent || !rec.uid) ? null : stewardProfile(rec.uid)   // proxied voices stay pseudonymous
+    ]);
+    rec.town = town;
     if(p && p.known){
       rec.displayName = p.displayName;
       rec.avatar = p.avatarUrl ? photoAvatar(rec.avatar.bg, p.avatarUrl)
@@ -1201,7 +1209,7 @@ async function entryCard(res, lead){
   // Collapsed header shows the entry's IDENTITY (emoji / identicon / script word).
   // The sound-shape (waveform, in sound tier) is painted when the detail loads.
   // A contributor's photo (add.html "show it") outranks the emoji.
-  if(meta.image) thumbEl.innerHTML = `<img src="${escapeHtml(meta.image)}" alt="">`;
+  if(meta.image) thumbEl.innerHTML = thumbImg(meta.image);
   else if(meta.pic) thumbEl.textContent = meta.pic;   // picture first in every tier
   // No picture → the identicon, in every tier (10-14: the Arabic-only tier used to
   // put the word itself here, which overflowed on long words and repeated the
@@ -1220,7 +1228,7 @@ async function entryCard(res, lead){
   // Repaint the picture and the text after an in-place edit (word tools), the
   // same way the header was first drawn; tags and voice counts stay put.
   const paintFace=(mt)=>{
-    if(mt.image) thumbEl.innerHTML = `<img src="${escapeHtml(mt.image)}" alt="">`;
+    if(mt.image) thumbEl.innerHTML = thumbImg(mt.image);
     else if(mt.pic) thumbEl.textContent = mt.pic;
     else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
     thumbEl.dataset.pic = mt.pic || "";

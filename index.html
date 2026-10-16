@@ -382,7 +382,7 @@ body.compact .typecount{display:none}
   addEventListener("resize", onScroll, { passive:true });
 }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs }
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs, addDoc, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -467,6 +467,10 @@ const app   = initializeApp(firebaseConfig);
 const db    = getFirestore(app);
 const store = getStorage(app);
 const auth  = getAuth(app);
+// field error log — AFDCore.report() writes here (afd_client_errors: create-only,
+// stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
+AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
+  Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 30*864e5) })));
 let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
 // A *named* account, not the anonymous key the find flow may already hold.
 // This mirrors notAnon() in afd-firestore.rules: anonymous can read (search
@@ -721,6 +725,7 @@ async function runSearch(blob){
     // (the list, or the last results) — a failed search must not leave a blank
     // page with no way on.
     setHintKey(SEARCH_ERR_KEY[err.kind] || "find.err.network", err.code);
+    AFDCore.report("search", err);               // field error log (afd-core)
     showResults(); return;
   }
   const results = (data.results||[]);

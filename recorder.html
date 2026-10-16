@@ -787,7 +787,7 @@ import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider,
          signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
-         collection, query, where, limit, getDocs }
+         collection, query, where, limit, getDocs, addDoc, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -807,6 +807,10 @@ if(CONFIGURED){
   auth  = getAuth(app);
   db    = getFirestore(app);
   store = getStorage(app);
+  // field error log — AFDCore.report() writes here (afd_client_errors: create-only,
+  // stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
+  AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
+    Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 30*864e5) })));
 }else{
   // Not configured yet: recording and local saving still work fully.
   $("authNote").textContent =
@@ -2809,6 +2813,7 @@ async function syncOne(rec){
     return true;
   }catch(e){
     console.warn("upload failed, kept locally:", e);
+    AFDCore.report("recorder.upload", e);         // field error log (afd-core)
     renderClips();
     return false;
   }
