@@ -20,6 +20,10 @@
    shows a result straight away; then what the app already plays; then the rest,
    which no page plays yet ("for later"). Retired 10-12 because no page used them:
    intro.welcome, intro.longpress, intro.hold_to_speak, intro.find.
+   10-15 (welcome v2, still nothing recorded): R1 cut to the eight clips of the
+   three-scene welcome — what · find · hear · record · review · add · yours · why.
+   howto.sentence / howto.meaning moved to the last section (how-to segments),
+   intro.tour.waits to "Everywhere", intro.tour.new retired (howto.add says it).
    Keeping numbers stable from here: a new line goes at the END of its section,
    a new section at the END of its tab. Recordings and suggestions are keyed by
    `key`, never by number, so a renumbering loses nothing.
@@ -29,15 +33,12 @@ window.AFDPrompts = [
   { tab:"record", start:true, name:"Start here — the welcome page", ar:"ابدأ هنا — صفحة الترحيب",
     note:"The welcome page plays these, in this order. Record them and it speaks Hakli.", items:[
     { key:"intro.tour.what", en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people.", ar:"هذا مكانٌ لسماع لغة الحَكلي، ولحفظها بأصوات أهلها.", kind:"narration" },
-    { key:"intro.tour.new", en:"If a word isn't here yet, you can be the first to say it.", ar:"إن لم تكن الكلمة هنا بعد، فيمكنك أن تكون أوّل من يقولها.", kind:"narration" },
     { key:"howto.find", en:"To find a word: hold the green circle and say it", ar:"للعثور على كلمة: اضغط الدائرة الخضراء مطوّلًا وقُلها", kind:"narration" },
+    { key:"howto.hear", en:"To hear a word: tap play — every voice that has said it is there", ar:"لسماع كلمة: انقر ▶ — وستجد كلّ صوتٍ قالها", kind:"narration" },
     { key:"howto.record", en:"To add your voice: hold the amber button and say the word twice", ar:"لإضافة صوتك: اضغط الزرّ الكهرماني مطوّلًا وقُل الكلمة مرّتين", kind:"narration" },
     { key:"howto.review", en:"Then listen back — keep it, or record again", ar:"ثم استمع إليه — احفظه، أو أعد التسجيل", kind:"narration" },
-    { key:"howto.sentence", en:"You can also say the word inside a sentence", ar:"ويمكنك أن تقول الكلمة داخل جملة", kind:"narration" },
-    { key:"howto.meaning", en:"And you can say what the word means, in Hakli", ar:"وأن تقول معنى الكلمة، بالحَكلي", kind:"narration" },
     { key:"howto.add", en:"And if a word isn't here yet, tap the plus and add it in your own voice", ar:"وإن لم تكن الكلمة هنا بعد، انقر + وأضِفها بصوتك", kind:"narration" },
     { key:"intro.tour.yours", en:"Every recording is yours — you can take it back anytime.", ar:"كل تسجيلٍ هو ملكك — ويمكنك سحبه في أي وقت.", kind:"narration" },
-    { key:"intro.tour.waits", en:"Nothing is lost if you go offline — there is no rush.", ar:"لا يضيع شيء إن انقطع الاتصال — لا عجلة في الأمر.", kind:"narration" },
     { key:"intro.tour.why", en:"Your language, kept in your own voice, for those who come after you.", ar:"لغتُك، محفوظةً بصوتك، لمن يأتي بعدك.", kind:"narration" },
   ]},
   { tab:"record", name:"Heard in the app now", ar:"تُسمَع في التطبيق الآن",
@@ -123,5 +124,11 @@ window.AFDPrompts = [
     { key:"nav.back", en:"Go back", ar:"ارجع", kind:"label" },
     { key:"action.play", en:"Play / listen", ar:"شغّل / استمع", kind:"label" },
     { key:"action.hear_prompt", en:"Hear the prompt", ar:"اسمع التوجيه", kind:"label" },
+    { key:"intro.tour.waits", en:"Nothing is lost if you go offline — there is no rush.", ar:"لا يضيع شيء إن انقطع الاتصال — لا عجلة في الأمر.", kind:"narration" },   // 10-15: from R1; for the upload-waiting moment
+  ]},
+  { tab:"record", later:true, name:"How-to segments", ar:"مقاطع «كيف أفعل»",
+    note:"Narration for the one-job clips (hakli-welcome-walkthrough.html?scene=…). Moved out of R1 on 10-15.", items:[
+    { key:"howto.sentence", en:"You can also say the word inside a sentence", ar:"ويمكنك أن تقول الكلمة داخل جملة", kind:"narration" },
+    { key:"howto.meaning", en:"And you can say what the word means, in Hakli", ar:"وأن تقول معنى الكلمة، بالحَكلي", kind:"narration" },
   ]},
 ];

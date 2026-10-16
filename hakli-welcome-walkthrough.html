@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <!--
-  Hakli · Welcome walkthrough — five scenes stitched into one loop
-  Scene 1 FIND (green circle) → 2 WORD → 3 SENTENCE → 4 MEANING → 5 ADD A NEW WORD.
+  Hakli · Welcome walkthrough — the front door, and the how-to segments
+  WELCOME v2 (10-15): three scenes, ~35 s, one idea — find it, hear it, add your voice.
+    1 FIND & HEAR (green circle → result → tap ▶, a voice plays)
+    2 ADD YOUR VOICE ("Say it yourself" on the card → recorder → hold amber → keep)
+    3 A NEW WORD (+ → say · show · share)
+  SEGMENTS: one job per clip, looping — ?scene=find | hear | record | sentence |
+    meaning | add (or a comma list). Sentence and meaning left the front door on
+    10-15; they live here. welcome.html embeds the default (no ?scene).
   WORDS (10-12): every word comes from afd-core.js STRINGS, so it is in the prompts
   tool and a corrected line reaches this page. Inside the phone: the app's own
   strings (find.*, record.*, slot.*, add.* …), so the phone says what the app says.
@@ -178,7 +184,28 @@
   .fplus{left:0;width:40px;border:1.5px dashed var(--amber);border-radius:50%;color:var(--amber);display:grid;place-items:center;
     transition:opacity .35s,transform .2s,background .2s}
   .fplus.press{transform:scale(.88);background:#FBF1E4}
-  .fback svg,.fplus svg{width:17px;height:17px}
+  .fback svg,.fplus svg,.ftype svg{width:17px;height:17px}
+  /* the dictionary's home (10-15, #51): ⌨ on the right, + on the left; over a
+     result the back control takes the ⌨'s place */
+  .find.idle .fplus,.find.rec .fplus,.find.busy .fplus{opacity:1;transform:none}
+  .ftype{position:absolute;top:50%;margin-top:-20px;right:0;width:40px;height:40px;border-radius:50%;
+    border:1.5px solid var(--mist-2);background:var(--cloud);box-shadow:var(--shadow-sm);color:var(--mountain);
+    display:grid;place-items:center;transition:opacity .35s,transform .35s}
+  .find.results .ftype{opacity:0;transform:scale(.7)}
+  /* "Say it yourself" on the result card */
+  .saypill{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;direction:rtl;
+    border:1.5px solid var(--amber);color:var(--amber);background:var(--cloud);font:600 13px/1 var(--sans);
+    opacity:0;transform:translateY(10px);transition:opacity .45s .15s,transform .45s .15s,background .2s}
+  .saypill svg{width:15px;height:15px}
+  .find.results .saypill{opacity:1;transform:none}
+  .saypill.press{background:#FBF1E4;transform:scale(.95)}
+  /* a voice playing on the card */
+  .rescard.playing .rc-play{animation:none;background:var(--amber)}
+  .rescard.playing .rc-wave rect{animation:wavebar .5s ease-in-out infinite alternate;transform-origin:center;transform-box:fill-box}
+  .rescard.playing .rc-wave rect:nth-child(3n){animation-delay:.17s}
+  .rescard.playing .rc-wave rect:nth-child(3n+1){animation-delay:.33s}
+  @keyframes wavebar{from{transform:scaleY(.35)}to{transform:scaleY(1.15)}}
+  .rc-play.press{transform:scale(.88)}
   .cap{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;
     font:500 10px/1 var(--sans);color:var(--mist);direction:rtl}
   .fplus .cap{color:var(--amber)}
@@ -258,7 +285,7 @@
   <div class="phone">
     <div class="notch"></div>
     <div class="screen">
-      <div class="ribbon"><i id="rb0"></i><i id="rb1"></i><i id="rb2"></i><i id="rb3"></i><i id="rb4"></i></div>
+      <div class="ribbon" id="ribbon"></div>
 
       <!-- FIND -->
       <section class="surface find idle on" id="find">
@@ -277,6 +304,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
               </button>
             </div>
+            <span class="ftype"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M9.5 10h.01M13 10h.01M16.5 10h.01M7 14h10"/></svg><span class="cap" data-k="find.type.cap"></span></span>
             <span class="fplus" id="fplus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span class="cap" data-k="add.title"></span></span>
           </div>
           <p class="fhint" id="fhint"></p>
@@ -285,8 +313,9 @@
             <div style="flex:1;min-width:0">
               <svg class="rc-wave" viewBox="0 0 110 20"><g fill="#C6873F"><rect x="2" y="7" width="4" height="6" rx="2"/><rect x="10" y="3" width="4" height="14" rx="2"/><rect x="18" y="8" width="4" height="5" rx="2"/><rect x="26" y="1" width="4" height="18" rx="2"/><rect x="34" y="6" width="4" height="9" rx="2"/><rect x="42" y="4" width="4" height="12" rx="2"/><rect x="50" y="9" width="4" height="4" rx="2"/><rect x="58" y="2" width="4" height="16" rx="2"/><rect x="66" y="7" width="4" height="7" rx="2"/><rect x="74" y="5" width="4" height="11" rx="2"/><rect x="82" y="8" width="4" height="5" rx="2"/><rect x="90" y="3" width="4" height="14" rx="2"/></g></svg>
             </div>
-            <button class="rc-play">▶</button>
+            <button class="rc-play" id="rcplay">▶</button>
           </div>
+          <span class="saypill" id="saypill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span data-k="result.sayityourself"></span></span>
         </div>
       </section>
 
@@ -386,7 +415,7 @@
   const fmic=$('fmic'), fbloom=$('fbloom'), fhint=$('fhint');
   const rbtn=$('rbtn'), keep=$('keep'), silLabel=$('silLabel'), stepdots=$('stepdots'), instruction=$('instruction');
   const addSent=$('addSent'), addMean=$('addMean');
-  const ribbons=[$('rb0'),$('rb1'),$('rb2'),$('rb3'),$('rb4')];
+  const rescard=document.querySelector('.rescard'), rcplay=$('rcplay'), saypill=$('saypill');
 
   // Every word comes from the app's string table (afd-core.js), so it is listed
   // in the prompts tool and an approved correction reaches this page.
@@ -401,6 +430,7 @@
   const bars=[]; for(let i=0;i<38;i++){const b=document.createElement('span');b.className='bar';$('bars').appendChild(b);bars.push(b);}
 
   const setCap=(k)=>{const en=E(k);capEl.innerHTML=`<div class="ar">${esc(A(k))}</div>`+(en?`<div class="en">${esc(en)}</div>`:'');};
+  let ribbons=[];
   const setRibbon=(i)=>ribbons.forEach((r,k)=>r.classList.toggle('on',k===i));
   const showOnly=(el)=>[find,recs,addv].forEach(x=>x.classList.toggle('on',x===el));
   const showFind=()=>showOnly(find);
@@ -447,81 +477,121 @@
       const env=Math.max(0,Math.sin(e/dur*Math.PI*2));bars.forEach(b=>{const n=.35+Math.random()*.75;b.style.height=(6+env*n*40).toFixed(0)+'px';});
       if(timerEl)timerEl.textContent=(e/1000).toFixed(1)+'s';},70);}
 
-  // ---- master timeline (ms) ----
-  const LOOP=48800;
-  const P=[
-    // SCENE 1 · FIND
-    {t:0,cue:'howto.find',fn(){setRibbon(0);showFind();setFind('idle');fmic.classList.remove('press');park();silLabel.textContent=A('status.ready');
-      fhint.textContent=A('find.idle');recIdle();resetCard();resetAdd();setRecs('idle');
-      setCap('wt.find.1');}},
-    {t:1400,fn(){moveTouch(fmic,1);}},
-    {t:2250,fn(){moveTouch(fmic,.84);contact();fmic.classList.add('press');setFind('rec');fhint.textContent=A('find.listening');bloomRun();
-      setCap('wt.find.2');}},
-    {t:4850,fn(){fmic.classList.remove('press');park();setFind('busy');fhint.textContent=A('find.finding');
-      setCap('wt.find.3');}},
-    {t:6100,fn(){setFind('results');fhint.textContent=A('find.idle');
-      setCap('wt.find.4');}},
-    // SCENE 2 · WORD
-    {t:8300,cue:'howto.record',fn(){setRibbon(1);showRecs();setRecs('idle');resetCard();recIdle();silLabel.textContent=A('status.ready');park();
-      stepdots.textContent=PROGRESS;
-      setCap('wt.record.1');}},
-    {t:9700,fn(){moveTouch(rbtn,1);setCap('wt.record.2');}},
-    {t:10500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2400);}},
-    {t:13000,cue:'howto.review',fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');
-      setCap('wt.review.1');}},
-    {t:14600,fn(){moveTouch(keep,1);setCap('wt.review.2');}},
-    {t:15400,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.review.3');}},
-    {t:16400,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();setCap('wt.kept');}},
-    // SCENE 3 · SENTENCE
-    {t:17400,cue:'howto.sentence',fn(){setRibbon(2);setCap('wt.sentence.1');moveTouch(addSent,1);}},
-    {t:18200,fn(){moveTouch(addSent,.9);contact();addSent.classList.add('press');setSlot('context');
-      setCap('wt.sentence.tap');}},
-    {t:19100,fn(){moveTouch(rbtn,1);setCap('wt.sentence.say');}},
-    {t:19900,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2800);}},
-    {t:22800,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.hearkeep');}},
-    {t:24200,fn(){moveTouch(keep,1);}},
-    {t:24900,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.sentence.kept');}},
-    {t:25900,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
-    // SCENE 4 · MEANING
-    {t:26800,cue:'howto.meaning',fn(){setRibbon(3);setCap('wt.meaning.1');moveTouch(addMean,1);}},
-    {t:27600,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('definition');
-      setCap('wt.meaning.tap');}},
-    {t:28500,fn(){moveTouch(rbtn,1);setCap('wt.meaning.say');}},
-    {t:29300,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2600);}},
-    {t:32000,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.hearkeep');}},
-    {t:33400,fn(){moveTouch(keep,1);}},
-    {t:34100,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.meaning.kept');}},
-    {t:35100,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
-    // SCENE 5 · ADD A NEW WORD (the + beside the mic → add.html)
-    {t:36000,cue:'howto.add',fn(){setRibbon(4);showFind();setFind('results');fhint.textContent=A('find.idle');resetAdd();park();
-      setCap('wt.add.1');}},
-    {t:37000,fn(){moveTouch(fplus,1);setCap('wt.add.tap');}},
-    {t:37800,fn(){moveTouch(fplus,.86);contact();fplus.classList.add('press');}},
-    {t:38500,fn(){fplus.classList.remove('press');park();showAdd();addStep(0);}},
-    {t:39100,fn(){moveTouch(ahold,1);setCap('wt.add.say');}},
-    {t:39800,fn(){moveTouch(ahold,.86);contact();ahold.classList.add('press','rec');}},
-    {t:42000,fn(){ahold.classList.remove('press','rec');park();addStep(1);setCap('wt.add.show');}},
-    {t:42800,fn(){moveTouch(tPic,1);}},
-    {t:43500,fn(){moveTouch(tPic,.88);contact();tPic.classList.add('press','on');apic1.innerHTML='<span class="pop">🐐</span>';}},
-    {t:44400,fn(){tPic.classList.remove('press');park();addStep(2);setCap('wt.add.share');}},
-    {t:45100,fn(){moveTouch(ashare,1);}},
-    {t:45800,fn(){moveTouch(ashare,.9);contact();ashare.classList.add('press');}},
-    {t:46600,fn(){ashare.classList.remove('press');park();addStep(3);setCap('wt.add.done');}},
-    // CLOSE
-    {t:47600,end:true,fn(){setCap('wt.close');}},
-  ];
+  // ---- the scenes (times in ms from the scene's start) ----
+  // Each scene can stand alone (a how-to segment) or follow another (the welcome),
+  // so each opens by setting the screen it needs. `cue` names the spoken howto.*
+  // clip welcome.html plays when the scene reaches that step.
+  function stopVoice(){rescard.classList.remove('playing');rcplay.textContent='▶';}
+  function resetAll(){park();stopVoice();rcplay.classList.remove('press');saypill.classList.remove('press');
+    fmic.classList.remove('press');recIdle();resetCard();resetAdd();setRecs('idle');silLabel.textContent=A('status.ready');}
+  const toResults=()=>{showFind();setFind('results');fhint.textContent=A('find.idle');};
+  const SCENES={
+    // 1 · find: hold the green circle, say the word, let go
+    find:(o)=>[
+      {t:0,cue:'howto.find',fn(){resetAll();showFind();setFind('idle');fhint.textContent=A('find.idle');setCap('wt.find.1');}},
+      {t:1400,fn(){moveTouch(fmic,1);}},
+      {t:2250,fn(){moveTouch(fmic,.84);contact();fmic.classList.add('press');setFind('rec');fhint.textContent=A('find.listening');bloomRun();setCap('wt.find.2');}},
+      {t:4850,fn(){fmic.classList.remove('press');park();setFind('busy');fhint.textContent=A('find.finding');setCap('wt.find.3');}},
+      {t:6100,fn(){toResults();if(!o.next)setCap('wt.find.4');}},
+      {t:o.next?6700:8000},
+    ],
+    // 2 · hear: tap ▶ on the card, a voice plays (new in v2: the heart of the app)
+    hear:()=>[
+      {t:0,cue:'howto.hear',fn(){stopVoice();toResults();setCap('wt.find.hear');}},
+      {t:900,fn(){moveTouch(rcplay,1);}},
+      {t:1600,fn(){moveTouch(rcplay,.86);contact();rcplay.classList.add('press');rescard.classList.add('playing');rcplay.textContent='❚❚';}},
+      {t:2100,fn(){rcplay.classList.remove('press');park();}},
+      {t:4300,fn(){stopVoice();}},
+      {t:4800},
+    ],
+    // 3 · add your voice: "Say it yourself" on the card → recorder → hold amber → keep
+    record:()=>[
+      {t:0,cue:'howto.record',fn(){stopVoice();toResults();setCap('wt.card.say');}},
+      {t:800,fn(){moveTouch(saypill,1);}},
+      {t:1500,fn(){moveTouch(saypill,.9);contact();saypill.classList.add('press');}},
+      {t:2200,fn(){saypill.classList.remove('press');park();showRecs();resetCard();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setCap('wt.record.1');}},
+      {t:3400,fn(){moveTouch(rbtn,1);}},
+      {t:4200,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2400);setCap('wt.record.2');}},
+      {t:6700,cue:'howto.review',fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.review.1');}},
+      {t:8100,fn(){moveTouch(keep,1);}},
+      {t:8800,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.review.3');}},
+      {t:9800,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
+      {t:10600},
+    ],
+    // segments only: a sentence, a meaning (the card's slots choose the type)
+    sentence:()=>[
+      {t:0,cue:'howto.sentence',fn(){showRecs();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setSlot('word');setCap('wt.sentence.1');moveTouch(addSent,1);}},
+      {t:800,fn(){moveTouch(addSent,.9);contact();addSent.classList.add('press');setSlot('context');setCap('wt.sentence.tap');}},
+      {t:1700,fn(){moveTouch(rbtn,1);setCap('wt.sentence.say');}},
+      {t:2500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2800);}},
+      {t:5400,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.hearkeep');}},
+      {t:6800,fn(){moveTouch(keep,1);}},
+      {t:7500,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.sentence.kept');}},
+      {t:8500,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
+      {t:9400},
+    ],
+    meaning:()=>[
+      {t:0,cue:'howto.meaning',fn(){showRecs();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setSlot('word');setCap('wt.meaning.1');moveTouch(addMean,1);}},
+      {t:800,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('definition');setCap('wt.meaning.tap');}},
+      {t:1700,fn(){moveTouch(rbtn,1);setCap('wt.meaning.say');}},
+      {t:2500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2600);}},
+      {t:5200,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.hearkeep');}},
+      {t:6600,fn(){moveTouch(keep,1);}},
+      {t:7300,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.meaning.kept');}},
+      {t:8300,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
+      {t:9200},
+    ],
+    // 4 · a new word: the + beside the mic → add.html (say · show · share)
+    add:()=>[
+      {t:0,cue:'howto.add',fn(){toResults();resetAdd();park();setCap('wt.add.1');}},
+      {t:1000,fn(){moveTouch(fplus,1);setCap('wt.add.tap');}},
+      {t:1800,fn(){moveTouch(fplus,.86);contact();fplus.classList.add('press');}},
+      {t:2500,fn(){fplus.classList.remove('press');park();showAdd();addStep(0);}},
+      {t:3100,fn(){moveTouch(ahold,1);setCap('wt.add.say');}},
+      {t:3800,fn(){moveTouch(ahold,.86);contact();ahold.classList.add('press','rec');}},
+      {t:6000,fn(){ahold.classList.remove('press','rec');park();addStep(1);setCap('wt.add.show');}},
+      {t:6800,fn(){moveTouch(tPic,1);}},
+      {t:7500,fn(){moveTouch(tPic,.88);contact();tPic.classList.add('press','on');apic1.innerHTML='<span class="pop">🐐</span>';}},
+      {t:8400,fn(){tPic.classList.remove('press');park();addStep(2);setCap('wt.add.share');}},
+      {t:9100,fn(){moveTouch(ashare,1);}},
+      {t:9800,fn(){moveTouch(ashare,.9);contact();ashare.classList.add('press');}},
+      {t:10600,fn(){ashare.classList.remove('press');park();addStep(3);setCap('wt.add.done');}},
+      {t:11600},
+    ],
+  };
+  // ?scene=hear (or a comma list) plays those segments; no ?scene is the welcome.
+  const want=((location.search.match(/[?&]scene=([a-z,]+)/)||[])[1]||'').split(',').filter(k=>SCENES[k]);
+  const PROGRAM=want.length ? want.map(k=>[k,{}])
+    : [['find',{next:true}],['hear',{}],['record',{}],['add',{}]];
+  // Ribbon: one tick per scene; find + hear share the first (they are one beat).
+  let nt=-1; const tick=PROGRAM.map(([k])=>{ if(want.length || k!=='hear') nt++; return nt; });
+  const P=[]; let off=0;
+  PROGRAM.forEach(([k,o],si)=>{ const steps=SCENES[k](o); const len=steps[steps.length-1].t;
+    steps.forEach((st,j)=>{ if(!st.fn) return; const f=st.fn, rb=tick[si];
+      P.push(Object.assign({},st,{t:off+st.t, fn: j===0 ? ()=>{setRibbon(rb);f();} : f})); });
+    off+=len; });
+  // the close: the welcome says what it showed; a segment just ends
+  if(!want.length){ P.push({t:off,end:true,fn(){park();setCap('wt.close');}}); off+=1200; }
+  else P[P.length-1].end=true;
+  const LOOP=off+(want.length?600:0);
+  (function(){const r=$('ribbon'),n=tick[tick.length-1]+1;
+    r.innerHTML=n>1?Array.from({length:n},()=>'<i></i>').join(''):''; ribbons=[...r.children];})();
 
   let base=performance.now(),pausedAt=0,paused=false,last=-1,narrating=false;
   // When embedded, tell the parent (welcome.html) which scene we've reached so it
   // can play the matching howto.* clip, and when the run has finished.
   function postUp(msg){try{if(window.parent&&window.parent!==window)window.parent.postMessage(Object.assign({type:"afd:wt"},msg),"*");}catch(_){}}
   function apply(e){let idx=0;for(let i=0;i<P.length;i++){if(e>=P[i].t)idx=i;}
-    if(idx!==last){last=idx;P[idx].fn();
+    if(idx===last) return;
+    // run every step passed since the last frame, in order — a slow frame (or a
+    // hidden tab) used to skip a step and leave the screen half-set
+    for(let i=(idx>last?last+1:idx);i<=idx;i++){ P[i].fn();
       if(narrating){
-        if(P[idx].cue) postUp({ev:"cue",key:P[idx].cue});
-        if(P[idx].end){ postUp({ev:"end"}); narrating=false; paused=true; pausedAt=performance.now(); }
+        if(P[i].cue) postUp({ev:"cue",key:P[i].cue});
+        if(P[i].end){ postUp({ev:"end"}); narrating=false; paused=true; pausedAt=performance.now(); }
       }
-    }}
+    }
+    last=idx;}
   function frame(now){if(!paused){let e=now-base;if(e>=LOOP){base=now;e=0;last=-1;}apply(e);}requestAnimationFrame(frame);}
   requestAnimationFrame((t)=>{base=t;requestAnimationFrame(frame);});
 
