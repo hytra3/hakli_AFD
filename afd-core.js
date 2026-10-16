@@ -639,7 +639,9 @@ window.AFDCore = (function(){
     "wt.add.show":          { en:"Show what it means — a photo, a picture, or say it.", ar:"أَرِ معناها — بصورة، أو رسم، أو قُلها." },
     "wt.add.share":         { en:"Share it — the word stays yours.", ar:"شارِكها — وتبقى الكلمة لك." },
     "wt.add.done":          { en:"A new word card, in your voice.", ar:"بطاقة كلمة جديدة، بصوتك." },
-    "wt.close":             { en:"That is how you add your voice to Hakli.", ar:"هكذا تُضيف صوتك إلى الحَكلي." },
+    "wt.close":             { en:"Find it. Hear it. Add your voice.", ar:"ابحث عنها. اسمعها. أضِف صوتك." },   // 10-15 welcome v2 (was "That is how you add your voice to Hakli.")
+    "wt.find.hear":         { en:"Tap ▶ to hear how people say it.", ar:"انقر ▶ لتسمع كيف يقولها الناس." },
+    "wt.card.say":          { en:"Tap “Say it yourself” on the card.", ar:"انقر «سجّل صوتك» على البطاقة." },
 
     // Moved in from page code (piece 4 audit, Oct 2026): text that used to be
     // written in English inside index / add / recorder / afd-card, so it showed

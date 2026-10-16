@@ -131,12 +131,12 @@
     .wrap{padding:0}
   }
 </style>
-<link rel="icon" href="favicon.svg?v=b1015i" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1015i" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1015i">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1015i">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1015i">
-<link rel="manifest" href="manifest.webmanifest?v=b1015i">
+<link rel="icon" href="favicon.svg?v=b1015j" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1015j" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1015j">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1015j">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1015j">
+<link rel="manifest" href="manifest.webmanifest?v=b1015j">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -158,7 +158,7 @@
   <section class="demo" id="demo">
     <h2 class="demo-lead" id="demoLead">شاهد كيف يعمل</h2>
     <div class="demo-frame">
-      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?v=b1015i&embed=1" loading="lazy" scrolling="no"></iframe>
+      <iframe id="demoFrame" title="Hakli walkthrough" src="hakli-welcome-walkthrough.html?v=b1015j&embed=1" loading="lazy" scrolling="no"></iframe>
     </div>
   </section>
 
@@ -176,10 +176,10 @@
 
 <!-- The page's words (welcome.*) live in the app's string table, so they are in the
      prompts tool with everything else. -->
-<script src="afd-core.js?v=b1015i"></script>
+<script src="afd-core.js?v=b1015j"></script>
 
-<script src="afd-instance.js?v=b1015i"></script>
-<script src="afd-prompts.js?v=b1015i"></script>
+<script src="afd-instance.js?v=b1015j"></script>
+<script src="afd-prompts.js?v=b1015j"></script>
 <script type="module">
 /* Firebase is loaded LAZILY (dynamic import below) so the introduction TEXT always
    renders — even offline or if the CDN is unreachable. The Hakli audio is a
@@ -190,15 +190,17 @@ const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
    recorder's prompt tool, so each line's Hakli audio appears the moment it's
    recorded. Arabic/English are the text alternatives. */
 /* The essential spine. The animated walkthrough now carries the "how" (find,
-   record, review, sentence, meaning), so the mechanics lines that used to live
+   hear, record, review, add), so the mechanics lines that used to live
    here (min1/min2/min3/more) were dropped as redundant — these lines carry only
    the "why + trust", which the animation cannot. Order = the narrated arc:
-   openers (what, new) play before the animation; closers (yours, waits) after. */
+   the opener (what) plays before the animation; closers (yours, why) after.
+   10-15: "new" (the animation's last scene says it) and "waits" (it belongs at
+   the moment an upload waits for signal) left the front door. */
 // The text comes from afd-prompts.js (the prompt tool's own table), so a line
 // is worded in exactly one place; this page only chooses which lines, in order.
 const PROMPT = Object.fromEntries((window.AFDPrompts || []).flatMap(s => s.items).map(it => [it.key, it]));
 const line = (k) => ({ k, ar: (PROMPT[k] && PROMPT[k].ar) || "", en: (PROMPT[k] && PROMPT[k].en) || "" });
-const LINES = ["intro.tour.what", "intro.tour.new", "intro.tour.yours", "intro.tour.waits"].map(line);
+const LINES = ["intro.tour.what", "intro.tour.yours"].map(line);
 const CLOSE = line("intro.tour.why");
 const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
 const W = (k, en) => { const x = STR[k] || {}; return (en ? x.en : (x.ar || x.en)) || ""; };
@@ -240,12 +242,14 @@ async function loadClips(){
   }catch(e){ console.warn("[AFD] welcome: audio unavailable — showing text only", e); }
 }
 
-/* The six per-scene clips the walkthrough narrates, and the narrated arc:
+/* Welcome v2 (10-15): the five per-scene clips the walkthrough narrates, and the
+   narrated arc — R1 in the prompts tool, in this order (8 clips):
    openers play while the animation is held at its first frame; the animation
-   then runs once (emitting its own scene cues); closers play as it finishes. */
-const HOWTO   = ["howto.find","howto.record","howto.review","howto.sentence","howto.meaning","howto.add"];
-const OPENERS = ["intro.tour.what","intro.tour.new"];
-const CLOSERS = ["intro.tour.yours","intro.tour.waits", CLOSE.k];
+   then runs once (emitting its own scene cues); closers play as it finishes.
+   Sentence and meaning are how-to segments now, not part of the front door. */
+const HOWTO   = ["howto.find","howto.hear","howto.record","howto.review","howto.add"];
+const OPENERS = ["intro.tour.what"];
+const CLOSERS = ["intro.tour.yours", CLOSE.k];
 
 let playing = null;          // null | "one" | "tour"
 let animEndResolve = null;   // resolves when the walkthrough reports its run ended

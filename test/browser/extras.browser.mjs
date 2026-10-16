@@ -112,8 +112,8 @@ await scenario("the review list keeps its numbers", async ()=>{ const { page, ct
   const wantW = ["welcome.hint.none","welcome.enter","wt.find.1","wt.add.tap","wt.close"].map(k=>"screen:"+k);
   ok("P6 the welcome page and walkthrough captions are listed, in the Arabic tab", !!wel && /^A/.test(wel) && wantW.every(k=>inWel.includes(k)), JSON.stringify([wel, wantW.filter(k=>!inWel.includes(k))]));
   const start = keysIn("R1");
-  ok("P7 R1 'start here' is the welcome page's eleven clips, in the order they are heard",
-     JSON.stringify(start) === JSON.stringify(["intro.tour.what","intro.tour.new","howto.find","howto.record","howto.review","howto.sentence","howto.meaning","howto.add","intro.tour.yours","intro.tour.waits","intro.tour.why"]), JSON.stringify(start));
+  ok("P7 R1 'start here' is the welcome page's eight clips, in the order they are heard (welcome v2, 10-15)",
+     JSON.stringify(start) === JSON.stringify(["intro.tour.what","howto.find","howto.hear","howto.record","howto.review","howto.add","intro.tour.yours","intro.tour.why"]), JSON.stringify(start));
   const all = Object.values(now.items);
   ok("P8 the four unused intro lines are retired, and the home page's find_hint can be recorded",
      ["intro.welcome","intro.longpress","intro.hold_to_speak","intro.find"].every(k=>!all.includes(k)) && keysIn("R2").includes("find_hint"));
@@ -139,7 +139,7 @@ await scenario("prompts tool: start here, links, this week", async ()=>{
   const recent = { __ts: Date.now() - 864e5 }, old = { __ts: Date.now() - 30*864e5 };
   const fsData = {
     "afd_ui_prompts/intro.tour.what": { status:"recorded", storagePath:"afd_ui/intro.tour.what.webm", recordedAt:recent, by:"phoneA" },
-    "afd_ui_prompts/intro.tour.new":  { status:"recorded", storagePath:"afd_ui/intro.tour.new.webm",  recordedAt:recent, by:"phoneB" },
+    "afd_ui_prompts/intro.tour.yours":{ status:"recorded", storagePath:"afd_ui/intro.tour.yours.webm",  recordedAt:recent, by:"phoneB" },
     "afd_ui_prompts/howto.find":      { status:"recorded", storagePath:"afd_ui/howto.find.webm",      recordedAt:old,    by:"phoneA" },
   };
   // 1 · a fresh helper lands on the first unrecorded start-here line
@@ -150,7 +150,7 @@ await scenario("prompts tool: start here, links, this week", async ()=>{
     week:document.getElementById("week").textContent, done:getComputedStyle(document.getElementById("welcomeDone")).display!=="none",
     hear:!!document.querySelector("#sec-R1 a.hear") }));
   ok("S1 a helper starts on the first unrecorded welcome clip, with 'start here' progress and a link to hear the result",
-     /R1\.4 +· +howto\.record/.test(s1.key) && /Start here: 3 of 11/.test(s1.count) && s1.hear && !s1.done, JSON.stringify(s1));
+     /R1\.3 +· +howto\.hear/.test(s1.key) && /Start here: 3 of 8/.test(s1.count) && s1.hear && !s1.done, JSON.stringify(s1));
   ok("S2 'this week' counts recent lines and the phones that made them", /This week: 2 lines recorded by 2 people/.test(s1.week), s1.week);
   // 1b · a take saved on this phone goes up with the phone's id (for "this week")
   await page.evaluate(()=> new Promise((res,rej)=>{ const r = indexedDB.open("afd_ui_prompts",1);
@@ -184,14 +184,14 @@ await scenario("prompts tool: start here, links, this week", async ()=>{
   await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
   ok("S10 a line past the end opens its section", /^A2\.1 /.test(await page.textContent("#cur-key")));
   await ctx.close();
-  // 3 · all eleven recorded: the welcome page speaks — say so
-  const full = {}; ["intro.tour.what","intro.tour.new","howto.find","howto.record","howto.review","howto.sentence","howto.meaning","howto.add","intro.tour.yours","intro.tour.waits","intro.tour.why"]
+  // 3 · all eight recorded: the welcome page speaks — say so
+  const full = {}; ["intro.tour.what","howto.find","howto.hear","howto.record","howto.review","howto.add","intro.tour.yours","intro.tour.why"]
     .forEach(k=> full["afd_ui_prompts/"+k] = { status:"recorded", storagePath:"afd_ui/"+k+".webm" });
   ({ page, ctx, state } = await newPage(browser, srv.url, { fs:full }));
   await page.goto(srv.url + "/prompts/index.html");
   await page.waitForSelector("#app:not(.hidden)", { timeout:15000 });
   const s5 = await page.evaluate(()=>({ done:getComputedStyle(document.getElementById("welcomeDone")).display!=="none", key:document.getElementById("cur-key").textContent, count:document.getElementById("count").textContent }));
-  ok("S5 once the eleven are recorded, the welcome page is announced and the helper moves on to R2", s5.done && /^R2\.1 /.test(s5.key) && new RegExp("11 of " + PROMPT_TOTAL + " recorded").test(s5.count), JSON.stringify(s5));
+  ok("S5 once the eight are recorded, the welcome page is announced and the helper moves on to R2", s5.done && /^R2\.1 /.test(s5.key) && new RegExp("8 of " + PROMPT_TOTAL + " recorded").test(s5.count), JSON.stringify(s5));
   ok("S6 the prompts tool raised no page errors", state.errors.length===0, state.errors.slice(0,2).join(" | "));
   await ctx.close(); });
 

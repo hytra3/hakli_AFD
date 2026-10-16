@@ -1047,7 +1047,32 @@ cannot say *why this matters* or *your voice stays yours* — that is the text's
   cut off by the next scene, which matches the visuals. The standalone (non-embedded)
   walkthrough still loops silently — narration only runs when embedded in `welcome.html`.
 - `waits` kept for now (fieldwork connectivity reassurance); one-line drop if trimmed.
+  *(10-15: dropped from the welcome — see Welcome v2 below.)*
 - Copy (Arabic + English) is draft — **not yet reviewed by local speakers.**
+
+**Welcome v2 — the front door, cut to one idea (10-15, before any R1 take).**
+Teaching is layered: (1) the welcome, one idea; (2) how-to segments, one job each;
+(3) help at the point of need (the long-press narration, R3–R10); (4) the reference
+card for stewards; plus a helper kit for the relative holding the phone. The welcome
+is layer 1 only — *find it, hear it, add your voice* — in three scenes, ~35 s:
+- **Find & hear** — the finger now taps ▶ and a voice plays. The old cut never showed
+  hearing, the heart of the app. New clip `howto.hear`, caption `wt.find.hear`.
+- **Add your voice** — the finger taps «سجّل صوتك» on the result first (new caption
+  `wt.card.say`); the old cut jumped straight into the recorder.
+- **A new word** — unchanged. `wt.close` reworded: "Find it. Hear it. Add your voice."
+- **Sentence and meaning left the front door** (second-visit skills). They are how-to
+  segments: `hakli-welcome-walkthrough.html?scene=sentence` (also `find`, `hear`,
+  `record`, `meaning`, `add`, or a comma list), looping, no close caption.
+- **R1 is 8 clips** (was 11): what · find · hear · record · review · add · yours · why.
+  `howto.sentence`/`howto.meaning` → R11 "How-to segments"; `intro.tour.waits` → R10
+  (for the moment an upload waits for signal); `intro.tour.new` retired (`howto.add`
+  says it). Renumbered on purpose; nothing had been recorded.
+- The phone's mic row matches #51: ⌨ on the right and + on the left over the list;
+  over a result the back control takes the ⌨'s place.
+- The timeline now runs every step passed since the last frame, in order (a slow
+  frame or a background tab used to skip a step and leave the screen half-set).
+- Still to build: segments for *record for someone else (spoken consent)* and *take
+  your voice back*; a typed-search beat in `?scene=find`; the helper kit.
 
 ## Speaker origin visibility — hidden by default, dialect-scoped, opt-in public (built 2026-10-13)
 
