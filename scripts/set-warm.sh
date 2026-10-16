@@ -24,25 +24,37 @@ set -euo pipefail
 PROJECT=afd-dev
 REGION=europe-west1
 SERVICE=afd-embed
+# Ceiling on instances (10-16). Without one Cloud Run's default applies — up to
+# 100 copies of a 2 CPU / 8 GiB service if something hammers /search (it is
+# public). 3 is plenty for a village of searchers; raise it here if searches
+# ever queue. on/off both re-apply it, so `set-warm.sh off` sets it today.
+MAX=3
 
 current(){
   gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" \
     --format='value(spec.template.metadata.annotations."autoscaling.knative.dev/minScale")'
 }
+ceiling(){
+  gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" \
+    --format='value(spec.template.metadata.annotations."autoscaling.knative.dev/maxScale")'
+}
 
 case "${1:-status}" in
   on)
-    gcloud run services update "$SERVICE" --project="$PROJECT" --region="$REGION" --min-instances=1
+    gcloud run services update "$SERVICE" --project="$PROJECT" --region="$REGION" --min-instances=1 --max-instances="$MAX"
     echo "==> afd-embed stays warm (min-instances=1). Turn off after the field session: bash scripts/set-warm.sh off"
     ;;
   off)
-    gcloud run services update "$SERVICE" --project="$PROJECT" --region="$REGION" --min-instances=0
+    gcloud run services update "$SERVICE" --project="$PROJECT" --region="$REGION" --min-instances=0 --max-instances="$MAX"
     echo "==> afd-embed may sleep when idle (min-instances=0). The finder's page-open warm-up covers most cold starts."
     ;;
   status)
     m="$(current)"; m="${m:-0}"
     if [ "$m" -ge 1 ] 2>/dev/null; then echo "afd-embed: WARM (min-instances=$m) — billed while idle"
     else echo "afd-embed: sleeps when idle (min-instances=0)"; fi
+    x="$(ceiling)"
+    if [ -n "$x" ]; then echo "  at most $x instances"
+    else echo "  NO instance ceiling — run 'bash scripts/set-warm.sh off' (or on) to set max-instances=$MAX"; fi
     ;;
   *)
     echo "usage: bash scripts/set-warm.sh [status|on|off]"; exit 2 ;;

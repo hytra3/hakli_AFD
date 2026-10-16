@@ -104,6 +104,19 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   Email/Password **with "Email link (passwordless sign-in)" on**, and **Phone**. Phone
   needs the Blaze plan and Settings → SMS region policy allowing Oman (+968) and any
   other countries speakers live in. `hakli.app` must be under Authorized domains.
+- **Field error log** (`afd_client_errors`) — the pages record a failed search,
+  a failed share on Add, a failed upload in the recorder, and uncaught page errors
+  (page, build, where, error code, trimmed message, online, OS family — no uid, no
+  words). Read it with `node scripts/client-errors.mjs` (`--days 1`, `--where search`,
+  `--clear`). **Once only**, so records delete themselves 30 days on:
+  `gcloud firestore fields ttls update expireAt --collection-group=afd_client_errors --enable-ttl --project=afd-dev`
+  Needs the rules deployed first (`firebase deploy --only firestore:rules`);
+  until then the pages' writes are simply refused, which is harmless.
+- **Matcher ceiling** — `afd-embed` is capped at 3 instances (`--max-instances`
+  in `deploy-service.sh` and both modes of `set-warm.sh`; `set-warm.sh status`
+  shows it). The /search endpoint is public, so the cap is what keeps a flood of
+  requests from starting dozens of 8 GiB copies. Raise `MAX` in `set-warm.sh` if
+  searches ever queue. Worth a budget alert on afd-dev too (Billing → Budgets).
 
 ## Key facts (baked into the scripts — you don't need to type these)
 

@@ -16,6 +16,7 @@ gcloud run deploy afd-embed \
   --project=afd-dev \
   --region=europe-west1 \
   --cpu=2 --memory=8Gi --timeout=300 \
+  --max-instances=3 \
   --allow-unauthenticated \
   --update-env-vars=EMBED_LAYER=12,EMBED_AUDIENCE=https://afd-embed-454829954488.europe-west1.run.app,EMBED_CALLERS=454829954488-compute@developer.gserviceaccount.com
 # --update-env-vars (not --set-env-vars) keeps ADMIN_TOKEN, which only

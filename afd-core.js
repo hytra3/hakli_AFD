@@ -1034,7 +1034,65 @@ window.AFDCore = (function(){
     return (I.spelling && I.spelling.dir) || "auto";
   }
 
+  /* ---- field error log (10-16) ------------------------------------------------
+     A failure on a phone in Dhofar was invisible unless someone sent a
+     screenshot. report() records the few failures that matter (a search, a
+     share, an upload) plus uncaught page errors, in afd_client_errors —
+     create-only for everyone, readable only by stewards, deleted by TTL after
+     30 days (scripts/client-errors.mjs lists them).
+     What a record holds is deliberately thin: page, build, where, the error's
+     code and a trimmed message (playback tokens and email addresses stripped),
+     online or not, and the phone's OS family. No user agent, no uid, no words.
+     Each page hands over its Firestore writer with errorSink(); anything
+     reported before then waits. At most 8 records per page load, one per
+     where+code, so a loop can't flood it. Never throws. */
+  const BUILD = (function(){
+    try{ const m = /[?&]v=([\w-]+)/.exec((document.currentScript && document.currentScript.src) || ""); return m ? m[1] : ""; }
+    catch(_){ return ""; }
+  })();
+  const _errSeen = new Set(), _errWait = [];
+  let _errSent = 0, _errSink = null;
+  function _errClean(s){
+    return String(s == null ? "" : s)
+      .replace(/([?&]token=)[^&\s"']+/gi, "$1…")
+      .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "<email>")
+      .slice(0, 300);
+  }
+  function _errSend(rec){ try{ Promise.resolve(_errSink(rec)).catch(()=>{}); }catch(_){} }
+  function errorSink(fn){
+    _errSink = typeof fn === "function" ? fn : null;
+    if(_errSink) while(_errWait.length) _errSend(_errWait.shift());
+  }
+  function report(where, err){
+    try{
+      const code = String((err && (err.code || err.kind || err.name)) || "error").slice(0, 80);
+      const key = where + "|" + code;
+      if(_errSeen.has(key) || _errSent >= 8) return;
+      _errSeen.add(key); _errSent++;
+      const ua = navigator.userAgent || "";
+      const rec = {
+        page: (location.pathname.replace(/\/+$/, "/index.html").split("/").pop() || "index.html").slice(0, 40),
+        where: String(where || "?").slice(0, 60),
+        code,
+        msg: _errClean(err && err.message ? err.message : (typeof err === "string" ? err : "")),
+        build: BUILD.slice(0, 16),
+        online: navigator.onLine !== false,
+        os: /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "other"
+      };
+      if(_errSink) _errSend(rec); else if(_errWait.length < 8) _errWait.push(rec);
+    }catch(_){}
+  }
+  // Uncaught errors from the app's own files, and promises nobody caught.
+  try{
+    window.addEventListener("error", (e)=>{
+      if(!e || !e.filename || e.filename.indexOf(location.origin) !== 0) return;   // extensions, other sites
+      report("uncaught", e.error || { name:"Error", message: e.message });
+    });
+    window.addEventListener("unhandledrejection", (e)=>{ report("unhandled", e && e.reason); });
+  }catch(_){}
+
   return {
+    errorSink, report,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,

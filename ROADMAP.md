@@ -395,6 +395,29 @@ something makes them matter.
   field weeks (no cold start at all). `deploy-service.sh` no longer sets it, so a
   redeploy keeps the last choice. Check Billing after a day of "on" before leaving it.
 
+## Quick wins + guardrails (2026-10-16)
+
+From the improvement review (project doc `claude/improvement-review-2026-10-16.md`).
+
+- **✅ Word photos lazy-load** in the list (`thumbImg`, afd-card.js) — opening the
+  dictionary no longer downloads every photo down the page. Their URLs are now
+  escaped too (they land in innerHTML).
+- **✅ Opening a card: towns and contributor profiles fetched together** — one
+  network wait fewer per open.
+- **✅ New takes and photos carry `Cache-Control: private, max-age=1y, immutable`.**
+  Write-once, so the phone keeps them. *Private*, not public, on purpose: no shared
+  cache holds a withdrawn voice or a photo a steward took down.
+- **✅ Offline page list** (sw.js) gains help, howto and the walkthrough.
+- **✅ Matcher ceiling: 3 instances** (`deploy-service.sh`, `set-warm.sh`). /search is
+  public; without a cap Cloud Run's default allows dozens of 8 GiB copies.
+- **✅ Field error log** (`afd_client_errors`, `AFDCore.report`). Failed search /
+  share / upload and uncaught page errors, thin by design (no uid, no UA, no
+  words), create-only for anyone, steward-read, 30-day TTL. Read with
+  `scripts/client-errors.mjs`. Anyone may write — most searchers never sign in —
+  so the rule holds the shape and sizes; the client caps 8 per page load.
+- **Still open:** contributed-word flood (App Check or a per-account cap) — wait
+  until links go beyond hand-sharing.
+
 ## Matcher resilience (2026-10-10)
 
 What prompted it: a search on the phone sat on "Finding…" and then showed
