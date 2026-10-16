@@ -318,6 +318,7 @@ body.compact .typecount{display:none}
       <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
         <div class="who" id="acctWho"></div>
         <button id="acctEdit" role="menuitem"></button>
+        <button id="acctHelp" role="menuitem"></button>
         <button id="acctOut" role="menuitem"></button>
       </div>
     </span>
@@ -1200,6 +1201,7 @@ console.log("[AFD] build", BUILD, "·", location.href);
    (with a filter/sort handled in renderBrowse, or a `nav` target for a page jump)
    and it appears in the menu. Arabic labels PROVISIONAL — pending speaker review. */
 const STR = (k)=> AFDCore.STRINGS[k] || { en:k, ar:k };   // a label pair from the shared table
+const HELP_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.6v.4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>';
 const VIEWS = [
   { id:"all",    ar:STR("view.all").ar, en:STR("view.all").en,
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>' },
@@ -1214,6 +1216,9 @@ const VIEWS = [
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>' },
   { id:"record", ar:STR("view.record").ar, en:STR("view.record").en, nav:"recorder.html",
     ic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="10" rx="3" fill="currentColor" stroke="none"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>' },
+  // Help (10-16): the how-to clips, the tour, "who can hear my voice?" — help.html
+  { id:"help",   ar:STR("help.menu").ar, en:STR("help.menu").en, nav:"help.html",
+    ic:HELP_IC },
 ];
 let currentView = "all";
 const MAST = {
@@ -1249,7 +1254,7 @@ function renderViewMenu(){
     const active = (!v.nav && v.id===currentView);
     html += '<button role="menuitem" data-view="'+v.id+'"'+(active?' aria-current="true"':'')+'>'
           + '<span class="vm-ic">'+v.ic+'</span><span class="vm-t">'+viewLabel(v)+'</span>'+(active?'<span class="vm-check">\u2713</span>':'')+'</button>';
-    if(v.id==="newest") html += '<div class="vm-sep"></div>';   // divider before the page jumps
+    if(v.id==="newest" || v.id==="record") html += '<div class="vm-sep"></div>';   // divider before the page jumps, and before Help
   }
   viewMenu.innerHTML=html;
   viewMenu.querySelectorAll("[data-view]").forEach(b=> b.onclick=()=>selectView(b.dataset.view));
@@ -1318,7 +1323,7 @@ setHintKey("find.idle");   // idle hint, rendered in the current tier
 // button lets a fresh visitor sign in (Google); a speaker who used the recorder
 // is already recognised. On auth change we re-render so controls appear/vanish.
 const accountBtn = $("account");
-const acctMenu=$("acctMenu"), acctWho=$("acctWho"), acctEdit=$("acctEdit"), acctOut=$("acctOut");
+const acctMenu=$("acctMenu"), acctWho=$("acctWho"), acctEdit=$("acctEdit"), acctHelp=$("acctHelp"), acctOut=$("acctOut");
 function closeAcctMenu(){ if(acctMenu){ acctMenu.classList.remove("open"); acctMenu.setAttribute("aria-hidden","true"); } }
 function openAcctMenu(){ if(acctMenu){ acctMenu.classList.add("open"); acctMenu.setAttribute("aria-hidden","false"); } }
 // Menu labels follow the same translator as the rest of the chrome: tHTML gives
@@ -1334,6 +1339,7 @@ function syncAcctLabels(){
   const who = acctWhoName();
   if(acctWho)  acctWho.textContent = who || AFDCore.t("setup.signedin", displayMode);
   if(acctEdit) acctEdit.innerHTML  = AFDCore.tHTML("account.edit", displayMode);
+  if(acctHelp) acctHelp.innerHTML  = AFDCore.tHTML("help.menu", displayMode);
   if(acctOut)  acctOut.innerHTML   = AFDCore.tHTML("account.signout", displayMode);
 }
 
@@ -1402,6 +1408,7 @@ if(accountBtn){
   });
 }
 if(acctEdit) acctEdit.addEventListener("click", ()=>{ closeAcctMenu(); location.href="recorder.html#profile"; });
+if(acctHelp) acctHelp.addEventListener("click", ()=>{ closeAcctMenu(); location.href="help.html"; });
 if(acctOut)  acctOut.addEventListener("click", async ()=>{
   closeAcctMenu();
   if(!(await AFDCore.ask({ mode: displayMode, titleKey:"account.signout.confirm",

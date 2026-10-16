@@ -8,6 +8,15 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Help page (10-16)** — `help.html`: the six how-to clips (tiles → `howto.html#<id>`),
+  the welcome tour, "Who can hear my voice?" (four questions: who hears, "Only you can
+  hear this", Withdraw / Restore / Erase, whether your name shows), and "Ask a person"
+  on WhatsApp. Reached from the dictionary's ☰ menu (everyone, below a divider) and
+  from "Help" in the account menu (index and recorder). **"Ask a person" is hidden**
+  until a local Hakli speaker agrees to help: set it in `afd-instance.js`,
+  `help: { contact: { name:{ ar, en }, whatsapp:"968…" } }` (digits, with country code);
+  the button opens WhatsApp with a ready message. Strings `help.*` at the end of review
+  group A11 (A11.115–132). Test: `help.browser.mjs`.
 - **Recorder: a new word starts on the Word tab; the share box applies to what's
   uploaded (10-16)** — from the first Dhofar speaker. Her word for "sun" was filed as a
   MEANING (`scripts/word-voices.mjs sun`: a 3.6 s, 2-burst "meaning"): the recorder

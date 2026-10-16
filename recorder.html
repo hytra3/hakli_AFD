@@ -447,6 +447,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
         <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
           <div class="who" id="acctWho"></div>
           <button id="acctEdit" role="menuitem"></button>
+          <button id="acctHelp" role="menuitem"></button>
           <button id="acctOut" role="menuitem"></button>
         </div>
       </span>
@@ -3067,7 +3068,7 @@ $("syncBtn").onclick=syncPending;
 /* ---- account circle on the record bar: who you are · edit how you appear ·
    sign out — mirrors the browse page so navigation feels consistent across the
    two pages. Reuses window.AFD (user, loadProfile) and the existing sign-out. */
-const recAcct=$("account"), recMenu=$("acctMenu"), recWho=$("acctWho"), recEdit=$("acctEdit"), recOut=$("acctOut");
+const recAcct=$("account"), recMenu=$("acctMenu"), recWho=$("acctWho"), recEdit=$("acctEdit"), recHelp=$("acctHelp"), recOut=$("acctOut");
 function recAcctClose(){ if(recMenu){ recMenu.classList.remove("open"); recMenu.setAttribute("aria-hidden","true"); } }
 function recAcctOpen(){ if(recMenu){ recMenu.classList.add("open"); recMenu.setAttribute("aria-hidden","false"); } }
 function renderRecAccount(){
@@ -3089,6 +3090,7 @@ function renderRecAccount(){
   };
   paint(acctName); recAcct.classList.add("in");
   if(recEdit) recEdit.innerHTML = AFDCore.tHTML("account.edit", dispMode);
+  if(recHelp) recHelp.innerHTML = AFDCore.tHTML("help.menu", dispMode);
   if(recOut)  recOut.innerHTML  = AFDCore.tHTML("account.signout", dispMode);
   if(recWho)  recWho.textContent = acctName || AFDCore.t("setup.signedin",dispMode);
   const uid=u.uid;
@@ -3111,6 +3113,7 @@ if(recAcct){
   });
 }
 if(recEdit) recEdit.addEventListener("click",()=>{ recAcctClose(); show("setup"); const yc=$("youCard"); if(yc) yc.scrollIntoView({behavior:"smooth",block:"start"}); });
+if(recHelp) recHelp.addEventListener("click",()=>{ recAcctClose(); location.href="help.html"; });
 if(recOut)  recOut.addEventListener("click",()=>{ recAcctClose(); const b=$("signoutBtn"); if(b) b.click(); });
 document.addEventListener("click",(e)=>{ if(recMenu && recMenu.classList.contains("open") && !e.target.closest(".account-wrap")) recAcctClose(); });
 document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") recAcctClose(); });
