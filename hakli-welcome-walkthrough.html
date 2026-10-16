@@ -3,7 +3,7 @@
   Hakli · Welcome walkthrough — the front door, and the how-to segments
   WELCOME v2 (10-15): three scenes, ~35 s, one idea — find it, hear it, add your voice.
     1 FIND & HEAR (green circle → result → tap ▶, a voice plays)
-    2 ADD YOUR VOICE ("Say it yourself" on the card → recorder → hold amber → keep)
+    2 ADD YOUR VOICE ("+ Add a recording" on the card → recorder → hold amber → keep)
     3 A NEW WORD (+ → say · show · share)
   SEGMENTS: one job per clip, looping — ?scene=find | hear | record | sentence |
     meaning | add (or a comma list). Sentence and meaning left the front door on
@@ -192,9 +192,10 @@
     border:1.5px solid var(--mist-2);background:var(--cloud);box-shadow:var(--shadow-sm);color:var(--mountain);
     display:grid;place-items:center;transition:opacity .35s,transform .35s}
   .find.results .ftype{opacity:0;transform:scale(.7)}
-  /* "Say it yourself" on the result card */
-  .saypill{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;direction:rtl;
-    border:1.5px solid var(--amber);color:var(--amber);background:var(--cloud);font:600 13px/1 var(--sans);
+  /* the word's "+ Add a recording" on the result card — as the app draws it since
+     10-14 (the old "Say it yourself" button is gone; 10-16) */
+  .saypill{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;direction:rtl;
+    border:1.5px dashed var(--amber);color:var(--amber);background:var(--cloud);font:600 13px/1 var(--sans);
     opacity:0;transform:translateY(10px);transition:opacity .45s .15s,transform .45s .15s,background .2s}
   .saypill svg{width:15px;height:15px}
   .find.results .saypill{opacity:1;transform:none}
@@ -315,7 +316,7 @@
             </div>
             <button class="rc-play" id="rcplay">▶</button>
           </div>
-          <span class="saypill" id="saypill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span data-k="result.sayityourself"></span></span>
+          <span class="saypill" id="saypill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.word"></span></span>
         </div>
       </section>
 
@@ -504,7 +505,7 @@
       {t:4300,fn(){stopVoice();}},
       {t:4800},
     ],
-    // 3 · add your voice: "Say it yourself" on the card → recorder → hold amber → keep
+    // 3 · add your voice: "+ Add a recording" on the card → recorder → hold amber → keep
     record:()=>[
       {t:0,cue:'howto.record',fn(){stopVoice();toResults();setCap('wt.card.say');}},
       {t:800,fn(){moveTouch(saypill,1);}},
