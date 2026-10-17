@@ -639,6 +639,24 @@
   "A11.111": "screen:ep.none",
   "A11.112": "screen:ep.other",
   "A11.113": "screen:share.confirm.self",
-  "A11.114": "screen:share.hide.self"
+  "A11.114": "screen:share.hide.self",
+  "A11.115": "screen:help.menu",
+  "A11.116": "screen:help.title",
+  "A11.117": "screen:help.lead",
+  "A11.118": "screen:help.clips",
+  "A11.119": "screen:help.tour",
+  "A11.120": "screen:help.voice.title",
+  "A11.121": "screen:help.voice.q1",
+  "A11.122": "screen:help.voice.a1",
+  "A11.123": "screen:help.voice.q2",
+  "A11.124": "screen:help.voice.a2",
+  "A11.125": "screen:help.voice.q3",
+  "A11.126": "screen:help.voice.a3",
+  "A11.127": "screen:help.voice.q4",
+  "A11.128": "screen:help.voice.a4",
+  "A11.129": "screen:help.contact.title",
+  "A11.130": "screen:help.contact.lead",
+  "A11.131": "screen:help.contact.btn",
+  "A11.132": "screen:help.contact.msg"
  }
 }

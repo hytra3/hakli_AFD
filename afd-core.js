@@ -811,6 +811,25 @@ window.AFDCore = (function(){
     // the recorder's "let other people listen" box applies to what's already uploaded too (added 10-16, kept last so review numbers hold)
     "share.confirm.self":   { en:"Also let other people listen to the recordings you've already uploaded?", ar:"هل تسمح أيضًا للآخرين بالاستماع إلى التسجيلات التي رفعتها من قبل؟" },
     "share.hide.self":      { en:"Also hide the recordings you've already uploaded? Nobody else will hear them until you tick this again.", ar:"هل تُخفي أيضًا التسجيلات التي رفعتها من قبل؟ لن يسمعها أحدٌ غيرك حتى تختار هذا مجددًا." },
+    // Help (help.html, and "Help" in the dictionary menu and the account menus; added 10-16, kept last so review numbers hold)
+    "help.menu":            { en:"Help", ar:"مساعدة" },
+    "help.title":           { en:"Help", ar:"مساعدة" },
+    "help.lead":            { en:"Short clips that show each step, and answers to what people ask most.", ar:"مقاطع قصيرة تُريك كلّ خطوة، وإجابات عن أكثر ما يسأل عنه الناس." },
+    "help.clips":           { en:"How to…", ar:"كيف…" },
+    "help.tour":            { en:"Watch the whole welcome tour", ar:"شاهد جولة الترحيب كاملة" },
+    "help.voice.title":     { en:"Who can hear my voice?", ar:"من يسمع صوتي؟" },
+    "help.voice.q1":        { en:"Who hears my recordings?", ar:"من يسمع تسجيلاتي؟" },
+    "help.voice.a1":        { en:"Everyone who uses the dictionary, while “Let other people listen” is ticked — it is, unless you untick it. You can change it any time on step 1 of the recorder, for everything you've recorded.", ar:"كلّ من يستعمل القاموس، ما دام «السماح للآخرين بالاستماع» مختارًا — وهو كذلك ما لم تُلغِه. يمكنك تغييره متى شئت في الخطوة ١ من المسجّل، لكلّ ما سجّلته." },
+    "help.voice.q2":        { en:"A voice says “Only you can hear this”", ar:"يظهر تحت صوتٍ «أنت فقط تسمع هذا»" },
+    "help.voice.a2":        { en:"That recording is private. Tap “Let others listen” under it to share it.", ar:"هذا التسجيل خاص. انقر «اسمح للآخرين بالاستماع» تحته لتشاركه." },
+    "help.voice.q3":        { en:"How do I take a recording back?", ar:"كيف أسحب تسجيلًا؟" },
+    "help.voice.a3":        { en:"Open the word and tap “Withdraw” under your voice: nobody else hears it, and “Restore” brings it back. “Erase” removes it for good.", ar:"افتح الكلمة وانقر «اسحب» تحت صوتك: لن يسمعه أحدٌ غيرك، و«استرجع» يُعيده. أمّا «احذف» فيُزيله نهائيًا." },
+    "help.voice.q4":        { en:"Will people see my name?", ar:"هل سيرى الناس اسمي؟" },
+    "help.voice.a4":        { en:"Only if you choose. Your voice shows a nature picture, with no name. To show your name and photo on your own voices, use “Edit how you appear” in your account menu.", ar:"فقط إن اخترت ذلك. يظهر صوتك برمزٍ من الطبيعة دون اسم. لإظهار اسمك وصورتك على تسجيلاتك أنت، استعمل «تعديل كيف تظهر» في قائمة حسابك." },
+    "help.contact.title":   { en:"Ask a person", ar:"اسأل شخصًا" },
+    "help.contact.lead":    { en:"Stuck? Message {name} on WhatsApp — they speak Hakli.", ar:"هل تحتاج مساعدة؟ راسل {name} على واتساب — يتكلّم الحَكلي." },
+    "help.contact.btn":     { en:"Message on WhatsApp", ar:"راسل على واتساب" },
+    "help.contact.msg":     { en:"Hello, I need help with the Hakli dictionary.", ar:"مرحبًا، أحتاج مساعدة في قاموس الحَكلي." },
 
     // speaker origin visibility (recorder permission card; dictionary voices)
     "consent.origin":       { en:"Show my town to everyone who hears my voice", ar:"إظهار بلدتي لكلّ من يسمع صوتي" },

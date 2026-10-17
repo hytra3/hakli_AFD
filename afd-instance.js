@@ -132,6 +132,11 @@ window.AFDInstance = {
     note: "speaker.nodialect"
   },
 
+  // Help page (help.html): a local Hakli speaker people can message for help.
+  // null hides "Ask a person" entirely. To show it:
+  //   help: { contact: { name: { ar:"…", en:"…" }, whatsapp: "9689XXXXXXX" } }   // digits only, with country code
+  help: { contact: null },
+
   // The speak-to-find embedding service (Cloud Run). Shared across instances
   // in future; per-instance for now.
   embedUrl: "https://afd-embed-454829954488.europe-west1.run.app"
