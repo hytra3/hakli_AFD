@@ -40,6 +40,13 @@ const LINK_EMAIL_KEY = "afd.linkEmail";
 const CSS = `
 .afd-si{display:flex;flex-direction:column;gap:10px;text-align:center}
 .afd-si [hidden],.afd-si .si-hidden{display:none!important}
+/* The invisible reCAPTCHA behind the texted code floats a badge over the page's
+   bottom corner (it covered "Just listen" in the recorder). Google allows hiding
+   it when the page says, beside the form, that reCAPTCHA protects it — .si-legal. */
+.grecaptcha-badge{visibility:hidden!important}
+.afd-si .si-legal{margin:0;font-size:11px;line-height:1.45;color:var(--ink-soft,#5B6E66);opacity:.85}
+.afd-si .si-legal a{color:inherit;text-decoration:underline}
+.afd-si .si-legal .sub{font-size:10.5px}
 .afd-si .si-note{margin:2px 0 0;font-size:14px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
 .afd-si .bi-ar,.afd-si-sheet .bi-ar{display:block}
 .afd-si .sub,.afd-si-sheet .sub{display:block;font-size:12px;opacity:.78;margin-top:1px;font-weight:400;color:inherit}
@@ -116,6 +123,7 @@ export function mountSignIn(host, opts){
         <button class="si-btn" id="codeBtn" type="button" data-k="add.auth.code.go"></button>
       </div>
       <div id="${capId}"></div>
+      <p class="si-legal" id="recaptchaNote"></p>
     </div>
     <details id="emailBox">
       <summary data-k="setup.oremail"></summary>
@@ -135,6 +143,19 @@ export function mountSignIn(host, opts){
   const $ = (id)=> root.querySelector("#" + id);
   function repaint(){
     root.querySelectorAll("[data-k]").forEach(el => { el.innerHTML = L(el.dataset.k); });
+    // reCAPTCHA's required notice, with Google's two links in place of {privacy} / {terms}
+    const x = (C.STRINGS && C.STRINGS["auth.recaptcha"]) || null, note = root.querySelector("#recaptchaNote");
+    if(x && note){
+      const link = (href, txt)=> `<a href="${href}" target="_blank" rel="noopener">${C.escHtml(txt)}</a>`;
+      const fillLinks = (t, pv, tm)=> C.escHtml(t)
+        .replace("{privacy}", link("https://policies.google.com/privacy", pv))
+        .replace("{terms}", link("https://policies.google.com/terms", tm));
+      const en = fillLinks(x.en, "Privacy Policy", "Terms of Service");
+      const ar = fillLinks(x.ar, "سياسة الخصوصية", "شروط الخدمة");
+      // the English line only where the page's own labels carry English too
+      const bilingual = /class="sub"/.test(L("add.auth.phone"));
+      note.innerHTML = `<span class="bi-ar" dir="rtl">${ar}</span>` + (bilingual ? `<small class="sub">${en}</small>` : "");
+    }
   }
   repaint();
 

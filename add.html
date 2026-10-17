@@ -1141,10 +1141,12 @@ function paintAcct(){
   // caption: "دخول" signed out, "حسابي" signed in — it said "my account" either way
   const cap = C.STRINGS[u ? "hdr.account" : "hdr.signin"]; if(cap && cap.ar) b.setAttribute("data-cap", cap.ar);
 }
-$("acct").onclick = ()=>{
+$("acct").onclick = async ()=>{
   const u = realUser();
-  if(!u){ alert(plain("add.acct.out")); return; }
-  if(confirm(signedInAs(u) + "\n" + plain("add.acct.signout"))) signOut(auth);
+  // in the page (AFDCore.ask), not the browser's alert/confirm boxes
+  if(!u){ await C.ask({ mode: MODE, titleKey:"add.acct.out", yesKey:"auth.close", yesIcon:"keep" }); return; }
+  if(await C.ask({ mode: MODE, titleKey:"account.signout.confirm",
+        yesKey:"account.signout", yesIcon:"signout", noKey:"account.stay", noIcon:"keep" })) signOut(auth);
 };
 paintAcct();
 

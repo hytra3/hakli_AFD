@@ -579,7 +579,11 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFa
       // rules' "only once".
       try{ const sn=await getDoc(doc(CFG.db,"afd_entries",entryId));
            if(!sn.exists() || (sn.data()||{}).removedAt){ gone(); return; } }catch(_){}
-      if(!confirm(AFDCore.t("card.remove.confirm", m))) return;
+      // asked in the page (AFDCore.ask), with the word's own picture; red, because
+      // the voices on it are erased for good
+      const face = cardEl.querySelector(".thumb") ? cardEl.querySelector(".thumb").innerHTML : "";
+      if(!(await AFDCore.ask({ mode:m, face, danger:true, titleKey:"card.remove.confirm",
+            yesKey:"card.remove", yesIcon:"trash", noKey:"card.keep", noIcon:"keep" }))) return;
       rb.disabled=true;
       try{
         // all of MY takes on it, hidden ones included (the list above only has what loaded)

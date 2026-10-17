@@ -104,6 +104,12 @@ await scenario("Sign-in by texted code on all three pages", async ()=>{
     const { page, ctx, state } = await newPage(browser, srv.url, { init:AUTO });
     await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1500);
     const vis = await page.isVisible("#signinHost #authPhone");
+    const legal = await page.evaluate(()=>{ const n=document.querySelector("#signinHost #recaptchaNote");
+      const b=document.createElement("div"); b.className="grecaptcha-badge"; document.body.appendChild(b);
+      const hidden = getComputedStyle(b).visibility==="hidden"; b.remove();
+      return { links: n ? [...n.querySelectorAll("a")].map(a=>a.getAttribute("href")) : [], text: n ? n.innerText : "", hidden }; });
+    ok("Recorder: the reCAPTCHA badge is hidden and its notice shows, with Google's two links",
+       legal.hidden && legal.links.filter(h=>/policies\.google\.com\/(privacy|terms)/.test(h)).length >= 2 && /reCAPTCHA/.test(legal.text), JSON.stringify(legal));
     await shot(page, "signin-recorder");
     await page.fill("#authPhone", "91234567");
     await page.click("#phoneBtn"); await page.waitForTimeout(500);
@@ -144,6 +150,37 @@ await scenario("Sign-in by texted code on all three pages", async ()=>{
     ok("Dictionary: Close shuts the sheet and leaves you signed out", !st.sheet && !st.signedIn, JSON.stringify(st));
     await ctx.close();
   }
+});
+
+await scenario("Remove my word and sign out ask in the page too", async ()=>{
+  const ANNA = { uid:"uAnna", isAnonymous:false, displayName:null, email:"anna@example.org", providerData:[{ providerId:"phone" }] };
+  const FS = { "afd_entries/ent_u_abc": { source:"user", createdBy:"uAnna", gloss:"", glossAr:"قهوة", pic:"☕" } };
+  const { page, ctx, state } = await newPage(browser, srv.url, { fs:FS, user:ANNA, init:AUTO });
+  const dialogs = []; page.on("dialog", d => { dialogs.push(d.type()); d.dismiss().catch(()=>{}); });
+  await page.goto(srv.url + "/index.html#ent_u_abc");
+  await page.waitForSelector(".wt-remove", { timeout:10000 }); await page.waitForTimeout(300);
+  const tap = ()=> page.evaluate(()=> document.querySelector(".wt-remove").click());
+  await tap(); await page.waitForSelector(".afd-ask", { timeout:5000 }).catch(()=>{});
+  const q = await page.evaluate(()=>{ const a=document.querySelector(".afd-ask"); return a && {
+    title:a.querySelector("h2").innerText, red:a.querySelector(".ask-yes").classList.contains("ask-danger"),
+    yes:a.querySelector(".ask-yes").innerText, no:a.querySelector(".ask-no").innerText,
+    face:(a.querySelector(".ask-face")||{}).textContent||"" }; });
+  await shot(page, "ask-remove");
+  ok("Remove my word: asked in the page, in red, with the word's picture", !!q && q.red && /Remove this word/.test(q.title) && /Keep the word/.test(q.no) && /☕/.test(q.face) && !dialogs.length, JSON.stringify({ q, dialogs }));
+  await page.click(".ask-no"); await page.waitForTimeout(300);
+  const kept = await page.evaluate(()=> !globalThis.__FS["afd_entries/ent_u_abc"].removedAt);
+  await tap(); await page.waitForSelector(".afd-ask", { timeout:5000 }); await page.click(".ask-yes"); await page.waitForTimeout(800);
+  const removed = await page.evaluate(()=> !!globalThis.__FS["afd_entries/ent_u_abc"].removedAt);
+  ok("Keep the word keeps it; Remove removes it", kept && removed, JSON.stringify({ kept, removed }));
+  // sign out from the account menu
+  await page.click("#account"); await page.waitForTimeout(200);
+  await page.click("#acctOut"); await page.waitForSelector(".afd-ask", { timeout:5000 }).catch(()=>{});
+  const so = await page.evaluate(()=>{ const a=document.querySelector(".afd-ask"); return a && { yes:a.querySelector(".ask-yes").innerText, no:a.querySelector(".ask-no").innerText }; });
+  await page.click(".ask-no"); await page.waitForTimeout(300);
+  const stillIn = await page.evaluate(()=> document.getElementById("account").classList.contains("in"));
+  ok("Sign out asks in the page; 'Stay signed in' keeps you in", !!so && /Sign out/.test(so.yes) && /Stay signed in/.test(so.no) && stillIn && !dialogs.length, JSON.stringify({ so, stillIn, dialogs }));
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+  await ctx.close();
 });
 
 await browser.close(); srv.close();

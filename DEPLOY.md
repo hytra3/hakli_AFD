@@ -28,11 +28,17 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
 - **The site** — GitHub Pages at **hakli.app**, updated by the **Publish** task
   (`scripts/publish-site.sh`, which also bumps the build stamp shown at the foot
   of each page):
+  - **Sign-in is the same on every page** (`afd-signin.js`, since 10-16): Google,
+    a texted code typed in the page (works inside WhatsApp's own browser), email +
+    password, or an email link. The dictionary opens it in a sheet from the account
+    button; Add asks only at the end; the recorder at step 1. Phone numbers listed
+    under Authentication → Sign-in method → Phone → *numbers for testing* never get
+    a real text — they sign in with the fixed code set there.
   - `index.html` — the dictionary: browse every word, speak to find, open a word.
   - `add.html` — "add a word": a NEW word, in your own voice — say it, show it,
-    share it (the page WhatsApp invitations open). Sign-in only at the end:
-    Google, phone number, email. Reached from the **+** beside the mic, "Add a
-    word card" in the view menu, the button atop the list and the no-match card.
+    share it (the page WhatsApp invitations open). Sign-in only at the end.
+    Reached from the **+** beside the mic, "Add a word card" in the view menu,
+    the button atop the list and the no-match card.
   - `recorder.html` — the full recorder: a voice (yours or someone else's) on a
     word that ALREADY exists, or a session through the word list — speaker
     details, spoken consent, recording for someone else, importing a WhatsApp

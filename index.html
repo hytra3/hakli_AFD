@@ -1404,8 +1404,8 @@ if(accountBtn){
 if(acctEdit) acctEdit.addEventListener("click", ()=>{ closeAcctMenu(); location.href="recorder.html#profile"; });
 if(acctOut)  acctOut.addEventListener("click", async ()=>{
   closeAcctMenu();
-  const msg = AFDCore.t("account.signout.confirm", displayMode);
-  if(!confirm(msg)) return;
+  if(!(await AFDCore.ask({ mode: displayMode, titleKey:"account.signout.confirm",
+        yesKey:"account.signout", yesIcon:"signout", noKey:"account.stay", noIcon:"keep" }))) return;
   try{ await signOut(auth); }catch(err){ console.warn("[AFD] auth", err); }
 });
 document.addEventListener("click", (e)=>{ if(acctMenu && acctMenu.classList.contains("open") && !e.target.closest(".account-wrap")) closeAcctMenu(); });
