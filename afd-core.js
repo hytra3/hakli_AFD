@@ -853,7 +853,10 @@ window.AFDCore = (function(){
     "add.hear":             { en:"Hear it",            ar:"استمع" },
     // Google's required notice when the reCAPTCHA badge is hidden (afd-signin.js).
     // {privacy} and {terms} become links: keep both, as they are.
-    "auth.recaptcha":       { en:"Protected by reCAPTCHA. Google's {privacy} and {terms} apply.", ar:"محميّ بخدمة reCAPTCHA، وتنطبق {privacy} و{terms} من Google." }
+    "auth.recaptcha":       { en:"Protected by reCAPTCHA. Google's {privacy} and {terms} apply.", ar:"محميّ بخدمة reCAPTCHA، وتنطبق {privacy} و{terms} من Google." },
+    // 10-16 (cont.): the last confirm() boxes on the speaker pages, moved to ask()
+    "card.keep":            { en:"Keep the word",      ar:"أبقِ الكلمة" },
+    "account.stay":         { en:"Stay signed in",     ar:"ابقَ مسجَّل الدخول" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1113,6 +1116,9 @@ window.AFDCore = (function(){
      face     HTML for the picture at the top (the speaker's avatar, the word…)
      audio    a URL (or a Promise of one) for the spoken question; it plays on
               open unless quiet mode is on (it's narration), and 🔈 replays it
+     danger   the yes button in red (an act that can't be undone, e.g. erasing)
+     noKey    leave it out for a notice with one button (yesKey), e.g. "Close"
+     yesIcon / noIcon: open · closed · trash · signout · keep · none
      The YES button is never the default focus, so a stray Enter answers no. */
   const ASK_CSS = `
 .afd-ask{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;
@@ -1134,6 +1140,7 @@ window.AFDCore = (function(){
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .afd-ask .ask-btn svg{width:28px;height:28px;flex:0 0 auto}
 .afd-ask .ask-yes{background:var(--mountain,#1F3A34);color:#fff}
+.afd-ask .ask-yes.ask-danger{background:var(--danger,var(--alert,#9E4433))}
 .afd-ask .ask-no{background:var(--cloud,#fff);color:var(--mountain,#1F3A34);box-shadow:inset 0 0 0 1.5px var(--mountain,#1F3A34)}
 .afd-ask .ask-hear{position:absolute;top:10px;inset-inline-start:10px;width:44px;height:44px;border-radius:50%;border:0;
   background:transparent;color:var(--mountain,#1F3A34);cursor:pointer}
@@ -1143,6 +1150,10 @@ window.AFDCore = (function(){
   const ASK_ICONS = {
     hear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
     open: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M17 8.5a4 4 0 0 1 0 6M19.5 6a7.5 7.5 0 0 1 0 11"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+    signout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
+    keep: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+    none: '',
     closed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
   };
   function askHTML(key, mode){
@@ -1169,8 +1180,8 @@ window.AFDCore = (function(){
         <h2 id="afdAskTitle">${askHTML(o.titleKey, mode)}</h2>
         ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode)}</p>` : ""}
         <div class="ask-btns">
-          <button class="ask-btn ask-yes" type="button">${ASK_ICONS[o.yesIcon || "open"]}<span>${askHTML(o.yesKey, mode)}</span></button>
-          <button class="ask-btn ask-no" type="button">${ASK_ICONS[o.noIcon || "closed"]}<span>${askHTML(o.noKey, mode)}</span></button>
+          <button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>
+          ${o.noKey ? `<button class="ask-btn ask-no" type="button">${ASK_ICONS[o.noIcon || "closed"] || ""}<span>${askHTML(o.noKey, mode)}</span></button>` : ""}
         </div></div>`;
       w.setAttribute("aria-labelledby", "afdAskTitle");
       let done = false, _askAudio = null;
@@ -1186,10 +1197,10 @@ window.AFDCore = (function(){
       document.addEventListener("keydown", onKey, true);
       w.addEventListener("click", (e)=>{ if(e.target === w) end(false); });
       w.querySelector(".ask-yes").onclick = ()=> end(true);
-      w.querySelector(".ask-no").onclick  = ()=> end(false);
+      if(o.noKey) w.querySelector(".ask-no").onclick = ()=> end(false);
       w.querySelector(".ask-x").onclick   = ()=> end(false);
       document.body.appendChild(w);
-      w.querySelector(".ask-no").focus();          // a stray Enter answers no
+      (w.querySelector(".ask-no") || w.querySelector(".ask-x")).focus();   // a stray Enter answers no
       Promise.resolve(o.audio).then((url)=>{
         if(!url || done) return;
         const hear = w.querySelector(".ask-hear");

@@ -437,6 +437,15 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   their number in the recorder.
 - New on-screen lines at the END of their sections (no renumbering): A3.57–60
   (`add.reopen.*`, `add.hear`) and A4.33 (`auth.close`). A3.57–59 are consent wording.
+- **✅ The reCAPTCHA badge is hidden** (it floated over "Just listen"); Google's required
+  notice sits under the phone box instead (`auth.recaptcha`, A4.34).
+- **✅ The last `confirm()` / `alert()` boxes outside the recorder use `AFDCore.ask`:**
+  Remove my word (red, with the word's picture; A2.52 "Keep the word"), and signing
+  out on the dictionary and on Add (A4.35 "Stay signed in"). `ask` gained `danger`,
+  a one-button notice (no `noKey`), and trash / sign-out / keep icons.
+- **Still to do:** the recorder's ~21 `alert()` / `confirm()` calls — mostly upload and
+  sync results, which want in-page messages rather than questions. Steward pages keep
+  theirs (readers only).
 
 ## Matcher resilience (2026-10-10)
 
