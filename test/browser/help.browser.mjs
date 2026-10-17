@@ -2,7 +2,7 @@
 // "Who can hear my voice?", and "Ask a person" (WhatsApp), which stays hidden
 // until afd-instance.js names someone. Reached from the dictionary's ☰ menu
 // (everyone) and from the account menu (index and recorder).
-import { ROOT, serve, launch, newPage, ok, scenario, finish } from "./lib.mjs";
+import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.mjs";
 
 const srv = await serve(ROOT);
 // the same site with a helper configured in afd-instance.js
@@ -58,11 +58,19 @@ await scenario("Help in the dictionary's ☰ menu (signed out)", async ()=>{
 
 for(const pg of ["index.html", "recorder.html"]){
   await scenario("Help in the account menu · " + pg, async ()=>{
-    const { page, state } = await newPage(browser, srv.url, { user:ME });
+    const { page, state } = await newPage(browser, srv.url, { user:ME, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
     await page.goto(srv.url + "/" + pg); await page.waitForTimeout(2500);
     const label = await page.evaluate(()=> (document.getElementById("acctHelp")||{}).textContent || "");
     ok("the account menu has Help", label.includes("مساعدة"), label);
     await page.evaluate(()=> document.getElementById("account").click()); await page.waitForTimeout(200);
+    if(pg === "index.html"){
+      await shot(page, "acct-menu");
+      // auto mode: each item's Arabic and English on lines of their own, not run together
+      const stacked = await page.evaluate(()=> [...document.querySelectorAll("#acctMenu button")].every(b=>{
+        const ar=b.querySelector(".bi-ar"), en=b.querySelector(".sub");
+        return !en || (ar && en.getBoundingClientRect().top >= ar.getBoundingClientRect().bottom - 1); }));
+      ok("the account menu's Arabic and English sit on separate lines", stacked);
+    }
     await Promise.all([ page.waitForURL(/help\.html/, { timeout:5000 }).catch(()=>{}), page.evaluate(()=> document.getElementById("acctHelp").click()) ]);
     ok("tapping it opens help.html", /help\.html/.test(page.url()), page.url());
     ok("no page errors", !state.errors.length, state.errors.join(" | "));

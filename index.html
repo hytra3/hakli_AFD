@@ -194,6 +194,11 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 .acct-menu button{display:block;width:100%;text-align:start;padding:9px 10px;border:0;background:none;
   font:inherit;font-size:14px;color:var(--mountain);border-radius:8px;cursor:pointer}
 .acct-menu button:hover{background:var(--mist-2)}
+/* Arabic on its own line, English small beneath (10-16): tHTML's two spans ran
+   together ("تسجيل الخروجSign out") with nothing here to stack them */
+.acct-menu button .bi-ar{display:block;font-size:15px;line-height:1.35}
+.acct-menu button .sub{display:block;font-size:11px;line-height:1.3;opacity:.7;margin-top:1px;text-align:right}
+.acct-menu button{min-height:44px}
 /* empty / miss — an invitation, not an apology */
   .empty{width:100%; max-width:460px; background:var(--cloud); border-radius:var(--r);
          box-shadow:var(--shadow); padding:26px 22px; text-align:center}

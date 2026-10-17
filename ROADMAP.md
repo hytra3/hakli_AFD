@@ -452,6 +452,8 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   Remove my word (red, with the word's picture; A2.52 "Keep the word"), and signing
   out on the dictionary and on Add (A4.35 "Stay signed in"). `ask` gained `danger`,
   a one-button notice (no `noKey`), and trash / sign-out / keep icons.
+- **✅ The dictionary's account menu stacks each label** — Arabic, with its English small
+  beneath and aligned under it. The two had run together ("تسجيل الخروجSign out").
 - **Still to do:** the recorder's ~21 `alert()` / `confirm()` calls — mostly upload and
   sync results, which want in-page messages rather than questions. Steward pages keep
   theirs (readers only).
