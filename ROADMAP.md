@@ -394,6 +394,26 @@ something makes them matter.
   reads Firestore is denied — 4 false failures). Unset `HTTPS_PROXY`/`https_proxy`
   (and `JAVA_TOOL_OPTIONS` if it's set) for the `firebase emulators:exec` run.
 
+- **Firebase App Check (planned — revisit before any wider launch).** Today anyone
+  can call Firestore, Storage and the public `/search` with the page's (public)
+  Firebase config. Rules still apply, so nothing a signed-in user couldn't do — but
+  a script can run up costs (`/search` runs the model; audio re-reads) or spam
+  within the rules. App Check adds "is this request from the real hakli.app?" via
+  reCAPTCHA Enterprise, invisible to users.
+  Plan: (1) Marty — register the web app for App Check, create the reCAPTCHA
+  Enterprise key, list the domains (hakli.app, www, hytra3.github.io, localhost
+  for dev). (2) Code — initialise App Check on every page; the embed service
+  verifies the token on `/search`. (3) **Monitor mode** first: watch the
+  verified/unverified counts in the console for a few days of real use (incl.
+  field phones on older cached pages). (4) Only then **enforce**, service by
+  service. Check reCAPTCHA Enterprise pricing/free tier first; very old phones or
+  blocked Google domains may fail the check.
+  *Update 10-16:* this is the guard the improvement review calls the "contributed-word
+  flood" — any Google account can add unlimited words and photos, and the new field
+  error log (`afd_client_errors`) is writable by anyone by design. App Check covers
+  both. Phone sign-in already loads Google's reCAPTCHA on these pages
+  (afd-signin.js), so it would not be a new script on people's phones. (Carried over from PR #5, closed without merging.)
+
 ## Matcher warm-up (2026-09-26)
 
 - **✅ `scripts/set-warm.sh on|off|status`.** The repo disagreed with itself:
