@@ -13,6 +13,8 @@
  *  Run (look first — without --apply nothing is written):
  *    gcloud auth application-default login
  *    node scripts/join-words.mjs water                   # list every card called "water", with ids
+ *    node scripts/join-words.mjs 💧                      # …or every card with that picture
+ *    node scripts/join-words.mjs --all                   # every card, contributed ones first
  *    node scripts/join-words.mjs <extra> <keep>          # the plan: what moves where
  *    node scripts/join-words.mjs <extra> <keep> --apply  # do it
  *    node scripts/join-words.mjs --undo <extra>          # the plan to put it back
@@ -31,13 +33,13 @@ import { execSync } from "node:child_process";
 import { findWords, planJoin, applyJoin, undoJoin } from "./lib/join.mjs";
 
 const args = process.argv.slice(2);
-const APPLY = args.includes("--apply"), UNDO = args.includes("--undo");
+const APPLY = args.includes("--apply"), UNDO = args.includes("--undo"), ALL = args.includes("--all");
 const words = args.filter(a => !a.startsWith("--"));
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 const BUCKET = process.env.AFD_BUCKET || "afd-dev.firebasestorage.app";
 let by = process.env.AFD_STEWARD || "";
 if (!by) { try { by = execSync("gcloud config get-value account", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { by = "steward"; } }
-if (!words.length || (UNDO && words.length !== 1) || (!UNDO && words.length > 2)) {
+if ((!words.length && !ALL) || (UNDO && words.length !== 1) || (!UNDO && words.length > 2)) {
   console.log("Usage:\n  node scripts/join-words.mjs <word>                    list cards called that\n" +
               "  node scripts/join-words.mjs <extra> <keep> [--apply]   join\n" +
               "  node scripts/join-words.mjs --undo <extra> [--apply]   undo a join");
@@ -70,9 +72,17 @@ function one(q){
   return null;
 }
 
+if (ALL) {
+  const list = entries.filter(e => !e.data.joinedInto)
+    .sort((a, b) => ((b.data.source === "user") - (a.data.source === "user")) || label(a).localeCompare(label(b)));
+  console.log(`All ${list.length} cards (contributed first):\n`);
+  for (const e of list) console.log(await describe(e));
+  process.exit(0);
+}
+
 if (!UNDO && words.length === 1) {
   const m = findWords(words[0], entries);
-  if (!m.length) { console.log(`No card "${words[0]}".`); process.exit(1); }
+  if (!m.length) { console.log(`No card "${words[0]}". Try its picture (e.g. 💧) or part of its Arabic name.`); process.exit(1); }
   console.log(`Cards called "${words[0]}":\n`);
   for (const e of m) console.log(await describe(e) + "\n");
   if (m.length > 1) {
