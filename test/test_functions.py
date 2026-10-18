@@ -200,6 +200,12 @@ class PurgeEmptyUserEntry(unittest.TestCase):
         entry, _ = self._run({"createdBy": "uA"}, bucket=bucket)
         entry.reference.delete.assert_called_once()
 
+    def test_a_joined_word_is_kept_with_its_photo(self):
+        # joined into another word by a steward: empty on purpose, never reaped
+        entry, bucket = self._run({"createdBy": "uA", "image": "https://x", "joinedInto": "ent_water"})
+        bucket.blob.assert_not_called()
+        entry.reference.delete.assert_not_called()
+
     def test_failed_photo_delete_keeps_the_entry(self):
         bucket = mock.MagicMock()
         bucket.blob.return_value.delete.side_effect = RuntimeError("503 backend error")

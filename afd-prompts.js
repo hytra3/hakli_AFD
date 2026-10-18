@@ -55,6 +55,8 @@ window.AFDPrompts = [
     // 10-16: asked on Add when a speaker who hid their voice adds a word with
     // "let others listen" on. Consent wording — give it to the strongest reviewer.
     { key:"add.reopen",       en:"You hid your voice earlier. Do you want people to hear all your recordings again — not only this word?", ar:"أخفيتَ صوتك سابقًا. هل تريد أن يسمع الناس كلّ تسجيلاتك مجددًا — لا هذه الكلمة فقط؟", kind:"narration" },
+    // 10-17: asked on Add when the word just recorded sounds like one already in the dictionary
+    { key:"add.dup",          en:"Is it one of these words? Listen — if it's the same word, choose it, and your voice joins it there.", ar:"هل هي إحدى هذه الكلمات؟ استمع — إن كانت الكلمة نفسها فاخترها، ويُضاف صوتك إليها هناك.", kind:"narration" },
   ]},
   { tab:"record", later:true, name:"Consent grant (most important)", ar:"إعطاء الإذن (الأهمّ)", items:[
     { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", ar:"ماذا يعني أن تدع العالم يسمعك — بوضوحٍ، قبل أي موافقة", kind:"narration" },

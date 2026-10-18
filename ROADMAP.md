@@ -478,6 +478,52 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   sync results, which want in-page messages rather than questions. Steward pages keep
   theirs (readers only).
 
+## Field-ready: no signal, no browser boxes (2026-10-17)
+
+- **✅ The dictionary without signal.** `index.html` keeps what it has read on the phone
+  (Firestore persistent local cache, multi-tab), so the list opens from the last visit
+  offline. **Dictionary only, on purpose:** the recorder and Add read speaker details
+  (town, tribe…) that must not stay in a shared phone's storage after sign-out.
+  An opened word whose voices can't be fetched now says *No signal — the voices will
+  play when you're back online* (A2.53) instead of "no voice yet", and its slots stop
+  saying "none yet". Field-error records written offline are kept and sent later.
+  *Verify on a phone:* open hakli.app online, then airplane mode, then reload.
+- **✅ The recorder has no `alert()` / `confirm()` left.** `AFDCore.notice()` (new): a bar
+  at the foot of the screen, Arabic first, that leaves after a few seconds (errors stay
+  until tapped). Upload/sync results, sign-in reminders, import/save/export errors and
+  withdrawal results use it. Questions use `AFDCore.ask` (now with `{placeholders}` and
+  several lines): share/hide all takes ("Only from now on", A11.133–134), restore a
+  speaker, share a speaker, and **clear this phone** (red; "Keep them", A8.26–27).
+- **✅ Add keeps words while there's no signal.** Share with no signal parks the word in
+  this browser's storage ("Saved on this phone…", A3.61–65) and lets them add another;
+  parked words go on their own on load, when signal returns, when the page comes back
+  into view, or after a sign-in — retrying 3 s → 9 s → … 2 min. Signed out, the
+  "words waiting" note opens the sign-in. A word refused for another reason is logged
+  and skipped, so it can't block the rest. A word sent in the background never asks
+  the re-open question: a withdrawn voice stays hidden (only a clear yes reverses it).
+  Storage upload retries capped at 2 min on Add (the default was a 10-minute spinner).
+- **✅ "Is it one of these?" — duplicate word cards on Add (decided 10-17: support, never
+  block).** When a word take is kept, it goes to the matcher in the background while
+  they pick a picture. At Share, if a card is as close as the dictionary's own "Here it
+  is" (≤ 0.15), they're asked — each candidate with its picture, name and a ▶ — and
+  **This word** puts their voice (and meaning, and Hakli spelling) on that card instead
+  of making a second; **No — it's a new word** carries on. A sleeping matcher is never
+  waited for (1.5 s grace, then skipped). Second net, only if they typed: the Arabic
+  gloss or Hakli spelling, folded with `spellingKey`. Not asked for words sent from the
+  offline queue. Picture/emoji/Arabic gloss aren't carried to the joined card (only a
+  card's maker sets those). Strings R2.11 (spoken), A3.66–70.
+- **✅ Steward join for existing duplicates** — `scripts/join-words.mjs` (logic in
+  `scripts/lib/join.mjs`, unit-tested in `test/join.unit.test.mjs`). Moves every voice
+  of a contributed card onto the card it duplicates: records rewritten under the kept
+  word with `joinedFrom`, the audio's Storage label (`entryId`, which the Storage rule
+  reads for consent) pointed at it, consent/owner/speaker untouched, search vectors
+  carried. The extra card is hidden and stamped `joinedInto` — never deleted, and the
+  **purge now skips joined cards** (redeploy it before the first join). The kept card
+  keeps its picture: emoji and photo count as one picture, taken only if it has
+  neither; names likewise. Hakli spellings copied (a writer's own on the kept card
+  wins). Built-in words are only ever kept. `--undo` puts everything back. Look-only
+  without `--apply`; safe to re-run after an interruption.
+
 ## Matcher resilience (2026-10-10)
 
 What prompted it: a search on the phone sat on "Finding…" and then showed

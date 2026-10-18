@@ -59,6 +59,9 @@ const LOG = (globalThis.__FSLOG = globalThis.__FSLOG || []);
 let auto = 0;
 function mk(a, p){ const base = (a && a.__p) ? a.__p.slice() : []; return base.concat(p.map(String)); }
 export function getFirestore(){ return {}; }
+export function initializeFirestore(app, opts){ globalThis.__FS_CACHE = !!(opts && opts.localCache); return {}; }
+export function persistentLocalCache(o){ return { kind:"persistent", ...(o||{}) }; }
+export function persistentMultipleTabManager(){ return { kind:"multi-tab" }; }
 export function collection(a, ...p){ return { __p: mk(a,p), type:"collection" }; }
 export function doc(a, ...p){ let pp = mk(a,p); if(pp.length % 2) pp.push("auto"+(++auto));
   const self = { __p:pp, id:pp[pp.length-1], path:pp.join("/"), type:"document" };
@@ -97,7 +100,7 @@ export class Timestamp{ constructor(ms){ this.ms=ms; } toMillis(){ return this.m
 const URLS = (globalThis.__URLS = globalThis.__URLS || {});
 export function getStorage(){ return {}; }
 export function ref(s, p){ return { fullPath:p, name:String(p).split("/").pop() }; }
-export async function getDownloadURL(r){ if(URLS[r.fullPath]) return URLS[r.fullPath]; const e=new Error("storage/object-not-found"); e.code="storage/object-not-found"; throw e; }
+export async function getDownloadURL(r){ if(navigator.onLine===false){ const e=new Error("Max retry time for operation exceeded"); e.code="storage/retry-limit-exceeded"; throw e; } if(URLS[r.fullPath]) return URLS[r.fullPath]; const e=new Error("storage/object-not-found"); e.code="storage/object-not-found"; throw e; }
 export async function uploadBytes(r, b, m){ URLS[r.fullPath] = "data:audio/wav;base64,"; return { ref:r, metadata:m||{} }; }
 export async function getMetadata(r){ if(URLS[r.fullPath]) return { fullPath:r.fullPath, customMetadata:{} }; const e=new Error("storage/object-not-found"); e.code="storage/object-not-found"; throw e; }
 export async function deleteObject(r){ delete URLS[r.fullPath]; }

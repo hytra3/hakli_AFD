@@ -388,7 +388,7 @@ body.compact .typecount{display:none}
   addEventListener("resize", onScroll, { passive:true });
 }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs, addDoc, Timestamp }
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs, addDoc, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -471,7 +471,20 @@ function setDisplayMode(m){ displayMode = m; AFDCore.setDisplayMode(m); }
 
 /* ================================================================= setup */
 const app   = initializeApp(firebaseConfig);
-const db    = getFirestore(app);
+/* Offline word list (10-17): keep what this phone has read on the phone, so the
+   dictionary opens from the last visit when there's no signal (Khor Kharfot, the
+   jebel) instead of a bare list of the seeded words. Online nothing changes:
+   Firestore still asks the server first, and the copy is refreshed as it goes.
+   A field error logged offline is also kept, and sent when signal returns.
+   Dictionary page ONLY, on purpose: what it reads is public (words, public
+   voices, public profiles) plus the viewer's own takes, which it only asks for
+   while that account is signed in. The recorder and Add read speaker details
+   (town, tribe…) that must not sit in a shared phone's storage after sign-out.
+   Private browsing / blocked storage: Firestore falls back to memory by itself;
+   the try/catch covers an SDK that can't do it at all. */
+let db;
+try{ db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) }); }
+catch(e){ console.warn("[AFD] offline cache unavailable", e); db = getFirestore(app); }
 const store = getStorage(app);
 const auth  = getAuth(app);
 // field error log — AFDCore.report() writes here (afd_client_errors: create-only,

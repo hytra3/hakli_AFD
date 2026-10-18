@@ -19,27 +19,31 @@ const FS = {
 const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
 const states = (page)=> page.evaluate(()=> Object.fromEntries(["rPub","rPriv","rGone"].map(id=>{
   const r = globalThis.__FS["afd_entries/ent_sun/recordings/"+id]; return [id, (r.allowPlayback?"on":"off")+"/"+r.consent]; })));
-const setBox = async (page, on)=>{ await page.evaluate(v=>{ document.getElementById("spkId").value="spk_uFatma_01";
-  const c=document.getElementById("cPlay"); if(c.checked!==v){ c.checked=v; c.dispatchEvent(new Event("change")); } }, on); await page.waitForTimeout(900); };
+// 10-17: the question is asked in the page (AFDCore.ask), not with confirm()
+const setBox = async (page, on, answer, asked)=>{ await page.evaluate(v=>{ document.getElementById("spkId").value="spk_uFatma_01";
+  const c=document.getElementById("cPlay"); if(c.checked!==v){ c.checked=v; c.dispatchEvent(new Event("change")); } }, on);
+  await page.waitForSelector(".afd-ask", { timeout:5000 }).catch(()=>{});
+  asked.push(await page.evaluate(()=>{ const a=document.querySelector(".afd-ask"); return a ? a.innerText : ""; }));
+  if(await page.$(".afd-ask")) await page.click(answer ? ".ask-yes" : ".ask-no");
+  await page.waitForTimeout(900); };
 
 await scenario("the box applies to uploaded takes, when the speaker says so", async ()=>{
   const { page, state } = await newPage(browser, srv.url, { fs:FS, user:ME, init });
-  const asked = [];
-  let answer = true;
-  page.on("dialog", d=>{ asked.push(d.message()); answer ? d.accept() : d.dismiss(); });
+  const asked = [], dialogs = [];
+  page.on("dialog", d=>{ dialogs.push(d.type()); d.dismiss().catch(()=>{}); });
   await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1800);
-  await setBox(page, false);
+  await setBox(page, false, true, asked);
   const hidden = await states(page);
   ok("untick → asked in plain words, and every take is hidden", /hide the recordings you've already uploaded/i.test(asked[0]||"")
      && hidden.rPub==="off/withdrawn" && hidden.rPriv==="off/withdrawn" && hidden.rGone==="off/deleted", JSON.stringify([asked, hidden]));
-  await setBox(page, true);
+  await setBox(page, true, true, asked);
   const shown = await states(page);
   ok("tick → asked, and every take is shared again — an erased one stays erased", /already uploaded/i.test(asked[1]||"")
      && shown.rPub==="on/public" && shown.rPriv==="on/public" && shown.rGone==="off/deleted", JSON.stringify([asked, shown]));
-  answer = false;
-  await setBox(page, false);
+  await setBox(page, false, false, asked);
   const kept = await states(page);
   ok("untick but Cancel → uploaded takes stay as they were (only new ones are private)", kept.rPub==="on/public" && kept.rPriv==="on/public", JSON.stringify(kept));
+  ok("asked in the page each time, never a browser box", dialogs.length===0 && asked.length===3 && /Only from now on/.test(asked[2]||""), JSON.stringify({ dialogs, n:asked.length }));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 

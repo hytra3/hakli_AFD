@@ -875,7 +875,25 @@ window.AFDCore = (function(){
     "auth.recaptcha":       { en:"Protected by reCAPTCHA. Google's {privacy} and {terms} apply.", ar:"محميّ بخدمة reCAPTCHA، وتنطبق {privacy} و{terms} من Google." },
     // 10-16 (cont.): the last confirm() boxes on the speaker pages, moved to ask()
     "card.keep":            { en:"Keep the word",      ar:"أبقِ الكلمة" },
-    "account.stay":         { en:"Stay signed in",     ar:"ابقَ مسجَّل الدخول" }
+    "card.offline":         { en:"No signal — the voices on this word will play when you're back online.", ar:"لا توجد شبكة — ستُسمَع الأصوات على هذه الكلمة عند عودة الاتصال." },
+    "account.stay":         { en:"Stay signed in",     ar:"ابقَ مسجَّل الدخول" },
+    // 10-17: the recorder's questions, now in the page (AFDCore.ask)
+    "ask.newonly":          { en:"Only from now on",   ar:"من الآن فقط" },
+    "ask.hideall":          { en:"Hide them too",      ar:"أخفِها أيضًا" },
+    "clear.yes":            { en:"Delete from this phone", ar:"احذفها من هذا الهاتف" },
+    "clear.no":             { en:"Keep them",          ar:"أبقِها" },
+    // 10-17: Add keeps words on the phone while there's no signal
+    "add.queue.keep":       { en:"Keep it on this phone — share it when there's signal", ar:"احفظها على هذا الهاتف — تُشارَك عند توفّر الشبكة" },
+    "add.queue.saved":      { en:"Saved on this phone. It will be shared on its own when there's signal — you can add another word now.", ar:"حُفظت على هذا الهاتف، وستُشارَك تلقائيًا عند توفّر الشبكة. يمكنك إضافة كلمة أخرى الآن." },
+    "add.queue.n":          { en:"Words waiting on this phone: {n}. They'll be shared when there's signal.", ar:"كلمات تنتظر على هذا الهاتف: {n}. ستُشارَك عند توفّر الشبكة." },
+    "add.queue.signin":     { en:"Words waiting on this phone: {n}. Sign in to share them.", ar:"كلمات تنتظر على هذا الهاتف: {n}. سجّل الدخول لمشاركتها." },
+    "add.queue.sent":       { en:"Shared now: {n} word(s) you kept on this phone.", ar:"شُورِكت الآن: {n} من الكلمات التي حفظتها على هذا الهاتف." },
+    // 10-17: is this word already in the dictionary? (Add, before Share)
+    "add.dup.title":        { en:"Is it one of these?", ar:"هل هي إحدى هذه الكلمات؟" },
+    "add.dup.sub":          { en:"Your word sounds like one already in the dictionary. If it's the same word, your voice joins it there.", ar:"كلمتك تشبه كلمةً موجودة في القاموس. إن كانت الكلمة نفسها، يُضاف صوتك إليها هناك." },
+    "add.dup.this":         { en:"This word",          ar:"هذه الكلمة" },
+    "add.dup.new":          { en:"No — it's a new word", ar:"لا — إنها كلمة جديدة" },
+    "add.dup.done":         { en:"Your voice is on that word now.", ar:"صوتك الآن على تلك الكلمة." }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1137,6 +1155,11 @@ window.AFDCore = (function(){
               open unless quiet mode is on (it's narration), and 🔈 replays it
      danger   the yes button in red (an act that can't be undone, e.g. erasing)
      noKey    leave it out for a notice with one button (yesKey), e.g. "Close"
+     vars     fills {spk}, {n}… in the keys; subKey may be an array (one line each)
+     choices  [{ value, face, label, play }] — a short list to pick from (10-17):
+              each row its picture, its name (HTML), a ▶ (play: () => Promise<url>)
+              and a pickKey button. Picking resolves with that row's value;
+              noKey / ✕ / Escape resolve false.
      yesIcon / noIcon: open · closed · trash · signout · keep · none
      The YES button is never the default focus, so a stray Enter answers no. */
   const ASK_CSS = `
@@ -1153,12 +1176,23 @@ window.AFDCore = (function(){
 .afd-ask h2{margin:0;font-size:20px;line-height:1.45}
 .afd-ask .ask-sub{margin:8px 0 0;font-size:15px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
 .afd-ask .sub{display:block;font-size:12px;font-weight:400;opacity:.72;margin-top:2px}
+.afd-ask .ask-line{display:block}.afd-ask .ask-line+.ask-line{margin-top:10px}
+.afd-ask .ask-choices{display:flex;flex-direction:column;gap:10px;margin-top:16px;text-align:start}
+.afd-ask .ask-choice{display:flex;align-items:center;gap:10px;padding:8px;border-radius:16px;background:var(--fog,#EAF0EE)}
+.afd-ask .ask-cface{flex:0 0 auto;width:52px;height:52px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--cloud,#fff)}
+.afd-ask .ask-cface img,.afd-ask .ask-cface svg{width:100%;height:100%;object-fit:cover;display:block}
+.afd-ask .ask-ctext{flex:1;min-width:0;font-size:16px;line-height:1.35;word-break:break-word;text-align:right}
+.afd-ask .ask-cplay{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:0;background:var(--resin,#C6873F);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.afd-ask .ask-cplay svg{width:18px;height:18px}
+.afd-ask .ask-cpick{flex:0 0 auto;min-height:44px;padding:6px 12px;border-radius:14px;border:0;background:var(--mountain,#1F3A34);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.afd-ask .ask-cpick .sub{color:inherit;opacity:.85}
 .afd-ask .ask-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .afd-ask .ask-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:64px;
   padding:12px 16px;border-radius:18px;border:0;font:inherit;font-size:17px;font-weight:600;cursor:pointer;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .afd-ask .ask-btn svg{width:28px;height:28px;flex:0 0 auto}
 .afd-ask .ask-yes{background:var(--mountain,#1F3A34);color:#fff}
+.afd-ask .ask-btn .sub{color:inherit;opacity:.85}   /* the page's own grey .sub vanished on a dark button */
 .afd-ask .ask-yes.ask-danger{background:var(--danger,var(--alert,#9E4433))}
 .afd-ask .ask-no{background:var(--cloud,#fff);color:var(--mountain,#1F3A34);box-shadow:inset 0 0 0 1.5px var(--mountain,#1F3A34)}
 .afd-ask .ask-hear{position:absolute;top:10px;inset-inline-start:10px;width:44px;height:44px;border-radius:50%;border:0;
@@ -1175,10 +1209,15 @@ window.AFDCore = (function(){
     none: '',
     closed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
   };
-  function askHTML(key, mode){
-    const s = STRINGS[key]; if(!s) return escHtml(key);
-    let h = `<span dir="rtl">${escHtml(s.ar || s.en)}</span>`;
-    if(mode === "auto" && s.en && s.en !== s.ar) h += `<small class="sub">${escHtml(s.en)}</small>`;
+  // A STRINGS key (or several, one line each), with {name} placeholders filled
+  // from vars; or a ready {en, ar} pair. Arabic first; English beneath in auto.
+  function fillVars(t, vars){ return String(t).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars) ? String(vars[k]) : m); }
+  function askHTML(key, mode, vars){
+    if(Array.isArray(key)) return key.filter(Boolean).map(k => `<span class="ask-line">${askHTML(k, mode, vars)}</span>`).join("");
+    const s = (key && typeof key === "object") ? key : STRINGS[key]; if(!s) return escHtml(key);
+    const ar = fillVars(s.ar || s.en, vars), en = s.en ? fillVars(s.en, vars) : "";
+    let h = `<span dir="rtl">${escHtml(ar)}</span>`;
+    if(mode === "auto" && en && en !== ar) h += `<small class="sub">${escHtml(en)}</small>`;
     return h;
   }
   function ask(o){
@@ -1196,10 +1235,14 @@ window.AFDCore = (function(){
         <button class="ask-hear" type="button" hidden aria-label="${escHtml(t("add.hear", "auto"))}">${ASK_ICONS.hear}</button>
         <button class="ask-x" type="button" aria-label="${escHtml(t("auth.close", "auto"))}">✕</button>
         ${o.face ? `<div class="ask-face">${o.face}</div>` : ""}
-        <h2 id="afdAskTitle">${askHTML(o.titleKey, mode)}</h2>
-        ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode)}</p>` : ""}
+        <h2 id="afdAskTitle">${askHTML(o.titleKey, mode, o.vars)}</h2>
+        ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode, o.vars)}</p>` : ""}
+        ${o.choices ? `<div class="ask-choices">${o.choices.map((c, i) => `<div class="ask-choice">
+            <div class="ask-cface">${c.face || ""}</div><div class="ask-ctext">${c.label || ""}</div>
+            ${c.play ? `<button class="ask-cplay" type="button" data-i="${i}" aria-label="${escHtml(t("add.hear","auto"))}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>` : ""}
+            <button class="ask-cpick" type="button" data-i="${i}">${askHTML(o.pickKey || "add.dup.this", mode)}</button></div>`).join("")}</div>` : ""}
         <div class="ask-btns">
-          <button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>
+          ${o.yesKey ? `<button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>` : ""}
           ${o.noKey ? `<button class="ask-btn ask-no" type="button">${ASK_ICONS[o.noIcon || "closed"] || ""}<span>${askHTML(o.noKey, mode)}</span></button>` : ""}
         </div></div>`;
       w.setAttribute("aria-labelledby", "afdAskTitle");
@@ -1210,12 +1253,18 @@ window.AFDCore = (function(){
         try{ if(_askAudio){ _askAudio.pause(); } }catch(_){}
         w.remove();
         try{ prevFocus && prevFocus.focus && prevFocus.focus(); }catch(_){}
-        resolve(v === true);
+        resolve(o.choices ? (v === undefined ? false : v) : v === true);
       };
       const onKey = (e)=>{ if(e.key === "Escape"){ e.stopPropagation(); end(false); } };
       document.addEventListener("keydown", onKey, true);
       w.addEventListener("click", (e)=>{ if(e.target === w) end(false); });
-      w.querySelector(".ask-yes").onclick = ()=> end(true);
+      if(o.yesKey) w.querySelector(".ask-yes").onclick = ()=> end(true);
+      if(o.choices){
+        w.querySelectorAll(".ask-cpick").forEach(b => { b.onclick = ()=> end(o.choices[+b.dataset.i].value); });
+        w.querySelectorAll(".ask-cplay").forEach(b => { b.onclick = async ()=>{
+          try{ const url = await o.choices[+b.dataset.i].play(); if(url){ try{ _askAudio && _askAudio.pause(); }catch(_){} _askAudio = playUI(url, "asked"); } }catch(_){}
+        }; });
+      }
       if(o.noKey) w.querySelector(".ask-no").onclick = ()=> end(false);
       w.querySelector(".ask-x").onclick   = ()=> end(false);
       document.body.appendChild(w);
@@ -1230,8 +1279,57 @@ window.AFDCore = (function(){
     });
   }
 
+  /* ---- notice(): a message in the page, not alert() (10-17) ---------------------
+     For results and errors that need no answer: "3 of 4 uploaded", "couldn't
+     read that file". A bar at the foot of the screen, Arabic first (English
+     beneath in auto), that leaves on its own after a few seconds — errors stay
+     until tapped. Never blocks: the page carries on under it.
+       notice(keyOrKeys, { mode, vars, kind:"info"|"ok"|"err", detail, ms })
+       notice({ text:"already translated" }, …)   for text a caller has built
+     detail: a short technical line (an error code), shown small and left-to-right.
+     A new notice replaces the one showing. Returns nothing; never throws. */
+  const NOTICE_CSS = `
+.afd-notice{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  z-index:95;width:calc(100% - 32px);max-width:460px;box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;
+  padding:14px 14px 14px 16px;border-radius:16px;background:var(--mountain,#1F3A34);color:#fff;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);font-size:15px;line-height:1.45;animation:afdNoticeIn .18s ease-out}
+.afd-notice.err{background:var(--danger,var(--alert,#9E4433))}
+.afd-notice.ok{background:var(--monsoon,#2F6B4F)}
+.afd-notice .n-body{flex:1;min-width:0;text-align:right}   /* Arabic-first: its line, and the English under it, on the right */
+.afd-notice .n-line{display:block}.afd-notice .n-line+.n-line{margin-top:6px}
+.afd-notice .sub{display:block;font-size:12px;opacity:.85;margin-top:1px;color:inherit}
+.afd-notice .n-detail{display:block;direction:ltr;text-align:left;font-family:ui-monospace,monospace;font-size:11px;opacity:.75;margin-top:6px;word-break:break-word}
+.afd-notice .n-x{flex:0 0 auto;width:36px;height:36px;margin:-6px -6px -6px 0;border:0;border-radius:50%;background:transparent;color:inherit;font-size:18px;cursor:pointer}
+@keyframes afdNoticeIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}`;
+  let _noticeTimer = null;
+  function notice(key, o){
+    try{
+      o = o || {};
+      const mode = o.mode || getDisplayMode("auto"), kind = o.kind || "info";
+      if(!document.getElementById("afd-notice-css")){
+        const st = document.createElement("style"); st.id = "afd-notice-css"; st.textContent = NOTICE_CSS;
+        document.head.appendChild(st);
+      }
+      const old = document.querySelector(".afd-notice"); if(old) old.remove();
+      clearTimeout(_noticeTimer);
+      const keys = Array.isArray(key) ? key : [key];
+      const body = keys.filter(Boolean).map(k => `<span class="n-line">${
+        (k && typeof k === "object" && "text" in k) ? escHtml(k.text) : askHTML(k, mode, o.vars)}</span>`).join("")
+        + (o.detail ? `<span class="n-detail">${escHtml(String(o.detail).slice(0, 200))}</span>` : "");
+      const n = document.createElement("div");
+      n.className = "afd-notice " + kind;
+      n.setAttribute("role", kind === "err" ? "alert" : "status");
+      n.innerHTML = `<div class="n-body">${body}</div><button class="n-x" type="button" aria-label="${escHtml(t("auth.close","auto"))}">✕</button>`;
+      const close = ()=>{ clearTimeout(_noticeTimer); n.remove(); };
+      n.querySelector(".n-x").onclick = close;
+      document.body.appendChild(n);
+      const ms = o.ms != null ? o.ms : (kind === "err" ? 0 : 6000);
+      if(ms > 0) _noticeTimer = setTimeout(close, ms);
+    }catch(_){}
+  }
+
   return {
-    ask,
+    ask, notice,
     errorSink, report,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,

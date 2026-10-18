@@ -118,6 +118,12 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   `gcloud firestore fields ttls update expireAt --collection-group=afd_client_errors --enable-ttl --project=afd-dev`
   Needs the rules deployed first (`firebase deploy --only firestore:rules`);
   until then the pages' writes are simply refused, which is harmless.
+- **Joining two cards that are the same word** (e.g. "water" twice) —
+  `node scripts/join-words.mjs water` lists them with ids; `… <extra> <keep>` shows
+  the plan; `--apply` moves the extra card's voices onto the kept one (consent
+  untouched) and hides the extra card; `--undo <extra> --apply` puts it back.
+  **Redeploy the purge first** (`bash scripts/deploy-purge.sh`), once: it must know
+  to leave joined cards alone, or it would reap the hidden, now-empty card.
 - **Matcher ceiling** — `afd-embed` is capped at 3 instances (`--max-instances`
   in `deploy-service.sh` and both modes of `set-warm.sh`; `set-warm.sh status`
   shows it). The /search endpoint is public, so the cap is what keeps a flood of
