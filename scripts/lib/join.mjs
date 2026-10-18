@@ -24,15 +24,19 @@
 const norm = (s) => String(s || "").normalize("NFKD").replace(/[̀-ًͯ-ٰٟ]/g, "")
   .replace(/[آأإٱ]/g, "ا").replace(/[ىی]/g, "ي").replace(/ة/g, "ه").toLowerCase().trim();
 
-/* Find a word by id ("ent_water") or by what it's called (English, Arabic). */
+/* Find a word by id ("ent_water"), by its picture ("💧"), or by what it's
+   called (English, Arabic; diacritics and letter variants folded). An exact
+   name wins; failing that, any card whose name contains it. */
 export function findWords(q, entries){
-  const k = norm(q);
+  const k = norm(q), pic = String(q || "").trim();
   const exact = entries.filter(e => e.id === q);
   if(exact.length) return exact;
-  return entries.filter(e => {
-    const d = e.data || {};
-    return [d.gloss, d.glossAr, d.glosses && d.glosses.en, d.glosses && d.glosses.ar].some(v => v && norm(v) === k);
-  });
+  const names = (d) => [d.gloss, d.glossAr, d.glosses && d.glosses.en, d.glosses && d.glosses.ar].filter(Boolean).map(norm);
+  const byPic = entries.filter(e => (e.data || {}).pic && (e.data.pic === pic || e.data.pic.replace(/\uFE0F/g, "") === pic.replace(/\uFE0F/g, "")));
+  const byName = entries.filter(e => names(e.data || {}).includes(k));
+  const found = [...new Map([...byName, ...byPic].map(e => [e.id, e])).values()];
+  if(found.length || !k) return found;
+  return entries.filter(e => names(e.data || {}).some(n => n.includes(k)));
 }
 
 /* Everything a join would do, and anything that should stop it. Writes nothing. */

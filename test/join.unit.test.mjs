@@ -61,6 +61,14 @@ test("findWords: by id, or by English / Arabic name with the diacritics folded",
   assert.deepEqual(findWords("WATER", entries).map(e => e.id), ["ent_water"]);
 });
 
+test("findWords: by picture, and by part of a name when nothing matches exactly", () => {
+  const entries = [{ id: "ent_water", data: { gloss: "water", glossAr: "ماء", pic: "💧" } },
+                   { id: "ent_u_x", data: { source: "user", pic: "💧" } },
+                   { id: "ent_u_y", data: { source: "user", glossAr: "مية البحر" } }];
+  assert.deepEqual(findWords("💧", entries).map(e => e.id).sort(), ["ent_u_x", "ent_water"]);
+  assert.deepEqual(findWords("مية", entries).map(e => e.id), ["ent_u_y"]);
+});
+
 test("join: voices move with consent untouched; audio labels follow; spellings copied; INTO keeps its face", async () => {
   const db = fakeDb(world()), bucket = fakeBucket();
   const plan = await planJoin(db, "ent_u_dup", "ent_water");
