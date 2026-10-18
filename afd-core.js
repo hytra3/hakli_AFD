@@ -876,7 +876,12 @@ window.AFDCore = (function(){
     // 10-16 (cont.): the last confirm() boxes on the speaker pages, moved to ask()
     "card.keep":            { en:"Keep the word",      ar:"أبقِ الكلمة" },
     "card.offline":         { en:"No signal — the voices on this word will play when you're back online.", ar:"لا توجد شبكة — ستُسمَع الأصوات على هذه الكلمة عند عودة الاتصال." },
-    "account.stay":         { en:"Stay signed in",     ar:"ابقَ مسجَّل الدخول" }
+    "account.stay":         { en:"Stay signed in",     ar:"ابقَ مسجَّل الدخول" },
+    // 10-17: the recorder's questions, now in the page (AFDCore.ask)
+    "ask.newonly":          { en:"Only from now on",   ar:"من الآن فقط" },
+    "ask.hideall":          { en:"Hide them too",      ar:"أخفِها أيضًا" },
+    "clear.yes":            { en:"Delete from this phone", ar:"احذفها من هذا الهاتف" },
+    "clear.no":             { en:"Keep them",          ar:"أبقِها" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1138,6 +1143,7 @@ window.AFDCore = (function(){
               open unless quiet mode is on (it's narration), and 🔈 replays it
      danger   the yes button in red (an act that can't be undone, e.g. erasing)
      noKey    leave it out for a notice with one button (yesKey), e.g. "Close"
+     vars     fills {spk}, {n}… in the keys; subKey may be an array (one line each)
      yesIcon / noIcon: open · closed · trash · signout · keep · none
      The YES button is never the default focus, so a stray Enter answers no. */
   const ASK_CSS = `
@@ -1154,12 +1160,14 @@ window.AFDCore = (function(){
 .afd-ask h2{margin:0;font-size:20px;line-height:1.45}
 .afd-ask .ask-sub{margin:8px 0 0;font-size:15px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
 .afd-ask .sub{display:block;font-size:12px;font-weight:400;opacity:.72;margin-top:2px}
+.afd-ask .ask-line{display:block}.afd-ask .ask-line+.ask-line{margin-top:10px}
 .afd-ask .ask-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .afd-ask .ask-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:64px;
   padding:12px 16px;border-radius:18px;border:0;font:inherit;font-size:17px;font-weight:600;cursor:pointer;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .afd-ask .ask-btn svg{width:28px;height:28px;flex:0 0 auto}
 .afd-ask .ask-yes{background:var(--mountain,#1F3A34);color:#fff}
+.afd-ask .ask-btn .sub{color:inherit;opacity:.85}   /* the page's own grey .sub vanished on a dark button */
 .afd-ask .ask-yes.ask-danger{background:var(--danger,var(--alert,#9E4433))}
 .afd-ask .ask-no{background:var(--cloud,#fff);color:var(--mountain,#1F3A34);box-shadow:inset 0 0 0 1.5px var(--mountain,#1F3A34)}
 .afd-ask .ask-hear{position:absolute;top:10px;inset-inline-start:10px;width:44px;height:44px;border-radius:50%;border:0;
@@ -1176,10 +1184,15 @@ window.AFDCore = (function(){
     none: '',
     closed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'
   };
-  function askHTML(key, mode){
-    const s = STRINGS[key]; if(!s) return escHtml(key);
-    let h = `<span dir="rtl">${escHtml(s.ar || s.en)}</span>`;
-    if(mode === "auto" && s.en && s.en !== s.ar) h += `<small class="sub">${escHtml(s.en)}</small>`;
+  // A STRINGS key (or several, one line each), with {name} placeholders filled
+  // from vars; or a ready {en, ar} pair. Arabic first; English beneath in auto.
+  function fillVars(t, vars){ return String(t).replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars) ? String(vars[k]) : m); }
+  function askHTML(key, mode, vars){
+    if(Array.isArray(key)) return key.filter(Boolean).map(k => `<span class="ask-line">${askHTML(k, mode, vars)}</span>`).join("");
+    const s = (key && typeof key === "object") ? key : STRINGS[key]; if(!s) return escHtml(key);
+    const ar = fillVars(s.ar || s.en, vars), en = s.en ? fillVars(s.en, vars) : "";
+    let h = `<span dir="rtl">${escHtml(ar)}</span>`;
+    if(mode === "auto" && en && en !== ar) h += `<small class="sub">${escHtml(en)}</small>`;
     return h;
   }
   function ask(o){
@@ -1197,8 +1210,8 @@ window.AFDCore = (function(){
         <button class="ask-hear" type="button" hidden aria-label="${escHtml(t("add.hear", "auto"))}">${ASK_ICONS.hear}</button>
         <button class="ask-x" type="button" aria-label="${escHtml(t("auth.close", "auto"))}">✕</button>
         ${o.face ? `<div class="ask-face">${o.face}</div>` : ""}
-        <h2 id="afdAskTitle">${askHTML(o.titleKey, mode)}</h2>
-        ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode)}</p>` : ""}
+        <h2 id="afdAskTitle">${askHTML(o.titleKey, mode, o.vars)}</h2>
+        ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode, o.vars)}</p>` : ""}
         <div class="ask-btns">
           <button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>
           ${o.noKey ? `<button class="ask-btn ask-no" type="button">${ASK_ICONS[o.noIcon || "closed"] || ""}<span>${askHTML(o.noKey, mode)}</span></button>` : ""}
@@ -1231,8 +1244,57 @@ window.AFDCore = (function(){
     });
   }
 
+  /* ---- notice(): a message in the page, not alert() (10-17) ---------------------
+     For results and errors that need no answer: "3 of 4 uploaded", "couldn't
+     read that file". A bar at the foot of the screen, Arabic first (English
+     beneath in auto), that leaves on its own after a few seconds — errors stay
+     until tapped. Never blocks: the page carries on under it.
+       notice(keyOrKeys, { mode, vars, kind:"info"|"ok"|"err", detail, ms })
+       notice({ text:"already translated" }, …)   for text a caller has built
+     detail: a short technical line (an error code), shown small and left-to-right.
+     A new notice replaces the one showing. Returns nothing; never throws. */
+  const NOTICE_CSS = `
+.afd-notice{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  z-index:95;width:calc(100% - 32px);max-width:460px;box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;
+  padding:14px 14px 14px 16px;border-radius:16px;background:var(--mountain,#1F3A34);color:#fff;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);font-size:15px;line-height:1.45;animation:afdNoticeIn .18s ease-out}
+.afd-notice.err{background:var(--danger,var(--alert,#9E4433))}
+.afd-notice.ok{background:var(--monsoon,#2F6B4F)}
+.afd-notice .n-body{flex:1;min-width:0;text-align:right}   /* Arabic-first: its line, and the English under it, on the right */
+.afd-notice .n-line{display:block}.afd-notice .n-line+.n-line{margin-top:6px}
+.afd-notice .sub{display:block;font-size:12px;opacity:.85;margin-top:1px;color:inherit}
+.afd-notice .n-detail{display:block;direction:ltr;text-align:left;font-family:ui-monospace,monospace;font-size:11px;opacity:.75;margin-top:6px;word-break:break-word}
+.afd-notice .n-x{flex:0 0 auto;width:36px;height:36px;margin:-6px -6px -6px 0;border:0;border-radius:50%;background:transparent;color:inherit;font-size:18px;cursor:pointer}
+@keyframes afdNoticeIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}`;
+  let _noticeTimer = null;
+  function notice(key, o){
+    try{
+      o = o || {};
+      const mode = o.mode || getDisplayMode("auto"), kind = o.kind || "info";
+      if(!document.getElementById("afd-notice-css")){
+        const st = document.createElement("style"); st.id = "afd-notice-css"; st.textContent = NOTICE_CSS;
+        document.head.appendChild(st);
+      }
+      const old = document.querySelector(".afd-notice"); if(old) old.remove();
+      clearTimeout(_noticeTimer);
+      const keys = Array.isArray(key) ? key : [key];
+      const body = keys.filter(Boolean).map(k => `<span class="n-line">${
+        (k && typeof k === "object" && "text" in k) ? escHtml(k.text) : askHTML(k, mode, o.vars)}</span>`).join("")
+        + (o.detail ? `<span class="n-detail">${escHtml(String(o.detail).slice(0, 200))}</span>` : "");
+      const n = document.createElement("div");
+      n.className = "afd-notice " + kind;
+      n.setAttribute("role", kind === "err" ? "alert" : "status");
+      n.innerHTML = `<div class="n-body">${body}</div><button class="n-x" type="button" aria-label="${escHtml(t("auth.close","auto"))}">✕</button>`;
+      const close = ()=>{ clearTimeout(_noticeTimer); n.remove(); };
+      n.querySelector(".n-x").onclick = close;
+      document.body.appendChild(n);
+      const ms = o.ms != null ? o.ms : (kind === "err" ? 0 : 6000);
+      if(ms > 0) _noticeTimer = setTimeout(close, ms);
+    }catch(_){}
+  }
+
   return {
-    ask,
+    ask, notice,
     errorSink, report,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,

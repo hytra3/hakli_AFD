@@ -898,7 +898,7 @@ window.AFD = {
 initCard({ db, store, recorderUrl:"recorder.html",
            mode:()=>AFDCore.getDisplayMode("sound"),   // match the recorder's own default (was "auto" → English card labels inside a wordless page)
            user:()=>currentUser,
-           banner:(m)=>{ try{ alert(m); }catch(_){ console.warn("[AFD]", m); } } });
+           banner:(m)=>{ AFDCore.notice({ text:m }, { mode:dispMode }); } });   // in the page, not alert() (10-17)
 window.AFD.withdrawSpeaker = withdrawSpeaker;
 // Upload the speaker's spoken-Hakli withdrawal utterance, then apply the chosen
 // consent state to every take of theirs with that proof stamped on it. One
@@ -1310,8 +1310,8 @@ $("switchSpeaker").onclick=()=>{
 $("withdrawSpeaker").onclick=async ()=>{
   const uid=(window.AFD&&window.AFD.user())?window.AFD.user().uid:null;
   const spk=($("spkId").value||"").trim();
-  if(!uid){ alert(AFDCore.t("speaker.signin",dispMode)); return; }
-  if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
+  if(!uid){ AFDCore.notice("speaker.signin", { mode:dispMode }); return; }
+  if(!spk){ AFDCore.notice("speaker.entid", { mode:dispMode }); return; }
   // A steward can't silently pull a speaker's voice: the speaker themselves must
   // say, in Hakli, that they want it removed. Capture that utterance first — it
   // is the proof the Firestore rule requires — then apply the withdrawal.
@@ -1418,7 +1418,7 @@ async function wdApply(mode){
     renderRoster();                     // reflect the new state on the roster
     const key = erasing ? (n?"speaker.erase.done":"speaker.erase.none")
                         : (n?"speaker.withdraw.done":"speaker.withdraw.none");
-    alert(AFDCore.t(key,dispMode).split("{n}").join(n).split("{spk}").join(spk));
+    AFDCore.notice(key, { mode:dispMode, kind:"ok", vars:{ n, spk } });
   }catch(e){
     console.warn("[AFD] withdrawWithProof", mode, e);
     $("wdStatus").textContent=AFDCore.t("withdraw.proof.err",dispMode);
@@ -1560,8 +1560,8 @@ $("grantRecordBtn").onclick=async ()=>{
   // settle the code first, so the consent is filed under the code the takes will use
   if(uid && window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
   const spk=($("spkId").value||"").trim();
-  if(!uid){ alert(AFDCore.t("grant.signin",dispMode)); return; }
-  if(!spk){ alert(AFDCore.t("speaker.entid",dispMode)); return; }
+  if(!uid){ AFDCore.notice("grant.signin", { mode:dispMode }); return; }
+  if(!spk){ AFDCore.notice("speaker.entid", { mode:dispMode }); return; }
   openGrantProof(uid, spk);
 };
 $("toMic").onclick=async ()=>{
@@ -1653,7 +1653,8 @@ async function renderShareChip(){
 async function offerShare(code){
   const u=window.AFD && window.AFD.user && window.AFD.user();
   if(!u || !code || !window.AFD.withdrawSpeaker) return;
-  if(!confirm(AFDCore.t("share.confirm",dispMode).split("{spk}").join(code))) return;
+  if(!(await AFDCore.ask({ mode:dispMode, titleKey:"share.confirm", vars:{ spk:code },
+        yesKey:"add.reopen.yes", noKey:"add.reopen.no" }))) return;
   try{ await window.AFD.withdrawSpeaker(u.uid, code, "public"); }
   catch(e){ console.warn("[AFD] share speaker", e); }
   renderShareChip();
@@ -1676,15 +1677,17 @@ async function offerShare(code){
     if(st===null || st==="deleted"){ renderShareChip(); return; }   // nothing uploaded yet, or erased for good
     const agent=!!($("agentMode") && $("agentMode").checked);
     if(c.checked){
-      const ask = agent ? AFDCore.t("share.confirm",dispMode).split("{spk}").join(code) : AFDCore.t("share.confirm.self",dispMode);
-      if(confirm(ask)){
+      // in the page (AFDCore.ask); "Only from now on" = the box applies to new takes only
+      if(await AFDCore.ask({ mode:dispMode, titleKey: agent ? "share.confirm" : "share.confirm.self", vars:{ spk:code },
+            yesKey:"add.reopen.yes", noKey:"ask.newonly" })){
         try{ await window.AFD.withdrawSpeaker(u.uid, code, "public"); }
         catch(e){ console.warn("[AFD] share all", e); }
       }
     }else if(agent){
       // someone else's voice: their own spoken "no" first, as the Withdraw button asks
       openWithdrawProof(u.uid, code);
-    }else if(confirm(AFDCore.t("share.hide.self",dispMode))){
+    }else if(await AFDCore.ask({ mode:dispMode, titleKey:"share.hide.self",
+          yesKey:"ask.hideall", yesIcon:"closed", noKey:"ask.newonly", noIcon:"keep" })){
       try{ await window.AFD.withdrawSpeaker(u.uid, code, "withdrawn"); }
       catch(e){ console.warn("[AFD] hide all", e); }
     }
@@ -2426,7 +2429,7 @@ $("importFile").onchange=async ()=>{
   }catch(e){
     console.warn("[AFD] import voice note", e);
     $("silLabel").textContent=AFDCore.t("status.ready",dispMode);
-    alert(AFDCore.t("import.fail",dispMode));
+    AFDCore.notice("import.fail", { mode:dispMode, kind:"err" });
   }
 };
 
@@ -2702,7 +2705,7 @@ $("keepBtn").onclick=async ()=>{
   lastImported=false;
   kept.push(rec);
   try{ await idbPut(STORE,rec); await saveSpeaker(); }
-  catch(e){ alert(tMsg("save.failed")+" "+e); }
+  catch(e){ AFDCore.notice("save.failed", { mode:dispMode, kind:"err", detail:String(e && (e.name||e.message) || e) }); AFDCore.report("recorder.save", e); }
   renderClips();
   $("reviewCard").classList.add("hidden"); paintWordNav();
   await syncOne(rec);                 // upload first so the comparison includes it
@@ -2800,10 +2803,10 @@ async function syncOne(rec){
 
 let syncing=false;
 async function syncPending(){
-  if(syncing){ alert(tMsg("sync.busy")); return; }
+  if(syncing){ AFDCore.notice("sync.busy", { mode:dispMode }); return; }
   const pend=myClips().filter(k=>!k.skipped&&!k.synced);
-  if(!pend.length){ alert(tMsg("sync.none")); return; }
-  if(!(window.AFD&&window.AFD.isSignedIn())){ alert(AFDCore.t("session.signinupload",dispMode)); return; }
+  if(!pend.length){ AFDCore.notice("sync.none", { mode:dispMode, kind:"ok" }); return; }
+  if(!(window.AFD&&window.AFD.isSignedIn())){ AFDCore.notice("session.signinupload", { mode:dispMode }); return; }
   const btn=$("syncBtn"), label=btn.textContent;
   btn.disabled=true; syncing=true;
   let ok=0;
@@ -2814,8 +2817,12 @@ async function syncPending(){
     }
   }finally{ btn.textContent=label; btn.disabled=false; syncing=false; }
   const orphan=pend.filter(k=>!k.synced && !speakerFor(k)).length;
-  alert(tMsg("sync.result",{ok,n:pend.length})+(ok<pend.length?"\n\n"+tMsg("sync.rest"):"")+
-        (orphan?"\n\n"+tMsg("sync.orphan",{n:orphan}):""));
+  // the result in the page: green when all went up, red (and staying) when some didn't.
+  // Each line filled on its own — sync.result's {n} is the total, sync.orphan's the orphans.
+  const fillKey=(k,v)=>{ const x=(AFDCore.STRINGS||{})[k]||{en:k,ar:k}; return { en:fill(x.en,v), ar:fill(x.ar,v) }; };
+  AFDCore.notice([fillKey("sync.result",{ok,n:pend.length}), ok<pend.length ? "sync.rest" : null,
+                  orphan ? fillKey("sync.orphan",{n:orphan}) : null],
+                 { mode:dispMode, kind: ok<pend.length ? "err" : "ok" });
 }
 
 // Quiet background retry: no alerts, no button changes. Runs when an account
@@ -2886,7 +2893,7 @@ function next(){
   idx++;
   if(idx>=WORDS.length){
     idx=0;
-    alert(tMsg("list.end"));
+    AFDCore.notice("list.end", { mode:dispMode, kind:"ok", ms:10000 });
   }
   renderPrompt();
   window.scrollTo({top:0,behavior:"smooth"});
@@ -2988,7 +2995,7 @@ async function renderRoster(){
   }).join("");
   host.querySelectorAll("[data-wd]").forEach(b=>{
     b.onclick=()=>{
-      if(!uid){ alert(AFDCore.t("speaker.signin",dispMode)); return; }
+      if(!uid){ AFDCore.notice("speaker.signin", { mode:dispMode }); return; }
       openWithdrawProof(uid, decodeURIComponent(b.dataset.wd));   // recoverable withdraw; erase armed inside
     };
   });
@@ -2998,7 +3005,8 @@ async function renderRoster(){
       const spk=decodeURIComponent(b.dataset.rs);
       // Restore is the steward's deliberate re-exposure (the "she has more room now"
       // case). Recoverable both ways; a light confirm guards an accidental tap.
-      if(!confirm(AFDCore.t("roster.restore.confirm",dispMode).split("{spk}").join(spk))) return;
+      if(!(await AFDCore.ask({ mode:dispMode, titleKey:"roster.restore.confirm", vars:{ spk },
+            yesKey:"add.reopen.yes", noKey:"add.reopen.no" }))) return;
       b.disabled=true;
       try{ await window.AFD.withdrawSpeaker(uid, spk, "public"); }   // public restore needs no proof
       catch(e){ console.warn("[AFD] restore", e); }
@@ -3011,7 +3019,7 @@ async function renderRoster(){
 $("dlManifest").onclick=async ()=>{
   const mine=myClips();
   const real=mine.filter(k=>!k.skipped&&k.blob);
-  if(!mine.length){ alert(tMsg("export.none")); return; }
+  if(!mine.length){ AFDCore.notice("export.none", { mode:dispMode }); return; }
   const btn=$("dlManifest"); const label=btn.textContent;
   btn.textContent=tBi("export.packaging"); btn.disabled=true;
   try{
@@ -3047,7 +3055,8 @@ $("dlManifest").onclick=async ()=>{
     const zip=makeZip(files);
     dl(zip,"hakli_"+spk.speakerId+"_"+new Date().toISOString().slice(0,10)+".zip");
   }catch(e){
-    alert(tMsg("export.failed")+" "+e);
+    AFDCore.notice("export.failed", { mode:dispMode, kind:"err", detail:String(e && (e.name||e.message) || e) });
+    AFDCore.report("recorder.export", e);
   }finally{
     btn.textContent=label; btn.disabled=false;
   }
@@ -3056,9 +3065,11 @@ $("dlManifest").onclick=async ()=>{
 $("clearBtn").onclick=async ()=>{
   const real=kept.filter(k=>!k.skipped).length;  // clearing removes ALL local data
   const unsent=kept.filter(k=>!k.skipped&&!k.synced).length;
-  if(!confirm(tMsg("clear.confirm",{n:real})+"\n\n"+
-              (unsent?tMsg("clear.unsent",{n:unsent})+"\n\n":"")+
-              tMsg("clear.warn"))) return;
+  // in the page, red; "unsent" filled on its own line ({n} differs from the title's)
+  const fillKey=(k,v)=>{ const x=(AFDCore.STRINGS||{})[k]||{en:k,ar:k}; return { en:fill(x.en,v), ar:fill(x.ar,v) }; };
+  if(!(await AFDCore.ask({ mode:dispMode, danger:true, titleKey:fillKey("clear.confirm",{n:real}),
+        subKey:[unsent ? fillKey("clear.unsent",{n:unsent}) : null, "clear.warn"],
+        yesKey:"clear.yes", yesIcon:"trash", noKey:"clear.no", noIcon:"keep" }))) return;
   await idbClear(STORE);
   kept=[]; renderClips();
 };
