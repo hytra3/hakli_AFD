@@ -887,7 +887,13 @@ window.AFDCore = (function(){
     "add.queue.saved":      { en:"Saved on this phone. It will be shared on its own when there's signal — you can add another word now.", ar:"حُفظت على هذا الهاتف، وستُشارَك تلقائيًا عند توفّر الشبكة. يمكنك إضافة كلمة أخرى الآن." },
     "add.queue.n":          { en:"Words waiting on this phone: {n}. They'll be shared when there's signal.", ar:"كلمات تنتظر على هذا الهاتف: {n}. ستُشارَك عند توفّر الشبكة." },
     "add.queue.signin":     { en:"Words waiting on this phone: {n}. Sign in to share them.", ar:"كلمات تنتظر على هذا الهاتف: {n}. سجّل الدخول لمشاركتها." },
-    "add.queue.sent":       { en:"Shared now: {n} word(s) you kept on this phone.", ar:"شُورِكت الآن: {n} من الكلمات التي حفظتها على هذا الهاتف." }
+    "add.queue.sent":       { en:"Shared now: {n} word(s) you kept on this phone.", ar:"شُورِكت الآن: {n} من الكلمات التي حفظتها على هذا الهاتف." },
+    // 10-17: is this word already in the dictionary? (Add, before Share)
+    "add.dup.title":        { en:"Is it one of these?", ar:"هل هي إحدى هذه الكلمات؟" },
+    "add.dup.sub":          { en:"Your word sounds like one already in the dictionary. If it's the same word, your voice joins it there.", ar:"كلمتك تشبه كلمةً موجودة في القاموس. إن كانت الكلمة نفسها، يُضاف صوتك إليها هناك." },
+    "add.dup.this":         { en:"This word",          ar:"هذه الكلمة" },
+    "add.dup.new":          { en:"No — it's a new word", ar:"لا — إنها كلمة جديدة" },
+    "add.dup.done":         { en:"Your voice is on that word now.", ar:"صوتك الآن على تلك الكلمة." }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1150,6 +1156,10 @@ window.AFDCore = (function(){
      danger   the yes button in red (an act that can't be undone, e.g. erasing)
      noKey    leave it out for a notice with one button (yesKey), e.g. "Close"
      vars     fills {spk}, {n}… in the keys; subKey may be an array (one line each)
+     choices  [{ value, face, label, play }] — a short list to pick from (10-17):
+              each row its picture, its name (HTML), a ▶ (play: () => Promise<url>)
+              and a pickKey button. Picking resolves with that row's value;
+              noKey / ✕ / Escape resolve false.
      yesIcon / noIcon: open · closed · trash · signout · keep · none
      The YES button is never the default focus, so a stray Enter answers no. */
   const ASK_CSS = `
@@ -1167,6 +1177,15 @@ window.AFDCore = (function(){
 .afd-ask .ask-sub{margin:8px 0 0;font-size:15px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
 .afd-ask .sub{display:block;font-size:12px;font-weight:400;opacity:.72;margin-top:2px}
 .afd-ask .ask-line{display:block}.afd-ask .ask-line+.ask-line{margin-top:10px}
+.afd-ask .ask-choices{display:flex;flex-direction:column;gap:10px;margin-top:16px;text-align:start}
+.afd-ask .ask-choice{display:flex;align-items:center;gap:10px;padding:8px;border-radius:16px;background:var(--fog,#EAF0EE)}
+.afd-ask .ask-cface{flex:0 0 auto;width:52px;height:52px;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--cloud,#fff)}
+.afd-ask .ask-cface img,.afd-ask .ask-cface svg{width:100%;height:100%;object-fit:cover;display:block}
+.afd-ask .ask-ctext{flex:1;min-width:0;font-size:16px;line-height:1.35;word-break:break-word;text-align:right}
+.afd-ask .ask-cplay{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:0;background:var(--resin,#C6873F);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.afd-ask .ask-cplay svg{width:18px;height:18px}
+.afd-ask .ask-cpick{flex:0 0 auto;min-height:44px;padding:6px 12px;border-radius:14px;border:0;background:var(--mountain,#1F3A34);color:#fff;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.afd-ask .ask-cpick .sub{color:inherit;opacity:.85}
 .afd-ask .ask-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .afd-ask .ask-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:64px;
   padding:12px 16px;border-radius:18px;border:0;font:inherit;font-size:17px;font-weight:600;cursor:pointer;
@@ -1218,8 +1237,12 @@ window.AFDCore = (function(){
         ${o.face ? `<div class="ask-face">${o.face}</div>` : ""}
         <h2 id="afdAskTitle">${askHTML(o.titleKey, mode, o.vars)}</h2>
         ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode, o.vars)}</p>` : ""}
+        ${o.choices ? `<div class="ask-choices">${o.choices.map((c, i) => `<div class="ask-choice">
+            <div class="ask-cface">${c.face || ""}</div><div class="ask-ctext">${c.label || ""}</div>
+            ${c.play ? `<button class="ask-cplay" type="button" data-i="${i}" aria-label="${escHtml(t("add.hear","auto"))}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>` : ""}
+            <button class="ask-cpick" type="button" data-i="${i}">${askHTML(o.pickKey || "add.dup.this", mode)}</button></div>`).join("")}</div>` : ""}
         <div class="ask-btns">
-          <button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>
+          ${o.yesKey ? `<button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>` : ""}
           ${o.noKey ? `<button class="ask-btn ask-no" type="button">${ASK_ICONS[o.noIcon || "closed"] || ""}<span>${askHTML(o.noKey, mode)}</span></button>` : ""}
         </div></div>`;
       w.setAttribute("aria-labelledby", "afdAskTitle");
@@ -1230,12 +1253,18 @@ window.AFDCore = (function(){
         try{ if(_askAudio){ _askAudio.pause(); } }catch(_){}
         w.remove();
         try{ prevFocus && prevFocus.focus && prevFocus.focus(); }catch(_){}
-        resolve(v === true);
+        resolve(o.choices ? (v === undefined ? false : v) : v === true);
       };
       const onKey = (e)=>{ if(e.key === "Escape"){ e.stopPropagation(); end(false); } };
       document.addEventListener("keydown", onKey, true);
       w.addEventListener("click", (e)=>{ if(e.target === w) end(false); });
-      w.querySelector(".ask-yes").onclick = ()=> end(true);
+      if(o.yesKey) w.querySelector(".ask-yes").onclick = ()=> end(true);
+      if(o.choices){
+        w.querySelectorAll(".ask-cpick").forEach(b => { b.onclick = ()=> end(o.choices[+b.dataset.i].value); });
+        w.querySelectorAll(".ask-cplay").forEach(b => { b.onclick = async ()=>{
+          try{ const url = await o.choices[+b.dataset.i].play(); if(url){ try{ _askAudio && _askAudio.pause(); }catch(_){} _askAudio = playUI(url, "asked"); } }catch(_){}
+        }; });
+      }
       if(o.noKey) w.querySelector(".ask-no").onclick = ()=> end(false);
       w.querySelector(".ask-x").onclick   = ()=> end(false);
       document.body.appendChild(w);

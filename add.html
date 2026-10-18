@@ -350,12 +350,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
-         collection, query, where, limit, getDocs, addDoc, Timestamp }
+         collection, collectionGroup, query, where, limit, getDocs, addDoc, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip, instanceLang } from "./afd-upload.js?v=b1016g";
-import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace } from "./afd-card.js?v=b1016g";
+import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace, listPlayable } from "./afd-card.js?v=b1016g";
 import { mountSignIn, finishEmailLink, signInSheet } from "./afd-signin.js?v=b1016g";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
@@ -750,7 +750,9 @@ holdRecorder({
     draft.word = { blob:take.blob, mime:take.mime, durationMs:take.durationMs, sampleRate:take.sampleRate,
                    qc:qcOf(take.q,"word"), envelope:take.q.envelope, recordedAt:take.recordedAt };
     draft.up.word = false; draft.up.wordId = null;   // a new take is a new recording
+    delete draft.up.dupAsked; delete draft.joinEntryId; delete draft.joinMeta;   // a new take: ask again if it matches
     await saveDraft();
+    startDupCheck(take.blob);                       // is this word already here? (quietly, in the background)
     $("sayReview").classList.remove("hidden");
     $("sayNext").className = "btn" + (v.cls==="ok" ? "" : " secondary");
     $("sayAgain").className = "btn" + (v.cls==="ok" ? " secondary" : "");
@@ -981,6 +983,90 @@ function takeRec(d, t, type, recordingId, speakerId){
 const publicUrl = path =>
   "https://firebasestorage.googleapis.com/v0/b/"+firebaseConfig.storageBucket+"/o/"+encodeURIComponent(path)+"?alt=media";
 
+/* ---- is this word already in the dictionary? (10-17) -------------------------
+   Supports, never blocks. The take just recorded goes to the matcher in the
+   background while they choose a picture; if a card sounds close, Share first
+   asks "Is it one of these?" — each with its picture and a ▶ — and "This word"
+   puts their voice (and their meaning, and Hakli spelling) on that card instead
+   of making a second one. "No — it's a new word" carries on as before.
+   A second, text net, only when they typed something: the Arabic gloss or the
+   Hakli spelling, compared the same way the dictionary's typed search does
+   (spellingKey: no diacritics, alif/ya/ta-marbuta forms folded).
+   Never waits on a sleeping matcher (a cold start is a minute): if it hasn't
+   answered by Share, the audio half is skipped. Strict on purpose — as close as
+   the dictionary's own "Here it is" — because a wrong card is worse than a
+   second one, which a steward can still join later. */
+const DUP_MAX = 0.15;
+let dupCheck = null;            // { p, done, value } for the word take on screen
+function startDupCheck(blob){
+  dupCheck = null;
+  const url = window.AFDInstance && window.AFDInstance.embedUrl;
+  if(!url || !blob || navigator.onLine === false) return;
+  const ctl = new AbortController(), timer = setTimeout(()=> ctl.abort(), 90000);
+  const fd = new FormData(); fd.append("file", blob, "add.webm");
+  const p = fetch(url + "/search?top_k=3", { method:"POST", body:fd, signal:ctl.signal })
+    .then(r => r.ok ? r.json() : { results:[] })
+    .then(j => (j.results || []).filter(r => r && r.entryId && typeof r.distance === "number" && r.distance <= DUP_MAX))
+    .catch(()=> [])
+    .finally(()=> clearTimeout(timer));
+  const me = { p, done:false, value:[] };
+  p.then(v => { me.done = true; me.value = v; });
+  dupCheck = me;
+}
+async function textMatches(d){
+  const ar = C.spellingKey(d.glossAr || ""), sp = C.spellingKey(d.spelling || "");
+  if(!ar && !sp) return [];
+  const keys = new Set([ar, sp].filter(Boolean)), out = new Set();
+  (window.AFDWords || []).forEach(w => { const k = C.spellingKey(w.ar || ""); if(k && keys.has(k)) out.add(C.entryIdFor(w.id)); });
+  try{
+    (await getDocs(collection(db, "afd_entries"))).forEach(sn => {
+      const x = sn.data() || {}; if(x.removedAt || x.hiddenAt || sn.id === d.entryId) return;
+      const k = C.spellingKey(x.glossAr || (x.glosses && x.glosses.ar) || "");
+      if(k && keys.has(k)) out.add(sn.id);
+    });
+  }catch(_){}
+  if(sp){
+    try{
+      (await getDocs(collectionGroup(db, "spellings"))).forEach(sn => {
+        const x = sn.data() || {}, eid = sn.ref.parent.parent && sn.ref.parent.parent.id;
+        if(!x.hiddenAt && eid && eid !== d.entryId && x.searchKey === sp) out.add(eid);
+      });
+    }catch(_){}
+  }
+  return [...out];
+}
+async function askDuplicate(d){
+  // the matcher's answer if it's in (a short grace if it's nearly there), never a wait
+  let heard = [];
+  if(dupCheck){ await Promise.race([dupCheck.p, new Promise(r => setTimeout(r, 1500))]); if(dupCheck.done) heard = dupCheck.value; }
+  const ids = [...new Set([...heard.map(r => r.entryId), ...(await textMatches(d))])].filter(id => id !== d.entryId).slice(0, 3);
+  if(!ids.length) return null;
+  const metas = await Promise.all(ids.map(async id => {
+    let m = {};
+    try{ const sn = await getDoc(doc(db, "afd_entries", id)); if(sn.exists()) m = sn.data() || {}; }catch(_){}
+    if(m.removedAt || m.hiddenAt) return null;
+    const w = (window.AFDWords || []).find(x => C.entryIdFor(x.id) === id);
+    if(w){ m = { pic: m.pic || w.pic, gloss: m.gloss || w.en, glossAr: m.glossAr || w.ar, ...m }; }
+    return { id, m };
+  }));
+  const rows = metas.filter(Boolean);
+  if(!rows.length) return null;
+  const pick = await C.ask({ mode: MODE, titleKey:"add.dup.title", subKey:"add.dup.sub", noKey:"add.dup.new", noIcon:"none",
+    audio: promptUrl("add.dup"),
+    choices: rows.map(({ id, m }) => ({
+      value: id,
+      face: m.image ? `<img src="${C.escHtml(m.image)}" alt="">` : m.pic ? esc(m.pic) : C.identicon(id),
+      label: MODE === "sound" ? "" :
+        (m.glossAr ? `<span dir="rtl" style="display:block">${esc(m.glossAr)}</span>` : "") +
+        (MODE === "auto" && m.gloss ? `<small class="sub">${esc(m.gloss)}</small>` : ""),
+      play: async ()=> { const recs = await listPlayable(id); const r = recs.find(x => (x.type || "word") === "word") || recs[0]; return r ? r.url : null; }
+    }))
+  });
+  if(!pick) return null;
+  const chosen = rows.find(r => r.id === pick);
+  return { entryId: pick, meta: { pic: chosen.m.pic || "", glossAr: chosen.m.glossAr || "" } };
+}
+
 /* ---- sending one word (10-17) -----------------------------------------------
    The upload itself, for any saved word: the one on screen (share()) or one
    parked in the queue while there was no signal (sendQueued()). Each piece is
@@ -1002,6 +1088,14 @@ async function sendWord(d, u, interactive){
       if(!up.meaning) up.meaningId = null;
       up.speakerId = null; up.uid = uid;
       delete up.reopen; delete up.public; delete up.reopened;   // that account's card, that account's answer
+    }
+    // "This word" on the duplicate question: the voice joins that card instead.
+    // No new card is made, so their picture / emoji / Arabic gloss aren't used
+    // (only a card's maker sets those); the Hakli spelling still goes on it.
+    if(d.joinEntryId && !up.entry){
+      d.entryId = d.joinEntryId; up.entry = true; up.joined = true;
+      d.photo = null; up.photo = false; up.photoPath = "";
+      await saveDraft(d);
     }
     at.step = "speaker";
     if(!up.speakerId) up.speakerId = await selfSpeaker(uid);
@@ -1103,14 +1197,22 @@ async function share(){
   try{
     const up = draft.up;
     if(navigator.onLine === false){ const x = new Error("offline"); x.code = "offline"; throw x; }   // don't even try
+    if(!up.entry && !up.photo && up.dupAsked !== true){
+      step = "duplicate";
+      const j = await askDuplicate(draft);
+      up.dupAsked = true;
+      if(j){ draft.joinEntryId = j.entryId; draft.joinMeta = j.meta; }
+      await saveDraft();
+    }
     await sendWord(draft, u, true);
     // Shared. The done screen still shows this word; the draft itself goes.
     // It says what actually happened — a hidden voice is told it's hidden.
-    $("doneMsg").innerHTML = bi(up.public ? "add.done.public" : "add.done.private");
+    $("doneMsg").innerHTML = bi(up.joined ? (up.public ? "add.dup.done" : "add.done.private")
+                                          : (up.public ? "add.done.public" : "add.done.private"));
     $("doneSee").href = "index.html#"+encodeURIComponent(draft.entryId);
     // Send this very word to family. Only once others can hear it: a hidden
     // word's link would show them nothing. Captured now — the draft goes below.
-    const shareArgs = [draft.entryId, { pic: draft.pic, glossAr: draft.glossAr.trim() }, true];
+    const shareArgs = [draft.entryId, up.joined ? (draft.joinMeta || {}) : { pic: draft.pic, glossAr: draft.glossAr.trim() }, true];
     $("doneShare").hidden = !up.public;
     // their own voice, from the phone, ready before the tap (see voiceFile)
     let voiceReady = null;

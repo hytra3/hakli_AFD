@@ -502,11 +502,18 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   and skipped, so it can't block the rest. A word sent in the background never asks
   the re-open question: a withdrawn voice stays hidden (only a clear yes reverses it).
   Storage upload retries capped at 2 min on Add (the default was a 10-minute spinner).
-- **Next, discussed 10-17 — duplicate word cards:** check the *audio* just recorded on
-  Add against the matcher in the background; if a card is close, ask "Is it one of
-  these?" (picture + ▶) before Share — *Yes, add my voice there* / *No, it's new*. Text
-  (Hakli spelling via `spellingKey`, Arabic gloss, emoji) only as a second net. Never a
-  block; skipped if the matcher hasn't answered in time; strict threshold.
+- **✅ "Is it one of these?" — duplicate word cards on Add (decided 10-17: support, never
+  block).** When a word take is kept, it goes to the matcher in the background while
+  they pick a picture. At Share, if a card is as close as the dictionary's own "Here it
+  is" (≤ 0.15), they're asked — each candidate with its picture, name and a ▶ — and
+  **This word** puts their voice (and meaning, and Hakli spelling) on that card instead
+  of making a second; **No — it's a new word** carries on. A sleeping matcher is never
+  waited for (1.5 s grace, then skipped). Second net, only if they typed: the Arabic
+  gloss or Hakli spelling, folded with `spellingKey`. Not asked for words sent from the
+  offline queue. Picture/emoji/Arabic gloss aren't carried to the joined card (only a
+  card's maker sets those). Strings R2.11 (spoken), A3.66–70.
+  *Existing duplicates* (e.g. the two "water" cards) need a steward tool to move one
+  card's voices onto the other — not built yet.
 
 ## Matcher resilience (2026-10-10)
 
