@@ -370,6 +370,10 @@ try{ store.maxUploadRetryTime = 120000; store.maxOperationRetryTime = 120000; }c
 // stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
 AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
   Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 30*864e5) })));
+// usage counts — AFDCore.track() writes here (afd_events: create-only, no uid,
+// stewards read, deleted 90 days on by TTL; the nightly digest keeps day totals)
+AFDCore.eventSink(rec => addDoc(collection(db, "afd_events"),
+  Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 90*864e5) })));
 initCard({ db, store, user:()=>{ const u = auth.currentUser; return (u && !u.isAnonymous) ? u : null; },
            mode:()=>"auto", banner:(m)=>console.warn("[AFD add]", m) });
 
@@ -512,6 +516,8 @@ var addSteps = null, addBase = "say";     // addBase: the screen on the page's o
 function currentScreen(){ return SCREENS.find(s=> !$(s).hidden) || "say"; }
 function show(which, opt){
   const from = currentScreen();
+  // usage counts: how far people get (say → show → share); done is counted in share()
+  if(which !== from && which !== "done" && !(opt && opt.fromPop)) C.track("add", which);
   SCREENS.forEach(s=> $(s).hidden = s!==which);
   if(addSteps){
     if(!(opt && (opt.fromPop || opt.auto))){
@@ -1051,6 +1057,7 @@ async function askDuplicate(d){
   }));
   const rows = metas.filter(Boolean);
   if(!rows.length) return null;
+  C.track("add", "dup.asked", { n: rows.length });
   const pick = await C.ask({ mode: MODE, titleKey:"add.dup.title", subKey:"add.dup.sub", noKey:"add.dup.new", noIcon:"none",
     audio: promptUrl("add.dup"),
     choices: rows.map(({ id, m }) => ({
@@ -1062,6 +1069,7 @@ async function askDuplicate(d){
       play: async ()=> { const recs = await listPlayable(id); const r = recs.find(x => (x.type || "word") === "word") || recs[0]; return r ? r.url : null; }
     }))
   });
+  C.track("add", pick ? "dup.join" : "dup.new");
   if(!pick) return null;
   const chosen = rows.find(r => r.id === pick);
   return { entryId: pick, meta: { pic: chosen.m.pic || "", glossAr: chosen.m.glossAr || "" } };
@@ -1205,6 +1213,7 @@ async function share(){
       await saveDraft();
     }
     await sendWord(draft, u, true);
+    C.track("add", "done", { x: (up.joined ? "joined" : "new") + (up.public ? "" : ".private") });
     // Shared. The done screen still shows this word; the draft itself goes.
     // It says what actually happened — a hidden voice is told it's hidden.
     $("doneMsg").innerHTML = bi(up.joined ? (up.public ? "add.dup.done" : "add.done.private")
@@ -1264,6 +1273,7 @@ async function queuedWords(){
 }
 async function parkDraft(){
   const d = Object.assign({}, draft, { key: QPRE + draft.entryId, parkedAt: Date.now() });
+  C.track("add", "parked");
   await saveDraft(d);
   await clearDraft();
   // the thank-you screen, saying what happened instead: kept, not yet shared
@@ -1308,7 +1318,10 @@ async function sendQueued(){
     }
   }finally{ qBusy = false; }
   await paintQueue();
-  if(sent) C.notice("add.queue.sent", { mode: MODE, kind:"ok", vars:{ n: sent } });
+  if(sent){
+    C.notice("add.queue.sent", { mode: MODE, kind:"ok", vars:{ n: sent } });
+    C.track("add", "flushed", { n: sent });
+  }
   if(waiting){
     qDelay = qDelay ? Math.min(qDelay * 3, 120000) : 3000;
     clearTimeout(qTimer); qTimer = setTimeout(sendQueued, qDelay);

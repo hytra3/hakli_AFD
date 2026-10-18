@@ -15,6 +15,7 @@ Then pick one:
 | **AFD: Deploy revoke** | After editing `revoke/main.py`. Redeploys the function that kills old playback links when a take is withdrawn. |
 | **AFD: Deploy purge** | After editing `purge/main.py`. Redeploys the nightly clean-up (erased voices, then removed or empty contributed words and their photos). Keeps its settings and prints them, so you can see whether it really deletes (`PURGE_DRY_RUN=0`). |
 | **AFD: Deploy voice counts** | After editing `voice_counts/main.py`. Keeps each word's public-voice counts on the word, so the dictionary lists every word in one read. **First deploy only:** then run `node scripts/backfill-voice-counts.mjs` once. |
+| **AFD: Deploy watch** | After editing `watch/main.py`. Redeploys the alerts / morning digest / Help counter function and its two schedules. First time: see *Usage counts, alerts, the morning digest* below. |
 | **AFD: Health check the service** | Any time, to confirm the matcher is alive. |
 | **AFD: Reindex search cache** | Rarely needed — search reloads itself every 5 minutes. Use it to pick up new recordings immediately. First time only: `bash scripts/reindex.sh --setup` gives the service its admin token. |
 
@@ -118,6 +119,23 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   `gcloud firestore fields ttls update expireAt --collection-group=afd_client_errors --enable-ttl --project=afd-dev`
   Needs the rules deployed first (`firebase deploy --only firestore:rules`);
   until then the pages' writes are simply refused, which is harmless.
+- **Usage counts, alerts, the morning digest** (10-17; ROADMAP "Usage counts…") —
+  the pages count what happens in `afd_events` (no uid, no words; rules deploy first:
+  `firebase deploy --only firestore:rules`). One function, `afd-watch`, emails alerts
+  every 30 min and a digest at 07:00 Utah, and keeps Help's counter:
+  1. Mail, once: a Gmail app password into Secret Manager —
+     `printf '%s' '<app password>' | gcloud secrets create afd-mail-password --data-file=- --project=afd-dev`
+  2. `MAIL_USER=<sending gmail> MAIL_TO=marty@heaton.biz bash scripts/deploy-watch.sh`
+     (later runs: no variables). It also turns on the 90-day TTL for `afd_events`
+     and makes the two Cloud Scheduler jobs.
+  3. Fill the counter and see a digest now:
+     `gcloud pubsub topics publish afd-watch-tick --message=public --project=afd-dev`
+     then `--message=digest`.
+  4. Once: `ALERT_EMAIL=marty@heaton.biz BILLING_ACCOUNT=<id> bash scripts/setup-alerts.sh`
+     (watcher failed · matcher 5xx · site down · $50/month budget).
+  Read: steward page → **Stats**, or `node scripts/stats.mjs` (`--days 1`, `--ev search`,
+  `--daily`). Field week: the Stats tab's switch or `node scripts/stats.mjs --field 14`
+  (`--field off`) — while it's on, 24 h with nothing used sends an email.
 - **Joining two cards that are the same word** (e.g. "water" twice) —
   `node scripts/join-words.mjs water` lists them with ids; `… <extra> <keep>` shows
   the plan; `--apply` moves the extra card's voices onto the kept one (consent

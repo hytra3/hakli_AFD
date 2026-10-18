@@ -478,6 +478,46 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   sync results, which want in-page messages rather than questions. Steward pages keep
   theirs (readers only).
 
+## Usage counts, alerts and the morning digest (2026-10-17)
+
+Decided 10-17: **no Google Analytics or any outside tracker** — it would put Google's
+cookies on an app whose promise is "your voice stays yours", cost prepaid data, and it
+can't see what matters here (did a search find the word?). Instead the error log's twin.
+
+- **✅ `AFDCore.track(ev, v, {x, n})` → `afd_events`.** Create-only, same thin shape as
+  `afd_client_errors`: what happened, a short label or two, a number, page, display
+  mode, build, online, OS family. **No uid, no session or device id, no words** — the
+  rule refuses any other field. Stewards read; TTL 90 days; ≤ 60 per page load.
+  Counted: one `view` per page (display mode + quiet as found), `mode` / `quiet`
+  changes, `search` (here / pick / none / err.<kind>, n = ms), `typed` (hits / none, on
+  close), `play` (word / context / definition / card / novoice — when it sounds),
+  `open|link` (arrived on a shared word), `rec` (keep with slot and .proxy/.note, redo,
+  skip, upload with minutes waited, listen, switch), `add` (show, share, done,
+  dup.asked/join/new, parked, flushed), `signin` (google / phone / email / signup /
+  link), `help` (open, clip.<id>, tour, faq.<n>, ask). Help's taps count *then*
+  navigate (250 ms), so a write isn't dropped with the page.
+- **✅ `watch/` — one scheduled function, three jobs** (`scripts/deploy-watch.sh`):
+  *check* every 30 min emails on the same failure 5×/hour (sign-in 3×), searches
+  failing (≥ 3 and ≥ half), or **24 h of silence during a field week**
+  (`afd_ui_config/watch.openUntil`, set from Stats or `stats.mjs --field 14`); each
+  alert waits 6 h (silence 24 h) before repeating. *digest* at 07:00 Utah: the last
+  24 h in plain numbers, totals and how they moved, what failed; writes
+  `afd_stats/day_<date>` (kept for good — the raw events expire). *public*:
+  `afd_stats/public` = words with a voice · public voices · distinct speakers,
+  recounted every 3 h, readable by anyone. Mail is SMTP (Gmail app password in Secret
+  Manager `afd-mail-password`); without it, everything is logged instead.
+- **✅ Cloud Monitoring** (`scripts/setup-alerts.sh`, once): the watcher failing
+  (log alert on `AFD_WATCH_FAILED`), matcher 5xx (reads Cloud Run's counts — **no uptime
+  ping on the matcher**: it would keep 8 GiB awake and fail on every cold start),
+  hakli.app uptime, and a monthly billing budget (C1's budget alert).
+- **✅ Steward page → Stats** (`steward.html#stats`): totals, a 24 h / 7 day table
+  (visits and share in sound view, searches by outcome, typed, plays, takes, words
+  added, link arrivals, sign-ins), three day-by-day bar charts from the daily totals,
+  what failed, recent alerts, the field-week switch. `scripts/stats.mjs` for digging.
+- **✅ Help shows "The dictionary so far"** (words · voices · speakers; hidden until
+  there are totals) and a fifth question, *Does the app keep track of me?* — it counts
+  taps and searches, never who. Strings A11.135–140 (Help), A11.141–175 (Stats tab).
+
 ## Field-ready: no signal, no browser boxes (2026-10-17)
 
 - **✅ The dictionary without signal.** `index.html` keeps what it has read on the phone

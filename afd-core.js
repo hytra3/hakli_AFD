@@ -56,7 +56,9 @@ window.AFDCore = (function(){
   }
   function setDisplayMode(m){
     if(!DISP_MODES.includes(m)) return;
-    try{ localStorage.setItem(DISP_KEY, m); }catch(_){}
+    let was = null;
+    try{ was = localStorage.getItem(DISP_KEY); localStorage.setItem(DISP_KEY, m); }catch(_){}
+    if(was !== m) track("mode", m);              // usage counts (afd_events): which view people choose
   }
 
   /* ---- quiet mode — does the app speak TO you? ------------------------------
@@ -81,6 +83,7 @@ window.AFDCore = (function(){
   function setQuiet(on){
     on = !!on;
     try{ localStorage.setItem(QUIET_KEY, on ? "1" : "0"); }catch(_){}
+    track("quiet", on ? "on" : "off");
     if(on && uiNarration){ try{ uiNarration.pause(); }catch(_){} uiNarration = null; }  // hush mid-sentence
     quietSubs.forEach(fn => { try{ fn(on); }catch(_){} });
   }
@@ -893,7 +896,50 @@ window.AFDCore = (function(){
     "add.dup.sub":          { en:"Your word sounds like one already in the dictionary. If it's the same word, your voice joins it there.", ar:"كلمتك تشبه كلمةً موجودة في القاموس. إن كانت الكلمة نفسها، يُضاف صوتك إليها هناك." },
     "add.dup.this":         { en:"This word",          ar:"هذه الكلمة" },
     "add.dup.new":          { en:"No — it's a new word", ar:"لا — إنها كلمة جديدة" },
-    "add.dup.done":         { en:"Your voice is on that word now.", ar:"صوتك الآن على تلك الكلمة." }
+    "add.dup.done":         { en:"Your voice is on that word now.", ar:"صوتك الآن على تلك الكلمة." },
+    // 10-17: Help's counter (afd_stats/public, kept by the watch function) and what the app counts
+    "help.count.title":     { en:"The dictionary so far", ar:"القاموس حتى الآن" },
+    "help.count.words":     { en:"words",              ar:"كلمة" },
+    "help.count.voices":    { en:"voices",             ar:"صوت" },
+    "help.count.speakers":  { en:"speakers",           ar:"متحدّث" },
+    "help.voice.q5":        { en:"Does the app keep track of me?", ar:"هل يتتبّعني التطبيق؟" },
+    "help.voice.a5":        { en:"No. It counts taps and searches — how many words were found, how many voices were played — but never who made them. No name, no account, no phone number goes with the count.", ar:"لا. يَعُدّ النقرات وعمليات البحث — كم كلمةً وُجدت، وكم صوتًا سُمع — دون أن يعرف مَن قام بها. لا يُحفظ مع العدّ اسمٌ ولا حسابٌ ولا رقمُ هاتف." },
+    // 10-17: the steward page's Stats tab (usage counts, the watch function's totals and alerts)
+    "stw.tab.stats":        { en:"Stats", ar:"الإحصاءات" },
+    "stw.st.totals":        { en:"In the dictionary now", ar:"في القاموس الآن" },
+    "stw.st.words":         { en:"words with a voice", ar:"كلمة لها صوت" },
+    "stw.st.voices":        { en:"voices", ar:"صوت" },
+    "stw.st.speakers":      { en:"speakers", ar:"متحدّث" },
+    "stw.st.updated":       { en:"Recounted {when}.", ar:"أُعيد العدّ {when}." },
+    "stw.st.nototals":      { en:"Not counted yet: the watch function fills this in once it's deployed.", ar:"لم يُعَدّ بعد: تملؤه دالّة المراقبة بعد نشرها." },
+    "stw.st.use":           { en:"How it's used", ar:"كيف يُستعمل" },
+    "stw.st.day":           { en:"24 h", ar:"٢٤ ساعة" },
+    "stw.st.week":          { en:"7 days", ar:"٧ أيام" },
+    "stw.st.r.visits":      { en:"Visits", ar:"زيارات" },
+    "stw.st.r.sound":       { en:"… in sound view (no text)", ar:"… بعرض الصوت (بلا نصّ)" },
+    "stw.st.r.searches":    { en:"Spoken searches", ar:"عمليات بحث صوتيّة" },
+    "stw.st.r.found":       { en:"… found it", ar:"… وجدتها" },
+    "stw.st.r.pick":        { en:"… “Is it one of these?”", ar:"… «هل هي إحدى هذه؟»" },
+    "stw.st.r.none":        { en:"… no match", ar:"… لا تطابق" },
+    "stw.st.r.failed":      { en:"… failed", ar:"… فشلت" },
+    "stw.st.r.typed":       { en:"Typed searches", ar:"عمليات بحث مكتوبة" },
+    "stw.st.r.plays":       { en:"Voices played", ar:"أصوات سُمعت" },
+    "stw.st.r.kept":        { en:"Takes kept", ar:"تسجيلات محفوظة" },
+    "stw.st.r.added":       { en:"Words added", ar:"كلمات أُضيفت" },
+    "stw.st.r.links":       { en:"Came in on a shared link", ar:"وصلوا عبر رابطٍ مُشارَك" },
+    "stw.st.r.signins":     { en:"Sign-ins", ar:"تسجيلات دخول" },
+    "stw.st.days":          { en:"Day by day (30 days)", ar:"يومًا بيوم (٣٠ يومًا)" },
+    "stw.st.days.none":     { en:"Daily totals start with the first morning digest.", ar:"تبدأ المجاميع اليوميّة مع أوّل ملخّصٍ صباحيّ." },
+    "stw.st.errors":        { en:"What failed (24 h)", ar:"ما فشل (٢٤ ساعة)" },
+    "stw.st.errors.none":   { en:"Nothing failed.", ar:"لم يفشل شيء." },
+    "stw.st.watch":         { en:"Alerts", ar:"التنبيهات" },
+    "stw.st.checked":       { en:"Last check {when}.", ar:"آخر فحص {when}." },
+    "stw.st.alerts.none":   { en:"No alerts sent lately.", ar:"لم تُرسَل تنبيهات مؤخّرًا." },
+    "stw.st.field.on":      { en:"Field week on until {date}: you get an email if nothing is used for 24 hours.", ar:"الأسبوع الميدانيّ مفعّل حتى {date}: تصلك رسالة إن لم يُستعمَل شيء ٢٤ ساعة." },
+    "stw.st.field.off":     { en:"Field week off. Turn it on while speakers are recording, to hear if the app goes quiet.", ar:"الأسبوع الميدانيّ متوقّف. فعّله أثناء التسجيل لتعرف إن سكت التطبيق." },
+    "stw.st.field.start":   { en:"Field week: 14 days", ar:"أسبوع ميدانيّ: ١٤ يومًا" },
+    "stw.st.field.end":     { en:"End the field week", ar:"أنهِ الأسبوع الميدانيّ" },
+    "stw.st.note":          { en:"Counts only: no names, accounts or words. Raw counts are kept 90 days; the daily totals stay.", ar:"أعدادٌ فقط: لا أسماء ولا حسابات ولا كلمات. تُحفظ الأعداد الخام ٩٠ يومًا، وتبقى المجاميع اليوميّة." }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1133,6 +1179,63 @@ window.AFDCore = (function(){
       if(_errSink) _errSend(rec); else if(_errWait.length < 8) _errWait.push(rec);
     }catch(_){}
   }
+  /* ---- usage counts (10-17) ---------------------------------------------------
+     track(ev, v, extra) records that something happened — a search and how it
+     came out, a voice played, a take kept — in afd_events, so the steward page
+     and the daily digest can say how the dictionary is being used. It is the
+     error log's twin and just as thin: what happened, on which page, in which
+     display mode, with which build, online or not, the phone's OS family.
+     NO uid, no session or device id, no words, no audio: it counts taps and
+     searches, never who made them (Help says so: A11.139–140).
+       ev     what   ("search", "play", "rec", "add", "help", "open", "signin"…)
+       v      how it went / which one ("here", "pick", "none", "word", "keep"…)
+       extra  { x: a second short label, n: a number (ms, a count) }
+     Create-only for everyone, read by stewards, deleted by TTL after 90 days;
+     the nightly digest keeps a per-day total for good (afd_stats/day_…).
+     At most 60 per page load, so a loop can't flood it. Never throws. */
+  const _evWait = [];
+  let _evSent = 0, _evSink = null, _evViewed = false;
+  function _evPage(){
+    return (location.pathname.replace(/\/+$/, "/index.html").split("/").pop() || "index.html").slice(0, 40);
+  }
+  function _evSend(rec){ try{ Promise.resolve(_evSink(rec)).catch(()=>{}); }catch(_){} }
+  function eventSink(fn){
+    _evSink = typeof fn === "function" ? fn : null;
+    if(!_evSink) return;
+    if(!_evViewed){                                // one "view" per page load: the display mode and quiet as found
+      _evViewed = true;
+      let m = null; try{ m = localStorage.getItem(DISP_KEY); }catch(_){}
+      _evWait.unshift(_evRec("view", DISP_MODES.includes(m) ? m : "unset", { x: getQuiet() ? "quiet" : "" }));
+    }
+    while(_evWait.length) _evSend(_evWait.shift());
+  }
+  function _evRec(ev, v, extra){
+    const ua = navigator.userAgent || "";
+    const rec = {
+      ev: String(ev || "?").slice(0, 24),
+      page: _evPage(),
+      build: BUILD.slice(0, 16),
+      online: navigator.onLine !== false,
+      os: /iPhone|iPad|iPod/.test(ua) ? "ios" : /Android/.test(ua) ? "android" : "other"
+    };
+    if(v != null && v !== "") rec.v = String(v).slice(0, 24);
+    const x = extra && extra.x;
+    if(x != null && x !== "") rec.x = String(x).slice(0, 24);
+    const n = extra && Number(extra.n);
+    if(extra && extra.n != null && isFinite(n)) rec.n = Math.max(0, Math.min(1e7, Math.round(n)));
+    let m = null; try{ m = localStorage.getItem(DISP_KEY); }catch(_){}
+    if(DISP_MODES.includes(m)) rec.mode = m;
+    return rec;
+  }
+  function track(ev, v, extra){
+    try{
+      if(_evSent >= 60) return;
+      _evSent++;
+      const rec = _evRec(ev, v, extra);
+      if(_evSink) _evSend(rec); else if(_evWait.length < 20) _evWait.push(rec);
+    }catch(_){}
+  }
+
   // Uncaught errors from the app's own files, and promises nobody caught.
   try{
     window.addEventListener("error", (e)=>{
@@ -1330,7 +1433,7 @@ window.AFDCore = (function(){
 
   return {
     ask, notice,
-    errorSink, report,
+    errorSink, report, eventSink, track,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,

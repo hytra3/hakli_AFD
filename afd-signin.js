@@ -185,17 +185,17 @@ export function mountSignIn(host, opts){
 
   $("googleBtn").onclick = async ()=>{
     o.showError(""); o.onBegin();
-    try{ await signInWithPopup(auth, new GoogleAuthProvider()); }
+    try{ await signInWithPopup(auth, new GoogleAuthProvider()); C.track("signin", "google"); }
     catch(e){ failed(e); }
   };
   $("emailBtn").onclick = async ()=>{
     o.showError(""); o.onBegin();
-    try{ await withDots($("emailBtn"), ()=> signInWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); }
+    try{ await withDots($("emailBtn"), ()=> signInWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); C.track("signin", "email"); }
     catch(e){ failed(e); }
   };
   $("signupBtn").onclick = async ()=>{
     o.showError(""); o.onBegin();
-    try{ await withDots($("signupBtn"), ()=> createUserWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); }
+    try{ await withDots($("signupBtn"), ()=> createUserWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value)); C.track("signin", "signup"); }
     catch(e){ failed(e); }
   };
   // Phone: the code is typed right here, so it works inside in-app browsers (no
@@ -219,7 +219,7 @@ export function mountSignIn(host, opts){
   $("codeBtn").onclick = async ()=>{
     if(!phoneConfirm) return;
     o.showError(""); o.onBegin();
-    try{ await withDots($("codeBtn"), ()=> phoneConfirm.confirm($("authCode").value.trim())); }
+    try{ await withDots($("codeBtn"), ()=> phoneConfirm.confirm($("authCode").value.trim())); C.track("signin", "phone"); }
     catch(e){ phoneFailed(e); }
   };
   $("authCode").addEventListener("keydown", e=>{ if(e.key === "Enter") $("codeBtn").click(); });
@@ -252,6 +252,7 @@ export function finishEmailLink(auth, opts){
       await signInWithEmailLink(auth, email.trim(), location.href);
       try{ localStorage.removeItem(LINK_EMAIL_KEY); }catch(_){}
       ok = true;
+      C.track("signin", "link");
     }catch(e){ console.warn("[AFD] email link", e); o.onFail(); C.report("signin.link", e); if(o.label) o.showError(o.label(C.authErrorKey(e) || "auth.err.other")); }
     history.replaceState(history.state, "", location.pathname + location.hash);
     return ok;

@@ -109,6 +109,25 @@
   .covl .field{color:var(--muted); font-size:11px}
   .covl .cw{color:var(--go); font-size:12px}
   .covl.done b{color:var(--go)}
+  /* Stats tab (10-17) */
+  .st-nums{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px}
+  .st-nums div{background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:8px; text-align:center}
+  .st-nums b{display:block; font-size:24px; font-variant-numeric:tabular-nums}
+  .st-nums span{font-size:12px; color:var(--muted)}
+  table.st{width:100%; border-collapse:collapse; font-size:13px; margin-top:6px}
+  table.st th{font-weight:600; color:var(--muted); font-size:12px; text-align:end; padding:4px 0 4px 10px}
+  table.st th:first-child{text-align:start}
+  table.st td{padding:5px 0 5px 10px; border-top:1px solid var(--line); text-align:end; font-variant-numeric:tabular-nums}
+  table.st td:first-child{text-align:start; padding-left:0}
+  table.st tr.sub td:first-child{color:var(--muted); padding-inline-start:10px}
+  html[dir="rtl"] table.st th, html[dir="rtl"] table.st td{padding:5px 10px 5px 0}
+  .st-chart h3{font-size:13px; margin:12px 0 4px; color:var(--muted); font-weight:600}
+  .st-bars{display:flex; align-items:flex-end; gap:2px; height:64px; border-bottom:1px solid var(--line); direction:ltr}
+  .st-bars span{flex:1; min-width:3px; background:var(--accent); border-radius:4px 4px 0 0; min-height:1px}
+  .st-bars span.zero{background:var(--line)}
+  .st-axis{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); direction:ltr}
+  .st-err{font-size:13px; margin:4px 0; overflow-wrap:anywhere}
+  .st-err b{font-variant-numeric:tabular-nums; margin-inline-end:6px}
   @media (max-width:420px){
     .word{grid-template-columns:64px 1fr; gap:10px;}
     .thumb{width:64px; height:64px; font-size:32px; border-radius:14px;}
@@ -145,6 +164,7 @@
         <button class="tab" data-tab="hidden"><span data-t="stw.tab.hidden">Hidden</span><span class="n" id="n-hidden"></span></button>
         <button class="tab" data-tab="all"><span data-t="stw.tab.all">All</span><span class="n" id="n-all"></span></button>
         <button class="tab" data-tab="coverage"><span data-t="stw.tab.coverage">Coverage</span><span class="n" id="n-coverage"></span></button>
+        <button class="tab" data-tab="stats"><span data-t="stw.tab.stats">Stats</span></button>
       </div>
       <a href="#" id="refresh" class="small" data-t="tools.refresh">refresh</a>
     </div>
@@ -161,7 +181,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, updateDoc, collection, query, where, serverTimestamp, deleteField } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, serverTimestamp, deleteField, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
@@ -256,6 +276,7 @@ function paint(){
   $("n-hidden").textContent = words.filter(inHidden).length;
   $("n-all").textContent    = words.length;
   if(tab === "coverage"){ paintCoverage(); return; }
+  if(tab === "stats"){ paintStats(); return; }
   const shown = words.filter(FILTER[tab]);
   const list = $("list"); list.innerHTML = "";
   if(!shown.length){ list.innerHTML = '<div class="empty">' + H(EMPTY[tab]) + '</div>'; return; }
@@ -312,7 +333,128 @@ async function paintCoverage(){
     `</div>`;
   $("covList").onchange = (e) => { covList = e.target.value; paintCoverage(); };
 }
-$("refresh").addEventListener("click", () => { cov = null; });
+$("refresh").addEventListener("click", () => { cov = null; stats = null; });
+
+/* ---- stats: how the dictionary is used (10-17) ----------------------------
+   Three sources, all counts, none naming anyone:
+     afd_stats/public, /watch, /day_…   kept by the watch function (watch/main.py):
+                                        the totals, the alerts it sent, a total per day
+     afd_events (last 7 days)           afd-core's track(): searches, plays, takes…
+     afd_client_errors (last 24 h)      afd-core's report(): what failed
+   The field-week switch is afd_ui_config/watch.openUntil (the same one-field
+   doc the prompt windows use): while it's in the future, the watch function
+   emails if nothing at all is used for 24 hours. Opened from #stats too. */
+let stats = null;
+async function loadStats(){
+  const now = Date.now(), day = 864e5;
+  const [st, ev, er, fw] = await Promise.all([
+    getDocs(collection(db, "afd_stats")),
+    getDocs(query(collection(db, "afd_events"), where("at", ">=", Timestamp.fromMillis(now - 7 * day)))),
+    getDocs(query(collection(db, "afd_client_errors"), where("at", ">=", Timestamp.fromMillis(now - day)))),
+    getDoc(doc(db, "afd_ui_config", "watch")).catch(() => null)
+  ]);
+  const docs = {}; st.docs.forEach(s => { docs[s.id] = s.data() || {}; });
+  const days = st.docs.filter(s => s.id.startsWith("day_")).map(s => ({ id: s.id.slice(4), d: s.data() || {} }))
+                 .sort((a, b) => a.id < b.id ? -1 : 1).slice(-30);
+  stats = {
+    pub: docs.public || null, watch: docs.watch || {}, days,
+    events: ev.docs.map(s => s.data() || {}),
+    errors: er.docs.map(s => s.data() || {}),
+    fieldUntil: fw && fw.exists() ? ms(fw.data().openUntil) : 0
+  };
+}
+function tallyStats(events){
+  const c = {}, n = (k) => c[k] || 0;
+  events.forEach(e => { const k = (e.ev || "?") + "|" + (e.v || ""); c[k] = (c[k] || 0) + 1; });
+  const sum = (pre, not) => Object.keys(c).filter(k => k.startsWith(pre) && k !== not).reduce((a, k) => a + c[k], 0);
+  const views = events.filter(e => e.ev === "view");
+  return {
+    visits: views.length, sound: views.filter(e => e.v === "sound").length,
+    searches: sum("search|"), found: n("search|here"), pick: n("search|pick"), none: n("search|none"),
+    failed: Object.keys(c).filter(k => k.startsWith("search|err.")).reduce((a, k) => a + c[k], 0),
+    typed: sum("typed|"), plays: sum("play|", "play|novoice"), kept: n("rec|keep"),
+    added: n("add|done"), links: n("open|link"), signins: sum("signin|")
+  };
+}
+async function paintStats(){
+  const list = $("list");
+  if(!stats){
+    list.innerHTML = AFDCore.dotsHTML(true);
+    try{ await loadStats(); }
+    catch(e){ list.innerHTML = '<div class="empty">' + H(notAllowed(e) ? "tools.notallowed" : "tools.err.load", { code: code(e) }) + '</div>'; return; }
+    if(tab !== "stats") return;
+  }
+  const S = stats, now = Date.now();
+  const dayT = tallyStats(S.events.filter(e => ms(e.at) >= now - 864e5)), weekT = tallyStats(S.events);
+  const share = (a, b) => b ? ` <span style="color:var(--muted)">${Math.round(100 * a / b)}%</span>` : "";
+  const rows = [
+    ["stw.st.r.visits", "visits"], ["stw.st.r.sound", "sound", "visits"],
+    ["stw.st.r.searches", "searches"], ["stw.st.r.found", "found", "searches"], ["stw.st.r.pick", "pick", "searches"],
+    ["stw.st.r.none", "none", "searches"], ["stw.st.r.failed", "failed", "searches"],
+    ["stw.st.r.typed", "typed"], ["stw.st.r.plays", "plays"], ["stw.st.r.kept", "kept"],
+    ["stw.st.r.added", "added"], ["stw.st.r.links", "links"], ["stw.st.r.signins", "signins"]
+  ];
+  const table = `<table class="st"><thead><tr><th></th><th>${H("stw.st.day")}</th><th>${H("stw.st.week")}</th></tr></thead><tbody>` +
+    rows.map(([k, f, of]) => `<tr class="${of ? "sub" : ""}"><td>${H(k)}</td>` +
+      `<td>${dayT[f]}${of ? share(dayT[f], dayT[of]) : ""}</td><td>${weekT[f]}${of ? share(weekT[f], weekT[of]) : ""}</td></tr>`).join("") +
+    `</tbody></table>`;
+
+  const P = S.pub;
+  const totals = P
+    ? `<div class="st-nums"><div><b>${P.words || 0}</b><span>${H("stw.st.words")}</span></div>` +
+      `<div><b>${P.voices || 0}</b><span>${H("stw.st.voices")}</span></div>` +
+      `<div><b>${P.speakers || 0}</b><span>${H("stw.st.speakers")}</span></div></div>` +
+      `<div class="tip">${H("stw.st.updated", { when: esc(when(P.at)) })}</div>`
+    : `<div class="tip">${H("stw.st.nototals")}</div>`;
+
+  // one bar chart per measure (never two scales on one axis); the table above is the readable view
+  const bars = (label, pick) => {
+    const vals = S.days.map(x => pick((x.d && x.d.counts) || {}));
+    const max = Math.max(1, ...vals);
+    return `<div class="st-chart"><h3>${esc(label)}</h3><div class="st-bars">` +
+      vals.map((v, i) => `<span class="${v ? "" : "zero"}" style="height:${Math.max(2, 100 * v / max)}%" title="${esc(S.days[i].id)}: ${v}"></span>`).join("") +
+      `</div><div class="st-axis"><span>${esc(S.days[0].id.slice(5))}</span><span>${esc(S.days[S.days.length - 1].id.slice(5))}</span></div></div>`;
+  };
+  const sumOf = (pre, not) => (c) => Object.keys(c).filter(k => k.startsWith(pre) && k !== not).reduce((a, k) => a + c[k], 0);
+  const daily = S.days.length
+    ? bars(T("stw.st.r.searches"), sumOf("search|")) + bars(T("stw.st.r.plays"), sumOf("play|", "play|novoice")) + bars(T("stw.st.r.kept"), sumOf("rec|keep"))
+    : `<div class="tip">${H("stw.st.days.none")}</div>`;
+
+  const g = {};
+  S.errors.forEach(e => { const k = (e.where || "?") + " · " + (e.code || "?"); g[k] = (g[k] || 0) + 1; });
+  const errs = Object.entries(g).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const errors = errs.length
+    ? errs.map(([k, n]) => `<div class="st-err" dir="ltr"><b>${n}</b>${esc(k)}</div>`).join("") +
+      `<div class="tip" dir="ltr">node scripts/client-errors.mjs --days 1</div>`
+    : `<div class="tip">${H("stw.st.errors.none")}</div>`;
+
+  const W = S.watch, recent = (W.recent || []).slice(-5).reverse();
+  const fieldOn = S.fieldUntil > now;
+  const watch =
+    (W.checkedAt ? `<div class="tip">${H("stw.st.checked", { when: esc(when(W.checkedAt)) })}</div>` : "") +
+    (recent.length ? recent.map(r => `<div class="st-err" dir="ltr">${esc(when(r.at))} — ${esc(r.subject)}</div>`).join("")
+                   : `<div class="tip">${H("stw.st.alerts.none")}</div>`) +
+    `<div class="tip">${H(fieldOn ? "stw.st.field.on" : "stw.st.field.off", { date: esc(new Date(S.fieldUntil).toLocaleDateString()) })}</div>` +
+    `<div class="btnrow" style="margin-top:8px"><button class="btn${fieldOn ? "" : " primary"}" id="fieldBtn">${H(fieldOn ? "stw.st.field.end" : "stw.st.field.start")}</button></div>`;
+
+  list.innerHTML =
+    `<div class="card"><h2>${H("stw.st.totals")}</h2>${totals}</div>` +
+    `<div class="card"><h2>${H("stw.st.use")}</h2>${table}${daily}</div>` +
+    `<div class="card"><h2>${H("stw.st.errors")}</h2>${errors}</div>` +
+    `<div class="card"><h2>${H("stw.st.watch")}</h2>${watch}</div>` +
+    `<div class="tip">${H("stw.st.note")}</div>`;
+  $("fieldBtn").onclick = async (e) => {
+    e.currentTarget.disabled = true; say("msg", "tools.saving");
+    const until = fieldOn ? Date.now() : Date.now() + 14 * 864e5;
+    try{
+      await setDoc(doc(db, "afd_ui_config", "watch"), { openUntil: Timestamp.fromMillis(until) });
+      stats.fieldUntil = until; say("msg", "tools.saved");
+    }catch(err){ say("msg", notAllowed(err) ? "tools.notallowed" : "tools.err.save", { code: code(err) }); }
+    paintStats();
+  };
+}
+// hakli.app/steward.html#stats (the digest links here) opens on this tab
+if(location.hash === "#stats") tab = "stats";
 
 /* ---- one word ------------------------------------------------------------ */
 function row(w){

@@ -603,5 +603,110 @@ class VoiceCounts(unittest.TestCase):
         ref.update.assert_not_called()
 
 
+class Watch(unittest.TestCase):
+    """watch/main.py — the watchdog's rules and the digest's wording (pure parts)."""
+
+    def setUp(self):
+        self.m = _load("afd_watch", "watch/main.py")
+        import datetime as dt
+        self.dt = dt
+        self.now = dt.datetime(2026, 10, 18, 13, 0, tzinfo=dt.timezone.utc)
+
+    def err(self, where, code, n, page="index.html"):
+        return [{"where": where, "code": code, "page": page}] * n
+
+    def keys(self, alerts):
+        return [k for k, _, _ in alerts]
+
+    def test_a_few_errors_are_not_an_alert(self):
+        self.assertEqual(self.m.find_alerts(self.err("recorder.upload", "unavailable", 4), [], self.now, None, None), [])
+
+    def test_five_of_one_failure_in_an_hour_is(self):
+        a = self.m.find_alerts(self.err("recorder.upload", "unavailable", 5), [], self.now, None, None)
+        self.assertEqual(self.keys(a), ["err:recorder.upload|unavailable"])
+        self.assertIn("client-errors.mjs", a[0][2])
+
+    def test_sign_in_alerts_sooner(self):
+        a = self.m.find_alerts(self.err("signin.phone", "auth/operation-not-allowed", 3), [], self.now, None, None)
+        self.assertEqual(self.keys(a), ["err:signin.phone|auth/operation-not-allowed"])
+
+    def test_search_failing_needs_three_and_half(self):
+        ev = lambda v: {"ev": "search", "v": v}
+        many_ok = [ev("err.timeout")] * 3 + [ev("here")] * 10
+        self.assertEqual(self.m.find_alerts([], many_ok, self.now, None, None), [])
+        bad = [ev("err.timeout")] * 2 + [ev("err.server")] + [ev("here")] * 2
+        a = self.m.find_alerts([], bad, self.now, None, None)
+        self.assertEqual(self.keys(a), ["search"])
+        self.assertIn("timeout 2", a[0][2])
+
+    def test_silence_only_during_a_field_week(self):
+        week = self.now + self.dt.timedelta(days=5)
+        old = self.now - self.dt.timedelta(hours=30)
+        recent = self.now - self.dt.timedelta(hours=2)
+        self.assertEqual(self.keys(self.m.find_alerts([], [], self.now, week, old)), ["silence"])
+        self.assertEqual(self.keys(self.m.find_alerts([], [], self.now, week, None)), ["silence"])
+        self.assertEqual(self.m.find_alerts([], [], self.now, week, recent), [])
+        self.assertEqual(self.m.find_alerts([], [], self.now, None, old), [])
+        self.assertEqual(self.m.find_alerts([], [], self.now, self.now - self.dt.timedelta(days=1), old), [])
+
+    def test_an_alert_waits_before_repeating(self):
+        h = lambda n: self.now - self.dt.timedelta(hours=n)
+        self.assertTrue(self.m.due("search", {}, self.now))
+        self.assertFalse(self.m.due("search", {"search": h(2)}, self.now))
+        self.assertTrue(self.m.due("search", {"search": h(7)}, self.now))
+        self.assertFalse(self.m.due("silence", {"silence": h(7)}, self.now))
+        self.assertTrue(self.m.due("silence", {"silence": h(25)}, self.now))
+
+    def test_digest_reads_plainly(self):
+        events = ([{"ev": "view", "page": "index.html", "v": "sound"}] * 3 +
+                  [{"ev": "view", "page": "add.html", "v": "auto", "x": "quiet"}] +
+                  [{"ev": "search", "v": "here", "n": 2000}, {"ev": "search", "v": "pick", "n": 4000},
+                   {"ev": "search", "v": "err.timeout", "n": 120000}, {"ev": "search", "v": "none", "n": 3000}] +
+                  [{"ev": "play", "v": "word"}] * 5 + [{"ev": "play", "v": "novoice"}] +
+                  [{"ev": "rec", "v": "keep", "x": "word.proxy"}, {"ev": "rec", "v": "keep", "x": "context"},
+                   {"ev": "rec", "v": "skip"}] +
+                  [{"ev": "add", "v": "show"}, {"ev": "add", "v": "done"}, {"ev": "signin", "v": "phone"}])
+        errors = self.err("search", "http 503", 2)
+        t = self.m.digest_text(events, errors, {"words": 40, "voices": 120, "speakers": 9},
+                               {"words": 38, "voices": 110, "speakers": 9}, ["Search failing"], self.now)
+        self.assertIn("40 words with a voice (+2)", t)
+        self.assertIn("120 voices (+10)", t)
+        self.assertIn("9 speakers", t)
+        self.assertNotIn("9 speakers (", t)
+        self.assertIn("Spoken searches: 4 — found 25%", t)
+        self.assertIn("median 3.0 s", t)              # failed searches don't count toward speed
+        self.assertIn("sound (no text) 75%", t)
+        self.assertIn("quiet mode 25%", t)
+        self.assertIn("Voices played: 5", t)
+        self.assertIn("no voice yet: 1", t)
+        self.assertIn("2 takes kept (word 1, context 1), 1 for someone else", t)
+        self.assertIn("Sign-ins: phone 1", t)
+        self.assertIn("2  search · http 503", t)
+        self.assertIn("Alerts sent: Search failing", t)
+
+    def test_a_quiet_day_says_so(self):
+        t = self.m.digest_text([], [], {"words": 1, "voices": 2, "speakers": 1}, None, [], self.now)
+        self.assertIn("quiet day", t)
+        self.assertIn("Nothing failed.", t)
+
+    def test_the_day_doc_keeps_totals_not_people(self):
+        d = self.m.day_doc([{"ev": "search", "v": "here", "n": 1000}, {"ev": "play", "v": "word"}],
+                           self.err("x", "y", 1), {"words": 1}, self.now, self.now)
+        self.assertEqual(d["counts"], {"search|here": 1, "play|word": 1})
+        self.assertEqual(d["searchMsMedian"], 1000)
+        self.assertEqual(d["errorTop"], ["1 x · y"])
+
+    def test_the_job_comes_from_the_message(self):
+        import base64
+        ce = lambda b: types.SimpleNamespace(data={"message": {"data": base64.b64encode(b).decode()}})
+        self.assertEqual(self.m.job_of(ce(b"digest")), "digest")
+        self.assertEqual(self.m.job_of(ce(b"public\n")), "public")
+        self.assertEqual(self.m.job_of(types.SimpleNamespace(data={})), "check")
+
+    def test_no_mail_settings_only_logs(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(self.m.send_mail("s", "b"))
+
+
 if __name__ == "__main__":
     unittest.main()

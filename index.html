@@ -491,6 +491,10 @@ const auth  = getAuth(app);
 // stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
 AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
   Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 30*864e5) })));
+// usage counts — AFDCore.track() writes here (afd_events: create-only, no uid,
+// stewards read, deleted 90 days on by TTL; the nightly digest keeps day totals)
+AFDCore.eventSink(rec => addDoc(collection(db, "afd_events"),
+  Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 90*864e5) })));
 // an email sign-in link that came back to the dictionary (signInSheet → email link)
 finishEmailLink(auth, { label: (k)=> AFDCore.tHTML(k, "auto") });
 let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
@@ -712,7 +716,7 @@ async function searchOnce(blob, timeoutMs){
 
 async function runSearch(blob){
   cancelSearch();                                      // only one search at a time
-  const my = searchSeq;
+  const my = searchSeq, t0 = Date.now();
   document.body.classList.add("busy"); setHintKey("find.finding");
   if(EMBED_URL.includes("PASTE-")){
     banner("Set EMBED_URL to your Cloud Run address in index.html.");
@@ -748,9 +752,11 @@ async function runSearch(blob){
     // page with no way on.
     setHintKey(SEARCH_ERR_KEY[err.kind] || "find.err.network", err.code);
     AFDCore.report("search", err);               // field error log (afd-core)
+    AFDCore.track("search", "err." + (err.kind || "network"), { n: Date.now() - t0 });
     showResults(); return;
   }
   const results = (data.results||[]);
+  AFDCore.track("search", searchOutcome(results), { n: Date.now() - t0 });   // usage counts: here / pick / none
   console.log("[AFD] corpus", data.corpus_n, "· age", data.corpus_age_s, "s ·", results.map(r=>`${r.entryId}:${r.distance}`).join("  "));
   showDbg(results, data.corpus_n);
   // Results are a step over the list in the browser history, so the phone's Back
@@ -775,6 +781,17 @@ const steps = AFDCore.stepHistory((step)=>{
   const r = step==="results" ? recallResults() : null;
   if(r){ cancelSearch(); render(r, true); } else showAll();
 });
+
+/* How a search came out, by the same thresholds render() uses below:
+   "here" (confident — the lead card plays), "pick" ("Is it one of these?"),
+   "none" (nothing close enough). Counted, never with the word itself. */
+function searchOutcome(results){
+  const best = results[0];
+  if(!best || best.distance > MAYBE_MAX) return "none";
+  const second = results[1];
+  const margin = second ? (second.distance - best.distance) : Infinity;
+  return (best.distance <= AUTOPLAY_MAX && margin >= MARGIN_MIN) ? "here" : "pick";
+}
 
 async function render(results, quiet){   // quiet: a return to old results (Back / Forward) — don't autoplay again
   const my = ++renderToken; deepEntry = null;
@@ -911,6 +928,7 @@ function itemKeys(it){
   }).catch(() => []);
   return it._keys;
 }
+let typedLast = null;   // matches for the last thing typed — counted on close, never the text itself
 async function applyTyped(){
   if(!browseItems) return;
   const q = AFDCore.spellingKey(typed), mine = typed;
@@ -925,6 +943,7 @@ async function applyTyped(){
   if(mine !== typed || !typing) return;            // a newer keystroke (or a close) won
   let n = 0;
   browseItems.forEach((it, i) => { const hit = keys[i].some(k => k.includes(q)); it.card.el.style.display = hit ? "" : "none"; if(hit) n++; });
+  typedLast = n;                                   // counted once, when the typing closes (usage counts)
   if(ask) ask.style.display = "none"; if(empty) empty.style.display = "none";
   typeCount.innerHTML = n ? escapeHtml(AFDCore.tf("find.type.count", displayMode, { n }))
                           : `<a href="add.html">${escapeHtml(AFDCore.t("find.type.none", displayMode))}</a>`;
@@ -943,6 +962,8 @@ function openTyping(){
 }
 function closeTyping(){
   if(!typing) return;
+  if(typed && typedLast != null) AFDCore.track("typed", typedLast ? "hits" : "none", { n: typedLast });
+  typedLast = null;
   typing = false; typed = ""; typeIn.value = "";
   document.body.classList.remove("typing"); typeBtn.setAttribute("aria-pressed", "false");
   applyTyped();
@@ -1298,7 +1319,9 @@ document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") viewMenuClose();
 // …unless this load is a return to search results (Back from the recorder, or a
 // refresh): show those again.
 { const back = (!location.hash && steps.adopt()==="results") ? recallResults() : null;
-  if(back) render(back, true); else if(!applyEntryDeepLink()) renderBrowse(); }
+  if(back) render(back, true);
+  else if(applyEntryDeepLink()) AFDCore.track("open", "link");   // came in on a shared word's link (WhatsApp…)
+  else renderBrowse(); }
 window.addEventListener("hashchange", ()=>{
   if(applyEntryDeepLink()) return;
   if(steps.top()!=="results") showAll();         // Forward onto results: the step handler shows them
