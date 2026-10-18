@@ -478,6 +478,36 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   sync results, which want in-page messages rather than questions. Steward pages keep
   theirs (readers only).
 
+## Field-ready: no signal, no browser boxes (2026-10-17)
+
+- **✅ The dictionary without signal.** `index.html` keeps what it has read on the phone
+  (Firestore persistent local cache, multi-tab), so the list opens from the last visit
+  offline. **Dictionary only, on purpose:** the recorder and Add read speaker details
+  (town, tribe…) that must not stay in a shared phone's storage after sign-out.
+  An opened word whose voices can't be fetched now says *No signal — the voices will
+  play when you're back online* (A2.53) instead of "no voice yet", and its slots stop
+  saying "none yet". Field-error records written offline are kept and sent later.
+  *Verify on a phone:* open hakli.app online, then airplane mode, then reload.
+- **✅ The recorder has no `alert()` / `confirm()` left.** `AFDCore.notice()` (new): a bar
+  at the foot of the screen, Arabic first, that leaves after a few seconds (errors stay
+  until tapped). Upload/sync results, sign-in reminders, import/save/export errors and
+  withdrawal results use it. Questions use `AFDCore.ask` (now with `{placeholders}` and
+  several lines): share/hide all takes ("Only from now on", A11.133–134), restore a
+  speaker, share a speaker, and **clear this phone** (red; "Keep them", A8.26–27).
+- **✅ Add keeps words while there's no signal.** Share with no signal parks the word in
+  this browser's storage ("Saved on this phone…", A3.61–65) and lets them add another;
+  parked words go on their own on load, when signal returns, when the page comes back
+  into view, or after a sign-in — retrying 3 s → 9 s → … 2 min. Signed out, the
+  "words waiting" note opens the sign-in. A word refused for another reason is logged
+  and skipped, so it can't block the rest. A word sent in the background never asks
+  the re-open question: a withdrawn voice stays hidden (only a clear yes reverses it).
+  Storage upload retries capped at 2 min on Add (the default was a 10-minute spinner).
+- **Next, discussed 10-17 — duplicate word cards:** check the *audio* just recorded on
+  Add against the matcher in the background; if a card is close, ask "Is it one of
+  these?" (picture + ▶) before Share — *Yes, add my voice there* / *No, it's new*. Text
+  (Hakli spelling via `spellingKey`, Arabic gloss, emoji) only as a second net. Never a
+  block; skipped if the matcher hasn't answered in time; strict threshold.
+
 ## Matcher resilience (2026-10-10)
 
 What prompted it: a search on the phone sat on "Finding…" and then showed

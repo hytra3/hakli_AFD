@@ -183,6 +183,7 @@
   "A2.50": "screen:card.spell.show",
   "A2.51": "screen:card.spell.hidden",
   "A2.52": "screen:card.keep",
+  "A2.53": "screen:card.offline",
   "A3.1": "screen:add.title",
   "A3.2": "screen:add.step.say",
   "A3.3": "screen:add.step.show",
@@ -243,6 +244,11 @@
   "A3.58": "screen:add.reopen.yes",
   "A3.59": "screen:add.reopen.no",
   "A3.60": "screen:add.hear",
+  "A3.61": "screen:add.queue.keep",
+  "A3.62": "screen:add.queue.saved",
+  "A3.63": "screen:add.queue.n",
+  "A3.64": "screen:add.queue.signin",
+  "A3.65": "screen:add.queue.sent",
   "A4.1": "screen:hdr.display",
   "A4.2": "screen:hdr.signin",
   "A4.3": "screen:hdr.account",
@@ -441,6 +447,8 @@
   "A8.23": "screen:clear.confirm",
   "A8.24": "screen:clear.unsent",
   "A8.25": "screen:clear.warn",
+  "A8.26": "screen:clear.yes",
+  "A8.27": "screen:clear.no",
   "A9.1": "screen:voice.takeback",
   "A9.2": "screen:voice.shareagain",
   "A9.3": "screen:roster.erased",
@@ -657,6 +665,8 @@
   "A11.129": "screen:help.contact.title",
   "A11.130": "screen:help.contact.lead",
   "A11.131": "screen:help.contact.btn",
-  "A11.132": "screen:help.contact.msg"
+  "A11.132": "screen:help.contact.msg",
+  "A11.133": "screen:ask.newonly",
+  "A11.134": "screen:ask.hideall"
  }
 }

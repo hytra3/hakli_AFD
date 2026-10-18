@@ -881,7 +881,13 @@ window.AFDCore = (function(){
     "ask.newonly":          { en:"Only from now on",   ar:"من الآن فقط" },
     "ask.hideall":          { en:"Hide them too",      ar:"أخفِها أيضًا" },
     "clear.yes":            { en:"Delete from this phone", ar:"احذفها من هذا الهاتف" },
-    "clear.no":             { en:"Keep them",          ar:"أبقِها" }
+    "clear.no":             { en:"Keep them",          ar:"أبقِها" },
+    // 10-17: Add keeps words on the phone while there's no signal
+    "add.queue.keep":       { en:"Keep it on this phone — share it when there's signal", ar:"احفظها على هذا الهاتف — تُشارَك عند توفّر الشبكة" },
+    "add.queue.saved":      { en:"Saved on this phone. It will be shared on its own when there's signal — you can add another word now.", ar:"حُفظت على هذا الهاتف، وستُشارَك تلقائيًا عند توفّر الشبكة. يمكنك إضافة كلمة أخرى الآن." },
+    "add.queue.n":          { en:"Words waiting on this phone: {n}. They'll be shared when there's signal.", ar:"كلمات تنتظر على هذا الهاتف: {n}. ستُشارَك عند توفّر الشبكة." },
+    "add.queue.signin":     { en:"Words waiting on this phone: {n}. Sign in to share them.", ar:"كلمات تنتظر على هذا الهاتف: {n}. سجّل الدخول لمشاركتها." },
+    "add.queue.sent":       { en:"Shared now: {n} word(s) you kept on this phone.", ar:"شُورِكت الآن: {n} من الكلمات التي حفظتها على هذا الهاتف." }
   };
   function t(key, mode){
     const s = STRINGS[key];

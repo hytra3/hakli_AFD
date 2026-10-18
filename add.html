@@ -156,6 +156,8 @@ details summary::-webkit-details-marker{display:none}
 .who{display:flex; align-items:center; justify-content:center; gap:8px; font-size:14px; color:#4d6159; flex-wrap:wrap}
 .linkbtn{background:none; border:0; padding:0; font:inherit; color:var(--mountain); text-decoration:underline; cursor:pointer}
 .banner{background:var(--resin-soft); color:#5a3a12; border-radius:14px; padding:10px 14px; font-size:14px; text-align:center}
+.banner.queue{display:block; width:100%; border:0; font:inherit; font-size:14px; margin:0 0 12px; cursor:default}
+.banner.queue.tap{cursor:pointer; text-decoration:underline; text-underline-offset:3px}
 .err{color:var(--danger); font-size:14px; text-align:center; margin:0; min-height:1em}
 a{color:var(--mountain)}
 a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-content:center; text-decoration:none; text-align:center}
@@ -180,6 +182,10 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 <main class="wrap">
 
   <!-- ============ 1. SAY IT ============ -->
+  <!-- words saved on this phone while there was no signal (10-17): how many,
+       and — signed out — a tap to sign in so they can go -->
+  <button class="banner queue hidden" id="queueNote" type="button"></button>
+
   <section id="say">
     <div class="titlerow"><h2 data-k="add.step.say"></h2><button class="hear" type="button" hidden aria-label="Hear it" title="Hear it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button></div>
     <p class="hint" data-k="add.say.hint"></p>
@@ -299,6 +305,8 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <button class="btn" id="shareBtn" type="button" data-k="add.share.go"></button>
     </div>
     <p class="err" id="shareErr" role="status" aria-live="polite"></p>
+    <!-- no signal: keep the word and carry on; it goes on its own later -->
+    <button class="btn secondary hidden" id="parkBtn" type="button" data-k="add.queue.keep"></button>
     <button class="btn ghost" id="shareBack" type="button" data-k="add.back"></button>
   </section>
 
@@ -348,13 +356,16 @@ import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip, instanceLang } from "./afd-upload.js?v=b1016g";
 import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace } from "./afd-card.js?v=b1016g";
-import { mountSignIn, finishEmailLink } from "./afd-signin.js?v=b1016g";
+import { mountSignIn, finishEmailLink, signInSheet } from "./afd-signin.js?v=b1016g";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const app   = initializeApp(firebaseConfig);
 const auth  = getAuth(app);
 const db    = getFirestore(app);
 const store = getStorage(app);
+// Storage retries an upload for up to 10 minutes by default; on a dead signal
+// that was a 10-minute spinner. Two minutes, then the word is kept for later.
+try{ store.maxUploadRetryTime = 120000; store.maxOperationRetryTime = 120000; }catch(_){}
 // field error log — AFDCore.report() writes here (afd_client_errors: create-only,
 // stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
 AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
@@ -445,7 +456,7 @@ function freshDraft(){
   };
 }
 let draft = freshDraft();
-async function saveDraft(){ try{ await idbDo("readwrite", s=>s.put(draft)); }catch(e){ console.warn("[AFD add] save draft", e); } }
+async function saveDraft(d){ try{ const x = d || draft; await idbDo("readwrite", s=>s.put(x)); }catch(e){ console.warn("[AFD add] save draft", e); } }
 async function loadDraft(){ try{ return await idbDo("readonly", s=>s.get("current")) || null; }catch(_){ return null; } }
 async function clearDraft(){ try{ await idbDo("readwrite", s=>s.delete("current")); }catch(_){} }
 
@@ -518,7 +529,7 @@ function show(which, opt){
     li.classList.toggle("done", which==="done" || (at>=0 && i<at));
   });
   if(which==="show") paintShow();
-  if(which==="share") paintShare();
+  if(which==="share"){ paintShare(); paintPark(); }
   if(which==="done") paintFace($("donePic"));
   speakStep(which);
   window.scrollTo(0,0);
@@ -945,23 +956,23 @@ async function prefillConsent(){
   }catch(e){ console.warn("[AFD add] prefill", e); }
 }
 
-function speakerSnapshot(speakerId){
+function speakerSnapshot(d, speakerId){
   return {
     key:"speaker", speakerId, viaAgent:false,
     origin:{ town:"", tribe:"" }, ageBand:"", gender:"",
     consent:{
       version:"cv_2026_08",
-      archivalDeposit: !!draft.consent.archive,
-      mlTraining:      !!draft.consent.ml,
-      publicPlayback:  !!draft.consent.play,
+      archivalDeposit: !!d.consent.archive,
+      mlTraining:      !!d.consent.ml,
+      publicPlayback:  !!d.consent.play,
       attribution:     "pseudonymous",
       grantedAt:       new Date().toISOString()
     }
   };
 }
-function takeRec(t, type, recordingId, speakerId){
+function takeRec(d, t, type, recordingId, speakerId){
   return {
-    recordingId, entryId:draft.entryId, gloss:"", domain:"",
+    recordingId, entryId:d.entryId, gloss:"", domain:"",
     speakerId, phase:type, type, promptTier:"self", repetitionIndex:"both",
     capture:{ sampleRate:t.sampleRate, codec:t.mime||"", durationMs:t.durationMs, bluetoothDetected:false },
     qc:t.qc, envelope:t.envelope||[], recordedAt:t.recordedAt, blob:t.blob
@@ -969,6 +980,117 @@ function takeRec(t, type, recordingId, speakerId){
 }
 const publicUrl = path =>
   "https://firebasestorage.googleapis.com/v0/b/"+firebaseConfig.storageBucket+"/o/"+encodeURIComponent(path)+"?alt=media";
+
+/* ---- sending one word (10-17) -----------------------------------------------
+   The upload itself, for any saved word: the one on screen (share()) or one
+   parked in the queue while there was no signal (sendQueued()). Each piece is
+   write-once and its progress is saved on the word (d.up) as it lands, so a
+   send cut off halfway carries on where it stopped next time.
+   interactive: someone is looking. Only then can a hidden voice be asked about
+   re-opening; a word sent in the background keeps a withdrawn voice hidden —
+   a withdrawal reverses only on a clear yes.
+   Returns { public }; throws with err.step naming where it stopped. */
+async function sendWord(d, u, interactive){
+  const at = { step:"start" };
+  try{
+    const uid = u.uid, up = d.up;
+    if(up.uid !== uid){
+      // A different account than a half-finished earlier attempt: whatever
+      // hasn't landed yet is written under (and owned by) this one.
+      if(!up.entry){ up.photo = false; up.photoPath = ""; }
+      if(!up.word) up.wordId = null;
+      if(!up.meaning) up.meaningId = null;
+      up.speakerId = null; up.uid = uid;
+      delete up.reopen; delete up.public; delete up.reopened;   // that account's card, that account's answer
+    }
+    at.step = "speaker";
+    if(!up.speakerId) up.speakerId = await selfSpeaker(uid);
+    // Withdrawal is the speaker's own act and wins: new takes under a withdrawn
+    // card upload hidden. If they ticked "let others listen", ask — the same
+    // deliberate "share again" the recorder offers — rather than either
+    // overriding the withdrawal or silently ignoring the tick.
+    const cardSn = await getDoc(doc(db, "afd_speakers", up.speakerId));
+    const cardState = cardSn.exists() ? ((cardSn.data()||{}).consent || "public") : null;
+    if(d.consent.play && cardState==="withdrawn" && up.reopen===undefined && interactive){
+      // Asked in the page, with their own voice's face and the spoken question
+      // (AFDCore.ask) — never the browser's text-only OK/Cancel box. Closing it
+      // is "keep hidden": a withdrawal only reverses on a clear yes.
+      up.reopen = await C.ask({ mode: MODE, face: await voiceFace(uid, up.speakerId),
+        titleKey:"add.share.reopen", subKey:"add.reopen.sub",
+        yesKey:"add.reopen.yes", noKey:"add.reopen.no", audio: promptUrl("add.reopen") });
+    }
+    up.public = !!d.consent.play && (cardState!=="withdrawn" || up.reopen===true);
+    await saveDraft(d);
+
+    // photo → entry → word → meaning. Each is write-once on the server, so a
+    // retry that finds its earlier attempt already landed just carries on.
+    if(d.photo && !up.entry && !up.photo){
+      at.step = "photo";
+      const path = "afd_pics/"+uid+"/"+d.entryId+".jpg";
+      // write-once, so the phone may keep it; private so a photo a steward takes down isn't held in a shared cache
+      try{ await uploadBytes(ref(store, path), d.photo, { contentType:"image/jpeg", cacheControl:"private, max-age=31536000, immutable" }); }
+      catch(e){
+        let landed=false; try{ const m = await getMetadata(ref(store, path)); landed = !!m && m.size===d.photo.size; }catch(_){}
+        if(!landed) throw e;
+      }
+      up.photo = true; up.photoPath = path; await saveDraft(d);
+    }
+    if(!up.entry){
+      at.step = "entry";
+      const eref = doc(db, "afd_entries", d.entryId);
+      // lang + an empty concepts list on every new word card, so the export
+      // manifest and later concept linking never need a second migration.
+      const data = { source:"user", createdBy:uid, createdAt:serverTimestamp(),
+                     lang: instanceLang(), concepts: [] };
+      if(d.pic) data.pic = d.pic;
+      if(up.photo && up.photoPath) data.image = publicUrl(up.photoPath);
+      const ar = d.glossAr.trim().slice(0,80);
+      // glosses is the language-keyed form; glossAr stays until every reader
+      // has moved over to glosses.
+      if(ar){ data.glossAr = ar; data.glosses = { ar }; }
+      try{ await setDoc(eref, data); }
+      catch(e){
+        let mine=false; try{ const sn = await getDoc(eref); mine = sn.exists() && (sn.data()||{}).createdBy===uid; }catch(_){}
+        if(!mine) throw e;
+      }
+      up.entry = true; await saveDraft(d);
+    }
+    // the word as its maker wrote it: their own spelling on the new card, one
+    // doc per writer (the id is their uid), so a retry just writes it again
+    const spelling = C.spellingText(d.spelling||"").slice(0,60);
+    if(spelling && window.AFDInstance && window.AFDInstance.spelling && !up.spelling){
+      at.step = "spelling";
+      await setDoc(doc(db, "afd_entries", d.entryId, "spellings", uid),
+        { text: spelling, searchKey: C.spellingKey(spelling).slice(0,60), lang: C.spellingLang(),
+          by: uid, at: serverTimestamp() });
+      up.spelling = true; await saveDraft(d);
+    }
+    const ctx = { db, store, uid }, spk = speakerSnapshot(d, up.speakerId);
+    const recId = ()=> "rec_"+d.entryId.replace(/^ent_/,"")+"_"+uid.slice(0,6)+"_"+up.speakerId+"_"+Date.now();
+    if(d.word && !up.word){
+      at.step = "word";
+      if(!up.wordId){ up.wordId = recId(); await saveDraft(d); }
+      await uploadClip(ctx, takeRec(d, d.word, "word", up.wordId, up.speakerId), spk);
+      up.word = true; await saveDraft(d);
+    }
+    if(d.meaning && !up.meaning){
+      at.step = "meaning";
+      if(!up.meaningId){ up.meaningId = recId()+"_m"; await saveDraft(d); }
+      await uploadClip(ctx, takeRec(d, d.meaning, "definition", up.meaningId, up.speakerId), spk);
+      up.meaning = true; await saveDraft(d);
+    }
+
+    if(up.reopen===true && !up.reopened){
+      at.step = "reshare";
+      await withdrawSpeaker(uid, up.speakerId, "public");   // card first, then every take of theirs
+      up.reopened = true; await saveDraft(d);
+    }
+    return { public: !!up.public };
+  }catch(err){
+    try{ err.step = at.step; }catch(_){}
+    throw err;
+  }
+}
 
 let sharing = false;
 async function share(){
@@ -979,99 +1101,9 @@ async function share(){
   $("shareErr").textContent = "";
   let step = "start";
   try{
-    const uid = u.uid, up = draft.up;
-    if(up.uid !== uid){
-      // A different account than a half-finished earlier attempt: whatever
-      // hasn't landed yet is written under (and owned by) this one.
-      if(!up.entry){ up.photo = false; up.photoPath = ""; }
-      if(!up.word) up.wordId = null;
-      if(!up.meaning) up.meaningId = null;
-      up.speakerId = null; up.uid = uid;
-      delete up.reopen; delete up.public; delete up.reopened;   // that account's card, that account's answer
-    }
-    step = "speaker";
-    if(!up.speakerId) up.speakerId = await selfSpeaker(uid);
-    // Withdrawal is the speaker's own act and wins: new takes under a withdrawn
-    // card upload hidden. If they ticked "let others listen", ask — the same
-    // deliberate "share again" the recorder offers — rather than either
-    // overriding the withdrawal or silently ignoring the tick.
-    const cardSn = await getDoc(doc(db, "afd_speakers", up.speakerId));
-    const cardState = cardSn.exists() ? ((cardSn.data()||{}).consent || "public") : null;
-    if(draft.consent.play && cardState==="withdrawn" && up.reopen===undefined){
-      // Asked in the page, with their own voice's face and the spoken question
-      // (AFDCore.ask) — never the browser's text-only OK/Cancel box. Closing it
-      // is "keep hidden": a withdrawal only reverses on a clear yes.
-      up.reopen = await C.ask({ mode: MODE, face: await voiceFace(uid, up.speakerId),
-        titleKey:"add.share.reopen", subKey:"add.reopen.sub",
-        yesKey:"add.reopen.yes", noKey:"add.reopen.no", audio: promptUrl("add.reopen") });
-    }
-    up.public = !!draft.consent.play && (cardState!=="withdrawn" || up.reopen===true);
-    await saveDraft();
-
-    // photo → entry → word → meaning. Each is write-once on the server, so a
-    // retry that finds its earlier attempt already landed just carries on.
-    if(draft.photo && !up.entry && !up.photo){
-      step = "photo";
-      const path = "afd_pics/"+uid+"/"+draft.entryId+".jpg";
-      // write-once, so the phone may keep it; private so a photo a steward takes down isn't held in a shared cache
-      try{ await uploadBytes(ref(store, path), draft.photo, { contentType:"image/jpeg", cacheControl:"private, max-age=31536000, immutable" }); }
-      catch(e){
-        let landed=false; try{ const m = await getMetadata(ref(store, path)); landed = !!m && m.size===draft.photo.size; }catch(_){}
-        if(!landed) throw e;
-      }
-      up.photo = true; up.photoPath = path; await saveDraft();
-    }
-    if(!up.entry){
-      step = "entry";
-      const eref = doc(db, "afd_entries", draft.entryId);
-      // lang + an empty concepts list on every new word card, so the export
-      // manifest and later concept linking never need a second migration.
-      const data = { source:"user", createdBy:uid, createdAt:serverTimestamp(),
-                     lang: instanceLang(), concepts: [] };
-      if(draft.pic) data.pic = draft.pic;
-      if(up.photo && up.photoPath) data.image = publicUrl(up.photoPath);
-      const ar = draft.glossAr.trim().slice(0,80);
-      // glosses is the language-keyed form; glossAr stays until every reader
-      // has moved over to glosses.
-      if(ar){ data.glossAr = ar; data.glosses = { ar }; }
-      try{ await setDoc(eref, data); }
-      catch(e){
-        let mine=false; try{ const sn = await getDoc(eref); mine = sn.exists() && (sn.data()||{}).createdBy===uid; }catch(_){}
-        if(!mine) throw e;
-      }
-      up.entry = true; await saveDraft();
-    }
-    // the word as its maker wrote it: their own spelling on the new card, one
-    // doc per writer (the id is their uid), so a retry just writes it again
-    const spelling = C.spellingText(draft.spelling||"").slice(0,60);
-    if(spelling && window.AFDInstance && window.AFDInstance.spelling && !up.spelling){
-      step = "spelling";
-      await setDoc(doc(db, "afd_entries", draft.entryId, "spellings", uid),
-        { text: spelling, searchKey: C.spellingKey(spelling).slice(0,60), lang: C.spellingLang(),
-          by: uid, at: serverTimestamp() });
-      up.spelling = true; await saveDraft();
-    }
-    const ctx = { db, store, uid }, spk = speakerSnapshot(up.speakerId);
-    const recId = ()=> "rec_"+draft.entryId.replace(/^ent_/,"")+"_"+uid.slice(0,6)+"_"+up.speakerId+"_"+Date.now();
-    if(draft.word && !up.word){
-      step = "word";
-      if(!up.wordId){ up.wordId = recId(); await saveDraft(); }
-      await uploadClip(ctx, takeRec(draft.word, "word", up.wordId, up.speakerId), spk);
-      up.word = true; await saveDraft();
-    }
-    if(draft.meaning && !up.meaning){
-      step = "meaning";
-      if(!up.meaningId){ up.meaningId = recId()+"_m"; await saveDraft(); }
-      await uploadClip(ctx, takeRec(draft.meaning, "definition", up.meaningId, up.speakerId), spk);
-      up.meaning = true; await saveDraft();
-    }
-
-    if(up.reopen===true && !up.reopened){
-      step = "reshare";
-      await withdrawSpeaker(uid, up.speakerId, "public");   // card first, then every take of theirs
-      up.reopened = true; await saveDraft();
-    }
-
+    const up = draft.up;
+    if(navigator.onLine === false){ const x = new Error("offline"); x.code = "offline"; throw x; }   // don't even try
+    await sendWord(draft, u, true);
     // Shared. The done screen still shows this word; the draft itself goes.
     // It says what actually happened — a hidden voice is told it's hidden.
     $("doneMsg").innerHTML = bi(up.public ? "add.done.public" : "add.done.private");
@@ -1085,10 +1117,16 @@ async function share(){
     if(up.public && draft.word && draft.word.blob) voiceFile(draft.word.blob).then(f => { voiceReady = f; });
     $("doneShare").onclick = shareFlow(...shareArgs, MODE, ()=> voiceReady,
       (state)=>{ $("doneShare").innerHTML = bi(state==="link" ? "card.share.link" : "card.share"); });
+    $("doneSee").hidden = false;
     show("done");
     await clearDraft();
+    kickQueue(500);                               // anything parked earlier can go too
   }catch(e){
+    if(e && e.step) step = e.step;
     console.warn("[AFD add] share failed at", step, e);
+    // No signal: keep the word on the phone and let them carry on (10-17).
+    // It is sent on its own when there's signal (sendQueued).
+    if(isNetErr(e)){ await parkDraft(); return; }
     C.report("add.share." + step, e);             // field error log (afd-core)
     // Only blame the signal when the phone says it's offline. Anything else
     // (a refused write, a rules mismatch) gets the step and error code, so a
@@ -1105,6 +1143,84 @@ async function share(){
   }
 }
 $("shareBtn").onclick = share;
+
+/* ---- words kept on the phone while there's no signal (10-17) ----------------
+   A share with no signal used to leave the person on the share screen with one
+   word and nowhere to go. Now the word is parked in this browser's storage
+   (the same store as the draft, key "q:<entryId>"), the page says so, and they
+   can add another. Parked words are sent on their own — on load, when signal
+   returns, when the page comes back into view, after a sign-in — retrying with
+   a growing wait (3 s → 9 s → … 2 min) while some are left. A word that fails
+   for another reason (a refused write) is logged and skipped, so it can't hold
+   up the rest. Signed out, the note offers the sign-in. */
+const QPRE = "q:";
+const isNetErr = (e)=> navigator.onLine === false
+  || /offline|unavailable|network|retry-limit|failed to fetch|deadline/i.test(String((e && (e.code || e.message)) || ""));
+async function queuedWords(){
+  try{ const all = await idbDo("readonly", st=> st.getAll()); return (all||[]).filter(x=> x && String(x.key).indexOf(QPRE)===0); }
+  catch(_){ return []; }
+}
+async function parkDraft(){
+  const d = Object.assign({}, draft, { key: QPRE + draft.entryId, parkedAt: Date.now() });
+  await saveDraft(d);
+  await clearDraft();
+  // the thank-you screen, saying what happened instead: kept, not yet shared
+  $("doneMsg").innerHTML = bi("add.queue.saved");
+  $("doneSee").hidden = true; $("doneShare").hidden = true;
+  show("done");
+  paintQueue();
+}
+async function paintQueue(){
+  const n = (await queuedWords()).length, b = $("queueNote");
+  b.classList.toggle("hidden", !n);
+  if(!n) return;
+  const signedOut = !realUser();
+  b.innerHTML = bi(signedOut ? "add.queue.signin" : "add.queue.n", { n });
+  b.classList.toggle("tap", signedOut);
+  b.onclick = signedOut ? async ()=>{
+    await signInSheet({ auth, label:(k)=> bi(k), titleKey:"setup.signin.title", noteKey:"setup.signin.note" });
+    kickQueue(300);
+  } : null;
+}
+let qBusy = false, qTimer = null, qDelay = 0;
+async function sendQueued(){
+  if(qBusy || navigator.onLine === false) return;
+  const u = realUser(); if(!u){ paintQueue(); return; }
+  const list = await queuedWords();
+  if(!list.length){ qDelay = 0; paintQueue(); return; }
+  qBusy = true; let sent = 0, waiting = false;
+  try{
+    for(const d of list){
+      d.consent = Object.assign(freshDraft().consent, d.consent || {});
+      d.up = Object.assign(freshDraft().up, d.up || {});
+      try{
+        await sendWord(d, u, false);
+        await idbDo("readwrite", st=> st.delete(d.key));
+        sent++;
+      }catch(e){
+        if(isNetErr(e)){ waiting = true; break; }            // still no signal: try again later
+        console.warn("[AFD add] queued word failed at", e && e.step, e);
+        C.report("add.queue." + ((e && e.step) || "start"), e);
+        d.failures = (d.failures || 0) + 1; await saveDraft(d);   // kept; skipped this round
+      }
+    }
+  }finally{ qBusy = false; }
+  await paintQueue();
+  if(sent) C.notice("add.queue.sent", { mode: MODE, kind:"ok", vars:{ n: sent } });
+  if(waiting){
+    qDelay = qDelay ? Math.min(qDelay * 3, 120000) : 3000;
+    clearTimeout(qTimer); qTimer = setTimeout(sendQueued, qDelay);
+  }else qDelay = 0;
+}
+function kickQueue(ms){ clearTimeout(qTimer); qDelay = 0; qTimer = setTimeout(sendQueued, ms || 0); }
+function paintPark(){ $("parkBtn").classList.toggle("hidden", navigator.onLine !== false); }
+$("parkBtn").onclick = ()=> parkDraft();
+window.addEventListener("online",  ()=>{ paintPark(); kickQueue(2000); });
+window.addEventListener("offline", paintPark);
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "visible") kickQueue(500); });
+// Ask the browser not to clear this site's storage when the phone runs low on
+// space: parked words live only here until they're sent.
+try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(_){}
 $("shareBack").onclick = ()=> show("show");
 
 /* ---- sign-in: only here, at the end, once there's a word worth keeping ----
@@ -1152,6 +1268,7 @@ paintAcct();
 
 onAuthStateChanged(auth, ()=>{
   paintAcct();
+  paintQueue(); kickQueue(800);                   // parked words go once an account is here
   if($("share").hidden) return;
   paintAuth();
   prefillConsent();
