@@ -261,11 +261,20 @@ async function voiceFace(uid, speakerId){
   return `<div style="width:100%;height:100%;background:${av.bg};display:flex;align-items:center;justify-content:center">${av.svg}</div>`;
 }
 
+// Words whose voices couldn't be fetched for lack of signal (10-17). Offline, the
+// recordings may come from the local cache but their audio links can't, so a word
+// with voices looked like "no voice yet". The card says "no signal" instead.
+const _offlineMiss = new Set();
+const isNetErr = (e)=> navigator.onLine === false
+  || /unavailable|network|retry-limit|offline|failed to fetch/i.test(String((e && (e.code || e.message)) || ""));
+function voicesOffline(entryId){ return _offlineMiss.has(entryId); }
+
 async function listPlayable(entryId){
   // Everything here runs in parallel: the two queries, then one audio link per
   // voice, then the contributor profiles. One at a time, a word with a few
   // voices took several seconds to open — each link is a network round-trip,
   // and under the consent-gated Storage rules each also costs a Firestore read.
+  _offlineMiss.delete(entryId);
   const recsCol=collection(CFG.db,"afd_entries",entryId,"recordings");
   let docs=[];
   try{
@@ -278,11 +287,12 @@ async function listPlayable(entryId){
     ]);
     const seen=new Set();
     for(const d of [...pub.docs, ...mine.docs]){ if(!seen.has(d.id)){ seen.add(d.id); docs.push(d); } }
-  }catch(_){}
+  }catch(e){ if(isNetErr(e)) _offlineMiss.add(entryId); }
   const rows = await Promise.all(docs.map(async d=>{
     const v=d.data(); if(!v.storagePath) return null;
     if(v.consent==="deleted") return null;   // erased: awaiting server purge, shown to no one — not even its owner
-    let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }catch(_){ return null; }
+    let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }
+    catch(e){ if(isNetErr(e)) _offlineMiss.add(entryId); return null; }
     return { url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
              type: v.type || v.phase || "word",
              // What the viewer can act on is whether others can HEAR it. A take
@@ -983,7 +993,8 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
     `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${escapeHtml(AFDCore.t(addKey, CFG.mode()))}</a>`;
   s.innerHTML =
     `<div class="slot-head"><span class="slot-label">${CFG.mode()==="auto" ? labelEn+' <span class="ar">'+escapeHtml(labelAr)+'</span>' : '<span class="ar solo">'+escapeHtml(labelAr)+'</span>'}</span>` +
-    `<span class="slot-empty"${has?" hidden":""}>${escapeHtml(AFDCore.t("slot.none", CFG.mode()))}</span></div>` +
+    // no signal: an empty slot may not be empty, so don't say "none yet"
+    `<span class="slot-empty"${(has || voicesOffline(entryId))?" hidden":""}>${escapeHtml(AFDCore.t("slot.none", CFG.mode()))}</span></div>` +
     `<div class="slot-body"></div>` + addLink;
   if(has) buildVoices(s.querySelector(".slot-body"), recs, thumbEl, playBtn, setUrl);
   return s;
@@ -1295,6 +1306,13 @@ async function entryCard(res, lead){
     if(currentUrl==null) currentUrl = firstPlayable;
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
     feedback(res.entryId, meta, recs, detail, hc);
+    // no signal: say so above the slots, so empty slots don't read as "nobody said it"
+    if(voicesOffline(res.entryId)){
+      const off=document.createElement("div"); off.className="novoice offline"; off.setAttribute("role","status");
+      off.innerHTML=`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.5 5.2A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 3-1.9M13 10.3a10 10 0 0 1 6 2.2M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01"/><path d="m2 2 20 20"/></svg>`+
+        `<span>${AFDCore.tHTML("card.offline", CFG.mode())}</span>`;
+      detail.appendChild(off);
+    }
     detail.appendChild(slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
     detail.appendChild(spellingSection(res.entryId, gc));
     detail.appendChild(slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
@@ -1335,7 +1353,7 @@ async function entryCard(res, lead){
     if(!n){
       n = document.createElement("div"); n.className = "novoice"; n.setAttribute("role","status");
       n.innerHTML = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>` +
-                    `<span>${AFDCore.tHTML("card.novoice", CFG.mode())}</span>`;
+                    `<span>${AFDCore.tHTML(voicesOffline(res.entryId) ? "card.offline" : "card.novoice", CFG.mode())}</span>`;
       if(wordSlot) detail.insertBefore(n, wordSlot); else detail.appendChild(n);
     }
     playBtn.classList.remove("afd-novoice-shake"); void playBtn.offsetWidth; playBtn.classList.add("afd-novoice-shake");
@@ -1363,4 +1381,4 @@ async function entryCard(res, lead){
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
-export { voiceFace, primeCounts, primeAllSpellings, spellingsFor, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };
+export { voicesOffline, voiceFace, primeCounts, primeAllSpellings, spellingsFor, entryCard, shareEntry, shareFlow, voiceFile, slotSection, playVoiceInto, setConsent, withdrawSpeaker, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml };

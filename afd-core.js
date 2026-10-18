@@ -875,6 +875,7 @@ window.AFDCore = (function(){
     "auth.recaptcha":       { en:"Protected by reCAPTCHA. Google's {privacy} and {terms} apply.", ar:"محميّ بخدمة reCAPTCHA، وتنطبق {privacy} و{terms} من Google." },
     // 10-16 (cont.): the last confirm() boxes on the speaker pages, moved to ask()
     "card.keep":            { en:"Keep the word",      ar:"أبقِ الكلمة" },
+    "card.offline":         { en:"No signal — the voices on this word will play when you're back online.", ar:"لا توجد شبكة — ستُسمَع الأصوات على هذه الكلمة عند عودة الاتصال." },
     "account.stay":         { en:"Stay signed in",     ar:"ابقَ مسجَّل الدخول" }
   };
   function t(key, mode){
