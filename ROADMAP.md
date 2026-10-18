@@ -512,8 +512,17 @@ From the improvement review (project doc `claude/improvement-review-2026-10-16.m
   gloss or Hakli spelling, folded with `spellingKey`. Not asked for words sent from the
   offline queue. Picture/emoji/Arabic gloss aren't carried to the joined card (only a
   card's maker sets those). Strings R2.11 (spoken), A3.66–70.
-  *Existing duplicates* (e.g. the two "water" cards) need a steward tool to move one
-  card's voices onto the other — not built yet.
+- **✅ Steward join for existing duplicates** — `scripts/join-words.mjs` (logic in
+  `scripts/lib/join.mjs`, unit-tested in `test/join.unit.test.mjs`). Moves every voice
+  of a contributed card onto the card it duplicates: records rewritten under the kept
+  word with `joinedFrom`, the audio's Storage label (`entryId`, which the Storage rule
+  reads for consent) pointed at it, consent/owner/speaker untouched, search vectors
+  carried. The extra card is hidden and stamped `joinedInto` — never deleted, and the
+  **purge now skips joined cards** (redeploy it before the first join). The kept card
+  keeps its picture: emoji and photo count as one picture, taken only if it has
+  neither; names likewise. Hakli spellings copied (a writer's own on the kept card
+  wins). Built-in words are only ever kept. `--undo` puts everything back. Look-only
+  without `--apply`; safe to re-run after an interruption.
 
 ## Matcher resilience (2026-10-10)
 

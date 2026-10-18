@@ -34,6 +34,8 @@ SAFETY RAILS (this deletes an irreplaceable corpus of elders' voices):
     add.html): afd_pics/{createdBy}/{entryId}.jpg, the one path the rules let
     that entry name. Photo first, then the entry; a failed photo delete keeps
     the entry for the next sweep. See owned_photo_path().
+  * Never reaps a word a steward joined into another (joinedInto set,
+    scripts/join-words.mjs): it is empty on purpose and is the join's record.
   * Idempotent — safe to run on a schedule and safe to re-run.
 
 Deploy (from this folder):
@@ -182,7 +184,13 @@ def purge(cloud_event):
         #     are never touched; a just-created entry still mid-recording is
         #     inside grace and safe. Grace is measured from createdAt (the field
         #     set on creation), falling back to the doc's own create_time.
-        if is_user_entry and not had_recording:
+        # A word a steward JOINED into another (scripts/join-words.mjs) is empty on
+        # purpose: its voices moved to the word it duplicated. It stays, hidden,
+        # as the record of the join — and so the join can be undone, and its
+        # photo (which the other word may now show) isn't deleted.
+        if is_user_entry and not had_recording and edata.get("joinedInto"):
+            pass
+        elif is_user_entry and not had_recording:
             e_swept += 1
             created = edata.get("createdAt") or entry.create_time
             if created is None or created > cutoff:
