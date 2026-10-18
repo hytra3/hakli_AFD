@@ -8,6 +8,9 @@
     · "Who can hear my voice?" — the questions the first speakers asked
     · "Ask a person" — a local Hakli speaker on WhatsApp. HIDDEN until
       afd-instance.js sets help.contact = { name:{ar,en}, whatsapp:"968…" }.
+    · "The dictionary so far" (10-17) — words · voices · speakers, from
+      afd_stats/public, which the watch function (watch/main.py) recounts every
+      30 minutes. HIDDEN until it loads, so nobody sees a row of zeros.
   Words come from afd-core.js (help.*, wt.howto.*; prompts tool A11),
   so a corrected line reaches this page.
 -->
@@ -72,6 +75,14 @@
   .contact p{margin:0 2px 10px; font-size:17px}
   .wa{display:inline-flex; align-items:center; gap:8px; font-size:18px; color:#fff; background:#1F7A4D; border-radius:999px;
     padding:12px 26px; text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
+  .count{margin-top:6px}
+  .count .nums{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  .count .num{display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 6px; border-radius:18px;
+    background:var(--cloud); border:1.5px solid var(--line); box-shadow:0 6px 16px rgba(31,58,52,.07)}
+  .count .ic{font-size:24px; line-height:1}
+  .count b{font-family:var(--en); font-size:28px; line-height:1.15; color:var(--ink); font-variant-numeric:tabular-nums}
+  .count .l{font-size:16px; color:var(--mist)}
+  body.en .count .l{font-family:var(--en); font-style:italic}
   .enter-wrap{text-align:center; margin-top:28px}
   .enter{display:inline-flex; font-size:19px; color:#fff; background:var(--mountain); border-radius:999px; padding:13px 32px;
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
@@ -109,6 +120,15 @@
     <a class="wa" id="wa" target="_blank" rel="noopener"><span aria-hidden="true">💬</span><span class="t"></span></a>
   </section>
 
+  <section class="count" id="count" hidden>
+    <h2 id="countH"></h2>
+    <div class="nums">
+      <div class="num"><span class="ic" aria-hidden="true">📖</span><b id="nWords"></b><span class="l" id="lWords"></span></div>
+      <div class="num"><span class="ic" aria-hidden="true">🔊</span><b id="nVoices"></b><span class="l" id="lVoices"></span></div>
+      <div class="num"><span class="ic" aria-hidden="true">🗣️</span><b id="nSpeakers"></b><span class="l" id="lSpeakers"></span></div>
+    </div>
+  </section>
+
   <nav class="enter-wrap"><a class="enter" id="enter" href="index.html"></a></nav>
 </main>
 
@@ -121,7 +141,7 @@ const W = (k) => { const x = STR[k] || {}; return (mode==="en" ? x.en : (x.ar ||
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 // the six clips, in teaching order (same ids and icons as howto.html)
 const CLIPS = [["find","🎙️"],["hear","▶️"],["record","➕"],["sentence","💬"],["meaning","💡"],["add","🆕"]];
-const FAQ = [1,2,3,4];
+const FAQ = [1,2,3,4,5];
 
 // "Ask a person": shown only once afd-instance.js names someone with a WhatsApp number.
 function contact(){
@@ -154,10 +174,55 @@ function render(){
     wa.href = "https://wa.me/" + c.num + "?text=" + encodeURIComponent(W("help.contact.msg"));
     wa.querySelector(".t").textContent = W("help.contact.btn");
   }
+  document.getElementById("countH").textContent = W("help.count.title");
+  document.getElementById("lWords").textContent = W("help.count.words");
+  document.getElementById("lVoices").textContent = W("help.count.voices");
+  document.getElementById("lSpeakers").textContent = W("help.count.speakers");
   document.getElementById("enter").textContent = W("welcome.enter") + (mode==="en" ? " →" : " ←");
 }
 document.querySelectorAll("#toggle button").forEach(b => b.onclick = () => { mode = b.dataset.m; render(); });
 render();
+// usage counts: which help people open (afd_events, via the module below)
+const track = (ev, v) => { try{ AFDCore.track(ev, v); }catch(_){} };
+track("help", "open");
+// A tile or the tour leaves this page, and a write still in flight would be
+// dropped with it: count, then go a beat later. (New tab / modified click: as usual.)
+function countThenGo(e, a, v){
+  track("help", v);
+  if(e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.target) return;
+  e.preventDefault();
+  setTimeout(() => { location.href = a.href; }, 250);
+}
+document.getElementById("tiles").addEventListener("click", e => {
+  const a = e.target.closest("a.tile"); if(a) countThenGo(e, a, "clip." + (a.getAttribute("href").split("#")[1] || "?"));
+});
+document.getElementById("tour").addEventListener("click", e => countThenGo(e, e.currentTarget, "tour"));
+document.getElementById("faq").addEventListener("toggle", e => {
+  if(e.target.open) track("help", "faq." + (1 + [...document.querySelectorAll("#faq details")].indexOf(e.target)));
+}, true);
+document.getElementById("wa").addEventListener("click", () => track("help", "ask"));
+</script>
+<script type="module">
+// Firestore, for two small things only: the public counter (afd_stats/public —
+// three numbers, readable by anyone) and the usage counts above. If either
+// fails the page is unchanged: the counter simply stays hidden.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, Timestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+try{
+  const db = getFirestore(initializeApp(window.AFDInstance.firebase));
+  AFDCore.eventSink(rec => addDoc(collection(db, "afd_events"),
+    Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 90*864e5) })));
+  const snap = await getDoc(doc(db, "afd_stats", "public"));
+  const d = snap.exists() ? snap.data() : null;
+  if(d && d.words > 0){
+    const fmt = (n) => Number(n || 0).toLocaleString("en-US");
+    document.getElementById("nWords").textContent = fmt(d.words);
+    document.getElementById("nVoices").textContent = fmt(d.voices);
+    document.getElementById("nSpeakers").textContent = fmt(d.speakers);
+    document.getElementById("count").hidden = false;
+  }
+}catch(e){ console.warn("[AFD help] counter", e); }
 </script>
 </body>
 </html>

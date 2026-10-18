@@ -28,7 +28,7 @@ await scenario("the Help page", async ()=>{
   ok("six clip tiles, each linking to its how-to clip",
      a.tiles.join() === ["find","hear","record","sentence","meaning","add"].map(id=>"howto.html#"+id).join(), JSON.stringify(a.tiles));
   ok("a link to the welcome tour", a.tour === "welcome.html");
-  ok("four questions about who can hear my voice, none blank", a.faq === 4 && a.blank === 0, JSON.stringify(a));
+  ok("five questions about who can hear my voice, none blank", a.faq === 5 && a.blank === 0, JSON.stringify(a));
   ok("no helper configured → 'Ask a person' is hidden", !a.contact, JSON.stringify(a));
   await page.click('#toggle button[data-m="en"]'); await page.waitForTimeout(200);
   const e = await look(page);

@@ -146,11 +146,14 @@ function busyBtn(btn){
   function done(){ clearTimeout(t); clearTimeout(safety); if(on){ btn.classList.remove("loading"); btn.removeAttribute("aria-busy"); } }
   return done;
 }
-function playInto(btn, url, done){
+// what: which kind of voice, for the usage counts ("word", "context", "definition",
+// or "card" for the card's own ▶). Counted once it actually sounds; never which word.
+function playInto(btn, url, done, what){
   try{ audioEl.pause(); }catch(_){}
   done = done || busyBtn(btn);
   audioEl = new Audio(url);
   ["playing","error","abort"].forEach(ev=> audioEl.addEventListener(ev, done, { once:true }));
+  audioEl.addEventListener("playing", ()=>{ try{ AFDCore.track("play", what || "card"); }catch(_){} }, { once:true });
   audioEl.play().catch(done);
 }
 
@@ -332,7 +335,7 @@ async function listPlayable(entryId){
 function playVoiceInto(rec, thumbEl, playBtn, setUrl){
   setUrl(rec.url);
   if(thumbEl && thumbEl.querySelector(".thumb-wave")) envelopeFor(rec).then(env=> paintBox(thumbEl, env));
-  playInto(playBtn, rec.url);
+  playInto(playBtn, rec.url, null, rec.type || rec.phase || "word");
 }
 
 /* Withdraw (or restore) every recording made by ONE speaker — the (uid,
@@ -1356,6 +1359,7 @@ async function entryCard(res, lead){
                     `<span>${AFDCore.tHTML(voicesOffline(res.entryId) ? "card.offline" : "card.novoice", CFG.mode())}</span>`;
       if(wordSlot) detail.insertBefore(n, wordSlot); else detail.appendChild(n);
     }
+    try{ AFDCore.track("play", "novoice", { x: voicesOffline(res.entryId) ? "offline" : "" }); }catch(_){}
     playBtn.classList.remove("afd-novoice-shake"); void playBtn.offsetWidth; playBtn.classList.add("afd-novoice-shake");
     if(say){ say.classList.remove("afd-novoice-pulse"); void say.offsetWidth; say.classList.add("afd-novoice-pulse"); }
     try{ n.scrollIntoView({ block:"nearest", behavior:"smooth" }); }catch(_){}

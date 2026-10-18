@@ -596,6 +596,46 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Usage counts (10-17): afd-core's track() — a search and how it came out,
+    // a voice played, a take kept, a step on Add. Like the error log: anyone may
+    // ADD one, signed in or not, in this exact thin shape — what happened, the
+    // page, the display mode, build, online, OS family, a short label or two and
+    // a number. No uid, no session or device id, no words. The server's own
+    // time; expiry at most 92 days out (TTL on expireAt). Stewards read them
+    // (the Stats tab); only the server's digest deletes or rolls them up.
+    match /afd_events/{id} {
+      function evStr(k, n) {
+        return !(k in request.resource.data)
+               || (request.resource.data[k] is string && request.resource.data[k].size() <= n);
+      }
+      allow create: if request.resource.data.keys().hasAll(['ev','page','at','expireAt'])
+                    && request.resource.data.keys().hasOnly(
+                         ['ev','v','x','n','page','mode','build','online','os','at','expireAt'])
+                    && request.resource.data.ev   is string && request.resource.data.ev.size()   <= 24
+                    && request.resource.data.page is string && request.resource.data.page.size() <= 40
+                    && evStr('v', 24) && evStr('x', 24) && evStr('build', 16)
+                    && (!('n' in request.resource.data)
+                          || (request.resource.data.n is int
+                              && request.resource.data.n >= 0 && request.resource.data.n <= 10000000))
+                    && (!('mode' in request.resource.data) || request.resource.data.mode in ['auto','sound','script'])
+                    && (!('online' in request.resource.data) || request.resource.data.online is bool)
+                    && (!('os' in request.resource.data) || request.resource.data.os in ['ios','android','other'])
+                    && request.resource.data.at == request.time
+                    && request.resource.data.expireAt is timestamp
+                    && request.resource.data.expireAt <= request.time + duration.value(92, 'd');
+      allow read: if isSteward();
+      allow update, delete: if false;
+    }
+
+    // Totals the watch function (watch/main.py) keeps: afd_stats/public — the
+    // counter on Help (words · voices · speakers), public on purpose; every
+    // other doc (day_YYYY-MM-DD rollups, the watch state) is for stewards.
+    // Written only by the server.
+    match /afd_stats/{id} {
+      allow read: if id == 'public' || isSteward();
+      allow write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
