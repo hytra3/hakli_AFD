@@ -9,7 +9,7 @@ import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup,
 import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 // voices already heard, kept on the phone for playing without signal (10-19)
-import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1019d";
+import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1019e";
 
 let CFG = { db:null, store:null, recorderUrl:"index.html",
             mode:()=>"auto", user:()=>null, banner:()=>{} };
