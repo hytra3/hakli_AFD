@@ -8,6 +8,8 @@ import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+// voices already heard, kept on the phone for playing without signal (10-19)
+import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1019c";
 
 let CFG = { db:null, store:null, recorderUrl:"index.html",
             mode:()=>"auto", user:()=>null, banner:()=>{} };
@@ -148,10 +150,14 @@ function busyBtn(btn){
 }
 // what: which kind of voice, for the usage counts ("word", "context", "definition",
 // or "card" for the card's own ▶). Counted once it actually sounds; never which word.
+// online voice links → which recording they are, so a voice that plays can be
+// kept on the phone (afd-voices.js) to play again without signal
+const _urlRec = new Map();   // url -> { id, entry }
 function playInto(btn, url, done, what){
   try{ audioEl.pause(); }catch(_){}
   done = done || busyBtn(btn);
   audioEl = new Audio(url);
+  audioEl.addEventListener("playing", ()=>{ const m = _urlRec.get(url); if(m) remember(m.id, m.entry, url); }, { once:true });
   ["playing","error","abort"].forEach(ev=> audioEl.addEventListener(ev, done, { once:true }));
   audioEl.addEventListener("playing", ()=>{ try{ AFDCore.track("play", what || "card"); }catch(_){} }, { once:true });
   audioEl.play().catch(done);
@@ -330,8 +336,15 @@ async function listPlayable(entryId, opts){
   const rows = await Promise.all(docs.map(async d=>{
     const v=d.data(); if(!v.storagePath) return null;
     if(v.consent==="deleted") return null;   // erased: awaiting server purge, shown to no one — not even its owner
-    let url; try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); }
-    catch(e){ if(isNetErr(e)) _offlineMiss.add(entryId); return null; }
+    let url, saved=false;
+    try{ url=await getDownloadURL(ref(CFG.store,v.storagePath)); _urlRec.set(url, { id:d.id, entry:entryId }); }
+    catch(e){
+      if(!isNetErr(e)) return null;
+      // no signal: a voice heard before is still on the phone (afd-voices.js)
+      url = await savedUrl(d.id);
+      if(!url){ _offlineMiss.add(entryId); return null; }
+      saved = true;
+    }
     return { url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
              type: v.type || v.phase || "word",
              // What the viewer can act on is whether others can HEAR it. A take
@@ -349,6 +362,10 @@ async function listPlayable(entryId, opts){
   }));
   const out = rows.filter(Boolean);           // public first (newest first), then the viewer's own
   out.next = next;
+  // With signal: a voice kept on the phone that's no longer in this word's
+  // public list (withdrawn, erased) — and isn't the viewer's own — goes.
+  if(!after && !_offlineMiss.has(entryId) && docs.length === out.length)
+    forgetGone(entryId, out.map(r => r.recordingId), !next);
   // Overlay contributor identity: a "known" steward's own (non-proxied) voices
   // get their photo, or a name monogram if they set no picture. Cache dedupes
   // repeated owners, so this is at most one read per distinct contributor.
@@ -1350,7 +1367,7 @@ async function entryCard(res, lead){
     if(voicesOffline(res.entryId)){
       const off=document.createElement("div"); off.className="novoice offline"; off.setAttribute("role","status");
       off.innerHTML=`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 4.2-2.6M9.5 5.2A15 15 0 0 1 22 8.8M5 12.5a10 10 0 0 1 3-1.9M13 10.3a10 10 0 0 1 6 2.2M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01"/><path d="m2 2 20 20"/></svg>`+
-        `<span>${AFDCore.tHTML("card.offline", CFG.mode())}</span>`;
+        `<span>${AFDCore.tHTML(recs.length ? "card.offline.some" : "card.offline", CFG.mode())}</span>`;
       detail.appendChild(off);
     }
     let wordSlot = slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl);

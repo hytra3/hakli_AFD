@@ -186,6 +186,7 @@
   "A2.52": "screen:card.keep",
   "A2.53": "screen:card.offline",
   "A2.54": "screen:card.more",
+  "A2.55": "screen:card.offline.some",
   "A3.1": "screen:add.title",
   "A3.2": "screen:add.step.say",
   "A3.3": "screen:add.step.show",
@@ -726,6 +727,12 @@
   "A11.183": "screen:help.count.speakers.two",
   "A11.184": "screen:help.count.speakers.few",
   "A11.185": "screen:stw.st.r.median",
-  "A11.186": "screen:stw.st.r.asleep"
+  "A11.186": "screen:stw.st.r.asleep",
+  "A11.187": "screen:help.saved.title",
+  "A11.188": "screen:help.saved.lead",
+  "A11.189": "screen:help.saved.n",
+  "A11.190": "screen:help.saved.none",
+  "A11.191": "screen:help.saved.clear",
+  "A11.192": "screen:help.saved.cleared"
  }
 }
