@@ -602,6 +602,25 @@ can't see what matters here (did a search find the word?). Instead the error log
   open list kept open, no-index fallback, few voices → no row). The test Firestore stub
   now does `orderBy` / `startAfter`, and `__FS_NOINDEX` plays the missing index.
 
+## Voices kept on the phone · the list in batches (2026-10-19)
+
+- **✅ Voices already heard play again without signal** (`afd-voices.js`). A voice that
+  plays is saved in Cache Storage (`afd-voices-v1`, keyed `/__voice/<recordingId>`; a
+  small index in localStorage). Offline, when a voice's link can't be fetched, the card
+  plays the saved copy; the note says *only the voices you've heard before can play*
+  (A2.55). **Limits:** 300 voices / 30 MB, nothing unplayed for 60 days; **phone low on
+  space** (the browser's estimate: < 300 MB left for the site, or > 90 % used) → only the
+  last 40 kept. **Help → "Voices saved on this phone"** shows the count and size and
+  has *Remove them* (A11.187–192). **Consent:** saved only while playable; opening a
+  word with signal drops any saved voice no longer in its public list (unless it's the
+  viewer's own). `sw.js` leaves `afd-voices-v1` alone; `sync-stamp.sh` now also stamps
+  module imports in `afd-*.js`.
+- **✅ The word list in batches.** Past 150 words, cards go on the page 60 at a time as
+  the list scrolls (IntersectionObserver, 1200 px ahead). Cards are still all made up
+  front, so the views, the coverage meter and typed search see every word; typing puts
+  the rest on the page first.
+- **(Already done 10-19, #72):** newest voices first, "More voices" past 12.
+
 ## Matcher resilience (2026-10-10)
 
 What prompted it: a search on the phone sat on "Finding…" and then showed
@@ -1391,3 +1410,11 @@ below remain forward design for if/when a speaker elects wider visibility.
 
 - **Scott's `tawq.in` `server.js`** — the expired-token string-mismatch auth bypass
   (`"Expired Token"` vs `"Expired"`). Fix written; still needs sending to Scott.
+
+## Search vectors kept apart from the voices (2026-10-19)
+
+- The embed trigger writes `afd_vectors/{recordingId}` (server-only; rules deny every phone) and leaves the recording with small fields: `repSpans`, `nReps`, `repDistance`, model/layer.
+- The matcher loads `afd_vectors` and joins by recording id; whether a take is searchable still comes from the recording doc (consent, playback, hidden). Takes not yet moved still work from the old place.
+- Purge deletes the vectors with the take. Export reads `repSpans`.
+- One-time move: `scripts/move-vectors.mjs` (look only / `--apply`), after the matcher deploy. Steps in DEPLOY.md.
+- Why: a word with 10 voices was ~100 KB of numbers no phone uses — the biggest cost for people on prepaid data.

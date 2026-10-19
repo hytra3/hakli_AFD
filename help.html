@@ -83,17 +83,25 @@
   .count b{font-family:var(--en); font-size:28px; line-height:1.15; color:var(--ink); font-variant-numeric:tabular-nums}
   .count .l{font-size:16px; color:var(--mist)}
   body.en .count .l{font-family:var(--en); font-style:italic}
+  .saved p{margin:0 2px 10px; font-size:16px; color:var(--mist)}
+  .saved-row{display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:18px; background:var(--cloud);
+    border:1.5px solid var(--line); box-shadow:0 6px 16px rgba(31,58,52,.07)}
+  .saved-row .ic{font-size:24px}
+  .saved-row b{font-size:17px; color:var(--ink)}
+  .saved-row button{margin-inline-start:auto; font:inherit; font-size:15px; color:var(--mountain); background:transparent;
+    border:1.5px solid var(--mountain); border-radius:999px; padding:8px 14px; cursor:pointer; min-height:44px}
+  .saved .saved-done{margin-top:10px; color:var(--mountain)}
   .enter-wrap{text-align:center; margin-top:28px}
   .enter{display:inline-flex; font-size:19px; color:#fff; background:var(--mountain); border-radius:999px; padding:13px 32px;
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
   body.en .enter{font-family:var(--en); font-style:italic}
 </style>
-<link rel="icon" href="favicon.svg?v=b1019c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1019c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1019c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1019c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1019c">
-<link rel="manifest" href="manifest.webmanifest?v=b1019c">
+<link rel="icon" href="favicon.svg?v=b1019d" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1019d" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1019d">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1019d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1019d">
+<link rel="manifest" href="manifest.webmanifest?v=b1019d">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -129,11 +137,21 @@
     </div>
   </section>
 
+  <!-- voices kept on this phone for playing without signal (afd-voices.js, 10-19);
+       hidden until there's at least one -->
+  <section class="saved" id="saved" hidden>
+    <h2 id="savedH"></h2>
+    <p id="savedLead"></p>
+    <div class="saved-row"><span class="ic" aria-hidden="true">📱</span><b id="savedN"></b>
+      <button type="button" id="savedClear"></button></div>
+    <p class="saved-done" id="savedDone" hidden></p>
+  </section>
+
   <nav class="enter-wrap"><a class="enter" id="enter" href="index.html"></a></nav>
 </main>
 
-<script src="afd-core.js?v=b1019c"></script>
-<script src="afd-instance.js?v=b1019c"></script>
+<script src="afd-core.js?v=b1019d"></script>
+<script src="afd-instance.js?v=b1019d"></script>
 <script>
 const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
 let mode = /[?&]lang=en\b/.test(location.search) ? "en" : "ar";
@@ -176,6 +194,7 @@ function render(){
   }
   document.getElementById("countH").textContent = W("help.count.title");
   paintCount();
+  paintSaved();
   document.getElementById("enter").textContent = W("welcome.enter") + (mode==="en" ? " →" : " ←");
 }
 // "The dictionary so far" (10-19): Arabic-Indic digits in Arabic (١٧ · ٣٢), and
@@ -196,6 +215,30 @@ function paintCount(){
   });
 }
 window.afdShowCount = (d) => { counts = d; paintCount(); document.getElementById("count").hidden = false; };
+// Voices saved on this phone (afd-voices.js, handed over by the module below as
+// window.AFDSaved): how many, how much room, and a way to remove them.
+function paintSaved(){
+  const S = window.AFDSaved, box = document.getElementById("saved");
+  if(!S) return;
+  const st = S.stats(), done = !document.getElementById("savedDone").hidden;
+  box.hidden = !st.n && !done;
+  document.getElementById("savedH").textContent = W("help.saved.title");
+  document.getElementById("savedLead").textContent = W("help.saved.lead");
+  const fmt = (n, d) => { try{ return Number(n).toLocaleString(mode === "en" ? "en-US" : "ar-OM-u-nu-arab", { maximumFractionDigits: d||0 }); }catch(_){ return String(n); } };
+  document.getElementById("savedN").textContent = st.n
+    ? W("help.saved.n").replace("{n}", fmt(st.n)).replace("{mb}", fmt(Math.max(0.1, st.bytes / 1048576), 1))
+    : W("help.saved.none");
+  const b = document.getElementById("savedClear");
+  b.textContent = W("help.saved.clear"); b.hidden = !st.n;
+  document.getElementById("savedDone").textContent = W("help.saved.cleared");
+}
+document.getElementById("savedClear").onclick = async () => {
+  if(!window.AFDSaved) return;
+  await window.AFDSaved.clearAll();
+  document.getElementById("savedDone").hidden = false;
+  paintSaved();
+  try{ AFDCore.track("help", "saved.clear"); }catch(_){}
+};
 document.querySelectorAll("#toggle button").forEach(b => b.onclick = () => { mode = b.dataset.m; render(); });
 render();
 // usage counts: which help people open (afd_events, via the module below)
@@ -223,7 +266,11 @@ document.getElementById("wa").addEventListener("click", () => track("help", "ask
 // three numbers, readable by anyone) and the usage counts above. If either
 // fails the page is unchanged: the counter simply stays hidden.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { startAppCheck } from "./afd-appcheck.js?v=b1019c";
+import { startAppCheck } from "./afd-appcheck.js?v=b1019d";
+import { stats as savedStats, clearAll as savedClear, trim as savedTrim } from "./afd-voices.js?v=b1019d";
+// voices kept on this phone: the count and the Remove button above
+window.AFDSaved = { stats: savedStats, clearAll: savedClear };
+savedTrim().catch(()=>{}).then(() => { try{ paintSaved(); }catch(_){} });
 import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 try{

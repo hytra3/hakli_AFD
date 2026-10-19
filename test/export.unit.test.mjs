@@ -98,6 +98,13 @@ describe("what the community backup holds", () => {
     assert.equal(r.embedding, undefined); assert.equal(r.reps, undefined);
     assert.deepEqual(r.embeddingModel, { model: "mms-300m", layer: 12, pooling: "voiced-per-rep", nReps: 1, repOffsets: [[0.1, 0.5]] });
   });
+  it("a take embedded since 10-19 (vectors apart, repSpans on the recording) exports the same", async () => {
+    const { recordingRecord } = await import("../scripts/lib/export.mjs");
+    const r = recordingRecord("r_new", "ent_sun", { embedModel: "mms-300m", embedLayer: 12, embedPooling: "voiced-per-rep",
+      nReps: 2, repSpans: [{ start: 0.1, end: 0.5 }, { start: 0.9, end: 1.3 }] });
+    assert.equal(r.repSpans, undefined);
+    assert.deepEqual(r.embeddingModel, { model: "mms-300m", layer: 12, pooling: "voiced-per-rep", nReps: 2, repOffsets: [[0.1, 0.5], [0.9, 1.3]] });
+  });
   it("speakers carry their private details and the spoken grant", () => {
     const s = lines("speakers.jsonl")[0];
     assert.deepEqual(s.private.origin, { town: "Taqah", tribe: "T" });

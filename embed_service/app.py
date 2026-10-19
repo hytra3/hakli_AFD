@@ -386,19 +386,28 @@ class Corpus:
         from google.cloud import firestore
         db = firestore.Client()
         vecs, entry_ids, glosses = [], [], []
-        # collection-group over every entry's recordings; only public + embedded
+        # The vectors live apart from the recordings (10-19): afd_vectors/
+        # {recordingId}, closed to clients. Read them all once, then walk the
+        # recordings for what decides a match — public right now, which word —
+        # since consent and the word a take hangs on live on the recording.
+        # A take embedded before the move still carries its vectors on the
+        # recording doc; those are used until scripts/move-vectors.mjs runs.
+        apart = {}
+        for snap in db.collection("afd_vectors").stream():
+            apart[snap.id] = snap.to_dict() or {}
         for snap in db.collection_group("recordings").stream():
             d = snap.to_dict() or {}
             if not searchable(d):
                 continue
-            # one row per rep vector (nearest-rep-per-entry). Docs carry
+            v = apart.get(snap.id) or d
+            # one row per rep vector (nearest-rep-per-entry):
             #   reps: [ {start, end, vector:[...]}, ... ]
-            # (Firestore forbids nested arrays, hence maps). Legacy docs that
-            # only have the whole-clip `embedding` still count as one row.
-            reps = d.get("reps") or []
+            # (Firestore forbids nested arrays, hence maps). Old takes with
+            # only the whole-clip `embedding` still count as one row.
+            reps = v.get("reps") or []
             rows = [rp.get("vector") for rp in reps if rp.get("vector")]
-            if not rows and d.get("embedding"):
-                rows = [d["embedding"]]
+            if not rows and v.get("embedding"):
+                rows = [v["embedding"]]
             eid = d.get("entryId", snap.reference.parent.parent.id)
             for emb in rows:
                 vecs.append(np.asarray(emb, dtype=np.float32))
@@ -514,6 +523,14 @@ def appcheck_tally():
     # started (each instance counts its own; the "appcheck …" log lines have it all).
     with _appcheck_lock:
         return {"enforce": APPCHECK_ENFORCE, **appcheck_counts}
+
+
+@app.get("/about")
+def about():
+    # /healthz never reaches the app on Cloud Run (reserved path), so this is the
+    # one scripts can ask. vectors: this matcher reads afd_vectors (10-19) —
+    # move-vectors.mjs refuses to run against a matcher without it.
+    return {"model": MODEL_ID, "layer": EMBED_LAYER, "vectors": "apart"}
 
 
 @app.post("/embed")

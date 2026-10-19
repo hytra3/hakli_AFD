@@ -18,17 +18,17 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli-v2.png">
-<link rel="icon" href="favicon.svg?v=b1019c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1019c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1019c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1019c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1019c">
-<link rel="manifest" href="manifest.webmanifest?v=b1019c">
+<link rel="icon" href="favicon.svg?v=b1019d" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1019d" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1019d">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1019d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1019d">
+<link rel="manifest" href="manifest.webmanifest?v=b1019d">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b1019c"></script>
-<script src="afd-words.js?v=b1019c"></script>
-<script src="afd-instance.js?v=b1019c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b1019c">
+<script src="afd-core.js?v=b1019d"></script>
+<script src="afd-words.js?v=b1019d"></script>
+<script src="afd-instance.js?v=b1019d"></script>
+<link rel="stylesheet" href="afd-card.css?v=b1019d">
 <style>/* ---------------------------------------------------------------- tokens
      Dhofar khareef: monsoon fog, juniper mountain, frankincense resin.
      Deliberately NOT cream + terracotta. */
@@ -295,6 +295,7 @@ body.compact .typecount{display:none}
     font:600 14px/1.3 var(--sans);padding:10px 12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 
   .loadingdots{display:flex;gap:9px;justify-content:center;padding:48px 0}
+  .list-more .loadingdots{padding:20px 0}   /* the foot of a list still filling in (10-19) */
   .loadingdots span{width:11px;height:11px;border-radius:50%;background:var(--resin);animation:ld 1s ease-in-out infinite}
   .loadingdots span:nth-child(2){animation-delay:.15s}
   .loadingdots span:nth-child(3){animation-delay:.3s}
@@ -395,8 +396,8 @@ import { getStorage, ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { initCard, entryCard, primeCounts, primeAllSpellings, spellingsFor, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1019c";
-import { signInSheet, finishEmailLink } from "./afd-signin.js?v=b1019c";
+import { initCard, entryCard, primeCounts, primeAllSpellings, spellingsFor, slotSection, playVoiceInto, setConsent, voiceAvatarBtn, buildVoiceRow, buildVoices, entryCounts, listPlayable, envelopeFor, downsampleEnv, boxBars, paintBox, applyBox, faunaAvatar, domainColor, playInto, hashInt, escapeHtml } from "./afd-card.js?v=b1019d";
+import { signInSheet, finishEmailLink } from "./afd-signin.js?v=b1019d";
 
 
 /* ================================================================= CONFIG */
@@ -447,7 +448,7 @@ const EMBED_URL = window.AFDInstance.embedUrl;   // afd-instance.js
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
    0.14–0.25 in testing, so cross-speaker "same word" will be a bit higher. */
-const BUILD = "b1019c";      // bump every publish; shown in the wordmark + console
+const BUILD = "b1019d";      // bump every publish; shown in the wordmark + console
 
 /* Confidence gates. Recalibrated from real measured distances (the old
    0.35/0.60 were placeholders; live queries land ~0.08–0.20). These absolutes
@@ -796,6 +797,7 @@ function searchOutcome(results){
 }
 
 async function render(results, quiet){   // quiet: a return to old results (Back / Forward) — don't autoplay again
+  stopBatches();                                   // a list still filling in, replaced
   const my = ++renderToken; deepEntry = null;
   lastResults = results; setMastView("find");
   resultsEl.innerHTML=""; setBrowsing(false); hint.classList.add("small");
@@ -842,6 +844,7 @@ async function render(results, quiet){   // quiet: a return to old results (Back
    Same card render as a confident search hit, but chosen rather than spoken. No
    autoplay: the user navigated deliberately, so let them pick a voice. */
 async function openEntry(entryId){
+  stopBatches();                                   // a list still filling in, replaced
   const my = ++renderToken; deepEntry = entryId;
   lastResults = [{entryId, distance:0}]; setMastView("dictionary");   // a word opened by link is the dictionary, not a search
   resultsEl.innerHTML=""; setBrowsing(false); hint.classList.add("small");
@@ -941,6 +944,7 @@ async function applyTyped(){
     typeCount.textContent = "";
     return;
   }
+  if(listRest.length) moreCards(true);             // every word on the page, so every match can show
   const keys = await Promise.all(browseItems.map(itemKeys));
   if(mine !== typed || !typing) return;            // a newer keystroke (or a close) won
   let n = 0;
@@ -985,7 +989,27 @@ function setCoverage(withVoice, total){
   if(fill) fill.style.width = pct+"%";
 }
 
+/* The list in batches (10-19). Past LIST_BATCH_AFTER words, cards go onto the
+   page LIST_BATCH at a time as the list scrolls near its end (a marker at the
+   foot, watched by an IntersectionObserver), instead of all at once — a phone
+   with hundreds of words otherwise lays out and paints every card before the
+   list can scroll. The cards themselves are all made up front (cheap: just their
+   heads), so everything that works on the list still sees every word; typed
+   search puts the rest on the page first, so every match can show. */
+const LIST_BATCH = 60, LIST_BATCH_AFTER = 150;
+let listRest = [], listIO = null;
+function stopBatches(){ if(listIO){ try{ listIO.disconnect(); }catch(_){} listIO = null; } listRest = []; }
+function moreCards(all){
+  const mark = resultsEl.querySelector(".list-more");
+  const take = all ? listRest.splice(0) : listRest.splice(0, LIST_BATCH);
+  const frag = document.createDocumentFragment();
+  take.forEach(it => frag.appendChild(it.card.el));
+  if(mark) resultsEl.insertBefore(frag, mark); else resultsEl.appendChild(frag);
+  if(!listRest.length){ if(mark) mark.remove(); stopBatches(); }
+}
+
 async function renderBrowse(){
+  stopBatches();
   const my = ++renderToken; deepEntry = null; lastResults = null; setMastView("dictionary");
   document.body.classList.remove("rendering");   // a search's card build this list superseded
   paintAllBtn(false); reskinPending = false;
@@ -1059,7 +1083,13 @@ async function renderBrowse(){
 
   const frag = document.createDocumentFragment();
   if(currentView==="needs" && displayItems.length) frag.appendChild(askWordsButton(displayItems));
-  for(const it of displayItems) frag.appendChild(it.card.el);
+  const batched = displayItems.length > LIST_BATCH_AFTER;
+  for(const it of (batched ? displayItems.slice(0, LIST_BATCH) : displayItems)) frag.appendChild(it.card.el);
+  if(batched){
+    const mark = document.createElement("div"); mark.className = "list-more"; mark.setAttribute("aria-hidden", "true");
+    mark.innerHTML = '<span class="loadingdots"><span></span><span></span><span></span></span>';
+    frag.appendChild(mark);
+  }
   if(!displayItems.length){
     const e=document.createElement("div"); e.className="view-empty";
     e.textContent = currentView==="needs"
@@ -1069,6 +1099,12 @@ async function renderBrowse(){
   }
   if(my!==renderToken) return;
   resultsEl.replaceChildren(frag);
+  if(batched){
+    listRest = displayItems.slice(LIST_BATCH);
+    // the next batch goes on well before the marker is in view (rootMargin)
+    listIO = new IntersectionObserver(es => { if(es.some(e => e.isIntersecting)) moreCards(false); }, { rootMargin: "1200px 0px" });
+    listIO.observe(resultsEl.querySelector(".list-more"));
+  }
   setBrowsing(true);
   browseItems = displayItems;
   if(typing){ if(displayMode==="sound") closeTyping(); else applyTyped(); }
