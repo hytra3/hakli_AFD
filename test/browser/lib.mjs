@@ -71,6 +71,8 @@ export function doc(a, ...p){ let pp = mk(a,p); if(pp.length % 2) pp.push("auto"
 export function collectionGroup(a, id){ return { __p:[], __group:String(id), type:"collection" }; }
 export function where(f,op,v){ return { k:"where", f, op, v }; }
 export function limit(n){ return { k:"limit", n }; }
+export function orderBy(f, dir){ return { k:"orderBy", f, dir: dir || "asc" }; }
+export function startAfter(snap){ return { k:"startAfter", id: snap && snap.id }; }
 export function query(c, ...cons){ return { __p:c.__p, __group:c.__group, cons }; }
 function snap(ref){ const d = FS[ref.path]; return { id:ref.id, ref, exists:()=>d!==undefined, data:()=>d && JSON.parse(JSON.stringify(d), revive) }; }
 function revive(k, v){ return (v && typeof v==="object" && "__ts" in v) ? { toMillis:()=>v.__ts, toDate:()=>new Date(v.__ts), seconds:Math.floor(v.__ts/1000) } : v; }
@@ -79,12 +81,22 @@ export async function getDocs(q){ const pre = q.__p.join("/") + "/"; LOG.push("l
   let docs = (q.__group
     ? Object.keys(FS).filter(k=>{ const s=k.split("/"); return s.length%2===0 && s[s.length-2]===q.__group; })
     : Object.keys(FS).filter(k=>k.startsWith(pre) && !k.slice(pre.length).includes("/"))).map(k=>snap(doc({}, ...k.split("/"))));
-  let lim = Infinity;
+  let lim = Infinity, after = null, ord = null;
   for(const c of (q.cons||[])){
     if(c.k==="limit") lim = c.n;
+    if(c.k==="startAfter") after = c.id;
+    if(c.k==="orderBy") ord = c;
     if(c.k==="where"){ docs = docs.filter(d=>{ const x=(d.data()||{})[c.f];
       return c.op==="==" ? x===c.v : c.op==="in" ? c.v.includes(x) : c.op==="!=" ? x!==c.v : true; }); }
   }
+  if(ord){
+    // a test can play "the composite index isn't built yet" (__FS_NOINDEX)
+    if(globalThis.__FS_NOINDEX){ const e=new Error("The query requires an index."); e.code="failed-precondition"; throw e; }
+    const val = (d)=>{ const x=(d.data()||{})[ord.f]; return (x && typeof x.toMillis==="function") ? x.toMillis() : x; };
+    docs = docs.filter(d=> val(d) !== undefined);          // Firestore leaves out docs without the field
+    docs.sort((a,b)=>{ const x=val(a), y=val(b); const r = x<y ? -1 : x>y ? 1 : 0; return ord.dir==="desc" ? -r : r; });
+  }
+  if(after != null){ const i = docs.findIndex(d=>d.id===after); docs = i<0 ? [] : docs.slice(i+1); }
   docs = docs.slice(0, lim);
   return { docs, empty:!docs.length, size:docs.length, forEach:(f)=>docs.forEach(f) }; }
 export async function setDoc(ref, data, o){ LOG.push("set "+ref.path); FS[ref.path] = (o&&o.merge) ? Object.assign({}, FS[ref.path], data) : data; }

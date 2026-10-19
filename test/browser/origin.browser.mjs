@@ -6,7 +6,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish } from "./lib.mjs";
 const srv = await serve(ROOT);
 const browser = await launch();
 const USER = { uid:"uTest1", isAnonymous:false, displayName:"Test", email:"t@example.com" };
-const rec = (sid) => ({ uid:"uOwner", speakerId:sid, type:"word", consent:"public", allowPlayback:true, storagePath:`afd/uOwner/${sid}.webm`, envelope:[.1,.6,.2] });
+const rec = (sid) => ({ uid:"uOwner", speakerId:sid, type:"word", consent:"public", allowPlayback:true, storagePath:`afd/uOwner/${sid}.webm`, envelope:[.1,.6,.2], uploadedAt:{ __ts:1 } });
 const FS = {
   "afd_entries/ent_sun/recordings/r1": rec("spk_town"),
   "afd_entries/ent_sun/recordings/r2": rec("spk_none"),

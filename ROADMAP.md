@@ -572,6 +572,28 @@ can't see what matters here (did a search find the word?). Instead the error log
   wins). Built-in words are only ever kept. `--undo` puts everything back. Look-only
   without `--apply`; safe to re-run after an interruption.
 
+## Popular words: newest voices first (2026-10-19)
+
+- **✅ A card shows its public voices a page at a time, newest first.** Before, it took
+  12 in no order (no `orderBy`), so on a word passed around a family group the newest
+  voices might never appear while the header count said more. Now: `allowPlayback ==
+  true`, `orderBy uploadedAt desc`, 12 + 1 to learn whether there's another page. When
+  there is, a **More voices** row (A2.54, with "+n" from the word's own counts) sits under
+  the slots, above Share; each tap brings the next 12 into their slots, and a slot whose
+  list was open stays open. The viewer's own voices (incl. withdrawn) still come with the
+  first page. Counted as `voices|more`, not `play`, so "Voices played" stays honest.
+- **Index:** `firestore.indexes.json` (recordings: `allowPlayback` ↑, `uploadedAt` ↓),
+  now in `firebase.json`. Deploy once: `firebase deploy --only firestore:indexes`
+  (it builds in a few minutes). Until it's built, Firestore refuses the ordered query and
+  the card falls back to the old unordered 12 with no "More voices" — nothing breaks.
+- Every take has `uploadedAt` (set since the first Firestore commit, 08-14, and carried
+  by `join-words`), so none should drop out of the ordered list. To confirm before
+  deploying the index: `node scripts/check-uploaded-at.mjs` (read-only; `--fix` fills
+  any missing one from `recordedAt`).
+- Test: `test/browser/more-voices.browser.mjs` (30 voices: first page, two more pages,
+  open list kept open, no-index fallback, few voices → no row). The test Firestore stub
+  now does `orderBy` / `startAfter`, and `__FS_NOINDEX` plays the missing index.
+
 ## Matcher resilience (2026-10-10)
 
 What prompted it: a search on the phone sat on "Finding…" and then showed
