@@ -66,12 +66,12 @@
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
   body.en .enter{font-family:var(--en); font-style:italic}
 </style>
-<link rel="icon" href="favicon.svg?v=b1019a" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1019a" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1019a">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1019a">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1019a">
-<link rel="manifest" href="manifest.webmanifest?v=b1019a">
+<link rel="icon" href="favicon.svg?v=b1019b" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1019b" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1019b">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1019b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1019b">
+<link rel="manifest" href="manifest.webmanifest?v=b1019b">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -90,8 +90,8 @@
 </main>
 <audio id="player" preload="none"></audio>
 
-<script src="afd-core.js?v=b1019a"></script>
-<script src="afd-instance.js?v=b1019a"></script>
+<script src="afd-core.js?v=b1019b"></script>
+<script src="afd-instance.js?v=b1019b"></script>
 <script type="module">
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
@@ -132,7 +132,7 @@ function show(id, tapped){
   const seg = SEGS.find(s => s.id === id) || SEGS[0];
   try{ player.pause(); }catch(_){}
   narrate = !!tapped && voiced(seg);
-  if(cur !== seg.id){ cur = seg.id; frame.src = "hakli-welcome-walkthrough.html?v=b1019a&embed=1&scene=" + seg.id; }
+  if(cur !== seg.id){ cur = seg.id; frame.src = "hakli-welcome-walkthrough.html?v=b1019b&embed=1&scene=" + seg.id; }
   else if(narrate){ post({ type:"afd:wt-cmd", cmd:"run" }); }
   else{ post({ type:"afd:wt-cmd", cmd:"loop" }); }
   history.replaceState(null, "", "#" + seg.id);
