@@ -94,17 +94,38 @@
   @keyframes sonar{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.85)}}
   .fhint{font-family:var(--amiri); font-size:26px; color:var(--mountain); text-align:center; min-height:38px; direction:rtl}
   .find.results .fhint{font-size:16px; color:var(--mist)}
-  .rescard{width:100%; max-width:270px; background:var(--cloud); border:1px solid var(--mist-2); border-radius:22px;
-    box-shadow:var(--shadow); padding:16px; display:flex; align-items:center; gap:14px; position:relative;
+  /* the result is the word's own card, as the dictionary draws it (10-19): picture,
+     name, the big amber play; the word's voices as faces, "+ Add a recording" under
+     them; then the sentence and meaning slots. */
+  .rescard{width:100%; max-width:286px; background:var(--cloud); border:1.5px solid var(--amber-soft); border-radius:22px;
+    box-shadow:var(--shadow); padding:13px 14px 10px; position:relative; direction:rtl;
     opacity:0; transform:translateY(14px); transition:opacity .45s, transform .45s}
   .find.results .rescard{opacity:1; transform:none}
-  .rc-picto{width:52px;height:52px;border-radius:15px;background:#F3F7F5;display:grid;place-items:center;font-size:28px;flex:0 0 auto}
-  .rc-wave{display:block;width:110px;height:20px}
-  .rc-sub{font-size:12px;color:var(--mist);margin-top:5px;direction:rtl}
-  .rc-play{width:42px;height:42px;border-radius:50%;flex:0 0 auto;border:none;background:var(--mountain);color:#fff;
-    display:grid;place-items:center;font-size:14px;padding-left:3px}
+  .rc-head{display:flex; align-items:center; gap:11px}
+  .rc-picto{width:50px;height:50px;border-radius:14px;background:#F3EDE4;display:grid;place-items:center;font-size:28px;flex:0 0 auto}
+  .rc-name{flex:1; font:600 21px/1.1 var(--amiri); color:var(--ink)}
+  .rc-name small{display:block; font:400 12px/1.4 var(--serif); color:var(--mist)}
+  .rc-play{width:50px;height:50px;border-radius:50%;flex:0 0 auto;border:none;background:var(--amber);color:#fff;
+    display:grid;place-items:center;font-size:16px;padding-left:3px;transition:transform .16s,background .2s}
+  .rc-slot{border-top:1px solid var(--hairline); margin-top:10px; padding-top:8px}
+  .rc-lab{display:flex; justify-content:space-between; font:600 11px/1 var(--sans); color:var(--ink-soft)}
+  .rc-lab .none{font-weight:400; color:var(--mist)}
+  .faces{display:inline-flex; align-items:center; gap:6px; margin:7px 0 6px; padding:3px 9px 3px 4px; border:1px solid var(--hairline);
+    border-radius:999px; direction:ltr}
+  .faces i{width:24px;height:24px;border-radius:50%;margin-left:-7px;border:2px solid var(--cloud);display:grid;place-items:center;
+    font-style:normal;font-size:12px;transition:box-shadow .2s}
+  .faces i:first-child{margin-left:0}
+  .faces b{font:600 13px/1 var(--sans); color:var(--ink)}
+  .rescard.playing .faces i.now{box-shadow:0 0 0 2px var(--amber)}
+  .saypill{display:flex;width:max-content;align-items:center;gap:5px;padding:5px 11px;border-radius:10px;
+    border:1.5px dashed var(--mist-2);color:var(--ink-soft);background:var(--cloud);font:500 12px/1 var(--sans);transition:background .2s,transform .16s,border-color .2s}
+  .saypill svg{width:13px;height:13px}
+  .saypill.press{background:#FBF1E4;border-color:var(--amber);color:var(--amber);transform:scale(.95)}
+  .rc-mini{display:flex; justify-content:space-between; font:600 11px/1 var(--sans); color:var(--ink-soft);
+    border-top:1px solid var(--hairline); margin-top:8px; padding-top:8px}
+  .rc-mini .none{font-weight:400; color:var(--mist)}
   .find.results .rc-play{animation:playpulse 1.4s ease-in-out infinite}
-  @keyframes playpulse{0%,100%{box-shadow:0 0 0 0 rgba(31,58,52,.28)}50%{box-shadow:0 0 0 9px rgba(31,58,52,0)}}
+  @keyframes playpulse{0%,100%{box-shadow:0 0 0 0 rgba(198,135,63,.35)}50%{box-shadow:0 0 0 9px rgba(198,135,63,0)}}
 
   /* ---------- RECORDER surface ---------- */
   .recs{padding:34px 18px 20px}
@@ -128,7 +149,7 @@
   .slot-voices{display:flex;gap:5px;align-items:center}
   .slot-voices:empty{display:none}
   .vchip{width:24px;height:24px;border-radius:50%;background:var(--mountain);color:#fff;display:grid;place-items:center;
-    font-size:9px;padding-left:2px;animation:chipin .45s ease}
+    font-size:12px;border:2px solid var(--cloud);animation:chipin .45s ease}
   .vchip.mine{background:var(--amber)}
   @keyframes chipin{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
   .slot-add{display:inline-flex;align-items:center;gap:5px;color:var(--mist);border:1.5px dashed var(--mist-2);
@@ -192,20 +213,7 @@
     border:1.5px solid var(--mist-2);background:var(--cloud);box-shadow:var(--shadow-sm);color:var(--mountain);
     display:grid;place-items:center;transition:opacity .35s,transform .35s}
   .find.results .ftype{opacity:0;transform:scale(.7)}
-  /* the word's "+ Add a recording" on the result card — as the app draws it since
-     10-14 (the old "Say it yourself" button is gone; 10-16) */
-  .saypill{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;direction:rtl;
-    border:1.5px dashed var(--amber);color:var(--amber);background:var(--cloud);font:600 13px/1 var(--sans);
-    opacity:0;transform:translateY(10px);transition:opacity .45s .15s,transform .45s .15s,background .2s}
-  .saypill svg{width:15px;height:15px}
-  .find.results .saypill{opacity:1;transform:none}
-  .saypill.press{background:#FBF1E4;transform:scale(.95)}
-  /* a voice playing on the card */
-  .rescard.playing .rc-play{animation:none;background:var(--amber)}
-  .rescard.playing .rc-wave rect{animation:wavebar .5s ease-in-out infinite alternate;transform-origin:center;transform-box:fill-box}
-  .rescard.playing .rc-wave rect:nth-child(3n){animation-delay:.17s}
-  .rescard.playing .rc-wave rect:nth-child(3n+1){animation-delay:.33s}
-  @keyframes wavebar{from{transform:scaleY(.35)}to{transform:scaleY(1.15)}}
+  .rescard.playing .rc-play{animation:none;background:var(--mountain)}
   .rc-play.press{transform:scale(.88)}
   .cap{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;
     font:500 10px/1 var(--sans);color:var(--mist);direction:rtl}
@@ -310,13 +318,19 @@
           </div>
           <p class="fhint" id="fhint"></p>
           <div class="rescard">
-            <div class="rc-picto">☀️</div>
-            <div style="flex:1;min-width:0">
-              <svg class="rc-wave" viewBox="0 0 110 20"><g fill="#C6873F"><rect x="2" y="7" width="4" height="6" rx="2"/><rect x="10" y="3" width="4" height="14" rx="2"/><rect x="18" y="8" width="4" height="5" rx="2"/><rect x="26" y="1" width="4" height="18" rx="2"/><rect x="34" y="6" width="4" height="9" rx="2"/><rect x="42" y="4" width="4" height="12" rx="2"/><rect x="50" y="9" width="4" height="4" rx="2"/><rect x="58" y="2" width="4" height="16" rx="2"/><rect x="66" y="7" width="4" height="7" rx="2"/><rect x="74" y="5" width="4" height="11" rx="2"/><rect x="82" y="8" width="4" height="5" rx="2"/><rect x="90" y="3" width="4" height="14" rx="2"/></g></svg>
+            <div class="rc-head">
+              <div class="rc-picto">☀️</div>
+              <div class="rc-name">شمس<small>sun</small></div>
+              <button class="rc-play" id="rcplay">▶</button>
             </div>
-            <button class="rc-play" id="rcplay">▶</button>
+            <div class="rc-slot">
+              <div class="rc-lab"><span data-k="slot.word"></span></div>
+              <span class="faces"><i class="now" style="background:#E5D3A8">🦅</i><i style="background:#E7C3D6">🐐</i><i style="background:#C9CCEB">🐪</i><b>٣</b></span>
+              <span class="saypill" id="saypill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.word"></span></span>
+            </div>
+            <div class="rc-mini"><span data-k="slot.sentence"></span><span class="none" data-k="slot.none"></span></div>
+            <div class="rc-mini"><span data-k="slot.meaning"></span><span class="none" data-k="slot.none"></span></div>
           </div>
-          <span class="saypill" id="saypill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.word"></span></span>
         </div>
       </section>
 
@@ -335,7 +349,7 @@
           </div>
           <div class="slot slot-word on" id="slotWord">
             <div class="slot-head"><span class="slot-label" data-k="slot.word"></span>
-              <span class="slot-voices" id="vWord"><span class="vchip">▶</span><span class="vchip">▶</span><span class="vchip">▶</span></span></div>
+              <span class="slot-voices" id="vWord"><span class="vchip" style="background:#E5D3A8">🦅</span><span class="vchip" style="background:#E7C3D6">🐐</span><span class="vchip" style="background:#C9CCEB">🐪</span></span></div>
           </div>
           <div class="slot slot-context" id="slotSent">
             <div class="slot-head"><span class="slot-label" data-k="slot.sentence"></span><span class="slot-empty" data-k="slot.none"></span>
@@ -458,7 +472,7 @@
   const INSTR={word:AB('record.instr.word'),context:AB('record.instr.context'),definition:AB('record.instr.definition')};
   let curSlot='word';
   function setSlot(type){curSlot=type;for(const k in SLOTS)SLOTS[k].classList.toggle('on',k===type);instruction.innerHTML=INSTR[type];}
-  function addVoice(){const c=document.createElement('span');c.className='vchip mine';c.textContent='▶';
+  function addVoice(){const c=document.createElement('span');c.className='vchip mine';c.textContent='🙂';
     VOICES[curSlot].appendChild(c);SLOTS[curSlot].classList.add('filled');}
   function resetCard(){VOICES.word.querySelectorAll('.mine').forEach(n=>n.remove());
     for(const k of ['context','definition']){VOICES[k].innerHTML='';SLOTS[k].classList.remove('filled');}
@@ -485,7 +499,7 @@
   function stopVoice(){rescard.classList.remove('playing');rcplay.textContent='▶';}
   function resetAll(){park();stopVoice();rcplay.classList.remove('press');saypill.classList.remove('press');
     fmic.classList.remove('press');recIdle();resetCard();resetAdd();setRecs('idle');silLabel.textContent=A('status.ready');}
-  const toResults=()=>{showFind();setFind('results');fhint.textContent=A('find.idle');};
+  const toResults=()=>{showFind();setFind('results');fhint.textContent=A('result.here');};
   const SCENES={
     // 1 · find: hold the green circle, say the word, let go
     find:(o)=>[

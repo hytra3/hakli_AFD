@@ -1302,6 +1302,13 @@ is layer 1 only — *find it, hear it, add your voice* — in three scenes, ~35 
   frame or a background tab used to skip a step and leave the screen half-set).
 - Still to build: segments for *record for someone else (spoken consent)* and *take
   your voice back*; a typed-search beat in `?scene=find`; the helper kit.
+- **Result card redrawn (10-19):** the walkthrough's result is now the word's own card,
+  as the dictionary draws it since the 10-14/10-16 card changes — picture, name, the big
+  amber play, the word's voices as faces with "+ Add a recording" under them, then the
+  sentence and meaning slots; the hint over it says «ها هو». The finger taps that play
+  (hear) and that "+ Add a recording" (add your voice). Not drawn, on purpose: the
+  first-time speaker step in the recorder (sign-in, how you appear, about the speaker)
+  — that is the "record for someone else" segment still to build.
 - **The how-to page (`howto.html`, 10-15):** the six segments as tiles; tap one to
   watch it (narrated once in Hakli when its `howto.*` clip is recorded — R1 and R11 —
   then looping). Each has its own link (`howto.html#hear`) for WhatsApp. Words are
