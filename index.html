@@ -389,6 +389,7 @@ body.compact .typecount{display:none}
   addEventListener("resize", onScroll, { passive:true });
 }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { startAppCheck, appCheckHeaders } from "./afd-appcheck.js?v=b1019c";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, serverTimestamp, updateDoc, collection, query, where, limit, getDocs, addDoc, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, getDownloadURL }
@@ -472,6 +473,7 @@ function setDisplayMode(m){ displayMode = m; AFDCore.setDisplayMode(m); }
 
 /* ================================================================= setup */
 const app   = initializeApp(firebaseConfig);
+startAppCheck(app);              // App Check (10-19): tokens on every request; nothing blocked yet
 /* Offline word list (10-17): keep what this phone has read on the phone, so the
    dictionary opens from the last visit when there's no signal (Khor Kharfot, the
    jebel) instead of a bare list of the seeded words. Online nothing changes:
@@ -698,7 +700,7 @@ async function searchOnce(blob, timeoutMs){
   const timer = setTimeout(()=>{ timedOut = true; ctl.abort(); }, timeoutMs);
   try{
     const fd = new FormData(); fd.append("file", blob, "query.webm");
-    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd, signal:ctl.signal});
+    const r = await fetch(`${EMBED_URL}/search?top_k=6`, {method:"POST", body:fd, signal:ctl.signal, headers: await appCheckHeaders()});
     if(!r.ok){
       const kind = r.status===400 ? "audio" : r.status===413 ? "toolong" : "server";
       throw new SearchError(kind, "http "+r.status);

@@ -8,13 +8,14 @@ The Google Cloud clients, google-auth, functions_framework, requests and torch
 are stubbed, so this needs only numpy + fastapi (+ httpx for its TestClient)
 and ffmpeg on the PATH:
 
-    pip install numpy fastapi python-multipart httpx
+    pip install numpy fastapi python-multipart httpx "pyjwt[crypto]"
     python3 -m unittest discover -s test -p "test_*.py"
 """
 import hashlib
 import importlib.util
 import os
 import sys
+import time
 import types
 import unittest
 from pathlib import Path
@@ -548,6 +549,63 @@ class EmbedServiceGuards(unittest.TestCase):
 
 
 # ------------------------------------------------------------------ revoke
+class AppCheckOnSearch(unittest.TestCase):
+    """The matcher checks the page's App Check token: counts it, and refuses only when enforcing."""
+    @classmethod
+    def setUpClass(cls):
+        import jwt
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        cls.jwt = jwt
+        cls.priv = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        cls.other = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    def setUp(self):
+        from fastapi.testclient import TestClient
+        self.client = TestClient(service.app)
+        pub = self.priv.public_key()
+        keys = mock.MagicMock()
+        keys.get_signing_key_from_jwt.return_value = types.SimpleNamespace(key=pub)
+        self.p = mock.patch.object(service, "_appcheck_keys", keys)
+        self.p.start(); self.addCleanup(self.p.stop)
+        for k in service.appcheck_counts: service.appcheck_counts[k] = 0
+
+    def tok(self, key=None, aud=None, exp=3600):
+        n = service.APPCHECK_PROJECT
+        return self.jwt.encode({"iss": f"https://firebaseappcheck.googleapis.com/{n}",
+                                "aud": aud or [f"projects/{n}", "projects/afd-dev"], "sub": "1:app",
+                                "exp": int(time.time()) + exp}, key or self.priv, algorithm="RS256")
+
+    def test_statuses(self):
+        self.assertEqual(service.appcheck_status(""), "missing")
+        self.assertEqual(service.appcheck_status(self.tok()), "ok")
+        self.assertEqual(service.appcheck_status(self.tok(key=self.other)), "bad")        # not Google's signature
+        self.assertEqual(service.appcheck_status(self.tok(aud=["projects/someone-else"])), "bad")
+        self.assertEqual(service.appcheck_status(self.tok(exp=-60)), "bad")                # expired
+        self.assertEqual(service.appcheck_status("not-a-token"), "bad")
+
+    def test_monitor_mode_counts_but_never_refuses(self):
+        with mock.patch.object(service, "APPCHECK_ENFORCE", False):
+            self.assertEqual(service.check_appcheck(""), "missing")
+            self.assertEqual(service.check_appcheck("junk"), "bad")
+            self.assertEqual(service.check_appcheck(self.tok()), "ok")
+        r = self.client.get("/appcheck").json()
+        self.assertEqual((r["ok"], r["missing"], r["bad"], r["enforce"]), (1, 1, 1, False))
+
+    def test_enforcing_refuses_before_any_audio_work(self):
+        with mock.patch.object(service, "APPCHECK_ENFORCE", True), \
+             mock.patch.object(service, "read_upload", side_effect=AssertionError("audio read")) as ru:
+            r = self.client.post("/search", files={"file": ("a.webm", b"x")})
+            self.assertEqual(r.status_code, 401)
+            r = self.client.post("/search", files={"file": ("a.webm", b"x")}, headers={"X-Firebase-AppCheck": "junk"})
+            self.assertEqual(r.status_code, 401)
+            ru.assert_not_called()
+
+    def test_google_key_list_unreachable_never_blocks_search(self):
+        service._appcheck_keys.get_signing_key_from_jwt.side_effect = self.jwt.PyJWKClientConnectionError("down")
+        with mock.patch.object(service, "APPCHECK_ENFORCE", True):
+            self.assertEqual(service.check_appcheck(self.tok()), "unchecked")   # no exception
+
+
 class Revoke(unittest.TestCase):
     PATH = "afd_entries/ent_sun/recordings/rec1"
 

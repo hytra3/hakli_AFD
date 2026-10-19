@@ -28,6 +28,28 @@ await scenario("A — empty corpus: a normal answer with no results", async ()=>
   ok("A empty corpus → 'Not in the dictionary yet', one call", (await page.innerText(".empty")).includes("Not in the dictionary yet") && state.calls.length===1, `calls=${state.calls.length}`);
   await ctx.close(); });
 
+// AC — App Check (10-19): the page starts it with the instance key, and a search carries the token
+await scenario("AC — App Check: a search carries the token", async ()=>{ const { page, state, ctx } = await open(()=>HIT);
+  const ac = await page.evaluate(()=> ({ ...(globalThis.__AC || {}), want: window.AFDInstance && window.AFDInstance.appCheckKey }));
+  ok("AC App Check started once, with the key from afd-instance.js", ac.inits===1 && ac.key===ac.want && /^6L/.test(ac.key), JSON.stringify(ac));
+  await hold(page);
+  await page.waitForFunction(()=> /Here it is|Did you mean/.test(document.getElementById("hint").innerText), null, { timeout:9000 });
+  ok("AC the search sent X-Firebase-AppCheck", state.calls.length===1 && state.calls[0].appCheck==="ac-test-token", JSON.stringify(state.calls));
+  await ctx.close(); });
+
+// AC2 — the App Check SDK can't load (offline, Google blocked): search still works, just without a token
+await scenario("AC2 — App Check SDK missing: search still works", async ()=>{
+  const t = await newPage(browser, srv.url, { matcher:()=>HIT, init:AUTO });
+  await t.page.route("**/firebase-app-check.js", r=> r.abort("failed"));
+  await t.page.goto(srv.url + "/index.html");
+  await t.page.waitForFunction(()=> document.querySelectorAll("#results > *").length > 3, null, { timeout:15000 });
+  await t.page.waitForTimeout(300); t.state.calls.length = 0;
+  await hold(t.page);
+  await t.page.waitForFunction(()=> /Here it is|Did you mean/.test(document.getElementById("hint").innerText), null, { timeout:9000 });
+  ok("AC2 no SDK → the search goes ahead without a token", t.state.calls.length===1 && t.state.calls[0].appCheck===null, JSON.stringify(t.state.calls));
+  ok("AC2 no page errors", t.state.errors.length===0, t.state.errors.join("\n"));
+  await t.ctx.close(); });
+
 // B — slow answer: says it is still looking, then shows results
 await scenario("B — slow answer: says it is still looking, then shows results", async ()=>{ const { page, state, ctx } = await open(()=>({ ...HIT, delay:2000 }));
   await hold(page); await page.waitForTimeout(1500);

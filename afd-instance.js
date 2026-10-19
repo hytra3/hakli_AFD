@@ -139,5 +139,9 @@ window.AFDInstance = {
 
   // The speak-to-find embedding service (Cloud Run). Shared across instances
   // in future; per-instance for now.
-  embedUrl: "https://afd-embed-454829954488.europe-west1.run.app"
+  embedUrl: "https://afd-embed-454829954488.europe-west1.run.app",
+
+  // App Check (afd-appcheck.js): the Fraud Defense key the web app is registered
+  // with in Firebase → App Check. Public by design. null turns App Check off.
+  appCheckKey: "6LehXvctAAAAACi87vHzcUuHnWRxjSU53rHOF1sR"
 };

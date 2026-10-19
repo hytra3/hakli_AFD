@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
-      - run: pip install numpy fastapi python-multipart httpx
+      - run: pip install numpy fastapi python-multipart httpx "pyjwt[crypto]"
       - name: Run Python tests
         run: python -m unittest discover -s test -p "test_*.py" -v
 

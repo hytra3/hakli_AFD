@@ -99,6 +99,17 @@ MAX_TOP_K           = 20
 EMBED_AUDIENCE = os.environ.get("EMBED_AUDIENCE", "")
 EMBED_CALLERS  = {e.strip() for e in os.environ.get("EMBED_CALLERS", "").split(",") if e.strip()}
 
+# App Check (10-19). The pages send X-Firebase-AppCheck on /search: a token from
+# Google's invisible check that the request comes from the real hakli.app.
+# Monitor mode by default — every search is tallied (ok / missing / bad, see
+# /about and the "appcheck" log lines) and still answered. APPCHECK_ENFORCE=1
+# refuses missing or bad tokens with 401; turn it on only after the counts show
+# real phones get tokens. If Google's key list can't be fetched the search is
+# answered either way ("unchecked") — an outage there mustn't take search down.
+APPCHECK_PROJECT = os.environ.get("APPCHECK_PROJECT_NUMBER", "454829954488")
+APPCHECK_ENFORCE = os.environ.get("APPCHECK_ENFORCE", "0") == "1"
+APPCHECK_JWKS    = "https://firebaseappcheck.googleapis.com/v1/jwks"
+
 # Energy VAD for rep-splitting. All tunable; defaults chosen for citation-form
 # single words with a deliberate pause between reps. Revisit once we have the
 # Hakli misfire rate (see ROADMAP "Rep-splitting", step 4).
@@ -449,6 +460,45 @@ def require_embed_caller(authorization: str):
         raise HTTPException(status_code=403, detail="caller not allowed")
 
 
+_appcheck_keys = None
+_appcheck_lock = threading.Lock()
+appcheck_counts = {"ok": 0, "missing": 0, "bad": 0, "unchecked": 0}
+
+
+def appcheck_status(token: str) -> str:
+    if not token:
+        return "missing"
+    try:
+        import jwt                          # PyJWT[crypto]
+    except ImportError:
+        return "unchecked"
+    global _appcheck_keys
+    try:
+        if _appcheck_keys is None:
+            _appcheck_keys = jwt.PyJWKClient(APPCHECK_JWKS, cache_keys=True, lifespan=6 * 3600)
+        key = _appcheck_keys.get_signing_key_from_jwt(token).key
+    except jwt.PyJWKClientConnectionError:
+        return "unchecked"
+    except Exception:
+        return "bad"
+    try:
+        jwt.decode(token, key, algorithms=["RS256"], audience=f"projects/{APPCHECK_PROJECT}",
+                   issuer=f"https://firebaseappcheck.googleapis.com/{APPCHECK_PROJECT}")
+        return "ok"
+    except Exception:
+        return "bad"
+
+
+def check_appcheck(token: str) -> str:
+    st = appcheck_status(token)
+    with _appcheck_lock:
+        appcheck_counts[st] += 1
+    print(f"appcheck {st}", flush=True)
+    if APPCHECK_ENFORCE and st in ("missing", "bad"):
+        raise HTTPException(status_code=401, detail="app check")
+    return st
+
+
 def require_admin(token: str):
     if not ADMIN_TOKEN:
         raise HTTPException(status_code=403, detail="reindex disabled: ADMIN_TOKEN not set")
@@ -465,6 +515,14 @@ def healthz():
     return {"ok": True, "model_warm": _model is not None,
             "model": MODEL_ID, "layer": EMBED_LAYER,
             "corpus_loaded": _corpus.loaded, "corpus_n": len(_corpus.entry_ids)}
+
+
+@app.get("/appcheck")
+def appcheck_tally():
+    # How many searches came with a good App Check token, since this instance
+    # started (each instance counts its own; the "appcheck …" log lines have it all).
+    with _appcheck_lock:
+        return {"enforce": APPCHECK_ENFORCE, **appcheck_counts}
 
 
 @app.get("/about")
@@ -488,7 +546,9 @@ def embed(file: UploadFile = File(...), authorization: str = Header(default=""))
 
 
 @app.post("/search")
-def search(file: UploadFile = File(...), top_k: int = 5):
+def search(file: UploadFile = File(...), top_k: int = 5,
+           x_firebase_appcheck: str = Header(default="")):
+    check_appcheck(x_firebase_appcheck)     # before any work, so enforcement costs nothing
     raw = read_upload(file)
     _corpus.ensure_fresh()
     # query = disposable single utterance; if the searcher repeats anyway, the

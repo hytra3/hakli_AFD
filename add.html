@@ -355,11 +355,13 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { uploadClip, instanceLang } from "./afd-upload.js?v=b1019d";
+import { startAppCheck, appCheckHeaders } from "./afd-appcheck.js?v=b1019d";
 import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace, listPlayable } from "./afd-card.js?v=b1019d";
 import { mountSignIn, finishEmailLink, signInSheet } from "./afd-signin.js?v=b1019d";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const app   = initializeApp(firebaseConfig);
+startAppCheck(app);              // App Check (10-19)
 const auth  = getAuth(app);
 const db    = getFirestore(app);
 const store = getStorage(app);
@@ -1010,7 +1012,7 @@ function startDupCheck(blob){
   if(!url || !blob || navigator.onLine === false) return;
   const ctl = new AbortController(), timer = setTimeout(()=> ctl.abort(), 90000);
   const fd = new FormData(); fd.append("file", blob, "add.webm");
-  const p = fetch(url + "/search?top_k=3", { method:"POST", body:fd, signal:ctl.signal })
+  const p = appCheckHeaders().then(headers => fetch(url + "/search?top_k=3", { method:"POST", body:fd, signal:ctl.signal, headers }))
     .then(r => r.ok ? r.json() : { results:[] })
     .then(j => (j.results || []).filter(r => r && r.entryId && typeof r.distance === "number" && r.distance <= DUP_MAX))
     .catch(()=> [])

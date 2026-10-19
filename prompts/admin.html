@@ -145,6 +145,7 @@
 <script>AFDTools.paint(); AFDTools.mountSwitch(document.getElementById("langSwitch"));</script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { startAppCheck } from "../afd-appcheck.js?v=b1019c";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -152,6 +153,7 @@ const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
 const $ = id => document.getElementById(id);
 const app = initializeApp(firebaseConfig);
+startAppCheck(app);              // App Check (10-19)
 const auth = getAuth(app);
 const db = getFirestore(app);
 // Interface text: AFDCore.STRINGS via ../afd-tools.js, in Arabic or Arabic + English.

@@ -7,3 +7,4 @@ numpy==2.2.1
 google-cloud-firestore==2.20.0
 google-auth>=2.29
 requests>=2.31
+pyjwt[crypto]>=2.8
