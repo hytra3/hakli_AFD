@@ -44,7 +44,7 @@ sed -i -E "s/(const BUILD *= *\")b[0-9a-z]+(\")/\1$STAMP\2/" recorder.html
 # icons froze on whatever stamp they were last hand-edited to. The list is now
 # every top-level page plus prompts/ plus the manifest, and anything new is
 # picked up automatically by the globs.
-PAGES=( *.html prompts/*.html manifest.webmanifest )
+PAGES=( *.html prompts/*.html manifest.webmanifest afd-*.js )   # afd-*.js: module imports (afd-card.js → afd-voices.js)
 for f in "${PAGES[@]}"; do
   [ -f "$f" ] || continue
   sed -i -E "s/(\?v=)b[0-9a-z]+/\1$STAMP/g" "$f"

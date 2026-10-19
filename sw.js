@@ -50,7 +50,9 @@ self.addEventListener("install", (e) => {
 
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
-    for (const k of await caches.keys()) if (k !== CACHE) await caches.delete(k);
+    // afd-voices-v1 holds voices kept for playing without signal (afd-voices.js) —
+    // the page manages it (limits, low-space, Help's "Remove"); never cleared here
+    for (const k of await caches.keys()) if (k !== CACHE && k !== "afd-voices-v1") await caches.delete(k);
     await self.clients.claim();
   })());
 });

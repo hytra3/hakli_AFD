@@ -955,7 +955,15 @@ window.AFDCore = (function(){
     "stw.st.r.median":      { en:"… median time", ar:"… الوقت الوسيط" },
     "stw.st.r.asleep":      { en:"… waited over 20 s (matcher asleep)", ar:"… انتظرت أكثر من ٢٠ ثانية (المطابِق نائم)" },
     // 10-19: a card shows a page of voices, newest first; this row fetches the next
-    "card.more":            { en:"More voices",        ar:"أصوات أخرى" }
+    "card.more":            { en:"More voices",        ar:"أصوات أخرى" },
+    // 10-19: voices kept on the phone (afd-voices.js)
+    "card.offline.some":    { en:"No signal — only the voices you've heard before on this phone can play.", ar:"لا توجد شبكة — تُسمَع فقط الأصوات التي استمعتَ إليها من قبل على هذا الهاتف." },
+    "help.saved.title":     { en:"Voices saved on this phone", ar:"أصوات محفوظة على هذا الهاتف" },
+    "help.saved.lead":      { en:"Voices you've listened to are kept here, so they play again with no signal. Old ones go by themselves, and more go when the phone runs low on space.", ar:"تُحفَظ هنا الأصوات التي استمعتَ إليها لتُسمَع مجددًا دون شبكة. تُحذَف القديمة تلقائيًا، ويُحذَف المزيد عندما تقلّ مساحة الهاتف." },
+    "help.saved.n":         { en:"Voices: {n} · {mb} MB", ar:"الأصوات: {n} · {mb} م.ب" },
+    "help.saved.none":      { en:"None yet.", ar:"لا شيء بعد." },
+    "help.saved.clear":     { en:"Remove them", ar:"احذفها" },
+    "help.saved.cleared":   { en:"Removed. They'll be saved again as you listen.", ar:"حُذِفت. ستُحفَظ مجددًا كلما استمعت." }
   };
   function t(key, mode){
     const s = STRINGS[key];
