@@ -172,6 +172,34 @@ Health-check task uses those, not `/healthz`.
 
 ---
 
+## App Check — watching, then enforcing (10-19)
+
+App Check asks Google, invisibly, "is this request from the real hakli.app?" The
+key is registered (Firebase → App Check → Apps → recorder: Fraud Defense). Pages
+send tokens from the publish that adds afd-appcheck.js; the matcher counts them
+from the next `bash scripts/deploy-service.sh`.
+
+**Watching (now — nothing is blocked):**
+- Firebase console → App Check → **APIs** tab: Firestore and Storage show
+  verified vs unverified requests.
+- The matcher: `curl -s https://afd-embed-454829954488.europe-west1.run.app/appcheck`
+  (counts since that instance started), or Cloud Run logs, filter `appcheck`.
+
+Old cached pages and the odd phone that can't reach Google will show as
+unverified for a while. Wait until unverified is a trickle — about a week of
+real use, including phones in Oman.
+
+**Enforcing (later, one at a time, each undoable):**
+1. Matcher: `gcloud run services update afd-embed --region europe-west1 --project afd-dev --update-env-vars APPCHECK_ENFORCE=1`
+   (undo: `APPCHECK_ENFORCE=0`).
+2. Firebase console → App Check → APIs → Cloud Firestore → **Enforce**.
+3. Same for Cloud Storage. (Unenforce is the same button.)
+
+Don't enforce before the counts say so: an enforced service refuses every phone
+without a token, including ones still running an old cached page.
+
+---
+
 ## Making a backup (a "cairn")
 
 A quick way to snapshot the whole project into one dated file you can stash in

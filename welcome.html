@@ -228,6 +228,7 @@ async function loadClips(){
         import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"),
       ]);
     const app = initializeApp(firebaseConfig);
+    try{ (await import("./afd-appcheck.js?v=b1019c")).startAppCheck(app); }catch(_){}   // App Check (10-19)
     const db = getFirestore(app), store = getStorage(app);
     const snap = await getDocs(collection(db, "afd_ui_prompts"));
     const wanted = new Set([...LINES, CLOSE].map(l=>l.k).concat(HOWTO));

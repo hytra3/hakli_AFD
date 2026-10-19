@@ -394,7 +394,15 @@ something makes them matter.
   reads Firestore is denied — 4 false failures). Unset `HTTPS_PROXY`/`https_proxy`
   (and `JAVA_TOOL_OPTIONS` if it's set) for the `firebase emulators:exec` run.
 
-- **Firebase App Check (planned — revisit before any wider launch).** Today anyone
+- **Firebase App Check — built 10-19, monitor mode.** Marty registered the web app
+  with Fraud Defense (the new name for reCAPTCHA Enterprise; "reCAPTCHA Classic" is
+  deprecated); key in afd-instance.js `appCheckKey`. Every page starts it
+  (afd-appcheck.js, dynamic import so offline pages still open); Firestore and
+  Storage attach tokens themselves; search and Add's duplicate check send
+  `X-Firebase-AppCheck` to the matcher, which tallies ok/missing/bad (`GET /appcheck`,
+  "appcheck …" log lines) and refuses only with `APPCHECK_ENFORCE=1`. Next: watch the
+  counts for a week of real use, then enforce service by service (DEPLOY.md).
+  Original plan, for the record: Today anyone
   can call Firestore, Storage and the public `/search` with the page's (public)
   Firebase config. Rules still apply, so nothing a signed-in user couldn't do — but
   a script can run up costs (`/search` runs the model; audio re-reads) or spam

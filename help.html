@@ -223,10 +223,13 @@ document.getElementById("wa").addEventListener("click", () => track("help", "ask
 // three numbers, readable by anyone) and the usage counts above. If either
 // fails the page is unchanged: the counter simply stays hidden.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { startAppCheck } from "./afd-appcheck.js?v=b1019c";
 import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 try{
-  const db = getFirestore(initializeApp(window.AFDInstance.firebase));
+  const app = initializeApp(window.AFDInstance.firebase);
+  startAppCheck(app);            // App Check (10-19)
+  const db = getFirestore(app);
   AFDCore.eventSink(rec => addDoc(collection(db, "afd_events"),
     Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 90*864e5) })));
   const snap = await getDoc(doc(db, "afd_stats", "public"));

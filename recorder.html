@@ -778,6 +778,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
    "Your apps" -> Web app -> Config
 ================================================================*/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { startAppCheck } from "./afd-appcheck.js?v=b1019c";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
@@ -799,6 +800,7 @@ function err(msg){ const e=$("authErr"); if(e) e.textContent=msg||""; }
 
 if(CONFIGURED){
   app   = initializeApp(firebaseConfig);
+  startAppCheck(app);            // App Check (10-19)
   auth  = getAuth(app);
   db    = getFirestore(app);
   store = getStorage(app);

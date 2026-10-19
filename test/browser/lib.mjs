@@ -53,6 +53,11 @@ export function serve(root, transform){
 
 const STUB = {
 "firebase-app.js": `export function initializeApp(c){ return { options:c }; }`,
+"firebase-app-check.js": `
+const AC = (globalThis.__AC = globalThis.__AC || { inits:0 });
+export class ReCaptchaEnterpriseProvider{ constructor(k){ this.k = k; } }
+export function initializeAppCheck(app, o){ AC.inits++; AC.key = o.provider.k; return { app }; }
+export async function getToken(){ return { token:"ac-test-token" }; }`,
 "firebase-firestore.js": `
 const FS = (globalThis.__FS = globalThis.__FS || {});
 const LOG = (globalThis.__FSLOG = globalThis.__FSLOG || []);
@@ -167,8 +172,10 @@ export async function newPage(browser, base, { matcher, fs:fsData, user, init, w
       if(STUB[name]) return route.fulfill({ status:200, contentType:"text/javascript", body:STUB[name], headers:{ "access-control-allow-origin":"*" } });
     }
     if(u.hostname.endsWith(".run.app")){
-      const i = state.calls.length; state.calls.push({ url:u.pathname+u.search, t:Date.now() });
-      const cors = { "access-control-allow-origin":"*" };
+      if(route.request().method() === "OPTIONS")      // CORS preflight (the App Check header asks for one)
+        return route.fulfill({ status:204, headers:{ "access-control-allow-origin":"*", "access-control-allow-headers":"*", "access-control-allow-methods":"POST, GET" } });
+      const i = state.calls.length; state.calls.push({ url:u.pathname+u.search, t:Date.now(), appCheck: route.request().headers()["x-firebase-appcheck"] || null });
+      const cors = { "access-control-allow-origin":"*", "access-control-allow-headers":"*" };
       let r = matcher ? await matcher(i, u) : { status:200, body:{ results:[], corpus_n:0 } };
       if(r === "abort") return route.abort("failed");
       if(r === "hang") return;                       // never answer

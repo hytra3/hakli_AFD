@@ -158,7 +158,9 @@ show(location.hash.slice(1), false);
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js") ]);
-  const app = initializeApp(firebaseConfig), db = getFirestore(app), store = getStorage(app);
+  const app = initializeApp(firebaseConfig);
+  try{ (await import("./afd-appcheck.js?v=b1019c")).startAppCheck(app); }catch(_){}   // App Check (10-19)
+  const db = getFirestore(app), store = getStorage(app);
   const want = new Set(SEGS.flatMap(s => s.clips)), jobs = [];
   (await getDocs(collection(db, "afd_ui_prompts"))).forEach(d => { const x = d.data() || {};
     if(want.has(d.id) && x.status === "recorded")

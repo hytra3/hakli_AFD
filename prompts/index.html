@@ -200,6 +200,7 @@
 <script src="../afd-prompts.js?v=b1019c"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { startAppCheck } from "../afd-appcheck.js?v=b1019c";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -362,6 +363,7 @@ async function start(){
   // until they're drawn (10-15)
   try{ $("appWait").innerHTML = AFDCore.dotsHTML(true); }catch(_){}
   const app = initializeApp(firebaseConfig);
+  startAppCheck(app);            // App Check (10-19)
   const auth = getAuth(app);
   const db = getFirestore(app);
   const store = getStorage(app);
