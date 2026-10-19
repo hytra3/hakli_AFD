@@ -661,7 +661,7 @@ class Watch(unittest.TestCase):
         events = ([{"ev": "view", "page": "index.html", "v": "sound"}] * 3 +
                   [{"ev": "view", "page": "add.html", "v": "auto", "x": "quiet"}] +
                   [{"ev": "search", "v": "here", "n": 2000}, {"ev": "search", "v": "pick", "n": 4000},
-                   {"ev": "search", "v": "err.timeout", "n": 120000}, {"ev": "search", "v": "none", "n": 3000}] +
+                   {"ev": "search", "v": "err.timeout", "n": 120000}, {"ev": "search", "v": "none", "n": 45000}] +
                   [{"ev": "play", "v": "word"}] * 5 + [{"ev": "play", "v": "novoice"}] +
                   [{"ev": "rec", "v": "keep", "x": "word.proxy"}, {"ev": "rec", "v": "keep", "x": "context"},
                    {"ev": "rec", "v": "skip"}] +
@@ -671,10 +671,10 @@ class Watch(unittest.TestCase):
                                {"words": 38, "voices": 110, "speakers": 9}, ["Search failing"], self.now)
         self.assertIn("40 words with a voice (+2)", t)
         self.assertIn("120 voices (+10)", t)
-        self.assertIn("9 speakers", t)
-        self.assertNotIn("9 speakers (", t)
+        self.assertIn("9 speakers (by speaker code)", t)
+        self.assertIn("1 of 3 searches waited over 20 s (matcher asleep", t)
         self.assertIn("Spoken searches: 4 — found 25%", t)
-        self.assertIn("median 3.0 s", t)              # failed searches don't count toward speed
+        self.assertIn("median 4.0 s", t)              # failed searches don't count toward speed
         self.assertIn("sound (no text) 75%", t)
         self.assertIn("quiet mode 25%", t)
         self.assertIn("Voices played: 5", t)
@@ -683,6 +683,15 @@ class Watch(unittest.TestCase):
         self.assertIn("Sign-ins: phone 1", t)
         self.assertIn("2  search · http 503", t)
         self.assertIn("Alerts sent: Search failing", t)
+
+    def test_one_is_singular(self):
+        t = self.m.digest_text([{"ev": "search", "v": "here", "n": 900}, {"ev": "rec", "v": "keep", "x": "word"}], [],
+                               {"words": 1, "voices": 1, "speakers": 1}, None, [], self.now)
+        self.assertIn("1 word with a voice · 1 voice · 1 speaker (by speaker code)", t)
+        self.assertIn("Recorder: 1 take kept", t)
+        self.assertNotIn("waited over", t)                 # fast search: no asleep line
+        self.assertEqual(self.m.digest_subject(self.now, 1, 1, 1), "Daily, Sun 18 Oct: 1 search · 1 voice · 1 error")
+        self.assertEqual(self.m.digest_subject(self.now, 2, 32, 0), "Daily, Sun 18 Oct: 2 searches · 32 voices · 0 errors")
 
     def test_a_quiet_day_says_so(self):
         t = self.m.digest_text([], [], {"words": 1, "voices": 2, "speakers": 1}, None, [], self.now)
@@ -694,6 +703,7 @@ class Watch(unittest.TestCase):
                            self.err("x", "y", 1), {"words": 1}, self.now, self.now)
         self.assertEqual(d["counts"], {"search|here": 1, "play|word": 1})
         self.assertEqual(d["searchMsMedian"], 1000)
+        self.assertEqual(d["searchesAsleep"], 0)
         self.assertEqual(d["errorTop"], ["1 x · y"])
 
     def test_the_job_comes_from_the_message(self):

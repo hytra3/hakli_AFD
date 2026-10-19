@@ -175,11 +175,27 @@ function render(){
     wa.querySelector(".t").textContent = W("help.contact.btn");
   }
   document.getElementById("countH").textContent = W("help.count.title");
-  document.getElementById("lWords").textContent = W("help.count.words");
-  document.getElementById("lVoices").textContent = W("help.count.voices");
-  document.getElementById("lSpeakers").textContent = W("help.count.speakers");
+  paintCount();
   document.getElementById("enter").textContent = W("welcome.enter") + (mode==="en" ? " →" : " ←");
 }
+// "The dictionary so far" (10-19): Arabic-Indic digits in Arabic (١٧ · ٣٢), and
+// the noun by number — Arabic: 1 · 2 (dual) · 3–10 (plural) · 0 and 11+ (singular
+// form, as Arabic does after those numbers); English: 1 / other.
+let counts = null;
+function noun(base, n){
+  const k = n === 1 ? ".one" : mode === "en" ? "" : n === 2 ? ".two" : (n % 100 >= 3 && n % 100 <= 10) ? ".few" : "";
+  return W(base + k) || W(base);
+}
+function paintCount(){
+  if(!counts) return;
+  const fmt = (n) => { try{ return Number(n).toLocaleString(mode === "en" ? "en-US" : "ar-OM-u-nu-arab"); }catch(_){ return String(n); } };
+  [["Words","words"],["Voices","voices"],["Speakers","speakers"]].forEach(([id, k]) => {
+    const n = Math.max(0, Math.round(Number(counts[k]) || 0));
+    document.getElementById("n" + id).textContent = fmt(n);
+    document.getElementById("l" + id).textContent = noun("help.count." + k, n);
+  });
+}
+window.afdShowCount = (d) => { counts = d; paintCount(); document.getElementById("count").hidden = false; };
 document.querySelectorAll("#toggle button").forEach(b => b.onclick = () => { mode = b.dataset.m; render(); });
 render();
 // usage counts: which help people open (afd_events, via the module below)
@@ -216,11 +232,7 @@ try{
   const snap = await getDoc(doc(db, "afd_stats", "public"));
   const d = snap.exists() ? snap.data() : null;
   if(d && d.words > 0){
-    const fmt = (n) => Number(n || 0).toLocaleString("en-US");
-    document.getElementById("nWords").textContent = fmt(d.words);
-    document.getElementById("nVoices").textContent = fmt(d.voices);
-    document.getElementById("nSpeakers").textContent = fmt(d.speakers);
-    document.getElementById("count").hidden = false;
+    window.afdShowCount(d);
   }
 }catch(e){ console.warn("[AFD help] counter", e); }
 </script>
