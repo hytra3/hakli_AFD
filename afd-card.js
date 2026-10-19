@@ -4,7 +4,7 @@
    SDK-agnostic: the host injects db, storage, live getters for the signed-in
    user and display mode, the recorder URL, and a banner() via initCard().
    AFDCore is read from the global (afd-core.js must load before this module). */
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, query, where, limit, getDocs, serverTimestamp, deleteField }
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, query, where, limit, orderBy, startAfter, getDocs, serverTimestamp, deleteField }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -272,22 +272,58 @@ const isNetErr = (e)=> navigator.onLine === false
   || /unavailable|network|retry-limit|offline|failed to fetch/i.test(String((e && (e.code || e.message)) || ""));
 function voicesOffline(entryId){ return _offlineMiss.has(entryId); }
 
-async function listPlayable(entryId){
+// A card shows public voices a page at a time, newest first (10-19). Before, it
+// took 12 in no particular order, so on a word passed around a family group the
+// newest voices — the ones people came to hear — might never show. One extra doc
+// is asked for to learn whether there's another page; the card then offers
+// "More voices". Needs the (allowPlayback, uploadedAt desc) index
+// (firestore.indexes.json); until it's built, Firestore refuses the ordered
+// query and the card falls back to the old unordered 12, with no "more".
+const VOICE_PAGE = 12;
+let _ordered = true;                 // false once the index proved missing (this page load)
+async function publicVoices(recsCol, after){
+  if(_ordered){
+    try{
+      const cons = [where("allowPlayback","==",true), orderBy("uploadedAt","desc")];
+      if(after) cons.push(startAfter(after));
+      cons.push(limit(VOICE_PAGE + 1));
+      const snap = await getDocs(query(recsCol, ...cons));
+      const docs = snap.docs.slice(0, VOICE_PAGE);
+      return { docs, next: snap.docs.length > VOICE_PAGE ? docs[docs.length-1] : null };
+    }catch(e){
+      if(!/failed-precondition|requires an index/i.test(String((e && (e.code || e.message)) || ""))) throw e;
+      _ordered = false;
+      console.warn("[AFD] voices: the newest-first index isn't built yet — showing 12 unordered", e);
+    }
+  }
+  if(after) return { docs: [], next: null };
+  const snap = await getDocs(query(recsCol, where("allowPlayback","==",true), limit(VOICE_PAGE)));
+  return { docs: snap.docs, next: null };
+}
+
+// listPlayable(entryId)            → the first page: public voices, newest first,
+//                                     then the signed-in viewer's own (incl. withdrawn)
+// listPlayable(entryId, { after }) → the next page of public voices only
+// Either way the array carries .next: the cursor for "More voices", or null.
+async function listPlayable(entryId, opts){
+  const after = (opts && opts.after) || null;
   // Everything here runs in parallel: the two queries, then one audio link per
   // voice, then the contributor profiles. One at a time, a word with a few
   // voices took several seconds to open — each link is a network round-trip,
   // and under the consent-gated Storage rules each also costs a Firestore read.
-  _offlineMiss.delete(entryId);
+  if(!after) _offlineMiss.delete(entryId);
   const recsCol=collection(CFG.db,"afd_entries",entryId,"recordings");
-  let docs=[];
+  let docs=[], next=null;
   try{
     const [pub, mine] = await Promise.all([
-      getDocs(query(recsCol, where("allowPlayback","==",true), limit(12))),
+      publicVoices(recsCol, after),
       // the signed-in viewer's own voices for this word — including withdrawn ones,
       // so they can restore. Dev + deployed rules both let an author read their own.
-      CFG.user() ? getDocs(query(recsCol, where("uid","==",CFG.user().uid), limit(12)))
-                 : Promise.resolve({ docs: [] })
+      // First page only: a later page is more of everyone else's.
+      (CFG.user() && !after) ? getDocs(query(recsCol, where("uid","==",CFG.user().uid), limit(12)))
+                             : Promise.resolve({ docs: [] })
     ]);
+    next = pub.next;
     const seen=new Set();
     for(const d of [...pub.docs, ...mine.docs]){ if(!seen.has(d.id)){ seen.add(d.id); docs.push(d); } }
   }catch(e){ if(isNetErr(e)) _offlineMiss.add(entryId); }
@@ -311,7 +347,8 @@ async function listPlayable(entryId){
              envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
              avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) };
   }));
-  const out = rows.filter(Boolean);           // same order as before: public first, then the viewer's own
+  const out = rows.filter(Boolean);           // public first (newest first), then the viewer's own
+  out.next = next;
   // Overlay contributor identity: a "known" steward's own (non-proxied) voices
   // get their photo, or a name monogram if they set no picture. Cache dedupes
   // repeated owners, so this is at most one read per distinct contributor.
@@ -1316,10 +1353,53 @@ async function entryCard(res, lead){
         `<span>${AFDCore.tHTML("card.offline", CFG.mode())}</span>`;
       detail.appendChild(off);
     }
-    detail.appendChild(slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl));
+    let wordSlot = slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl);
+    let ctxSlot  = slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{});
+    let defSlot  = slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{});
+    detail.appendChild(wordSlot);
     detail.appendChild(spellingSection(res.entryId, gc));
-    detail.appendChild(slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{}));
-    detail.appendChild(slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{}));
+    detail.appendChild(ctxSlot);
+    detail.appendChild(defSlot);
+    // More voices (10-19): the card holds a page of public voices, newest first.
+    // When there are more, one row under the slots fetches the next page and the
+    // slots are redrawn with every voice so far; a slot whose list was open stays
+    // open. The "+n" is how many more the word's own count says there are.
+    if(recs.next){
+      const more=document.createElement("button");
+      more.type="button"; more.className="sayit more-voices";
+      const allRecs = recs.slice(); let cursor = recs.next;
+      const paintMore = async ()=>{
+        const c = await entryCounts(res.entryId);
+        const left = (c.word + c.context + c.definition) - allRecs.filter(r => r.consent==="public").length;
+        more.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 12h4M21 10v4"/></svg>` +
+          (CFG.mode()==="sound" ? "" : `<span>${biLabel("card.more")}</span>`) +
+          (left > 0 ? `<span class="more-n">+${left}</span>` : "");
+        more.setAttribute("aria-label", AFDCore.t("card.more", CFG.mode()) + (left > 0 ? " +" + left : ""));
+      };
+      paintMore();
+      more.addEventListener("click", async (e)=>{
+        e.stopPropagation(); if(more.disabled) return;
+        more.disabled = true; const done = busyBtn(more);
+        let page = [];
+        try{ page = await listPlayable(res.entryId, { after: cursor }); }
+        finally{ done(); more.disabled = false; }
+        try{ AFDCore.track("voices", "more", { n: page.length }); }catch(_){}   // not "play": it would count as a voice played
+        const have = new Set(allRecs.map(r => r.recordingId));
+        for(const r of page) if(!have.has(r.recordingId)) allRecs.push(r);
+        cursor = page.next;
+        const wasOpen = (sl)=> !!sl.querySelector(".voices-chip.open");
+        const redraw = (old, key, type, list, th, set)=>{
+          const fresh = slotSection(key, type, res.entryId, list, th, playBtn, set);
+          if(wasOpen(old)){ const ch = fresh.querySelector(".voices-chip"); if(ch) ch.click(); }
+          old.replaceWith(fresh); return fresh;
+        };
+        wordSlot = redraw(wordSlot, "slot.word", "word", allRecs.filter(r => (r.type||"word")==="word"), thumbEl, setUrl);
+        ctxSlot  = redraw(ctxSlot, "slot.sentence", "context", allRecs.filter(r => r.type==="context"), null, ()=>{});
+        defSlot  = redraw(defSlot, "slot.meaning", "definition", allRecs.filter(r => r.type==="definition"), null, ()=>{});
+        if(cursor) paintMore(); else more.remove();
+      });
+      detail.appendChild(more);
+    }
     // (10-14) No separate "Say it yourself" button any more: the word slot's own
     // "+ Add a recording" above does the same thing, right where the voice goes.
     // Share — any word, any reader: a heard word invites "say it your way",

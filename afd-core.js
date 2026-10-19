@@ -953,7 +953,9 @@ window.AFDCore = (function(){
     "help.count.speakers.few": { en:"speakers", ar:"متحدّثين" },
     // 10-19: the Stats tab's search time
     "stw.st.r.median":      { en:"… median time", ar:"… الوقت الوسيط" },
-    "stw.st.r.asleep":      { en:"… waited over 20 s (matcher asleep)", ar:"… انتظرت أكثر من ٢٠ ثانية (المطابِق نائم)" }
+    "stw.st.r.asleep":      { en:"… waited over 20 s (matcher asleep)", ar:"… انتظرت أكثر من ٢٠ ثانية (المطابِق نائم)" },
+    // 10-19: a card shows a page of voices, newest first; this row fetches the next
+    "card.more":            { en:"More voices",        ar:"أصوات أخرى" }
   };
   function t(key, mode){
     const s = STRINGS[key];

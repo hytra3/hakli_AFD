@@ -36,7 +36,7 @@ await scenario("a contributor's photo fills its circle", async ()=>{
     "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس" },
     "afd_stewards/uFatma1": { visibility:"known", displayName:"Fatma Almashani", hasAvatar:true },
     "afd_entries/ent_sun/recordings/r1": { recordingId:"r1", entryId:"ent_sun", uid:"uFatma1", speakerId:"spk_uFatma_01", type:"context",
-      viaAgent:false, consent:"public", allowPlayback:true, storagePath:"afd/uFatma1/r1.webm", envelope:[] },
+      viaAgent:false, consent:"public", allowPlayback:true, storagePath:"afd/uFatma1/r1.webm", envelope:[], uploadedAt:{ __ts:1 } },
   };
   const { page, state } = await newPage(browser, srv.url, { fs:FS, init:new Function(`try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
     globalThis.__URLS = { "afd/uFatma1/r1.webm":"data:audio/wav;base64,", "afd_avatars/uFatma1/avatar":${JSON.stringify(PNG)} };`) });

@@ -104,6 +104,12 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   while its recording is public. Before deploying them, run
   `node scripts/audit-recording-paths.mjs` (add `--fix` to repair missing
   metadata) so no older take goes silent.
+- **Firestore indexes** (`firestore.indexes.json`) — the word card lists voices
+  newest first, which needs one composite index (recordings: `allowPlayback`,
+  `uploadedAt` desc). After editing the file: `firebase deploy --only firestore:indexes`.
+  Until an index is built, the card quietly falls back to 12 voices in no order.
+  First time: `node scripts/check-uploaded-at.mjs` should report 0 takes without
+  `uploadedAt` (an ordered query leaves those out).
 - **Bucket CORS** (`cors.json`) — which sites may download audio bytes (sharing a
   voice as a file needs it; plain playback doesn't). After editing it:
   `gsutil cors set cors.json gs://afd-dev.firebasestorage.app`

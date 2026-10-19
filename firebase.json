@@ -1,6 +1,7 @@
 {
   "firestore": {
-    "rules": "afd-firestore.rules"
+    "rules": "afd-firestore.rules",
+    "indexes": "firestore.indexes.json"
   },
   "storage": {
     "rules": "afd-storage.rules"
@@ -12,7 +13,8 @@
       "**/.*",
       "**/node_modules/**",
       "*.rules",
-      "SETUP.md"
+      "SETUP.md",
+      "firestore.indexes.json"
     ]
   }
 }

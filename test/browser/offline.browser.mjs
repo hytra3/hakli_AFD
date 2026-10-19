@@ -13,7 +13,7 @@ const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(
 const FS = {
   "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس", pic:"☀️", voices:{ word:1, context:0, definition:0 } },
   "afd_entries/ent_sun/recordings/r1": { recordingId:"r1", entryId:"ent_sun", uid:"uA", speakerId:"spk_uA_01",
-    type:"word", viaAgent:false, consent:"public", allowPlayback:true, storagePath:"afd/uA/r1.webm", envelope:[] },
+    type:"word", viaAgent:false, consent:"public", allowPlayback:true, storagePath:"afd/uA/r1.webm", envelope:[], uploadedAt:{ __ts:1 } },
 };
 const note = (page)=> page.evaluate(()=>{ const n=document.querySelector(".card.open .novoice"); return n ? { text:n.innerText, offline:n.classList.contains("offline") } : null; });
 
