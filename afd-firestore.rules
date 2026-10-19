@@ -636,6 +636,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Search vectors (10-19): afd_vectors/{recordingId}, written by the embed
+    // trigger and read by the matcher — both server-side, so no client ever
+    // reads or writes them. Kept apart from the recording, which every phone
+    // that opens a word downloads. (Said here for clarity; the rule below
+    // already refuses it.)
+    match /afd_vectors/{id} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

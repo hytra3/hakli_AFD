@@ -169,6 +169,22 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
 by the platform and never reaches the app. The real liveness checks are `/docs`
 (returns 200) and `POST /search` (returns a JSON error for bad audio). The
 Health-check task uses those, not `/healthz`.
+`GET /about` (added 10-19) does reach the app: model, layer, and `vectors: "apart"`
+once the matcher reads the vectors kept apart.
+
+## Moving the search vectors off the recordings (one time, 10-19)
+
+Each take's search vectors used to sit on its recording doc, so every phone that
+opened a word downloaded them (several KB per voice). They now live in
+`afd_vectors/{recordingId}`, which no phone can read. Order matters:
+
+1. `bash scripts/deploy-service.sh` — the matcher reads both places.
+2. `bash scripts/deploy-trigger.sh` — new takes keep their vectors apart.
+3. `firebase deploy --only firestore:rules` — `afd_vectors` closed to phones.
+4. `node scripts/move-vectors.mjs` (look only), then `--apply`. It asks the
+   matcher's `/about` first and stops if step 1 hasn't happened. Safe to re-run.
+
+Search keeps working at every step. Purge deletes a take's vectors with it.
 
 ---
 

@@ -1383,3 +1383,11 @@ below remain forward design for if/when a speaker elects wider visibility.
 
 - **Scott's `tawq.in` `server.js`** — the expired-token string-mismatch auth bypass
   (`"Expired Token"` vs `"Expired"`). Fix written; still needs sending to Scott.
+
+## Search vectors kept apart from the voices (2026-10-19)
+
+- The embed trigger writes `afd_vectors/{recordingId}` (server-only; rules deny every phone) and leaves the recording with small fields: `repSpans`, `nReps`, `repDistance`, model/layer.
+- The matcher loads `afd_vectors` and joins by recording id; whether a take is searchable still comes from the recording doc (consent, playback, hidden). Takes not yet moved still work from the old place.
+- Purge deletes the vectors with the take. Export reads `repSpans`.
+- One-time move: `scripts/move-vectors.mjs` (look only / `--apply`), after the matcher deploy. Steps in DEPLOY.md.
+- Why: a word with 10 voices was ~100 KB of numbers no phone uses — the biggest cost for people on prepaid data.
