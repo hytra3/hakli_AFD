@@ -54,6 +54,7 @@ import smtplib
 import statistics
 from collections import Counter, defaultdict
 from email.message import EmailMessage
+from zoneinfo import ZoneInfo
 
 import functions_framework
 from google.cloud import firestore
@@ -69,6 +70,8 @@ SEARCH_ERR_MIN = 3       # failed searches within the hour (and ≥ half of them
 COOLDOWN = {"silence": dt.timedelta(hours=24)}
 COOLDOWN_DEFAULT = dt.timedelta(hours=6)
 PUBLIC_EVERY = dt.timedelta(hours=3)
+ASLEEP_MS = 20000        # a search slower than this almost always woke the matcher
+UTAH = ZoneInfo("America/Denver")
 
 _db = None
 
@@ -167,6 +170,11 @@ def tally(events):
     return c
 
 
+def nouns(n, one, many=None):
+    """'1 search', '2 searches' — the digest reads as plain English."""
+    return f"{n} {one if n == 1 else (many or one + 's')}"
+
+
 def pct(n, d):
     return f"{round(100 * n / d)}%" if d else "–"
 
@@ -184,9 +192,9 @@ def digest_text(events, errors, totals, prev_totals, alerts_sent, window_end):
             return ""
         d = totals.get(k, 0) - prev_totals.get(k, 0)
         return f" ({'+' if d >= 0 else ''}{d})" if d else ""
-    lines.append(f"Totals: {totals.get('words', 0)} words with a voice{moved('words')} · "
-                 f"{totals.get('voices', 0)} voices{moved('voices')} · "
-                 f"{totals.get('speakers', 0)} speakers{moved('speakers')}")
+    lines.append(f"Totals: {nouns(totals.get('words', 0), 'word')} with a voice{moved('words')} · "
+                 f"{nouns(totals.get('voices', 0), 'voice')}{moved('voices')} · "
+                 f"{nouns(totals.get('speakers', 0), 'speaker')}{moved('speakers')} (by speaker code)")
     lines.append("")
 
     if not events and not errors:
@@ -205,10 +213,14 @@ def digest_text(events, errors, totals, prev_totals, alerts_sent, window_end):
         if searches:
             ms = [e.get("n") for e in searches if isinstance(e.get("n"), int) and not str(e.get("v")).startswith("err.")]
             errs = sum(1 for e in searches if str(e.get("v")).startswith("err."))
+            asleep = sum(1 for n in ms if n > ASLEEP_MS)
             lines.append(f"Spoken searches: {len(searches)} — found {pct(get('search', 'here'), len(searches))}, "
                          f"'is it one of these?' {pct(get('search', 'pick'), len(searches))}, "
                          f"no match {pct(get('search', 'none'), len(searches))}, failed {pct(errs, len(searches))}"
                          + (f" · median {statistics.median(ms) / 1000:.1f} s" if ms else ""))
+            if asleep:
+                lines.append(f"  {asleep} of {nouns(len(ms), 'search', 'searches')} waited over {ASLEEP_MS // 1000} s "
+                             f"(matcher asleep — bash scripts/set-warm.sh on keeps it awake)")
         typed = get("typed", "hits") + get("typed", "none")
         if typed:
             lines.append(f"Typed searches: {typed} — {get('typed', 'none')} found nothing")
@@ -221,7 +233,7 @@ def digest_text(events, errors, totals, prev_totals, alerts_sent, window_end):
         if keeps or get("rec", "skip") or get("rec", "listen"):
             proxy = sum(1 for e in keeps if ".proxy" in str(e.get("x") or ""))
             slots = Counter(str(e.get("x") or "word").split(".")[0] for e in keeps)
-            lines.append(f"Recorder: {len(keeps)} takes kept" +
+            lines.append(f"Recorder: {nouns(len(keeps), 'take')} kept" +
                          (" (" + ", ".join(f"{s} {n}" for s, n in slots.most_common()) + ")" if keeps else "") +
                          (f", {proxy} for someone else" if proxy else "") +
                          f" · {get('rec', 'redo')} redone · {get('rec', 'skip')} 'doesn't know this word'"
@@ -257,6 +269,12 @@ def digest_text(events, errors, totals, prev_totals, alerts_sent, window_end):
     return "\n".join(lines)
 
 
+def digest_subject(now, searches, voices, errors):
+    day = now.astimezone(UTAH).strftime("%a %d %b").replace(" 0", " ")
+    return (f"Daily, {day}: {nouns(searches, 'search', 'searches')} · "
+            f"{nouns(voices, 'voice')} · {nouns(errors, 'error')}")
+
+
 def day_doc(events, errors, totals, window_start, window_end):
     c = tally(events)
     ms = [e.get("n") for e in events if e.get("ev") == "search" and isinstance(e.get("n"), int)
@@ -267,6 +285,7 @@ def day_doc(events, errors, totals, window_start, window_end):
         "counts": dict(c),
         "events": len(events),
         "searchMsMedian": int(statistics.median(ms)) if ms else None,
+        "searchesAsleep": sum(1 for n in ms if n > ASLEEP_MS),
         "errors": len(errors),
         "errorTop": [f"{n} {w} · {code}" for (w, code), n in
                      Counter((e.get("where") or "?", e.get("code") or "?") for e in errors).most_common(5)],
@@ -355,8 +374,7 @@ def run_digest(now):
     db().collection("afd_stats").document(day_id).set(day_doc(events, errors, totals, start, now))
     state_ref().set({"digestAt": now, "digestTotals": totals}, merge=True)
     searches = sum(1 for e in events if e.get("ev") == "search")
-    subject = (f"Daily: {searches} searches · {totals['voices']} voices · "
-               f"{len(errors)} error{'s' if len(errors) != 1 else ''}")
+    subject = digest_subject(now, searches, totals.get("voices", 0), len(errors))
     send_mail(subject, body)
     return body
 

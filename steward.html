@@ -1,6 +1,7 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
+<meta name="google" content="notranslate" />
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
@@ -368,10 +369,14 @@ function tallyStats(events){
   events.forEach(e => { const k = (e.ev || "?") + "|" + (e.v || ""); c[k] = (c[k] || 0) + 1; });
   const sum = (pre, not) => Object.keys(c).filter(k => k.startsWith(pre) && k !== not).reduce((a, k) => a + c[k], 0);
   const views = events.filter(e => e.ev === "view");
+  const ms = events.filter(e => e.ev === "search" && Number.isInteger(e.n) && !String(e.v || "").startsWith("err."))
+                   .map(e => e.n).sort((a, b) => a - b);
   return {
     visits: views.length, sound: views.filter(e => e.v === "sound").length,
     searches: sum("search|"), found: n("search|here"), pick: n("search|pick"), none: n("search|none"),
     failed: Object.keys(c).filter(k => k.startsWith("search|err.")).reduce((a, k) => a + c[k], 0),
+    median: ms.length ? (ms[Math.floor(ms.length / 2)] / 1000).toFixed(1) + " s" : "–",
+    asleep: ms.filter(n => n > 20000).length,
     typed: sum("typed|"), plays: sum("play|", "play|novoice"), kept: n("rec|keep"),
     added: n("add|done"), links: n("open|link"), signins: sum("signin|")
   };
@@ -391,11 +396,12 @@ async function paintStats(){
     ["stw.st.r.visits", "visits"], ["stw.st.r.sound", "sound", "visits"],
     ["stw.st.r.searches", "searches"], ["stw.st.r.found", "found", "searches"], ["stw.st.r.pick", "pick", "searches"],
     ["stw.st.r.none", "none", "searches"], ["stw.st.r.failed", "failed", "searches"],
+    ["stw.st.r.median", "median", null, true], ["stw.st.r.asleep", "asleep", "searches"],
     ["stw.st.r.typed", "typed"], ["stw.st.r.plays", "plays"], ["stw.st.r.kept", "kept"],
     ["stw.st.r.added", "added"], ["stw.st.r.links", "links"], ["stw.st.r.signins", "signins"]
   ];
   const table = `<table class="st"><thead><tr><th></th><th>${H("stw.st.day")}</th><th>${H("stw.st.week")}</th></tr></thead><tbody>` +
-    rows.map(([k, f, of]) => `<tr class="${of ? "sub" : ""}"><td>${H(k)}</td>` +
+    rows.map(([k, f, of, sub]) => `<tr class="${of || sub ? "sub" : ""}"><td>${H(k)}</td>` +
       `<td>${dayT[f]}${of ? share(dayT[f], dayT[of]) : ""}</td><td>${weekT[f]}${of ? share(weekT[f], weekT[of]) : ""}</td></tr>`).join("") +
     `</tbody></table>`;
 

@@ -939,7 +939,21 @@ window.AFDCore = (function(){
     "stw.st.field.off":     { en:"Field week off. Turn it on while speakers are recording, to hear if the app goes quiet.", ar:"الأسبوع الميدانيّ متوقّف. فعّله أثناء التسجيل لتعرف إن سكت التطبيق." },
     "stw.st.field.start":   { en:"Field week: 14 days", ar:"أسبوع ميدانيّ: ١٤ يومًا" },
     "stw.st.field.end":     { en:"End the field week", ar:"أنهِ الأسبوع الميدانيّ" },
-    "stw.st.note":          { en:"Counts only: no names, accounts or words. Raw counts are kept 90 days; the daily totals stay.", ar:"أعدادٌ فقط: لا أسماء ولا حسابات ولا كلمات. تُحفظ الأعداد الخام ٩٠ يومًا، وتبقى المجاميع اليوميّة." }
+    "stw.st.note":          { en:"Counts only: no names, accounts or words. Speakers are counted by speaker code, so several people recorded from one account count separately. Raw counts are kept 90 days; the daily totals stay.", ar:"أعدادٌ فقط: لا أسماء ولا حسابات ولا كلمات. يُعَدّ المتحدّثون برمز المتحدّث، فمن سُجّلوا من حسابٍ واحد يُعَدّون كلٌّ على حدة. تُحفظ الأعداد الخام ٩٠ يومًا، وتبقى المجاميع اليوميّة." },
+    // the counter's nouns by number (10-19): 1 · 2 · 3–10 — Arabic needs all three;
+    // 11 and up (and 0) take the forms above
+    "help.count.words.one":    { en:"word",    ar:"كلمة" },
+    "help.count.words.two":    { en:"words",   ar:"كلمتان" },
+    "help.count.words.few":    { en:"words",   ar:"كلمات" },
+    "help.count.voices.one":   { en:"voice",   ar:"صوت" },
+    "help.count.voices.two":   { en:"voices",  ar:"صوتان" },
+    "help.count.voices.few":   { en:"voices",  ar:"أصوات" },
+    "help.count.speakers.one": { en:"speaker", ar:"متحدّث" },
+    "help.count.speakers.two": { en:"speakers", ar:"متحدّثان" },
+    "help.count.speakers.few": { en:"speakers", ar:"متحدّثين" },
+    // 10-19: the Stats tab's search time
+    "stw.st.r.median":      { en:"… median time", ar:"… الوقت الوسيط" },
+    "stw.st.r.asleep":      { en:"… waited over 20 s (matcher asleep)", ar:"… انتظرت أكثر من ٢٠ ثانية (المطابِق نائم)" }
   };
   function t(key, mode){
     const s = STRINGS[key];

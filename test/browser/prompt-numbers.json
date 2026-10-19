@@ -714,6 +714,17 @@
   "A11.172": "screen:stw.st.field.off",
   "A11.173": "screen:stw.st.field.start",
   "A11.174": "screen:stw.st.field.end",
-  "A11.175": "screen:stw.st.note"
+  "A11.175": "screen:stw.st.note",
+  "A11.176": "screen:help.count.words.one",
+  "A11.177": "screen:help.count.words.two",
+  "A11.178": "screen:help.count.words.few",
+  "A11.179": "screen:help.count.voices.one",
+  "A11.180": "screen:help.count.voices.two",
+  "A11.181": "screen:help.count.voices.few",
+  "A11.182": "screen:help.count.speakers.one",
+  "A11.183": "screen:help.count.speakers.two",
+  "A11.184": "screen:help.count.speakers.few",
+  "A11.185": "screen:stw.st.r.median",
+  "A11.186": "screen:stw.st.r.asleep"
  }
 }

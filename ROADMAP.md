@@ -517,6 +517,14 @@ can't see what matters here (did a search find the word?). Instead the error log
 - **✅ Help shows "The dictionary so far"** (words · voices · speakers; hidden until
   there are totals) and a fifth question, *Does the app keep track of me?* — it counts
   taps and searches, never who. Strings A11.135–140 (Help), A11.141–175 (Stats tab).
+- **✅ Polish (10-19):** Help's counter uses Arabic-Indic digits in Arabic (١٧ · ٣٢) and the
+  noun Arabic needs for each number (1 · 2 dual · 3–10 plural · 0 and 11+ singular; English
+  1 / other; A11.176–184). The digest reads "1 search / 1 speaker", its subject carries the
+  Utah date ("Daily, Mon 19 Oct: …"), and it says how many searches **waited over 20 s**
+  (matcher asleep) — the number to watch when deciding on `set-warm.sh`; the Stats tab
+  shows that and the median search time (A11.185–186). Speakers are counted by **speaker
+  code**, not account (several people recorded from one account count separately) — the
+  digest and Stats note say so. Steward and prompts pages tell Chrome not to translate them.
 
 ## Field-ready: no signal, no browser boxes (2026-10-17)
 
