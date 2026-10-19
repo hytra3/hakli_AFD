@@ -47,12 +47,15 @@ export function plain(v){
   return v;
 }
 
-/** A recording as it goes into the package (vectors dropped, model kept). */
+/** A recording as it goes into the package (vectors dropped, model kept).
+ *  Since 10-19 the vectors live apart (afd_vectors) and the recording carries
+ *  repSpans [{start, end}]; a take embedded before then has them in `reps`. */
 export function recordingRecord(id, entryId, d){
-  const { embedding, reps, ...rest } = d;
+  const { embedding, reps, repSpans, ...rest } = d;
   const r = { recordingId: id, entryId, ...plain(rest) };
-  if(embedding || reps) r.embeddingModel = { model: d.embedModel, layer: d.embedLayer, pooling: d.embedPooling,
-                                             nReps: d.nReps, repOffsets: (reps || []).map(x => [x.start, x.end]) };
+  const spans = (reps && reps.length ? reps : repSpans) || [];
+  if(embedding || reps || d.embedModel) r.embeddingModel = { model: d.embedModel, layer: d.embedLayer, pooling: d.embedPooling,
+                                             nReps: d.nReps, repOffsets: spans.map(x => [x.start, x.end]) };
   delete r.embedModel; delete r.embedLayer; delete r.embedPooling;
   return r;
 }

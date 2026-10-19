@@ -114,14 +114,28 @@ def on_finalize(cloud_event):
     offsets = r.get("rep_offsets") or [[None, None]] * len(vectors)
     reps = [{"start": s, "end": e, "vector": v} for (s, e), v in zip(offsets, vectors)]
 
+    # The vectors live APART from the recording (10-19): afd_vectors/{recordingId},
+    # which no client may read (rules). A recording doc is world-readable and
+    # every phone that opens the word downloads it — with 1024 numbers per rep on
+    # it, that was most of each download, for numbers no phone uses. The
+    # recording keeps only the small QC fields and where each rep falls
+    # (repSpans: maps, since Firestore forbids nested arrays).
+    _db.document(f"afd_vectors/{recording_id}").set(
+        {"recordingId": recording_id, "entryId": entry_id,
+         "embedding": embedding, "reps": reps,
+         "model": "mms-300m", "layer": 12, "pooling": "voiced-per-rep",
+         "at": firestore.SERVER_TIMESTAMP},
+    )
     # update(), never set(): it only ever adds to a doc the recorder created.
+    # A take embedded before 10-19 (vectors on the doc) loses them here as it
+    # is re-embedded; scripts/move-vectors.mjs moves the rest in one go.
     ref.update(
         {"sha256": sha256,
-         "embedding": embedding,
-         "reps": reps,
          "nReps": r.get("n_reps"),
          "repDistance": r.get("rep_distance"),
-         "embedModel": "mms-300m", "embedLayer": 12, "embedPooling": "voiced-per-rep"},
+         "repSpans": [{"start": s, "end": e} for (s, e) in offsets],
+         "embedModel": "mms-300m", "embedLayer": 12, "embedPooling": "voiced-per-rep",
+         "embedding": firestore.DELETE_FIELD, "reps": firestore.DELETE_FIELD},
     )
     print(f"embedded {entry_id}/{recording_id}  dim={len(embedding)} "
           f"n_reps={r.get('n_reps')} rep_distance={r.get('rep_distance')}")

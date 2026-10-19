@@ -34,7 +34,8 @@ def _stub_modules():
     google = mod("google")
     cloud = mod("google.cloud")
     google.cloud = cloud
-    cloud.firestore = mod("google.cloud.firestore", Client=mock.MagicMock, SERVER_TIMESTAMP="<server-time>")
+    cloud.firestore = mod("google.cloud.firestore", Client=mock.MagicMock, SERVER_TIMESTAMP="<server-time>",
+                          DELETE_FIELD="<delete-field>")
     cloud.storage = mod("google.cloud.storage", Client=mock.MagicMock)
     mod("google.cloud.firestore_v1")
     mod("google.cloud.firestore_v1.base_query", FieldFilter=lambda *a: a)
@@ -132,6 +133,7 @@ class PurgeRun(unittest.TestCase):
             db.collection.return_value.stream.return_value = [entry]
             gcs.bucket.return_value = bucket
             purge.purge(None)
+        self._db = db
         return bucket
 
     def test_forged_path_deletes_nothing(self):
@@ -156,6 +158,12 @@ class PurgeRun(unittest.TestCase):
         bucket.blob.return_value.delete.side_effect = sys.modules["google.api_core.exceptions"].NotFound()
         self._run([snap], bucket)
         snap.reference.delete.assert_called_once()
+
+    def test_erased_takes_vectors_go_too(self):
+        ok = self._snap("rec1", {"uid": "uA", "consent": "deleted", "storagePath": "afd/uA/rec1.webm"})
+        self._run([ok])
+        self._db.document.assert_called_with("afd_vectors/rec1")
+        self._db.document.return_value.delete.assert_called_once()
 
     def test_own_path_is_purged(self):
         ok = self._snap("rec1", {"uid": "uA", "consent": "deleted",
@@ -244,14 +252,26 @@ class EmbedTrigger(unittest.TestCase):
             ref = db.document.return_value
             ref.get.return_value = snap
             trigger.on_finalize(self._event(name))
+        self._db = db
         return ref, post
 
-    def test_writes_embedding_onto_own_doc_with_update(self):
+    def test_vectors_go_apart_and_the_recording_keeps_only_small_fields(self):
         ref, post = self._run({"uid": "uA", "storagePath": self.NAME})
         post.assert_called_once()
+        paths = [c[0][0] for c in self._db.document.call_args_list]
+        self.assertIn("afd_vectors/rec1", paths)
+        # the vector doc: written with set() (the service's own collection)
+        vec = ref.set.call_args[0][0]
+        self.assertEqual(vec["embedding"], [1.0, 0.0])
+        self.assertEqual(vec["reps"], [{"start": 0.1, "end": 0.5, "vector": [1.0, 0.0]}])
+        self.assertEqual((vec["recordingId"], vec["entryId"]), ("rec1", "ent_sun"))
+        # the recording: update() only, no vectors left on it, the spans kept
         ref.update.assert_called_once()
-        ref.set.assert_not_called()
-        self.assertEqual(ref.update.call_args[0][0]["embedding"], [1.0, 0.0])
+        up = ref.update.call_args[0][0]
+        self.assertEqual(up["embedding"], "<delete-field>")
+        self.assertEqual(up["reps"], "<delete-field>")
+        self.assertEqual(up["repSpans"], [{"start": 0.1, "end": 0.5}])
+        self.assertEqual(up["nReps"], 1)
         # fixity for the export manifest: sha256 of the stored bytes
         self.assertEqual(ref.update.call_args[0][0]["sha256"],
                          hashlib.sha256(b"audio").hexdigest())
@@ -326,6 +346,23 @@ class SearchCorpus(unittest.TestCase):
         self.assertEqual(c.entry_ids, ["ent_public"])
         hits = c.search(service.np.array([1.0, 0.0], dtype=service.np.float32))
         self.assertEqual([h["entryId"] for h in hits], ["ent_public"])
+
+    def test_vectors_kept_apart_are_matched_by_recording_id(self):
+        # the recording says public + which word; afd_vectors says what it sounds like
+        rec = mock.MagicMock(); rec.id = "r1"
+        rec.to_dict.return_value = {"entryId": "ent_sun", "gloss": "sun", "consent": "public", "allowPlayback": True}
+        hidden = mock.MagicMock(); hidden.id = "r2"
+        hidden.to_dict.return_value = {"entryId": "ent_moon", "gloss": "moon", "consent": "withdrawn", "allowPlayback": False}
+        v1 = mock.MagicMock(); v1.id = "r1"; v1.to_dict.return_value = {"reps": [{"vector": [1.0, 0.0]}]}
+        v2 = mock.MagicMock(); v2.id = "r2"; v2.to_dict.return_value = {"reps": [{"vector": [0.0, 1.0]}]}
+        firestore = sys.modules["google.cloud.firestore"]
+        with mock.patch.object(firestore, "Client") as client:
+            client.return_value.collection.return_value.stream.return_value = [v1, v2]
+            client.return_value.collection_group.return_value.stream.return_value = [rec, hidden]
+            c = service.Corpus()
+            c.load_from_firestore()
+        self.assertEqual(c.entry_ids, ["ent_sun"])            # the withdrawn one's vectors are never used
+        client.return_value.collection.assert_called_with("afd_vectors")
 
     def test_cache_goes_stale(self):
         c = service.Corpus()

@@ -175,6 +175,11 @@ def purge(cloud_event):
                 ref.delete()
                 purged += 1
                 print(f"purged {ref.path}  storage={path}")
+                # its search vectors, kept apart since 10-19 (afd_vectors/{id})
+                try:
+                    _db.document(f"afd_vectors/{snap.id}").delete()
+                except Exception as e:
+                    print(f"vectors delete failed afd_vectors/{snap.id}: {e}")
             except Exception as e:
                 errors += 1
                 print(f"doc delete failed {ref.path}: {e}")

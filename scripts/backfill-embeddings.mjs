@@ -51,8 +51,12 @@ const bucket = getStorage().bucket();
 console.log(`${tag}backfill-embeddings · project=${PROJECT_ID} bucket=${BUCKET}`);
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const hasVector = (d) => (Array.isArray(d.reps) && d.reps.some((r) => r && Array.isArray(r.vector) && r.vector.length))
+const vecOK = (d) => (Array.isArray(d.reps) && d.reps.some((r) => r && Array.isArray(r.vector) && r.vector.length))
                       || (Array.isArray(d.embedding) && d.embedding.length > 0);
+// Since 10-19 a take's vectors live in afd_vectors/{recordingId}; older takes
+// may still carry them on the recording doc (until scripts/move-vectors.mjs).
+const apart = new Set((await db.collection("afd_vectors").get()).docs.filter((s) => vecOK(s.data() || {})).map((s) => s.id));
+const hasVector = (d, id) => apart.has(id) || vecOK(d);
 const counts = { docs: 0, embedded: 0, missing: 0, refired: 0, skipped: 0 };
 
 const snaps = await db.collectionGroup("recordings").get();
@@ -61,7 +65,7 @@ for (const snap of snaps.docs) {
   if (!entryRef || entryRef.parent.id !== "afd_entries") continue;
   counts.docs++;
   const d = snap.data() || {};
-  if (hasVector(d)) { counts.embedded++; continue; }
+  if (hasVector(d, snap.id)) { counts.embedded++; continue; }
   if (!d.storagePath) continue;                            // no audio, nothing to embed
   counts.missing++;
   const where = snap.ref.path;
