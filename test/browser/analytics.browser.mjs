@@ -16,7 +16,10 @@ const HIT = { status:200, body:{ results:[{ entryId:"ent_camel", gloss:"camel", 
 
 await scenario("Help: the counter stays hidden until there are totals; opening is counted", async ()=>{
   const { page, state, ctx } = await newPage(browser, srv.url, { init:SOUND });
-  await page.goto(srv.url + "/help.html"); await page.waitForTimeout(900);
+  await page.goto(srv.url + "/help.html");
+  await page.waitForFunction(()=> Object.entries(globalThis.__FS||{}).some(([k,v])=> k.startsWith("afd_events/") && v.ev==="help" && v.v==="open"), null, { timeout:15000 });
+  await page.waitForFunction(()=> (globalThis.__FSLOG||[]).some(l=> l.indexOf("afd_stats/public") >= 0), null, { timeout:15000 });
+  await page.waitForTimeout(300);
   ok("no afd_stats/public → no counter (never a row of zeros)", await page.evaluate(()=> document.getElementById("count").hidden));
   ok("five questions now, the fifth says what is counted",
      await page.evaluate(()=> document.querySelectorAll("#faq details").length) === 5 &&
@@ -38,22 +41,26 @@ await scenario("Help: the counter shows the public totals — Arabic digits, the
     l: ["lWords","lVoices","lSpeakers"].map(id=>document.getElementById(id).textContent),
     h: document.getElementById("countH").textContent }));
   const { page, state, ctx } = await newPage(browser, srv.url, { fs:{ "afd_stats/public": { words:312, voices:1040, speakers:41 } } });
-  await page.goto(srv.url + "/help.html"); await page.waitForTimeout(900);
+  await page.goto(srv.url + "/help.html");
+  await page.waitForFunction(()=> !document.getElementById("count").hidden, null, { timeout:15000 });
   const a = await read(page);
   await shot(page, "help-counter");
   ok("Arabic: Arabic-Indic digits, singular after 11+, under 'The dictionary so far'",
      a.shown && a.n.join("|") === "٣١٢|١٬٠٤٠|٤١" && a.l.join("|") === "كلمة|صوت|متحدّث" && a.h === "القاموس حتى الآن", JSON.stringify(a));
-  await page.click('#toggle button[data-m="en"]'); await page.waitForTimeout(200);
+  await page.click('#toggle button[data-m="en"]');
+  await page.waitForFunction(()=> document.getElementById("lWords").textContent === "words", null, { timeout:15000 });
   const e = await read(page);
   ok("English: Western digits and plurals", e.n.join("|") === "312|1,040|41" && e.l.join("|") === "words|voices|speakers", JSON.stringify(e));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
   await ctx.close();
   // 1 · 2 · 3–10 take their own forms
   const t = await newPage(browser, srv.url, { fs:{ "afd_stats/public": { words:1, voices:2, speakers:7 } } });
-  await t.page.goto(srv.url + "/help.html"); await t.page.waitForTimeout(900);
+  await t.page.goto(srv.url + "/help.html");
+  await t.page.waitForFunction(()=> !document.getElementById("count").hidden, null, { timeout:15000 });
   const s = await read(t.page);
   ok("Arabic: 1 كلمة · 2 صوتان (dual) · 7 متحدّثين (3–10 plural)", s.n.join("|") === "١|٢|٧" && s.l.join("|") === "كلمة|صوتان|متحدّثين", JSON.stringify(s));
-  await t.page.click('#toggle button[data-m="en"]'); await t.page.waitForTimeout(200);
+  await t.page.click('#toggle button[data-m="en"]');
+  await t.page.waitForFunction(()=> document.getElementById("lWords").textContent === "word", null, { timeout:15000 });
   const se = await read(t.page);
   ok("English: '1 word', '2 voices', '7 speakers'", se.l.join("|") === "word|voices|speakers", JSON.stringify(se));
   await t.ctx.close();
@@ -66,12 +73,13 @@ await scenario("Dictionary: a search is counted with how it came out, never the 
   await page.waitForTimeout(300);
   await hold(page);
   await page.waitForFunction(()=> /Here it is|Did you mean/.test(document.getElementById("hint").innerText), null, { timeout:15000 });
-  await page.waitForTimeout(300);
+  await page.waitForFunction(()=> Object.entries(globalThis.__FS||{}).some(([k,v])=> k.startsWith("afd_events/") && v.ev==="search"), null, { timeout:15000 }).catch(()=>{});
   const ev = await events(page), s = ev.filter(e=>e.ev==="search");
   ok("one search|here, with how long it took", s.length===1 && s[0].v==="here" && Number.isInteger(s[0].n), JSON.stringify(s));
   ok("the view was counted first, in picture mode", ev[0] && ev[0].ev==="view" && ev[0].v==="auto", JSON.stringify(ev[0]));
   ok("no event names the word or the person", !JSON.stringify(ev).includes("camel") && !JSON.stringify(ev).includes("uCount") && thin(ev), JSON.stringify(ev));
-  await page.click("#skin"); await page.waitForTimeout(300);
+  await page.click("#skin");
+  await page.waitForFunction(()=> Object.entries(globalThis.__FS||{}).some(([k,v])=> k.startsWith("afd_events/") && v.ev==="mode"), null, { timeout:15000 }).catch(()=>{});
   ok("changing the view is counted", (await events(page)).some(e=>e.ev==="mode"));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
   await ctx.close();
@@ -129,7 +137,9 @@ await scenario("Steward → Stats: totals, use, failures, alerts and the field-w
   ok("three day-by-day charts from the digest's daily totals", v.bars === 3, String(v.bars));
   ok("what failed, grouped", /1\s*search · timeout/.test(v.errs||""), v.errs);
   ok("recent alerts listed", v.alert);
-  await page.click("#fieldBtn"); await page.waitForTimeout(400);
+  await page.click("#fieldBtn");
+  await page.waitForFunction(()=> !!(globalThis.__FS||{})["afd_ui_config/watch"], null, { timeout:15000 }).catch(()=>{});
+  await page.waitForFunction(()=> /End|أنهِ/.test((document.getElementById("fieldBtn")||{}).textContent||""), null, { timeout:15000 }).catch(()=>{});
   const fw = await page.evaluate(()=> (globalThis.__FS||{})["afd_ui_config/watch"]);
   ok("the field-week switch writes only openUntil, ~14 days out",
      fw && Object.keys(fw).join()==="openUntil" && Math.abs(fw.openUntil.ms - Date.now() - 14*864e5) < 6e4, JSON.stringify(fw));
