@@ -108,6 +108,8 @@ After publishing, **hard-refresh** the page in the browser: `Ctrl+Shift+R`
   newest first, which needs one composite index (recordings: `allowPlayback`,
   `uploadedAt` desc). After editing the file: `firebase deploy --only firestore:indexes`.
   Until an index is built, the card quietly falls back to 12 voices in no order.
+  The file also keeps the two TTL settings (`afd_client_errors` and `afd_events`
+  `expireAt`): without them, an index deploy offers to delete them — answer **No**.
   First time: `node scripts/check-uploaded-at.mjs` should report 0 takes without
   `uploadedAt` (an ordered query leaves those out).
 - **Bucket CORS** (`cors.json`) — which sites may download audio bytes (sharing a
