@@ -439,7 +439,8 @@ const EMBED_URL = window.AFDInstance.embedUrl;   // afd-instance.js
     for(let i=0;i<n;i++) view.setInt16(44+i*2, Math.round(Math.sin(i/8)*200), true); // faint, non-zero
     const fd=new FormData();
     fd.append("file", new Blob([view.buffer],{type:"audio/wav"}), "warm.wav");
-    fetch(`${EMBED_URL}/search?top_k=1`, {method:"POST", body:fd})
+    // with the App Check token too, or every page open counts as "missing" (10-20)
+    appCheckHeaders().then(headers=> fetch(`${EMBED_URL}/search?top_k=1`, {method:"POST", body:fd, headers}))
       .then(()=>console.log("[AFD] matcher pre-warmed"))
       .catch(()=>{});   // silent — a failed warm-up is not the user's problem
   }catch(_){}
