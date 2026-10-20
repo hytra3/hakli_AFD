@@ -37,6 +37,16 @@ await scenario("AC — App Check: a search carries the token", async ()=>{ const
   ok("AC the search sent X-Firebase-AppCheck", state.calls.length===1 && state.calls[0].appCheck==="ac-test-token", JSON.stringify(state.calls));
   await ctx.close(); });
 
+// AC3 — the page-open warm-up carries the token too, so the tally isn't full of false "missing"
+await scenario("AC3 — the page-open warm-up carries the token", async ()=>{
+  const t = await newPage(browser, srv.url, { matcher:()=>HIT, init:AUTO });
+  await t.page.goto(srv.url + "/index.html");
+  await t.page.waitForFunction(()=> document.querySelectorAll("#results > *").length > 3, null, { timeout:15000 });
+  await t.page.waitForTimeout(800);
+  const warm = t.state.calls.filter(c=> /top_k=1\b/.test(c.url));
+  ok("AC3 warm-up sent X-Firebase-AppCheck", warm.length===1 && warm[0].appCheck==="ac-test-token", JSON.stringify(t.state.calls));
+  await t.ctx.close(); });
+
 // AC2 — the App Check SDK can't load (offline, Google blocked): search still works, just without a token
 await scenario("AC2 — App Check SDK missing: search still works", async ()=>{
   const t = await newPage(browser, srv.url, { matcher:()=>HIT, init:AUTO });

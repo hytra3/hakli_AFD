@@ -13,7 +13,8 @@
  *  Google is blocked) carries on without it instead of failing to start.
  *  No key in afd-instance.js (appCheckKey) → does nothing at all. */
 const SDK = "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check.js";
-let ready = null, mod = null;
+let ready = null, mod = null, markStarted;
+const started = new Promise((r) => { markStarted = r; });   // a call made before startAppCheck waits for it
 const wait = (ms) => new Promise((r) => setTimeout(() => r(null), ms));
 
 export function startAppCheck(app){
@@ -27,6 +28,7 @@ export function startAppCheck(app){
     if(navigator.onLine !== false) try{ window.AFDCore && window.AFDCore.report && window.AFDCore.report("appcheck.start", e); }catch(_){}
     return null;
   });
+  markStarted(ready);
   return ready;
 }
 
@@ -36,7 +38,8 @@ export function startAppCheck(app){
 export function appCheckHeaders(){
   const get = (async () => {
     try{
-      const ac = ready && await ready;
+      if(!(window.AFDInstance && window.AFDInstance.appCheckKey)) return {};
+      const ac = await (ready || started);
       if(!ac || !mod) return {};
       const t = await mod.getToken(ac, false);
       return t && t.token ? { "X-Firebase-AppCheck": t.token } : {};
