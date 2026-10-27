@@ -171,5 +171,61 @@ await scenario("steward: the report is listed, cleared, and a note goes back", a
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 
+await scenario("a spoken reason on its own: shown as recorded, opens Send, goes as 'something else'", async ()=>{
+  const FS = {
+    "afd_entries/ent_sun": { gloss:"sun" },
+    "afd_entries/ent_sun/recordings/rA": take("rA", "uOther"),
+  };
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:ME, init });
+  await page.goto(srv.url + "/index.html#ent_sun");
+  await page.waitForSelector(".solo-voice .vr-flag", { timeout:10000 });
+  await page.click(".solo-voice .vr-flag");
+  await page.waitForSelector(".afd-flag .fl-say .fl-btn", { timeout:5000 });
+  const look = () => page.evaluate(() => {
+    const p = document.querySelector(".afd-flag .fl-play"), st = document.querySelector(".afd-flag .fl-status");
+    return { playShown: !!p && getComputedStyle(p).display !== "none", status: st ? st.innerText : "",
+             send: !document.querySelector(".afd-flag .fl-go").disabled,
+             btn: document.querySelector(".afd-flag .fl-say .fl-btn").innerText };
+  });
+  const before = await look();
+  ok("before recording: no ▶, Send closed", !before.playShown && !before.send, JSON.stringify(before));
+  await page.click(".afd-flag .fl-say .fl-btn");
+  await page.waitForTimeout(1600);
+  const during = await look();
+  ok("while recording: Stop with a seconds count, no ▶", /Stop/.test(during.btn) && /\ds/.test(during.btn) && !during.playShown, JSON.stringify(during));
+  await page.click(".afd-flag .fl-say .fl-btn");
+  await page.waitForTimeout(500);
+  const after = await look();
+  if(SHOTS) await page.screenshot({ path: SHOTS + "/report-recorded.png" });
+  ok("after: says it's recorded, ▶ to hear it, Send open", /Recorded/.test(after.status) && after.playShown && after.send, JSON.stringify(after));
+  await page.click(".afd-flag .fl-go");
+  await page.waitForSelector(".afd-flag", { state:"detached", timeout:5000 });
+  const fs = await fsOf(page);
+  const f = fs["afd_flags/ent_sun~rA~uTest1"];
+  ok("sent as 'something else', with the spoken reason", !!f && f.reason === "other" && !!f.audioPath, JSON.stringify(f));
+  ok("and the voice is held", !!fs["afd_entries/ent_sun/recordings/rA"].heldAt);
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+});
+
+await scenario("Send while still recording keeps the note", async ()=>{
+  const FS = {
+    "afd_entries/ent_sun": { gloss:"sun" },
+    "afd_entries/ent_sun/recordings/rA": take("rA", "uOther"),
+  };
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:ME, init });
+  await page.goto(srv.url + "/index.html#ent_sun");
+  await page.waitForSelector(".solo-voice .vr-flag", { timeout:10000 });
+  await page.click(".solo-voice .vr-flag");
+  await page.waitForSelector(".afd-flag .fl-tile", { timeout:5000 });
+  await page.click('.afd-flag .fl-tile[data-r="wrong"]');
+  await page.click(".afd-flag .fl-say .fl-btn");
+  await page.waitForTimeout(1200);
+  await page.click(".afd-flag .fl-go");                 // never pressed Stop
+  await page.waitForSelector(".afd-flag", { state:"detached", timeout:5000 });
+  const f = (await fsOf(page))["afd_flags/ent_sun~rA~uTest1"];
+  ok("the note still went with the report", !!f && f.reason === "wrong" && !!f.audioPath, JSON.stringify(f));
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+});
+
 await browser.close(); srv.close();
 finish();

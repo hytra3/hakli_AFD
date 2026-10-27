@@ -793,6 +793,9 @@
   "A11.247": "screen:stw.notify.sent",
   "A11.248": "screen:stw.notify.need",
   "A11.249": "screen:stw.notify.hint",
-  "A11.250": "screen:stw.err.nomic"
+  "A11.250": "screen:stw.err.nomic",
+  "A11.251": "screen:flag.say.done",
+  "A11.252": "screen:stw.notify.done",
+  "A11.253": "screen:flag.say.empty"
  }
 }
