@@ -127,6 +127,12 @@
   .compose .say .fl-btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:8px 12px; font-size:14px; cursor:pointer}
   .compose .say .fl-btn.rec{background:var(--stop-bg); border-color:var(--stop); color:var(--stop)}
   .compose .say .fl-note{font-size:12px; color:var(--muted); margin:0}
+  .compose .say .fl-btn[hidden]{display:none}
+  .compose .say .fl-secs{font-variant-numeric:tabular-nums; font-weight:600; margin-inline-start:4px}
+  .compose .say .fl-status{flex-basis:100%; font-size:13px}
+  .compose .say .fl-status:empty{display:none}
+  .compose .say .fl-status.ok{color:var(--go); font-weight:600}
+  .compose .say .fl-status.warn{color:var(--stop)}
   .compose textarea{width:100%; font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-top:10px; min-height:60px; resize:vertical}
   .sent{font-size:12px; color:var(--go); margin-top:6px}
   .cov h3{font-size:14px; margin:16px 0 6px}
@@ -730,12 +736,11 @@ function composer(g, to){
   box.querySelectorAll(".pick").forEach(b => b.onclick = () => {
     reason = b.dataset.r; box.querySelectorAll(".pick").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   });
-  const note = voiceNote(box.querySelector(".say"), k => H(k),
-    { say: "stw.notify.say", stop: "stw.notify.stop", again: "stw.notify.again", nomic: "stw.err.nomic" }, 120000);
+  const note = voiceNote(box.querySelector(".say"), (k, v) => H(k, v),
+    { say: "stw.notify.say", stop: "stw.notify.stop", again: "stw.notify.again", nomic: "stw.err.nomic", done: "stw.notify.done" }, 120000);
   const send = box.querySelector(".send");
   send.onclick = async () => {
-    note.stop();
-    await new Promise(r => setTimeout(r, 300));          // let a just-stopped recording finish
+    await note.stop();                                   // a note still recording is finished first
     const blob = note.blob(), text = box.querySelector("textarea").value.trim().slice(0, 300);
     if(!blob && !text){ say("msg", "stw.notify.need"); return; }
     send.disabled = true; say("msg", "tools.saving");

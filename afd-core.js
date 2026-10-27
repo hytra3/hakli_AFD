@@ -1024,7 +1024,10 @@ window.AFDCore = (function(){
     "stw.notify.sent":      { en:"Note sent ✓",        ar:"أُرسلت الرسالة ✓" },
     "stw.notify.need":      { en:"Record a note or write one first.", ar:"سجّل رسالة أو اكتبها أولًا." },
     "stw.notify.hint":      { en:"They'll see it the next time they open the dictionary, in case it wasn't deliberate.", ar:"سيرونها في المرة القادمة التي يفتحون فيها القاموس، في حال لم يكن ذلك مقصودًا." },
-    "stw.err.nomic":        { en:"The microphone isn't available here.", ar:"الميكروفون غير متاح هنا." }
+    "stw.err.nomic":        { en:"The microphone isn't available here.", ar:"الميكروفون غير متاح هنا." },
+    "flag.say.done":        { en:"✓ Recorded ({s}s) — it will be sent with the report", ar:"✓ سُجِّل ({s} ث) — سيُرسَل مع البلاغ" },
+    "stw.notify.done":      { en:"✓ Recorded ({s}s)", ar:"✓ سُجِّل ({s} ث)" },
+    "flag.say.empty":       { en:"No sound came through — try again.", ar:"لم يصل أي صوت — حاول مجددًا." }
   };
   function t(key, mode){
     const s = STRINGS[key];

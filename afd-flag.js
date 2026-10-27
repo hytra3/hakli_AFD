@@ -60,6 +60,12 @@ const CSS = `
   font:inherit;font-size:15px;font-weight:600;cursor:pointer}
 .afd-flag .fl-btn.rec{background:var(--danger,var(--alert,#9E4433));border-color:transparent;color:#fff}
 .afd-flag .fl-btn .sub{color:inherit;opacity:.85}
+.afd-flag .fl-btn[hidden]{display:none}
+.afd-flag .fl-secs{font-variant-numeric:tabular-nums;font-weight:600;margin-inline-start:4px}
+.afd-flag .fl-status{flex-basis:100%;font-size:14px;line-height:1.4;min-height:0}
+.afd-flag .fl-status:empty{display:none}
+.afd-flag .fl-status.ok{color:var(--monsoon,#2F6B4F);font-weight:600}
+.afd-flag .fl-status.warn{color:var(--danger,#9E4433)}
 .afd-flag .fl-note{margin:14px 0 0;font-size:13px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
 .afd-flag .fl-btns{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 .afd-flag .fl-go{min-height:60px;border:0;border-radius:18px;background:var(--mountain,#1F3A34);color:#fff;
@@ -81,53 +87,77 @@ function addCss(){
 }
 // a label in the display mode: the pictogram alone in sound mode, Arabic
 // (English beneath in auto) otherwise
-function lab(key, mode, withIcon){
+function lab(key, mode, withIcon, vars){
   const s = (C().STRINGS || {})[key] || {};
-  if(mode === "sound") return esc(s.icon || s.ar || key);
+  const fill = (t) => String(t).replace(/\{(\w+)\}/g, (m0, k) => (vars && k in vars) ? String(vars[k]) : m0);
+  if(mode === "sound") return esc(s.icon || fill(s.ar || key));
   const ic = withIcon && s.icon ? esc(s.icon) + " " : "";
-  let h = `<span dir="rtl">${ic}${esc(s.ar || s.en || key)}</span>`;
-  if(mode === "auto" && s.en && s.en !== s.ar) h += `<small class="sub">${esc(s.en)}</small>`;
+  let h = `<span dir="rtl">${ic}${esc(fill(s.ar || s.en || key))}</span>`;
+  if(mode === "auto" && s.en && s.en !== s.ar) h += `<small class="sub">${esc(fill(s.en))}</small>`;
   return h;
 }
 
 /* ---- a short spoken note: tap to start, tap to stop, hear it, again --------
    Used by the report sheet here and by the steward's note in steward.html.
-   label(key) → HTML for a button. Stops by itself after maxMs. */
-export function voiceNote(host, label, keys, maxMs){
-  keys = Object.assign({ say:"flag.say", stop:"flag.say.stop", again:"flag.say.again", nomic:"flag.say.nomic" }, keys || {});
+   label(key, vars) → HTML for a button. Stops by itself after maxMs.
+   While recording the button counts the seconds; once stopped, a line says
+   "✓ recorded (Ns)" beside ▶, so it's plain the note is kept. onChange(hasNote)
+   lets the sheet enable Send. stop() resolves once the note is ready. */
+export function voiceNote(host, label, keys, maxMs, onChange){
+  keys = Object.assign({ say:"flag.say", stop:"flag.say.stop", again:"flag.say.again", nomic:"flag.say.nomic",
+                         done:"flag.say.done", empty:"flag.say.empty" }, keys || {});
   maxMs = maxMs || 60000;
-  let blob = null, rec = null, stream = null, timer = null, url = null, audio = null;
+  let blob = null, rec = null, stream = null, timer = null, tick = null, url = null, audio = null;
+  let t0 = 0, secs = 0, empty = false, stopped = null;
   host.innerHTML = "";
   const go = document.createElement("button"); go.type = "button"; go.className = "fl-btn";
-  const play = document.createElement("button"); play.type = "button"; play.className = "fl-btn"; play.hidden = true;
-  play.innerHTML = "▶"; play.setAttribute("aria-label", "▶");
-  host.appendChild(go); host.appendChild(play);
+  const play = document.createElement("button"); play.type = "button"; play.className = "fl-btn fl-play"; play.hidden = true;
+  play.innerHTML = "\u25B6"; play.setAttribute("aria-label", "\u25B6");
+  const status = document.createElement("span"); status.className = "fl-status"; status.setAttribute("role", "status");
+  host.appendChild(go); host.appendChild(play); host.appendChild(status);
   const paint = () => {
-    const recording = rec && rec.state === "recording";
-    go.classList.toggle("rec", !!recording);
-    go.innerHTML = label(recording ? keys.stop : blob ? keys.again : keys.say);
-    play.hidden = !blob || !!recording;
+    const recording = !!(rec && rec.state === "recording");
+    go.classList.toggle("rec", recording);
+    go.innerHTML = label(recording ? keys.stop : blob ? keys.again : keys.say) +
+      (recording ? ` <span class="fl-secs">${Math.floor((Date.now() - t0) / 1000)}s</span>` : "");
+    play.hidden = !blob || recording;
+    status.className = "fl-status" + (blob && !recording ? " ok" : empty && !recording ? " warn" : "");
+    status.innerHTML = recording ? "" : blob ? label(keys.done, { s: secs }) : empty ? label(keys.empty) : "";
   };
   const release = () => { try{ stream && stream.getTracks().forEach(t => t.stop()); }catch(_){} stream = null; };
-  const stop = () => { clearTimeout(timer); if(rec && rec.state === "recording") rec.stop(); };
+  // resolves when the recording (if any) has finished turning into a note
+  const stop = () => {
+    clearTimeout(timer); clearInterval(tick);
+    if(rec && rec.state === "recording"){ rec.stop(); return stopped || Promise.resolve(); }
+    return stopped || Promise.resolve();
+  };
   go.onclick = async () => {
     if(rec && rec.state === "recording"){ stop(); return; }
     try{
+      try{ audio && audio.pause(); }catch(_){}
       stream = C().openStream ? (await C().openStream()).stream : await navigator.mediaDevices.getUserMedia({ audio:true });
       const chunks = [];
       rec = new MediaRecorder(stream);
+      let done; stopped = new Promise(r => { done = r; });
       rec.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
       rec.onstop = () => {
         release();
+        secs = Math.max(1, Math.round((Date.now() - t0) / 1000));
         const b = new Blob(chunks, { type: (chunks[0] && chunks[0].type) || rec.mimeType || "audio/webm" });
-        blob = b.size > 800 ? b : null;
+        if(b.size > 0){ blob = b; empty = false; }
+        else { blob = null; empty = true; console.warn("[AFD] spoken note: no audio came through", rec.mimeType, chunks.length); }
         if(url){ URL.revokeObjectURL(url); url = null; }
-        paint();
+        paint(); if(onChange) onChange(!!blob); done();
       };
+      rec.onerror = (e) => { console.warn("[AFD] spoken note", e && e.error); };
+      blob = null; empty = false; if(onChange) onChange(false);
+      t0 = Date.now();
       rec.start(250);
       timer = setTimeout(stop, maxMs);
+      tick = setInterval(paint, 500);
       paint();
     }catch(e){
+      console.warn("[AFD] spoken note: no microphone", e);
       release(); rec = null;
       const n = document.createElement("p"); n.className = "fl-note"; n.innerHTML = label(keys.nomic);
       host.replaceChildren(n);
@@ -181,8 +211,13 @@ export async function reportSheet(o){
         <button class="fl-no" type="button">${lab("flag.cancel", m, true)}</button>
       </div></div>`;
     if(m === "sound") w.querySelectorAll(".fl-tile").forEach(b => b.setAttribute("aria-label", C().t("flag.r." + b.dataset.r, "auto")));
-    let reason = null, done = false;
-    const note = voiceNote(w.querySelector(".fl-say"), (k) => lab(k, m, true));
+    let reason = null, done = false, hasNote = false;
+    const go = w.querySelector(".fl-go");
+    // Send opens with a picture picked or a reason spoken (a spoken reason on
+    // its own goes as "something else")
+    const ready = () => { go.disabled = !(reason || hasNote); };
+    const note = voiceNote(w.querySelector(".fl-say"), (k, v) => lab(k, m, true, v), null, 60000,
+                           (has) => { hasNote = has; ready(); });
     const end = (v) => {
       if(done) return; done = true;
       note.close(); document.removeEventListener("keydown", onKey, true); w.remove(); resolve(v);
@@ -192,18 +227,17 @@ export async function reportSheet(o){
     w.addEventListener("click", (e) => { if(e.target === w) end(null); });
     w.querySelector(".fl-x").onclick = () => end(null);
     w.querySelector(".fl-no").onclick = () => end(null);
-    const go = w.querySelector(".fl-go");
     w.querySelectorAll(".fl-tile").forEach(b => b.onclick = () => {
       reason = b.dataset.r;
       w.querySelectorAll(".fl-tile").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-      go.disabled = false;
+      ready();
     });
     go.onclick = async () => {
-      if(!reason) return;
-      note.stop();
+      if(!reason && !hasNote) return;
       go.disabled = true; go.innerHTML = C().dotsHTML ? C().dotsHTML() : "…";
+      await note.stop();                               // a note still recording is finished first, not lost
       try{
-        const held = await sendReport(o, u.uid, flagId, reason, note.blob());
+        const held = await sendReport(o, u.uid, flagId, reason || "other", note.blob());
         C().notice("flag.sent", { mode:m, kind:"ok" });
         try{ C().track("flag", o.kind, { x: held ? "held" : "queued" }); }catch(_){}
         end(held ? "held" : "queued");
