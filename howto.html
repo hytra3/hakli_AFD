@@ -66,12 +66,12 @@
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
   body.en .enter{font-family:var(--en); font-style:italic}
 </style>
-<link rel="icon" href="favicon.svg?v=b1027a" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1027a" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1027a">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1027a">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1027a">
-<link rel="manifest" href="manifest.webmanifest?v=b1027a">
+<link rel="icon" href="favicon.svg?v=b1027b" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1027b" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1027b">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1027b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1027b">
+<link rel="manifest" href="manifest.webmanifest?v=b1027b">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -90,8 +90,8 @@
 </main>
 <audio id="player" preload="none"></audio>
 
-<script src="afd-core.js?v=b1027a"></script>
-<script src="afd-instance.js?v=b1027a"></script>
+<script src="afd-core.js?v=b1027b"></script>
+<script src="afd-instance.js?v=b1027b"></script>
 <script type="module">
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
@@ -132,7 +132,7 @@ function show(id, tapped){
   const seg = SEGS.find(s => s.id === id) || SEGS[0];
   try{ player.pause(); }catch(_){}
   narrate = !!tapped && voiced(seg);
-  if(cur !== seg.id){ cur = seg.id; frame.src = "hakli-welcome-walkthrough.html?v=b1027a&embed=1&scene=" + seg.id; }
+  if(cur !== seg.id){ cur = seg.id; frame.src = "hakli-welcome-walkthrough.html?v=b1027b&embed=1&scene=" + seg.id; }
   else if(narrate){ post({ type:"afd:wt-cmd", cmd:"run" }); }
   else{ post({ type:"afd:wt-cmd", cmd:"loop" }); }
   history.replaceState(null, "", "#" + seg.id);
@@ -159,7 +159,7 @@ show(location.hash.slice(1), false);
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
     import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js") ]);
   const app = initializeApp(firebaseConfig);
-  try{ (await import("./afd-appcheck.js?v=b1027a")).startAppCheck(app); }catch(_){}   // App Check (10-19)
+  try{ (await import("./afd-appcheck.js?v=b1027b")).startAppCheck(app); }catch(_){}   // App Check (10-19)
   const db = getFirestore(app), store = getStorage(app);
   const want = new Set(SEGS.flatMap(s => s.clips)), jobs = [];
   (await getDocs(collection(db, "afd_ui_prompts"))).forEach(d => { const x = d.data() || {};
