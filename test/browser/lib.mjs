@@ -108,6 +108,10 @@ export async function setDoc(ref, data, o){ LOG.push("set "+ref.path); FS[ref.pa
 export async function updateDoc(ref, data){ LOG.push("update "+ref.path); FS[ref.path] = Object.assign({}, FS[ref.path], data); }
 export async function addDoc(col, data){ const r = doc(col); FS[r.path]=data; return r; }
 export async function deleteDoc(ref){ delete FS[ref.path]; }
+// a batch applies its writes in order on commit (reports: report + hold, afd-flag.js)
+export function writeBatch(){ const ops=[]; return {
+  set(r,d,o){ ops.push(()=>setDoc(r,d,o)); return this; }, update(r,d){ ops.push(()=>updateDoc(r,d)); return this; },
+  delete(r){ ops.push(()=>deleteDoc(r)); return this; }, async commit(){ LOG.push("batch"); for(const f of ops) await f(); } }; }
 export function serverTimestamp(){ return { __ts: Date.now() }; }
 export function deleteField(){ return undefined; }
 export class Timestamp{ constructor(ms){ this.ms=ms; } toMillis(){ return this.ms; } toDate(){ return new Date(this.ms); }

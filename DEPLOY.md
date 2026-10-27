@@ -188,6 +188,23 @@ Search keeps working at every step. Purge deletes a take's vectors with it.
 
 ---
 
+## Reports, holds and steward notes (10-26)
+
+Rules first, then the site — a page that writes a report before the rules know
+about `afd_flags` just gets "couldn't send".
+
+1. Run the new rules tests (needs the emulator):
+   `firebase emulators:exec --only firestore "cd test && node --test moderation.rules.test.mjs consent.rules.test.mjs entries.rules.test.mjs"`
+2. `firebase deploy --only firestore:rules`
+3. `firebase deploy --only storage` — stewards may hear held voices; report and
+   note audio folders.
+4. `bash scripts/deploy-watch.sh` — the daily counts leave held words out.
+5. Publish the site.
+
+Steward page: hakli.app/steward.html#reports.
+
+---
+
 ## App Check — watching, then enforcing (10-19)
 
 App Check asks Google, invisibly, "is this request from the real hakli.app?" The

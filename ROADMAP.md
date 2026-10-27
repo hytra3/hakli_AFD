@@ -215,8 +215,8 @@ within each group.
     "loanword"…) can be set by the word's creator or by a steward on any word — labels,
     not a verdict: tagged words stay in the dictionary. Tags show in the text tiers only.
     An account may now read its OWN `afd_admins` doc so the app can show steward controls.
-  - Next, if wanted: "Flag this word" for anyone + a steward queue; a dictionary filter
-    by tag.
+  - Next, if wanted: a dictionary filter by tag. ("Flag this word" for anyone + a steward
+    queue: built 10-26 — see *Reports, holds and steward notes* below.)
   - **✅ Steward review view (10-07) — `steward.html`.** Not linked from the app (like
     `prompts/admin.html`); the steward signs in with the steward account. Lists
     contributed words newest first under *To review / Hidden / All*, with picture,
@@ -229,7 +229,7 @@ within each group.
     voice is touched — withdrawing stays the speaker's. Tests: 15 new cases in
     `test/entries.rules.test.mjs`. **Deploy the Firestore rules before using it.**
     Erasing every voice on a contributed word still lets the daily purge reap it (and
-    its photo) after 24h. Next, if wanted: "Flag this word" for anyone feeding this queue.
+    its photo) after 24h. (Reports feeding a steward queue: built 10-26, below.)
 
 - **Contributed words list once they can be heard (10-07).** In the dictionary, a
   word added by a contributor shows to everyone else only once it has at least one
@@ -1418,3 +1418,43 @@ below remain forward design for if/when a speaker elects wider visibility.
 - Purge deletes the vectors with the take. Export reads `repSpans`.
 - One-time move: `scripts/move-vectors.mjs` (look only / `--apply`), after the matcher deploy. Steps in DEPLOY.md.
 - Why: a word with 10 voices was ~100 KB of numbers no phone uses — the biggest cost for people on prepaid data.
+
+## Reports, holds and steward notes (2026-10-26) — decided, built; deploy pending
+
+Limiting voices and word cards from people with bad intent. **Decided (don't relitigate):**
+trust by default, hold after a report; **one report is enough** (no counting, no votes —
+flat hierarchy, and it can't be rallied against a rival family); a steward decides;
+**moderation is not consent** — withdrawal stays the speaker's own act.
+
+- **Report** (`afd-flag.js`): a quiet ⚑ beside anyone else's voice, and "Report this
+  word" under Share on any card but your own. Four pictograms (🚫 rude or hurtful ·
+  ❌ wrong word · 🙅 not my voice / no permission · ❓ something else), plus the reason
+  **spoken**, optionally. One report per person per thing: `afd_flags/{entryId}~{recordingId|card}~{uid}`.
+- **Hold**: the report and the hold go in **one batch**; the rules allow the hold only
+  when that report exists (`existsAfter`). A held voice gets `heldAt` and
+  `allowPlayback:false`, so it leaves listening, search and the counts, and afd-revoke
+  rotates any link already handed out — no new server code. A held contributed word gets
+  `heldAt` and leaves the dictionary like a hidden one. Seeded words can be reported but
+  not held. Not your own voice or word (you withdraw or remove those yourself).
+- **The speaker while held**: sees "a steward is looking at this voice"; can still
+  withdraw or erase; can't make it playable (rules: no `allowPlayback:true` while
+  `heldAt`/`modHiddenAt`).
+- **Steward** (`steward.html` → *Reports*, `#reports`): grouped per thing, every report
+  with its pictogram, who, when, and the spoken reason; play the held voice (stewards
+  may now read any take, Firestore + Storage). **Looks fine — show it** releases the hold
+  and stamps `modClearedAt` (later reports still queue but no longer hold — stops
+  re-hold harassment); it plays again only if its speaker's own consent says so.
+  **Keep it hidden** → `modHiddenAt` (voice) / `hiddenAt` (word), with **Show again**.
+  Every decision stamps `modBy`; the reports get `resolvedAt / resolution / resolvedBy`.
+- **Note to the contributor** (`afd_notices`): reason pictogram + spoken note and/or a
+  short text, to whoever recorded the voice (for a proxied elder, the agent who
+  relays it) or added the word. Shown on their next sign-in in the dictionary; OK marks
+  it seen. In case it wasn't deliberate.
+- Tests: `test/moderation.rules.test.mjs` (Firestore emulator — **not yet run**: the
+  emulator download was blocked where it was built), `test/browser/report.browser.mjs`
+  (28 checks, passing).
+- **Not built (next, if wanted):** suspending an account (block its new uploads and hide
+  its voices in one go — needs a collection-group index on `recordings.uid`); reporting
+  a written spelling (stewards can already hide one); a rate limit on reports per
+  account per day if holds get abused.
+

@@ -10,6 +10,8 @@ import { ref, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 // voices already heard, kept on the phone for playing without signal (10-19)
 import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1020a";
+// reporting a voice or a word (10-26)
+import { reportSheet } from "./afd-flag.js?v=b1020a";
 
 let CFG = { db:null, store:null, recorderUrl:"index.html",
             mode:()=>"auto", user:()=>null, banner:()=>{} };
@@ -355,7 +357,10 @@ async function listPlayable(entryId, opts){
              // listen" box was unticked, or the speaker card was closed). Its owner
              // is told plainly that only they can hear it, and offered Share — not
              // "Restore", which reads as undoing something they never did.
-             neverShared: v.consent==="public" && v.allowPlayback!==true,
+             neverShared: v.consent==="public" && v.allowPlayback!==true && !v.heldAt && !v.modHiddenAt,
+             // moderation (10-26), apart from consent: reported and waiting for
+             // a steward, hidden by one, or cleared (later reports don't hold it)
+             held: !!v.heldAt, modHidden: !!v.modHiddenAt, modCleared: !!v.modClearedAt,
              mine: !!(CFG.user() && v.uid===CFG.user().uid),
              envelope:(Array.isArray(v.envelope)&&v.envelope.length)?v.envelope:null,
              avatar: faunaAvatar(v.uid ? (v.uid+"|"+(v.speakerId||"")) : (v.speakerId||d.id)) };
@@ -506,7 +511,7 @@ async function stillNeeded(data){
   const take = (d)=>{ (d.concepts||[]).forEach(c => covered.add(String(c).replace(/^concepticon:/,"")));
                       glossKeys(d.gloss || (d.glosses && d.glosses.en) || "").forEach(k => names.add(k)); };
   (window.AFDWords||[]).forEach(w => take({ gloss:w.en }));
-  try{ (await getDocs(collection(CFG.db,"afd_entries"))).forEach(sn => { const d=sn.data()||{}; if(!d.removedAt && !d.hiddenAt) take(d); }); }catch(_){}
+  try{ (await getDocs(collection(CFG.db,"afd_entries"))).forEach(sn => { const d=sn.data()||{}; if(!d.removedAt && !d.hiddenAt && !d.heldAt) take(d); }); }catch(_){}
   return Object.entries(data.concepts).filter(([id, c]) => c.lj && c.emoji && !covered.has(id)
     && ![...glossKeys(c.gloss)].some(k => names.has(k)));
 }
@@ -723,6 +728,26 @@ function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   return b;
 }
 
+/* Report a voice (10-26) — on anyone else's voice. One report holds it at once
+   (it leaves public listening) until a steward decides; the row goes away here
+   too. Signed out, the sheet says to sign in. */
+function flagFace(rec){ return `<span style="display:grid;place-items:center;width:100%;height:100%;background:${rec.avatar.bg}">${rec.avatar.svg}</span>`; }
+function flagBtn(rec, gone){
+  const b=document.createElement("button");
+  b.type="button"; b.className="vr-flag";
+  b.textContent="\u2691";
+  b.title=AFDCore.t("flag.btn.voice", CFG.mode()==="sound" ? "auto" : CFG.mode());
+  b.setAttribute("aria-label", b.title);
+  b.addEventListener("click", async (e)=>{
+    e.stopPropagation();
+    const r = await reportSheet({ db:CFG.db, store:CFG.store, user:CFG.user, mode:CFG.mode(),
+      kind:"voice", entryId:rec.entryId, recordingId:rec.recordingId, face:flagFace(rec),
+      holdable: rec.consent!=="deleted" && !rec.held && !rec.modHidden && !rec.modCleared });
+    if(r==="held" && typeof gone==="function") gone();
+  });
+  return b;
+}
+
 function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
   const row=document.createElement("div");
   row.className="voice-row"; row.setAttribute("aria-pressed","false");
@@ -748,6 +773,12 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
   });
   row.appendChild(play);
 
+  if(!rec.mine) row.appendChild(flagBtn(rec, ()=>{
+    if(typeof onErased==="function") onErased();
+    row.style.transition="opacity .25s ease"; row.style.opacity="0";
+    setTimeout(()=>row.remove(), 250);
+  }));
+
   if(rec.mine && rec.consent!=="deleted"){
     const controls=document.createElement("div");
     controls.className="vr-controls";
@@ -763,6 +794,14 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
     const status=document.createElement("span");
     status.className="vr-status";
     const paint=()=>{
+      // Held or hidden by a steward (10-26): say so, and don't offer Share —
+      // the rules won't let it play until a steward decides. Erase stays.
+      if(rec.held || rec.modHidden){
+        row.classList.add("withdrawn"); ctl.hidden = true; status.hidden = false;
+        const k = rec.held ? "voice.held" : "voice.modhidden";
+        status.textContent = (AFDCore.STRINGS[k].icon || "") + " " + AFDCore.t(k, CFG.mode());
+        return;
+      }
       const withdrawn = rec.consent==="withdrawn";
       const fresh = withdrawn && rec.neverShared===true;     // private from the start
       row.classList.toggle("withdrawn", withdrawn);
@@ -830,7 +869,11 @@ function buildVoices(container, recs, thumbEl, playBtn, setUrl){
   const showEmpty = ()=>{ const e=container.closest(".slot")?.querySelector(".slot-empty"); if(e) e.removeAttribute("hidden"); };
 
   if(recs.length===1 && !recs[0].mine){
-    container.appendChild(voiceAvatarBtn(recs[0], thumbEl, playBtn, setUrl)); return;
+    // one voice, someone else's: the avatar, with Report beside it (10-26)
+    const solo=document.createElement("div"); solo.className="solo-voice";
+    solo.appendChild(voiceAvatarBtn(recs[0], thumbEl, playBtn, setUrl));
+    solo.appendChild(flagBtn(recs[0], ()=>{ solo.remove(); showEmpty(); }));
+    container.appendChild(solo); return;
   }
   if(recs.length===1){                       // a single voice, but it's yours → show the row to manage it
     const solo=document.createElement("div"); solo.className="voices-list";
@@ -1437,6 +1480,26 @@ async function entryCard(res, lead){
                    share.innerHTML = state==="link" ? AFDCore.tHTML("card.share.link", CFG.mode()) : shareLabel; });
     share.addEventListener("click", (e)=>{ e.stopPropagation(); onShare(); });
     detail.appendChild(share);
+    // Report this word (10-26) — anyone but its creator. A contributed word is
+    // held out of the dictionary until a steward decides; a seeded one can only
+    // be reported (the steward still hears about it).
+    const me = CFG.user();
+    if(!(me && meta.source==="user" && meta.createdBy===me.uid)){
+      const rp=document.createElement("button");
+      rp.type="button"; rp.className="sayit reportit";
+      rp.innerHTML = CFG.mode()==="sound" ? "\u2691" : "\u2691 "+biLabel("flag.btn.card");
+      rp.setAttribute("aria-label", AFDCore.t("flag.btn.card", CFG.mode()==="sound" ? "auto" : CFG.mode()));
+      rp.addEventListener("click", async (e)=>{
+        e.stopPropagation();
+        const u = CFG.user();
+        const r = await reportSheet({ db:CFG.db, store:CFG.store, user:CFG.user, mode:CFG.mode(),
+          kind:"card", entryId:res.entryId, face:thumbEl.innerHTML,
+          holdable: meta.source==="user" && !(u && meta.createdBy===u.uid)
+                    && !meta.heldAt && !meta.hiddenAt && !meta.removedAt && !meta.modClearedAt });
+        if(r==="held"){ meta.heldAt = Date.now(); el.style.transition="opacity .25s ease"; el.style.opacity="0"; setTimeout(()=>el.remove(), 250); }
+      });
+      detail.appendChild(rp);
+    }
     wordTools(res.entryId, meta, recs, el, detail, paintTags, paintFace);
     return firstPlayable;
   }
@@ -1474,11 +1537,13 @@ async function entryCard(res, lead){
   });
 
   if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
-  // removed by its creator, or hidden by a steward (steward.html): either way it
+  // removed by its creator, hidden by a steward (steward.html) or held after a
+  // report (10-26): either way it
   // stays out of the dictionary, search and old links
   // missing: Firestore answered "no such entry" and it isn't a seeded word either —
   // a mistyped or cut-off link. (No answer at all, e.g. offline, is NOT missing.)
-  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt),
+  // (10-26) held after a report: out of sight too, until a steward decides
+  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt || meta.heldAt),
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 
