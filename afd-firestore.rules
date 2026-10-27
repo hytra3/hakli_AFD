@@ -191,7 +191,36 @@ service cloud.firestore {
                && textOK('gloss') && textOK('glossAr') && picOK()
                && (!('glosses' in request.resource.data) || glossesOK(request.resource.data.glosses));
       }
-      allow update: if (isCreator()
+      //  • REPORTED (10-26) — anyone signed in who reports a contributed word
+      //    holds it out of sight until a steward looks: heldAt, set to now,
+      //    once. Only in the same batch as their own report
+      //    (afd_flags/{entryId}~card~{uid}), never on their own word, never on
+      //    one a steward already cleared (modClearedAt), hid or that was removed.
+      //    One report is enough — there is no counting (flat hierarchy).
+      //  • STEWARD DECIDES — releases the hold (heldAt can only be REMOVED by a
+      //    steward, never set or moved), and either clears the word
+      //    (modClearedAt: later reports queue it but no longer hold it) or hides
+      //    it (the existing hiddenAt, reversible). Stamped modBy. Voices on the
+      //    word are untouched: consent stays each speaker's own.
+      function stampOK(k) {
+        return !(k in request.resource.data)
+               || request.resource.data[k] == resource.data.get(k, null)
+               || request.resource.data[k] == request.time;
+      }
+      allow update: if (notAnon() && isContributed()
+                        && resource.data.get('createdBy', '') != request.auth.uid
+                        && onlyChanged(['heldAt'])
+                        && request.resource.data.heldAt == request.time
+                        && !('heldAt' in resource.data) && !('hiddenAt' in resource.data)
+                        && !('removedAt' in resource.data) && !('modClearedAt' in resource.data)
+                        && existsAfter(/databases/$(database)/documents/afd_flags/$(entryId + '~card~' + request.auth.uid)))
+                    || (isSteward() && isContributed()
+                        && onlyChanged(['heldAt','hiddenAt','modClearedAt','modBy','reviewedAt'])
+                        && request.resource.data.get('modBy', '') == request.auth.uid
+                        && (!('heldAt' in request.resource.data)
+                            || request.resource.data.heldAt == resource.data.get('heldAt', null))
+                        && stampOK('hiddenAt') && stampOK('modClearedAt') && stampOK('reviewedAt'))
+                    || (isCreator()
                         && !('removedAt' in resource.data)
                         && onlyChanged(['removedAt'])
                         && request.resource.data.removedAt == request.time)
@@ -288,8 +317,11 @@ service cloud.firestore {
 
         // Public listening = currently-public only (denormalised flag keeps this
         // a simple indexed query). A manager can always read their own.
+        // A steward reads any take, so a reported (held) voice can be heard
+        // and decided on in steward.html.
         allow read: if resource.data.allowPlayback == true
-                    || (notAnon() && isManager());
+                    || (notAnon() && isManager())
+                    || isSteward();
 
         // storagePath is trusted downstream — the purge Function deletes the
         // object it names, the embed trigger matches uploads back to this doc —
@@ -359,10 +391,28 @@ service cloud.firestore {
                           || !speakerExists(request.resource.data.speakerId)
                           || speaker(request.resource.data.speakerId).consent == 'public');
 
-        // The consent label is the only mutable thing.
-        allow update: if notAnon()
+        // Mutable: the consent label (its manager) and, apart from it, the
+        // moderation hold (10-26, below). The audio and everything else stay frozen.
+        //
+        // MODERATION is not consent. A report HOLDS a take (heldAt, and
+        // allowPlayback false so it leaves public listening, the counts, and —
+        // via afd-revoke — any link already handed out); a steward then releases
+        // it (modClearedAt) or keeps it hidden (modHiddenAt). None of this
+        // touches `consent` or `withdrawal`: withdrawal stays the speaker's own
+        // act, and a speaker may still withdraw or erase a held take. While a
+        // take is held or steward-hidden, its manager can't make it playable.
+        function modFree() {
+          return !('heldAt' in resource.data) && !('modHiddenAt' in resource.data);
+        }
+        function modStampOK(k) {
+          return !(k in request.resource.data)
+                 || request.resource.data[k] == resource.data.get(k, null)
+                 || request.resource.data[k] == request.time;
+        }
+        allow update: if (notAnon()
                       && isManager()
                       && onlyConsentChanged()
+                      && (request.resource.data.allowPlayback == false || modFree())
                       && request.resource.data.consent in ['public','withdrawn','deleted']
                       // the playback flag can never contradict the label: only a
                       // 'public' take may be playable
@@ -377,7 +427,40 @@ service cloud.firestore {
                       && withdrawalArtifactOK()
                       // ownership and speaker link can never be reassigned
                       && request.resource.data.uid == resource.data.uid
-                      && request.resource.data.speakerId == resource.data.speakerId;
+                      && request.resource.data.speakerId == resource.data.speakerId)
+                    // REPORTED — anyone signed in (not its own recorder) holds the
+                    // take, in the same batch as their report
+                    // afd_flags/{entryId}~{recordingId}~{uid}. Once; never on a
+                    // take a steward already cleared or hid, never on an erased one.
+                    || (notAnon()
+                        && resource.data.uid != request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['heldAt', 'allowPlayback'])
+                        && request.resource.data.heldAt == request.time
+                        && request.resource.data.allowPlayback == false
+                        && !('heldAt' in resource.data)
+                        && !('modHiddenAt' in resource.data)
+                        && !('modClearedAt' in resource.data)
+                        && resource.data.get('consent', '') != 'deleted'
+                        && existsAfter(/databases/$(database)/documents/afd_flags/$(entryId + '~' + recordingId + '~' + request.auth.uid)))
+                    // STEWARD DECIDES — release the hold (heldAt only ever REMOVED),
+                    // clear (modClearedAt) or hide (modHiddenAt) or show again,
+                    // stamped modBy. Playable again only if the speaker's own
+                    // consent says so: the label is public, the card is public,
+                    // and nothing still holds or hides it.
+                    || (isSteward()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['heldAt', 'modHiddenAt', 'modClearedAt', 'modBy', 'allowPlayback'])
+                        && request.resource.data.get('modBy', '') == request.auth.uid
+                        && (!('heldAt' in request.resource.data)
+                            || request.resource.data.heldAt == resource.data.get('heldAt', null))
+                        && modStampOK('modHiddenAt') && modStampOK('modClearedAt')
+                        && (request.resource.data.allowPlayback == false
+                            || (request.resource.data.get('consent', '') == 'public'
+                                && !('heldAt' in request.resource.data)
+                                && !('modHiddenAt' in request.resource.data)
+                                && (!speakerExists(resource.data.speakerId)
+                                    || speaker(resource.data.speakerId).consent == 'public'))));
 
         // Destruction is server-side (purge Function on consent == 'deleted').
         allow delete: if false;
@@ -549,6 +632,98 @@ service cloud.firestore {
                         || (request.resource.data.note is string
                             && request.resource.data.note.size() <= 300));
       allow update, delete: if false;           // append-only; resolved in git
+    }
+
+    // ------------------------------ reports (10-26) ------------------------------
+    // Someone signed in says a voice or a contributed word shouldn't be there.
+    // One report per person per thing: the doc id IS
+    //   {entryId}~{recordingId}~{uid}     a voice
+    //   {entryId}~card~{uid}              a word card
+    // so a second report is refused, and attribution can't be forged. A reason
+    // from four pictograms, and optionally the reason SPOKEN (afd_flags/{uid}/…
+    // in Storage). `held` says whether this report put the hold on (written in
+    // the same batch as the hold; the target rules check the report exists).
+    // Stewards read and resolve; the reporter may read back only their own (by
+    // id, to know they already reported it). Never deleted: it's the record.
+    match /afd_flags/{flagId} {
+      function fd() { return request.resource.data; }
+      function recPath() {
+        return /databases/$(database)/documents/afd_entries/$(fd().entryId)/recordings/$(fd().recordingId);
+      }
+      function entPath() {
+        return /databases/$(database)/documents/afd_entries/$(fd().entryId);
+      }
+      function flagAudioOK() {
+        return !('audioPath' in fd())
+               || fd().audioPath in ['afd_flags/' + request.auth.uid + '/' + flagId + '.webm',
+                                     'afd_flags/' + request.auth.uid + '/' + flagId + '.m4a'];
+      }
+      function voiceFlagOK() {
+        return fd().kind == 'voice'
+               && fd().recordingId is string
+               && flagId == fd().entryId + '~' + fd().recordingId + '~' + request.auth.uid
+               && exists(recPath())
+               && get(recPath()).data.uid != request.auth.uid
+               && (fd().held == false || getAfter(recPath()).data.get('heldAt', null) == request.time);
+      }
+      function cardFlagOK() {
+        return fd().kind == 'card'
+               && !('recordingId' in fd())
+               && flagId == fd().entryId + '~card~' + request.auth.uid
+               && exists(entPath())
+               && get(entPath()).data.get('createdBy', '') != request.auth.uid
+               && (fd().held == false || getAfter(entPath()).data.get('heldAt', null) == request.time);
+      }
+      allow get: if notAnon()
+                 && (isSteward()
+                     || (flagId.split('~').size() == 3 && flagId.split('~')[2] == request.auth.uid));
+      allow list: if isSteward();
+      allow create: if notAnon()
+                    && fd().keys().hasOnly(['kind','entryId','recordingId','reason','audioPath','by','at','held'])
+                    && fd().by == request.auth.uid
+                    && fd().at == request.time
+                    && fd().reason in ['rude','wrong','notme','other']
+                    && fd().held is bool
+                    && fd().entryId is string
+                    && flagAudioOK()
+                    && (voiceFlagOK() || cardFlagOK());
+      allow update: if isSteward()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['resolvedAt','resolution','resolvedBy'])
+                    && request.resource.data.resolvedAt == request.time
+                    && request.resource.data.resolution in ['approved','hidden']
+                    && request.resource.data.resolvedBy == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ------------------------ notes to contributors (10-26) ------------------------
+    // A steward tells the person who recorded a voice (or added a word) why it
+    // was held — in case it wasn't deliberate. A reason pictogram, a spoken
+    // note (afd_notices/{stewardUid}/… in Storage) and/or a short text. Only a
+    // steward writes one; only its recipient (and stewards) read it; the
+    // recipient may only mark it seen, once.
+    match /afd_notices/{noticeId} {
+      function nd() { return request.resource.data; }
+      allow read: if notAnon()
+                  && (resource.data.to == request.auth.uid || isSteward());
+      allow create: if isSteward()
+                    && nd().keys().hasOnly(['to','from','at','entryId','recordingId','reason','text','audioPath'])
+                    && nd().from == request.auth.uid
+                    && nd().at == request.time
+                    && nd().to is string && nd().to.size() > 0 && nd().to.size() <= 128
+                    && nd().entryId is string && nd().entryId.size() <= 200
+                    && (!('recordingId' in nd()) || (nd().recordingId is string && nd().recordingId.size() <= 200))
+                    && nd().reason in ['rude','wrong','notme','other']
+                    && (!('text' in nd()) || (nd().text is string && nd().text.size() <= 300))
+                    && (!('audioPath' in nd())
+                        || nd().audioPath in ['afd_notices/' + request.auth.uid + '/' + noticeId + '.webm',
+                                              'afd_notices/' + request.auth.uid + '/' + noticeId + '.m4a']);
+      allow update: if notAnon()
+                    && resource.data.to == request.auth.uid
+                    && !('seenAt' in resource.data)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenAt'])
+                    && request.resource.data.seenAt == request.time;
+      allow delete: if false;
     }
 
     // ------------------------------ everything else ------------------------------

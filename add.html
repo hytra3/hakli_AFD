@@ -1028,7 +1028,7 @@ async function textMatches(d){
   (window.AFDWords || []).forEach(w => { const k = C.spellingKey(w.ar || ""); if(k && keys.has(k)) out.add(C.entryIdFor(w.id)); });
   try{
     (await getDocs(collection(db, "afd_entries"))).forEach(sn => {
-      const x = sn.data() || {}; if(x.removedAt || x.hiddenAt || sn.id === d.entryId) return;
+      const x = sn.data() || {}; if(x.removedAt || x.hiddenAt || x.heldAt || sn.id === d.entryId) return;
       const k = C.spellingKey(x.glossAr || (x.glosses && x.glosses.ar) || "");
       if(k && keys.has(k)) out.add(sn.id);
     });
@@ -1052,7 +1052,7 @@ async function askDuplicate(d){
   const metas = await Promise.all(ids.map(async id => {
     let m = {};
     try{ const sn = await getDoc(doc(db, "afd_entries", id)); if(sn.exists()) m = sn.data() || {}; }catch(_){}
-    if(m.removedAt || m.hiddenAt) return null;
+    if(m.removedAt || m.hiddenAt || m.heldAt) return null;
     const w = (window.AFDWords || []).find(x => C.entryIdFor(x.id) === id);
     if(w){ m = { pic: m.pic || w.pic, gloss: m.gloss || w.en, glossAr: m.glossAr || w.ar, ...m }; }
     return { id, m };

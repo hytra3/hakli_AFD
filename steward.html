@@ -21,6 +21,18 @@
                           afd_pics/{createdBy}/{entryId}.jpg (can't be undone)
     • Remove emoji      → clears the entry's pic
   Voices stay their speakers' to withdraw; a steward can't do that from here.
+
+  Reports (10-26): voices and words people reported (afd-flag.js). One report
+  holds the thing out of sight; here the steward listens — to it and to any
+  spoken reason — and decides:
+    • Looks fine — show it → releases the hold, marks it cleared (a later
+                             report queues it here but no longer holds it)
+    • Keep it hidden       → modHiddenAt on a voice / hiddenAt on a word;
+                             "Show again" undoes it
+    • Send a note          → afd_notices: a reason pictogram, a spoken note
+                             and/or a short text, shown to whoever recorded it
+                             the next time they open the dictionary
+  None of it touches a voice's consent: withdrawal stays the speaker's own.
 -->
 <style>
   :root{
@@ -98,6 +110,25 @@
   .actions{margin-top:10px;}
   .actions .btn{padding:7px 11px; font-size:13px;}
   .empty{font-size:13px; color:var(--muted); padding:18px 4px;}
+  /* Reports (10-26) */
+  .subtabs{display:flex; gap:6px; margin-top:12px}
+  .subtabs .tab{font-size:12px; padding:4px 10px}
+  .flags{margin-top:8px; display:flex; flex-direction:column; gap:6px}
+  .flagrow{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:13px; padding:6px 8px; border-radius:10px; background:var(--bg)}
+  .flagrow .ic{font-size:20px; line-height:1}
+  .flagrow .meta{margin:0}
+  .flagrow .btn{padding:4px 9px; font-size:12px}
+  .flagrow.done{opacity:.6}
+  .compose{margin-top:10px; padding:12px; border:1px dashed var(--line); border-radius:12px}
+  .compose .picks{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
+  .compose .pick{border:1.5px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:6px 10px; font-size:13px; cursor:pointer}
+  .compose .pick[aria-pressed="true"]{border-color:var(--warm); background:var(--warm-bg); color:var(--warm); font-weight:600}
+  .compose .say{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px}
+  .compose .say .fl-btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:8px 12px; font-size:14px; cursor:pointer}
+  .compose .say .fl-btn.rec{background:var(--stop-bg); border-color:var(--stop); color:var(--stop)}
+  .compose .say .fl-note{font-size:12px; color:var(--muted); margin:0}
+  .compose textarea{width:100%; font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-top:10px; min-height:60px; resize:vertical}
+  .sent{font-size:12px; color:var(--go); margin-top:6px}
   .cov h3{font-size:14px; margin:16px 0 6px}
   .cov h3 .n{color:var(--muted); font-weight:400; margin-inline-start:4px}
   .covpick{font-size:13px; color:var(--muted)}
@@ -162,6 +193,7 @@
     <div class="top">
       <div class="tabs" id="tabs">
         <button class="tab on" data-tab="review"><span data-t="stw.tab.review">To review</span><span class="n" id="n-review"></span></button>
+        <button class="tab" data-tab="flags"><span data-t="stw.tab.flags">Reports</span><span class="n" id="n-flags"></span></button>
         <button class="tab" data-tab="hidden"><span data-t="stw.tab.hidden">Hidden</span><span class="n" id="n-hidden"></span></button>
         <button class="tab" data-tab="all"><span data-t="stw.tab.all">All</span><span class="n" id="n-all"></span></button>
         <button class="tab" data-tab="coverage"><span data-t="stw.tab.coverage">Coverage</span><span class="n" id="n-coverage"></span></button>
@@ -184,7 +216,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { startAppCheck } from "./afd-appcheck.js?v=b1020a";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, serverTimestamp, deleteField, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, deleteObject, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getStorage, ref, deleteObject, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+// reports & notes to contributors (10-26)
+import { REASONS, reasonIcon, voiceNote, audioExt } from "./afd-flag.js?v=b1020a";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
@@ -257,6 +291,7 @@ async function load(){
     const snap = await getDocs(query(collection(db, "afd_entries"), where("source", "==", "user")));
     words = snap.docs.map(s => ({ id: s.id, d: s.data() || {} }))
                      .sort((a, b) => ms(b.d.createdAt) - ms(a.d.createdAt));
+    try{ await loadFlags(); }catch(e){ console.warn("[steward] reports", e); flagGroups = []; }
     paint();
   }catch(e){
     $("list").innerHTML = '<div class="empty">' + H("tools.err.load", { code: code(e) }) + '</div>';
@@ -264,7 +299,7 @@ async function load(){
 }
 $("refresh").onclick = e=>{ e.preventDefault(); say("msg", null); load(); };
 
-const inReview = w => !w.d.reviewedAt && !w.d.hiddenAt && !w.d.removedAt;
+const inReview = w => !w.d.reviewedAt && !w.d.hiddenAt && !w.d.removedAt && !w.d.heldAt;   // a held one is under Reports
 const inHidden = w => !!w.d.hiddenAt;
 const FILTER = { review: inReview, hidden: inHidden, all: () => true };
 const EMPTY  = { review: "stw.empty.review", hidden: "stw.empty.hidden", all: "stw.empty.all" };
@@ -278,6 +313,8 @@ function paint(){
   $("n-review").textContent = words.filter(inReview).length;
   $("n-hidden").textContent = words.filter(inHidden).length;
   $("n-all").textContent    = words.length;
+  $("n-flags").textContent  = (flagGroups || []).filter(g => g.open).length || "";
+  if(tab === "flags"){ paintFlags(); return; }
   if(tab === "coverage"){ paintCoverage(); return; }
   if(tab === "stats"){ paintStats(); return; }
   const shown = words.filter(FILTER[tab]);
@@ -301,7 +338,7 @@ async function loadCoverage(){
   const linked = new Map();
   snap.docs.forEach(s => {
     const d = s.data() || {};
-    if(d.hiddenAt || d.removedAt) return;
+    if(d.hiddenAt || d.removedAt || d.heldAt) return;
     const name = d.gloss || d.glossAr || s.id;
     (d.concepts || []).forEach(c => { if(!linked.has(c)) linked.set(c, []); linked.get(c).push(name); });
   });
@@ -463,6 +500,269 @@ async function paintStats(){
 }
 // hakli.app/steward.html#stats (the digest links here) opens on this tab
 if(location.hash === "#stats") tab = "stats";
+if(location.hash === "#reports") tab = "flags";
+
+/* ---- reports (10-26) -------------------------------------------------------
+   Every report, grouped by the thing reported (one voice, or one word card).
+   A group is "open" while any of its reports is unresolved. Volumes are tiny,
+   so the whole collection is read; the target docs are read one by one. */
+let flagGroups = null, flagView = "open", notices = [];
+async function loadFlags(){
+  const [fs, ns] = await Promise.all([
+    getDocs(collection(db, "afd_flags")),
+    getDocs(collection(db, "afd_notices")).catch(() => ({ docs: [] }))
+  ]);
+  notices = ns.docs.map(s => ({ id: s.id, d: s.data() || {} }));
+  const by = new Map();
+  fs.docs.forEach(s => {
+    const f = { id: s.id, d: s.data() || {} };
+    const key = f.d.entryId + "~" + (f.d.kind === "voice" ? f.d.recordingId : "card");
+    if(!by.has(key)) by.set(key, { key, kind: f.d.kind, entryId: f.d.entryId, recordingId: f.d.kind === "voice" ? f.d.recordingId : null, flags: [] });
+    by.get(key).flags.push(f);
+  });
+  const groups = [...by.values()];
+  await Promise.all(groups.map(async g => {
+    g.flags.sort((a, b) => ms(a.d.at) - ms(b.d.at));
+    g.open = g.flags.some(f => !f.d.resolvedAt);
+    g.last = Math.max(...g.flags.map(f => ms(f.d.at)));
+    const w = words.find(x => x.id === g.entryId);
+    try{
+      g.entry = w ? w.d : ((await getDoc(doc(db, "afd_entries", g.entryId))).data() || null);
+    }catch(_){ g.entry = null; }
+    if(g.kind === "voice"){
+      try{ const sn = await getDoc(doc(db, "afd_entries", g.entryId, "recordings", g.recordingId)); g.target = sn.exists() ? (sn.data() || {}) : null; }
+      catch(_){ g.target = null; }
+    }else g.target = g.entry;
+  }));
+  flagGroups = groups.sort((a, b) => b.last - a.last);
+}
+$("refresh").addEventListener("click", () => { flagGroups = null; });
+
+// what a reported thing is like right now, as badges
+function targetBadges(g){
+  const t = g.target, out = [];
+  out.push(`<span class="badge">${H(g.kind === "voice" ? "stw.flag.voice" : "stw.flag.card")}</span>`);
+  if(!t){ out.push(`<span class="badge hid">${H("stw.flag.gone")}</span>`); return out; }
+  if(t.heldAt) out.push(`<span class="badge new">${H("stw.flag.held")} · ${esc(when(t.heldAt))}</span>`);
+  if(g.kind === "voice"){
+    if(t.modHiddenAt) out.push(`<span class="badge hid">${H("stw.flag.modhidden")}</span>`);
+    if(t.consent === "withdrawn") out.push(`<span class="badge hid">${H("stw.flag.withdrawn")}</span>`);
+    if(t.consent === "deleted")   out.push(`<span class="badge hid">${H("stw.flag.erased")}</span>`);
+  }else{
+    if(t.hiddenAt)  out.push(`<span class="badge hid">${H("stw.badge.hidden")}</span>`);
+    if(t.removedAt) out.push(`<span class="badge hid">${H("stw.badge.removed")}</span>`);
+  }
+  if(t.modClearedAt && !t.heldAt) out.push(`<span class="badge ok">${H("stw.flag.cleared")} · ${esc(when(t.modClearedAt))}</span>`);
+  return out;
+}
+const hiddenNow = g => !!(g.target && (g.kind === "voice" ? g.target.modHiddenAt : g.target.hiddenAt));
+const contributed = g => !!(g.entry && g.entry.source === "user");
+// whoever recorded the voice / added the word — the one a note goes to
+const recipient = g => g.kind === "voice" ? (g.target && g.target.uid) : (contributed(g) ? g.entry.createdBy : null);
+
+function paintFlags(){
+  const list = $("list");
+  if(!flagGroups){
+    list.innerHTML = AFDCore.dotsHTML(true);
+    loadFlags().then(() => { if(tab === "flags") paint(); },
+      e => { list.innerHTML = '<div class="empty">' + H(notAllowed(e) ? "tools.notallowed" : "tools.err.load", { code: code(e) }) + '</div>'; });
+    return;
+  }
+  const shown = flagGroups.filter(g => flagView === "open" ? g.open : !g.open);
+  list.innerHTML =
+    `<div class="tip">${H("stw.flags.lead")}</div>` +
+    `<div class="subtabs"><button class="tab${flagView === "open" ? " on" : ""}" data-v="open">${H("stw.flags.open")}<span class="n">${flagGroups.filter(g => g.open).length}</span></button>` +
+    `<button class="tab${flagView === "done" ? " on" : ""}" data-v="done">${H("stw.flags.done")}<span class="n">${flagGroups.filter(g => !g.open).length}</span></button></div>`;
+  list.querySelectorAll(".subtabs .tab").forEach(b => b.onclick = () => { flagView = b.dataset.v; paintFlags(); });
+  if(!shown.length){ list.insertAdjacentHTML("beforeend", '<div class="empty">' + H("stw.empty.flags") + '</div>'); return; }
+  shown.forEach(g => list.appendChild(flagCard(g)));
+}
+
+function flagCard(g){
+  const e = g.entry || {}, t = g.target || {};
+  const el = document.createElement("div");
+  el.className = "card word" + (hiddenNow(g) ? " is-hidden" : "");
+  const face = e.image ? `<img src="${esc(e.image)}" alt="" loading="lazy">` : esc(e.pic || "?");
+  const gloss = e.gloss || (e.glossAr ? "" : T("stw.nomeaning"));
+  const who = g.kind === "voice"
+    ? `${H("stw.flag.recby")} <span title="${esc(t.uid)}">${esc(String(t.uid || "?").slice(0, 6))}</span>` +
+      (t.speakerId ? ` · <span dir="ltr">${esc(t.speakerId)}</span>` : "") + (t.recordedAt ? ` · ${esc(when(t.recordedAt))}` : "")
+    : (e.createdBy ? `${H("stw.by")} <span title="${esc(e.createdBy)}">${esc(String(e.createdBy).slice(0, 6))}</span>` : "");
+  el.innerHTML =
+    `<div class="thumb">${face}</div>` +
+    `<div>` +
+      `<div class="gloss">${esc(gloss)}${e.glossAr ? `<span class="ar" dir="rtl">${esc(e.glossAr)}</span>` : ""}</div>` +
+      `<div class="meta">${who}${who ? " · " : ""}<a class="small" href="index.html#${encodeURIComponent(g.entryId)}" target="_blank" rel="noopener">${H("stw.open")}</a></div>` +
+      `<div class="badges">${targetBadges(g).join("")}</div>` +
+      `<div class="voices"></div>` +
+      `<div class="flags"></div>` +
+      `<div class="actions btnrow"></div>` +
+      `<div class="sentbox"></div>` +
+    `</div>`;
+
+  // listen: the reported voice itself (stewards may hear a held one), or the word's public voices
+  const vbox = el.querySelector(".voices");
+  if(g.kind === "voice" && t.storagePath){
+    const b = document.createElement("button"); b.className = "btn"; b.innerHTML = H("stw.flag.play");
+    b.onclick = () => play(t.storagePath);
+    vbox.appendChild(b);
+  }else if(g.kind === "card"){
+    const b = document.createElement("button"); b.className = "btn"; b.dataset.a = "listen"; b.innerHTML = H("stw.voices");
+    b.onclick = ev => voices(ev.currentTarget, g.entryId);
+    vbox.appendChild(b);
+  }
+
+  // the reports: reason pictogram, who, when, and their spoken reason
+  const fbox = el.querySelector(".flags");
+  g.flags.forEach(f => {
+    const r = document.createElement("div");
+    r.className = "flagrow" + (f.d.resolvedAt ? " done" : "");
+    r.innerHTML = `<span class="ic" aria-hidden="true">${esc(reasonIcon(f.d.reason))}</span>` +
+      `<b>${H("flag.r." + f.d.reason)}</b>` +
+      `<span class="meta">${H("stw.flag.by")} <span title="${esc(f.d.by)}">${esc(String(f.d.by || "?").slice(0, 6))}</span> · ${esc(when(f.d.at))}` +
+      (f.d.resolvedAt ? ` · ${H(f.d.resolution === "hidden" ? "stw.act.keephidden" : "stw.act.approve")}` : "") + `</span>`;
+    if(f.d.audioPath){
+      const b = document.createElement("button"); b.className = "btn"; b.innerHTML = H("stw.flag.reason");
+      b.onclick = () => play(f.d.audioPath);
+      r.appendChild(b);
+    }
+    fbox.appendChild(r);
+  });
+
+  // decisions
+  const acts = el.querySelector(".actions");
+  const add = (key, cls, fn) => {
+    const b = document.createElement("button"); b.className = "btn " + cls; b.innerHTML = H(key);
+    b.onclick = async () => {
+      acts.querySelectorAll("button").forEach(x => x.disabled = true);
+      say("msg", "tools.saving");
+      try{ if(await fn() !== false) say("msg", "tools.saved"); else say("msg", null); }
+      catch(err){ console.warn("[steward] decide", err); say("msg", notAllowed(err) ? "tools.notallowed" : "tools.err.save", { code: code(err) }); }
+      paint();
+    };
+    acts.appendChild(b);
+  };
+  const live = g.target && !(g.kind === "voice" && t.consent === "deleted") && !(g.kind === "card" && t.removedAt);
+  if(g.open){
+    add("stw.act.approve", "primary", () => clearTarget(g));
+    if(live && (g.kind === "voice" || contributed(g))) add("stw.act.keephidden", "danger", () => hideTarget(g));
+  }else if(live && hiddenNow(g)){
+    add("stw.act.showagain", "", () => clearTarget(g));
+  }
+  const to = recipient(g);
+  if(to){
+    const nb = document.createElement("button"); nb.className = "btn"; nb.innerHTML = H("stw.act.notify");
+    nb.onclick = () => { nb.remove(); el.querySelector(".sentbox").before(composer(g, to)); };
+    acts.appendChild(nb);
+  }
+  // notes already sent about this thing
+  const sent = notices.filter(n => n.d.entryId === g.entryId && (n.d.recordingId || null) === (g.recordingId || null));
+  el.querySelector(".sentbox").innerHTML = sent.map(n => `<div class="sent">${H("stw.notify.sent")} · ${esc(when(n.d.at))}</div>`).join("");
+  return el;
+}
+
+let flagPlayer = null;
+async function play(path){
+  try{
+    if(flagPlayer) flagPlayer.pause();
+    flagPlayer = new Audio(await getDownloadURL(ref(store, path)));
+    await flagPlayer.play();
+  }catch(e){ say("msg", "stw.err.play", { code: code(e) }); }
+}
+
+// Mark every open report on this thing decided.
+async function resolveFlags(g, resolution){
+  const uid = auth.currentUser.uid;
+  for(const f of g.flags){
+    if(f.d.resolvedAt) continue;
+    await updateDoc(doc(db, "afd_flags", f.id), { resolvedAt: serverTimestamp(), resolution, resolvedBy: uid });
+    f.d.resolvedAt = Date.now(); f.d.resolution = resolution;
+  }
+  g.open = false;
+}
+// Looks fine / Show again: release the hold, mark it cleared. A voice plays
+// again only if its speaker's own consent says so (label and card public) —
+// the rules check the same.
+async function clearTarget(g){
+  const uid = auth.currentUser.uid, t = g.target;
+  if(t && g.kind === "voice" && t.consent !== "deleted"){
+    let cardPublic = true;
+    if(t.speakerId){ try{ const sn = await getDoc(doc(db, "afd_speakers", t.speakerId)); if(sn.exists()) cardPublic = (sn.data() || {}).consent === "public"; }catch(_){} }
+    const playable = t.consent === "public" && cardPublic;
+    await updateDoc(doc(db, "afd_entries", g.entryId, "recordings", g.recordingId),
+      { heldAt: deleteField(), modHiddenAt: deleteField(), modClearedAt: serverTimestamp(), modBy: uid, allowPlayback: playable });
+    delete t.heldAt; delete t.modHiddenAt; t.modClearedAt = Date.now(); t.allowPlayback = playable;
+  }else if(t && g.kind === "card" && contributed(g) && !t.removedAt){
+    await updateDoc(doc(db, "afd_entries", g.entryId),
+      { heldAt: deleteField(), hiddenAt: deleteField(), modClearedAt: serverTimestamp(), modBy: uid, reviewedAt: serverTimestamp() });
+    delete t.heldAt; delete t.hiddenAt; t.modClearedAt = Date.now(); t.reviewedAt = Date.now();
+  }
+  await resolveFlags(g, "approved");
+}
+async function hideTarget(g){
+  if(!confirm(T("stw.confirm.keephidden"))) return false;
+  const uid = auth.currentUser.uid, t = g.target;
+  if(g.kind === "voice"){
+    await updateDoc(doc(db, "afd_entries", g.entryId, "recordings", g.recordingId),
+      { heldAt: deleteField(), modHiddenAt: serverTimestamp(), modBy: uid, allowPlayback: false });
+    delete t.heldAt; t.modHiddenAt = Date.now(); t.allowPlayback = false;
+  }else{
+    await updateDoc(doc(db, "afd_entries", g.entryId),
+      { heldAt: deleteField(), hiddenAt: serverTimestamp(), modBy: uid, reviewedAt: serverTimestamp() });
+    delete t.heldAt; t.hiddenAt = Date.now(); t.reviewedAt = Date.now();
+  }
+  await resolveFlags(g, "hidden");
+}
+
+// A note to whoever recorded it: why (pictogram), a spoken note and/or a short
+// text. They see it the next time they open the dictionary (afd-flag.js).
+function composer(g, to){
+  const box = document.createElement("div"); box.className = "compose";
+  // start from the reason most reports gave
+  const tally = {}; g.flags.forEach(f => { tally[f.d.reason] = (tally[f.d.reason] || 0) + 1; });
+  let reason = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || "other";
+  box.innerHTML = `<div class="meta">${H("stw.notify.reason")}</div>` +
+    `<div class="picks">${REASONS.map(r => `<button type="button" class="pick" data-r="${r}" aria-pressed="${r === reason}">${esc(reasonIcon(r))} ${H("flag.r." + r)}</button>`).join("")}</div>` +
+    `<div class="say"></div>` +
+    `<textarea maxlength="300" dir="auto" placeholder="${esc(T("stw.notify.text"))}"></textarea>` +
+    `<div class="tip">${H("stw.notify.hint")}</div>` +
+    `<div class="btnrow" style="margin-top:10px"><button class="btn primary send">${H("stw.notify.send")}</button></div>`;
+  box.querySelectorAll(".pick").forEach(b => b.onclick = () => {
+    reason = b.dataset.r; box.querySelectorAll(".pick").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  });
+  const note = voiceNote(box.querySelector(".say"), k => H(k),
+    { say: "stw.notify.say", stop: "stw.notify.stop", again: "stw.notify.again", nomic: "stw.err.nomic" }, 120000);
+  const send = box.querySelector(".send");
+  send.onclick = async () => {
+    note.stop();
+    await new Promise(r => setTimeout(r, 300));          // let a just-stopped recording finish
+    const blob = note.blob(), text = box.querySelector("textarea").value.trim().slice(0, 300);
+    if(!blob && !text){ say("msg", "stw.notify.need"); return; }
+    send.disabled = true; say("msg", "tools.saving");
+    try{
+      const uid = auth.currentUser.uid;
+      const nref = doc(collection(db, "afd_notices"));
+      const data = { to, from: uid, at: serverTimestamp(), entryId: g.entryId, reason };
+      if(g.recordingId) data.recordingId = g.recordingId;
+      if(text) data.text = text;
+      if(blob){
+        const path = "afd_notices/" + uid + "/" + nref.id + "." + audioExt(blob);
+        await uploadBytes(ref(store, path), blob, { contentType: blob.type || "audio/webm", customMetadata: { noticeId: nref.id } });
+        data.audioPath = path;
+      }
+      await setDoc(nref, data);
+      note.close();
+      notices.push({ id: nref.id, d: { ...data, at: Date.now() } });
+      box.outerHTML = `<div class="sent">${H("stw.notify.sent")}</div>`;
+      say("msg", "stw.notify.sent");
+    }catch(e){
+      console.warn("[steward] note", e);
+      send.disabled = false;
+      say("msg", notAllowed(e) ? "tools.notallowed" : "tools.err.save", { code: code(e) });
+    }
+  };
+  return box;
+}
 
 /* ---- one word ------------------------------------------------------------ */
 function row(w){
@@ -476,6 +776,7 @@ function row(w){
   // the words are translated; the date beside them is data
   if(d.removedAt)        badges.push(`<span class="badge hid">${H("stw.badge.removed")} · ${esc(when(d.removedAt))}</span>`);
   else if(d.hiddenAt)    badges.push(`<span class="badge hid">${H("stw.badge.hidden")} · ${esc(when(d.hiddenAt))}</span>`);
+  if(d.heldAt)           badges.push(`<span class="badge new">${H("stw.flag.held")} · ${esc(when(d.heldAt))}</span>`);   // reported: see Reports
   if(!d.reviewedAt && !d.removedAt) badges.push(`<span class="badge new">${H("stw.badge.new")}</span>`);
   else if(d.reviewedAt)  badges.push(`<span class="badge ok">${H("stw.badge.reviewed")} · ${esc(when(d.reviewedAt))}</span>`);
   (d.tags || []).forEach(t => badges.push(`<span class="badge">${esc(t)}</span>`));

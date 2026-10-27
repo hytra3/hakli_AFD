@@ -28,7 +28,7 @@ const C = sandbox.window.AFDCore;
 const S = C.STRINGS;
 const I = sandbox.window.AFDInstance;
 
-const FILES = ["index.html", "add.html", "recorder.html", "welcome.html", "steward.html",
+const FILES = ["index.html", "add.html", "recorder.html", "welcome.html", "steward.html", "afd-flag.js",
                "prompts/index.html", "prompts/admin.html", "afd-card.js", "afd-core.js", "afd-tools.js"];
 // literal keys in the ways the pages ask for text
 const PATTERNS = [

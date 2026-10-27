@@ -95,7 +95,8 @@ def since(collection, start):
 
 
 def visible(entry):
-    return not (entry.get("hiddenAt") or entry.get("removedAt") or entry.get("joinedInto"))
+    # heldAt (10-26): reported and waiting for a steward — out of sight meanwhile
+    return not (entry.get("hiddenAt") or entry.get("removedAt") or entry.get("heldAt") or entry.get("joinedInto"))
 
 
 def public_totals():

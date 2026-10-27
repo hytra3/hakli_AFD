@@ -9,6 +9,8 @@ rules_version = '2';
  *    afd_withdrawals/{uid}/{fileName}  — spoken-Hakli consent-withdrawal proof
  *    afd_ui/{fileName}                 — the app's spoken Hakli interface
  *    afd_pics/{uid}/{entryId}.jpg      — a contributor's photo for a word they added
+ *    afd_flags/{uid}/{flagId}.webm     — a reporter's spoken reason (10-26)
+ *    afd_notices/{uid}/{noticeId}.webm — a steward's spoken note to a contributor
  *
  *  Corpus audio is readable only while its recording doc is public, and
  *  afd_ui/ writes follow the Firestore recording window — both via
@@ -60,7 +62,9 @@ service firebase.storage {
       allow read: if (request.auth != null
                       && request.auth.token.firebase.sign_in_provider != 'anonymous'
                       && request.auth.uid == uid)
-                  || publicTake(uid, fileName);
+                  || publicTake(uid, fileName)
+                  // a steward hears a reported (held) voice to decide on it
+                  || isSteward();
       // only the signed-in, NON-anonymous owner may upload, audio only, 10 MB cap.
       // resource == null makes recordings write-once: a content overwrite is
       // evaluated as create (not update) in Storage rules, so immutability is
@@ -176,6 +180,42 @@ service firebase.storage {
                     && request.resource.contentType == 'image/jpeg';
       allow update: if false;
       allow delete: if isSteward();
+    }
+    // ---------------- reports & notes to contributors (10-26) ----------------
+    // afd_flags/{uid}/…    — a reporter's SPOKEN reason (optional). Evidence for
+    //                        the steward, not corpus: owner + stewards read it,
+    //                        write-once, audio only.
+    // afd_notices/{uid}/…  — a steward's spoken note to the person whose voice or
+    //                        word was held. Written by that steward; read by
+    //                        stewards and by the note's recipient (afd_notices/{id}
+    //                        .to, found from the noticeId stamped in metadata).
+    match /afd_flags/{uid}/{fileName} {
+      allow read:   if (request.auth != null
+                        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                        && request.auth.uid == uid)
+                    || isSteward();
+      allow create: if request.auth != null
+                    && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                    && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
+    }
+    match /afd_notices/{uid}/{fileName} {
+      allow read:   if isSteward()
+                    || (request.auth != null
+                        && request.auth.token.firebase.sign_in_provider != 'anonymous'
+                        && resource.metadata != null
+                        && resource.metadata.get('noticeId', null) is string
+                        && firestore.exists(/databases/(default)/documents/afd_notices/$(resource.metadata.noticeId))
+                        && firestore.get(/databases/(default)/documents/afd_notices/$(resource.metadata.noticeId)).data.to == request.auth.uid);
+      allow create: if isSteward()
+                    && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
     }
     // everything else is closed
     match /{allPaths=**} {
