@@ -193,8 +193,10 @@ Search keeps working at every step. Purge deletes a take's vectors with it.
 Rules first, then the site — a page that writes a report before the rules know
 about `afd_flags` just gets "couldn't send".
 
-1. Run the new rules tests (needs the emulator):
-   `firebase emulators:exec --only firestore "cd test && node --test moderation.rules.test.mjs consent.rules.test.mjs entries.rules.test.mjs"`
+1. Run the new rules tests (needs the emulators). One file at a time — the
+   files share one emulator and each clears it, so in parallel they wipe each
+   other's data — and with Storage too, which the entries tests use:
+   `firebase emulators:exec --only firestore,storage "cd test && node --test --test-concurrency=1 moderation.rules.test.mjs consent.rules.test.mjs entries.rules.test.mjs"`
 2. `firebase deploy --only firestore:rules`
 3. `firebase deploy --only storage` — stewards may hear held voices; report and
    note audio folders.
