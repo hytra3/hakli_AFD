@@ -8,6 +8,15 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **A view-mode switch keeps the open word open (11-01)** — from Marty in Dhofar:
+  switching Arabic · English ↔ Arabic with a word open folded it, because the list
+  is redrawn in the new mode. `reskinView` now notes which cards were open, redraws,
+  reopens them without playing (`el._afdOpen`, set in `entryCard`), and scrolls so
+  the first one sits where it was (within a few pixels: the cards above settle a
+  moment later). A card still waiting in a later batch is put on the page first.
+  Search results keep their old behaviour otherwise (the lead autoplays as before).
+  Test: `reskin-open.browser.mjs`.
+
 - **Help page (10-16)** — `help.html`: the six how-to clips (tiles → `howto.html#<id>`),
   the welcome tour, "Who can hear my voice?" (four questions: who hears, "Only you can
   hear this", Withdraw / Restore / Erase, whether your name shows), and "Ask a person"

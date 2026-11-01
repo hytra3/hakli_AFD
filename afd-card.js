@@ -1536,6 +1536,11 @@ async function entryCard(res, lead){
     if(opening) loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl); });
   });
 
+  // Open without playing — used to put back cards that were open before the
+  // view mode changed (index.html reskinView), so a language switch doesn't
+  // fold the word you were reading.
+  el._afdOpen = ()=>{ el.classList.add("open"); return loadDetail(); };
+
   if(lead) await loadDetail();          // lead opens on render → load now (keeps autoplay + firstPlayable)
   // removed by its creator, hidden by a steward (steward.html) or held after a
   // report (10-26): either way it

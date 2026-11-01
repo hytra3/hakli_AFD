@@ -1246,8 +1246,35 @@ function setHint(en, ar){ hintNow = { en, ar }; paintHint(); }
    code beneath it — used by search, which names the failure it hit. */
 function setHintKey(key, code){ hintNow = { key, code }; paintHint(); }
 /* Draw again whatever view is current (after a change of display mode). */
-function reskinView(){
-  if(deepEntry) openEntry(deepEntry); else if(lastResults) render(lastResults); else renderBrowse();
+// Re-skin what's on screen. Cards the reader had open stay open (11-01: a
+// language switch used to fold them), and the first open card keeps its place
+// on screen, so they're still looking at the same word.
+async function reskinView(){
+  const openIds = [...resultsEl.querySelectorAll(":scope > .card.open .thumb[data-entry]")].map(t => t.dataset.entry);
+  let anchorTop = null;
+  if(openIds.length){ const t = resultsEl.querySelector(`.card.open .thumb[data-entry="${CSS.escape(openIds[0])}"]`);
+    if(t) anchorTop = t.closest(".card").getBoundingClientRect().top; }
+  const my = renderToken + 1;   // the token the redraw below will take
+  if(deepEntry) await openEntry(deepEntry); else if(lastResults) await render(lastResults); else await renderBrowse();
+  if(renderToken !== my || !openIds.length) return;   // superseded, or nothing to put back
+  const cardFor = (id) => {
+    const t = resultsEl.querySelector(`.thumb[data-entry="${CSS.escape(id)}"]`);
+    if(t) return t.closest(".card");
+    const it = listRest.find(x => x.entryId === id);   // still waiting in a later batch
+    if(it){ moreCards(true); return it.card.el; }
+    return null;
+  };
+  let anchor = null;
+  for(const id of openIds){
+    const c = cardFor(id); if(!c) continue;
+    if(!anchor) anchor = c;
+    if(!c.classList.contains("open") && c._afdOpen) await c._afdOpen().catch(()=>{});
+  }
+  // twice: the first scroll can fold or unfold the sticky mic panel
+  // (body.compact), which moves the list again by a few pixels
+  const settle = () => { if(anchor && anchorTop !== null && renderToken === my)
+    window.scrollBy(0, anchor.getBoundingClientRect().top - anchorTop); };
+  settle(); requestAnimationFrame(() => requestAnimationFrame(settle));
 }
 /* A hold hides whatever is listed so the mic has the screen. Anything that ends
    without new results puts it back. */
