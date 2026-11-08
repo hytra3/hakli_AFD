@@ -105,8 +105,13 @@ within each group.
   Stored at `afd_entries/{id}/spellings/{writerUid}` — one per writer, the doc id
   is the writer, so attribution can't be forged and a retry can't double up.
   The card shows the spellings as the **headword** (first, larger, heavier), the
-  translations under them; in script mode a solo Arabic gloss steps down so the
-  two Arabic-script lines can't be confused; never shown in sound mode. An open
+  translations under them; never shown in sound mode. **Bold always means Hakli
+  (11-08, decided in Dhofar):** the spelling is bold amber (`--resin`, header and
+  open card), and in script mode the Arabic translation is ALWAYS the small grey
+  line — with or without a spelling. Before, a card with no spelling put its
+  Arabic translation in the big spot, so the big Arabic-script word was Hakli on
+  some cards and Arabic on others (Marty, sun vs half moon). Options A colour-only
+  and B a خكلي tag were rendered and passed over. An open
   card lists every spelling (oldest first — an order, not a ranking), with
   "written by" for known contributors, "Write it in Hakli" / "Change my
   spelling" for a signed-in person, and Hide / Show again for a steward.

@@ -37,8 +37,11 @@
 .afdcard .card.lead .gloss{font-size:28px}
 .afdcard .gloss .glossar{display:block; font-family:var(--sans); font-size:15px; color:var(--mist);
                   margin-top:3px; direction:rtl; text-align:right}
-.afdcard .gloss .glossar.solo{font-size:22px; color:var(--ink); margin-top:0}
-.afdcard .card.lead .gloss .glossar.solo{font-size:28px}
+/* Arabic-only mode: the Arabic translation is ALWAYS the small grey line, with or
+   without a Hakli spelling (11-08, decided in Dhofar) — so the big amber word on a
+   card is only ever Hakli, never Arabic. Before, a card with no spelling put the
+   Arabic translation in the big spot and the two Arabic-script words were mixed up. */
+.afdcard .gloss .glossar.solo{font-size:15px; color:var(--mist); margin-top:0}
 .afdcard .play{flex:0 0 auto; width:52px; height:52px; border-radius:50%; border:none; cursor:pointer;
         background:var(--mountain); color:var(--cloud); display:grid; place-items:center;
         box-shadow:0 6px 16px rgba(31,58,52,.22)}
@@ -228,20 +231,19 @@
    the headword — first, larger and heavier than any translation, so it never
    reads as one more of them. Under an open card, every spelling, each
    attributed, none ranked. */
-.afdcard .gloss .spell{display:block; font-family:var(--sans); font-size:25px; font-weight:700; color:var(--mountain);
+.afdcard .gloss .spell{display:block; font-family:var(--sans); font-size:25px; font-weight:700; color:var(--resin);
   unicode-bidi:isolate; text-align:start; margin-bottom:3px; line-height:1.25}
 .afdcard .card.lead .gloss .spell{font-size:30px}
 .afdcard .card:not(.lead) .gloss .spell{display:inline-block; font-size:21px; margin:0}
-/* with a spelling on top, a solo Arabic gloss steps down so the two Arabic-script
-   lines can't be taken for each other */
-.afdcard .gloss.has-spell .glossar.solo{font-size:15px; color:var(--mist); margin-top:3px}
+/* with a spelling on top, the (already small) Arabic sits just under or beside it */
+.afdcard .gloss.has-spell .glossar.solo{margin-top:3px}
 .afdcard .card:not(.lead) .gloss.has-spell .glossar.solo{margin:0}
 .afdcard .slot-spell[hidden]{display:none}
 .afdcard .spell-list{display:flex; flex-direction:column; gap:6px}
 .afdcard .spell-list:empty{display:none}
 .afdcard .spell-row{display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px}
 .afdcard .spell-row.is-hidden .spell-text{opacity:.45; text-decoration:line-through}
-.afdcard .spell-text{font:600 22px/1.3 var(--sans); color:var(--ink); unicode-bidi:isolate}
+.afdcard .spell-text{font:600 22px/1.3 var(--sans); color:var(--resin); unicode-bidi:isolate}   /* Hakli = amber, as in the header */
 .afdcard .spell-by{font:12px/1.2 var(--sans); color:var(--mist)}
 .afdcard .spell-by:empty{display:none}
 .afdcard .spell-flag{font:600 11px/1 var(--sans); color:var(--danger); border:1px solid currentColor; border-radius:999px; padding:3px 7px}
