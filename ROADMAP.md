@@ -1444,7 +1444,7 @@ below remain forward design for if/when a speaker elects wider visibility.
 - One-time move: `scripts/move-vectors.mjs` (look only / `--apply`), after the matcher deploy. Steps in DEPLOY.md.
 - Why: a word with 10 voices was ~100 KB of numbers no phone uses — the biggest cost for people on prepaid data.
 
-## Reports, holds and steward notes (2026-10-26) — decided, built; deploy pending
+## Reports, holds and steward notes (2026-10-26) — decided, built; deployed
 
 Limiting voices and word cards from people with bad intent. **Decided (don't relitigate):**
 trust by default, hold after a report; **one report is enough** (no counting, no votes —
