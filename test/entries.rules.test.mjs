@@ -379,9 +379,10 @@ describe("steward photo — any word, seeded included (11-08)", () => {
     await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), new Uint8Array(2 * 1024 * 1024 + 1), asJpeg));
   });
   it("…write-once: a replacement is a new file, the old bytes stay", async () => {
-    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), IMG, asJpeg));
-    await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), new Uint8Array([9, 9]), asJpeg));
-    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward", SEED, "1762592499999")), IMG, asJpeg));
+    // own names: the emulator may still hold the file from the test above
+    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward", SEED, "1762592411111")), IMG, asJpeg));
+    await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uSteward", SEED, "1762592411111")), new Uint8Array([9, 9]), asJpeg));
+    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward", SEED, "1762592422222")), IMG, asJpeg));
   });
   it("a non-steward can't use the steward path", async () => {
     await assertFails(uploadBytes(ref(stAs("uA"), SP("uA")), IMG, asJpeg));
