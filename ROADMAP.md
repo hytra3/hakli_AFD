@@ -372,8 +372,7 @@ something makes them matter.
   `img/words/…`, 512px square, EXIF stripped), shown until the word has a photo of its
   own — the fig, from Marty's photo of wild figs (Dhofar, Nov 2026).
   Tests: `test/browser/word-photo.browser.mjs` (11, passing); rules in
-  `test/entries.rules.test.mjs` (emulator — **not yet run**: the emulator download was
-  blocked where it was built). Not done: steward.html *Take down photo* still deletes
+  `test/entries.rules.test.mjs` (76/76 passing in the emulator, 11-08). Not done: steward.html *Take down photo* still deletes
   the contributor's path, not a steward's replacement, and the daily purge doesn't
   reap steward photos of a removed word.
 - **Local names for the Dhofar emoji group** — `custom` in `data/concept-emoji.json`
