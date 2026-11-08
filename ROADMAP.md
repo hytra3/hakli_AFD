@@ -1475,9 +1475,7 @@ flat hierarchy, and it can't be rallied against a rival family); a steward decid
   short text, to whoever recorded the voice (for a proxied elder, the agent who
   relays it) or added the word. Shown on their next sign-in in the dictionary; OK marks
   it seen. In case it wasn't deliberate.
-- Tests: `test/moderation.rules.test.mjs` (Firestore emulator — **not yet run**: the
-  emulator download was blocked where it was built), `test/browser/report.browser.mjs`
-  (28 checks, passing).
+- Tests: `test/moderation.rules.test.mjs` (37/37 passing in the emulator, 11-08),
 - **Not built (next, if wanted):** suspending an account (block its new uploads and hide
   its voices in one go — needs a collection-group index on `recordings.uid`); reporting
   a written spelling (stewards can already hide one); a rate limit on reports per
