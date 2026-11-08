@@ -147,9 +147,15 @@ export async function signOut(){ A.currentUser = null; emit(); }
 `,
 };
 
+// The microphone plays fixtures/mic.wav: a steady 440 Hz tone at half scale, so
+// every take is heard and none clips. Chromium's own fake beep clips on some
+// takes in newer builds, and the page then (rightly) says "too loud" and hides
+// Next (11-08).
+const MIC_WAV = fileURLToPath(new URL("./fixtures/mic.wav", import.meta.url));
 export async function launch(){
   return chromium.launch({ executablePath: process.env.AFD_CHROMIUM || undefined,
-    args:["--use-fake-device-for-media-stream","--use-fake-ui-for-media-stream","--no-sandbox"] });
+    args:["--use-fake-device-for-media-stream","--use-fake-ui-for-media-stream","--no-sandbox",
+          "--use-file-for-fake-audio-capture=" + MIC_WAV] });
 }
 
 const OPEN = new Set();   // browser contexts still open — closed when a scenario ends, however it ends

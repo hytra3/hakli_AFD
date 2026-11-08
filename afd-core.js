@@ -560,12 +560,6 @@ window.AFDCore = (function(){
     "card.edit.pic":        { en:"Emoji",              ar:"رمز تعبيري" },
     "card.edit.photo":      { en:"This word has a photo, which shows instead of the emoji.", ar:"لهذه الكلمة صورة، وهي تظهر بدل الرمز التعبيري." },
     "card.edit.save":       { en:"Save",               ar:"احفظ" },
-    "card.photo":           { en:"Photo",              ar:"صورة" },
-    "card.photo.take":      { en:"Take or choose a photo", ar:"التقط صورة أو اخترها" },
-    "card.photo.clear":     { en:"Remove photo",       ar:"أزل الصورة" },
-    "card.photo.clear.ask": { en:"Remove this photo from the word? The emoji shows again.", ar:"إزالة هذه الصورة من الكلمة؟ يعود الرمز التعبيري للظهور." },
-    "card.photo.keep":      { en:"Keep the photo",     ar:"أبقِ الصورة" },
-    "card.photo.failed":    { en:"The photo couldn't be saved. Try again with signal.", ar:"تعذّر حفظ الصورة. حاول مرة أخرى عند توفّر الإشارة." },
     // Speak-to-find (index.html) — what a slow or failed search says. One line per
     // KIND of failure, so the person (and a screenshot) can tell them apart.
     // Added at the END so the prompts tool's section.item numbers don't shift.
@@ -964,6 +958,13 @@ window.AFDCore = (function(){
     "card.more":            { en:"More voices",        ar:"أصوات أخرى" },
     // 10-19: voices kept on the phone (afd-voices.js)
     "card.offline.some":    { en:"No signal — only the voices you've heard before on this phone can play.", ar:"لا توجد شبكة — تُسمَع فقط الأصوات التي استمعتَ إليها من قبل على هذا الهاتف." },
+    // 11-08: a steward's photo for a word (afd-card.js) — at the end of the card lines so review numbers A2.1–55 stay put
+    "card.photo":           { en:"Photo",              ar:"صورة" },
+    "card.photo.take":      { en:"Take or choose a photo", ar:"التقط صورة أو اخترها" },
+    "card.photo.clear":     { en:"Remove photo",       ar:"أزل الصورة" },
+    "card.photo.clear.ask": { en:"Remove this photo from the word? The emoji shows again.", ar:"إزالة هذه الصورة من الكلمة؟ يعود الرمز التعبيري للظهور." },
+    "card.photo.keep":      { en:"Keep the photo",     ar:"أبقِ الصورة" },
+    "card.photo.failed":    { en:"The photo couldn't be saved. Try again with signal.", ar:"تعذّر حفظ الصورة. حاول مرة أخرى عند توفّر الإشارة." },
     "help.saved.title":     { en:"Voices saved on this phone", ar:"أصوات محفوظة على هذا الهاتف" },
     "help.saved.lead":      { en:"Voices you've listened to are kept here, so they play again with no signal. Old ones go by themselves, and more go when the phone runs low on space.", ar:"تُحفَظ هنا الأصوات التي استمعتَ إليها لتُسمَع مجددًا دون شبكة. تُحذَف القديمة تلقائيًا، ويُحذَف المزيد عندما تقلّ مساحة الهاتف." },
     "help.saved.n":         { en:"Voices: {n} · {mb} MB", ar:"الأصوات: {n} · {mb} م.ب" },
