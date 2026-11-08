@@ -1315,7 +1315,10 @@ function seenCount(entryId){
 }
 function feedback(entryId, meta, recs, detail, hc){
   const mine = recs.filter(r => r.mine);
-  if(!mine.length) return;
+  // Opening the card is "seen", even when this phone no longer has a voice of
+  // its own on it (signed in as someone else, a voice withdrawn or moved by a
+  // join…): otherwise the "+n" it remembered could never clear (11-08, Dhofar).
+  if(!mine.length){ if(seenCount(entryId) != null) rememberSeen(entryId, hc); return; }
   const others = new Set(recs.filter(r => !r.mine && r.consent==="public")
                              .map(r => (r.uid||"") + "|" + (r.speakerId||"")));
   const creator = meta.source==="user" && CFG.user() && meta.createdBy===CFG.user().uid;
@@ -1334,6 +1337,9 @@ function feedback(entryId, meta, recs, detail, hc){
     n.innerHTML = html;
     detail.insertBefore(n, detail.firstChild);
   }
+  rememberSeen(entryId, hc);
+}
+function rememberSeen(entryId, hc){
   entryCounts(entryId).then(c => {
     try{ localStorage.setItem("afd.seen." + entryId, String(c.word + c.context + c.definition)); }catch(_){}
     hc && hc.querySelector(".fb-new")?.remove();
