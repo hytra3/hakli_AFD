@@ -207,7 +207,26 @@ service cloud.firestore {
                || request.resource.data[k] == resource.data.get(k, null)
                || request.resource.data[k] == request.time;
       }
-      allow update: if (notAnon() && isContributed()
+      //  • STEWARD PHOTO (11-08) — a steward sets or replaces the photo on ANY
+      //    word, seeded ones included, or clears it (the card falls back to its
+      //    emoji / built-in picture). The image may only point at the steward's
+      //    OWN afd_pics/{uid}/{entryId}~{ms}.jpg for THIS entry (afd-storage
+      //    .rules), so it can't hotlink anything else. Stamped imageBy/imageAt.
+      //    Not on a removed word. A replaced photo's bytes stay in Storage.
+      function stewardPhotoOK() {
+        return isSteward()
+               && !('removedAt' in resource.data)
+               && onlyChanged(['image','imageBy','imageAt'])
+               && request.resource.data.get('imageBy', '') == request.auth.uid
+               && request.resource.data.get('imageAt', null) == request.time
+               && (!('image' in request.resource.data)
+                   || (request.resource.data.image is string
+                       && request.resource.data.image.matches(
+                            'https://firebasestorage[.]googleapis[.]com/v0/b/afd-dev[.]firebasestorage[.]app/o/afd_pics%2F'
+                            + request.auth.uid + '%2F' + entryId + '~[0-9]{10,16}[.]jpg[?]alt=media')));
+      }
+      allow update: if stewardPhotoOK()
+                    || (notAnon() && isContributed()
                         && resource.data.get('createdBy', '') != request.auth.uid
                         && onlyChanged(['heldAt'])
                         && request.resource.data.heldAt == request.time

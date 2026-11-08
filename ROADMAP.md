@@ -361,9 +361,21 @@ something makes them matter.
   (the first session left a run of skips on sun/moon/mountain). Wait to see whether
   other speakers hit it too; if they do, move it further down or ask "are you sure?".
   Skips no longer show in the session list (10-14), so they cost nothing visible.
-- **Replace a word's photo** — today a steward can only take a photo down
-  (steward.html). Uploading a new one touches the storage rules (write-once photos
-  under the creator's uid) and the entry rules (`image` is create-only).
+- **✅ Replace a word's photo (11-08)** — Edit word → 📷 *Photo* (stewards only), on
+  any word, seeded ones included; *Remove photo* asks first and falls back to the
+  emoji. Asked for in Dhofar: there's no fig emoji (the fig had an olive 🫒) and figs
+  were out of season. Each photo is a new write-once file,
+  `afd_pics/{stewardUid}/{entryId}~{ms}.jpg`, so a replaced photo's bytes are kept,
+  never overwritten. Entry rule `stewardPhotoOK`: only the steward's own file for that
+  entry, stamped `imageBy`/`imageAt`, not on a removed word.
+  **Built-in pictures**: a seeded word may ship a picture in `afd-words.js` (`img:`,
+  `img/words/…`, 512px square, EXIF stripped), shown until the word has a photo of its
+  own — the fig, from Marty's photo of wild figs (Dhofar, Nov 2026).
+  Tests: `test/browser/word-photo.browser.mjs` (11, passing); rules in
+  `test/entries.rules.test.mjs` (emulator — **not yet run**: the emulator download was
+  blocked where it was built). Not done: steward.html *Take down photo* still deletes
+  the contributor's path, not a steward's replacement, and the daily purge doesn't
+  reap steward photos of a removed word.
 - **Local names for the Dhofar emoji group** — `custom` in `data/concept-emoji.json`
   is labelled in English (frankincense, khanjar…). Add *luban* and the Arabic / Hakli
   names when Marty sends them; data-only, no code.

@@ -6,7 +6,7 @@
    AFDCore is read from the global (afd-core.js must load before this module). */
 import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, query, where, limit, orderBy, startAfter, getDocs, serverTimestamp, deleteField }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { ref, getDownloadURL }
+import { ref, getDownloadURL, uploadBytes }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 // voices already heard, kept on the phone for playing without signal (10-19)
 import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1108a";
@@ -43,6 +43,26 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<"
 // without it opening the dictionary downloads every photo, down the page too.
 // Escaped even though the rules pin the URL: it lands in innerHTML.
 function thumbImg(url){ return `<img src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async">`; }
+// The picture a card shows: a photo set on the word (a contributor's, or a
+// steward's — 11-08) wins; else a picture that ships with the app for a seeded
+// word (afd-words.js img:, e.g. the fig, which has no emoji of its own).
+function faceImage(mt){ return (mt && (mt.image || mt.defaultImage)) || ""; }
+// Centre-square, 512px JPEG — the same as add.html. Drawing through a canvas
+// also drops the camera's EXIF (GPS included): the photo is public.
+function squareJpeg(file, size){
+  return new Promise((res, rej)=>{
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const s = Math.min(img.width, img.height), c = document.createElement("canvas");
+      c.width = c.height = size;
+      c.getContext("2d").drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      c.toBlob(b=> b ? res(b) : rej(new Error("encode failed")), "image/jpeg", 0.85);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
+    img.src = url;
+  });
+}
 
 function downsampleEnv(frames, n){
   n=n||48; if(!frames||!frames.length) return [];
@@ -570,7 +590,8 @@ function emojiPicker(host, entryId, meta, m){
 async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFace){
   const u = CFG.user(); if(!u) return;
   const creator = meta.source==="user" && meta.createdBy===u.uid;
-  const canTag = creator || await amSteward();
+  const steward = await amSteward();
+  const canTag = creator || steward;
   if(!creator && !canTag) return;
   const m = CFG.mode();
   const box=document.createElement("div"); box.className="word-tools";
@@ -605,6 +626,10 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFa
     fe.innerHTML=fld("card.edit.en","en","ltr",80)+fld("card.edit.ar","ar","rtl",80)+
       `<div class="wt-field ep-host"><span>${AFDCore.tHTML("card.edit.pic", m)}</span><div class="ep"></div></div>`+
       (meta.image ? `<p class="wt-note">${AFDCore.tHTML("card.edit.photo", m)}</p>` : "")+
+      (steward ? `<div class="wt-field wt-photo"><span>${AFDCore.tHTML("card.photo", m)}</span>`+
+        `<div class="wt-photo-btns"><button type="button" class="wt-btn wt-photo-take">\u{1F4F7} ${AFDCore.tHTML("card.photo.take", m)}</button>`+
+        `<button type="button" class="wt-btn wt-photo-clear"${meta.image?"":" hidden"}>${AFDCore.tHTML("card.photo.clear", m)}</button></div>`+
+        `<input type="file" accept="image/*" capture="environment" hidden></div>` : "")+
       `<button type="button" class="wt-btn wt-save">${AFDCore.tHTML("card.edit.save", m)}</button>`;
     const inF=(f)=>fe.querySelector(`[data-f="${f}"]`);
     const picker=emojiPicker(fe.querySelector(".ep"), entryId, meta, m);
@@ -628,6 +653,40 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFa
       }catch(e){ console.warn("[AFD] edit word", e); CFG.banner(AFDCore.t("card.failed", m)); }
       finally{ sv.disabled=false; }
     };
+    /* A steward's photo for any word (11-08), seeded ones included. A new
+       name per photo (…~{ms}.jpg): the rules keep pictures write-once, so a
+       replaced photo's bytes stay in Storage. "Remove photo" clears the field
+       only; the card falls back to its emoji / built-in picture. */
+    if(steward){
+      const pin=fe.querySelector(".wt-photo input"), take=fe.querySelector(".wt-photo-take"),
+            clr=fe.querySelector(".wt-photo-clear");
+      take.onclick=()=>pin.click();
+      pin.onchange=async ()=>{
+        const f=pin.files && pin.files[0]; pin.value=""; if(!f) return;
+        take.disabled=clr.disabled=true; take.classList.add("busy");
+        try{
+          const blob=await squareJpeg(f, 512);
+          const path=`afd_pics/${u.uid}/${entryId}~${Date.now()}.jpg`;
+          await uploadBytes(ref(CFG.store, path), blob, { contentType:"image/jpeg", cacheControl:"private, max-age=31536000, immutable" });
+          const url="https://firebasestorage.googleapis.com/v0/b/afd-dev.firebasestorage.app/o/"+encodeURIComponent(path)+"?alt=media";
+          await updateDoc(doc(CFG.db,"afd_entries",entryId), { image:url, imageBy:u.uid, imageAt:serverTimestamp() });
+          meta.image=url; clr.hidden=false;
+          if(typeof paintFace==="function") paintFace(meta);
+        }catch(e){ console.warn("[AFD] word photo", e); CFG.banner(AFDCore.t("card.photo.failed", m)); }
+        finally{ take.disabled=clr.disabled=false; take.classList.remove("busy"); }
+      };
+      clr.onclick=async ()=>{
+        if(!(await AFDCore.ask({ mode:m, face: thumbImg(meta.image), titleKey:"card.photo.clear.ask",
+              yesKey:"card.photo.clear", noKey:"card.photo.keep", noIcon:"keep" }))) return;
+        clr.disabled=true;
+        try{
+          await updateDoc(doc(CFG.db,"afd_entries",entryId), { image:deleteField(), imageBy:u.uid, imageAt:serverTimestamp() });
+          delete meta.image; clr.hidden=true;
+          if(typeof paintFace==="function") paintFace(meta);
+        }catch(e){ console.warn("[AFD] clear photo", e); CFG.banner(AFDCore.t("card.failed", m)); }
+        finally{ clr.disabled=false; }
+      };
+    }
     box.appendChild(eb); box.appendChild(fe);
   }
 
@@ -1304,6 +1363,7 @@ async function entryCard(res, lead){
     if(w) meta = { ...meta, pic: meta.pic || w.pic, gloss: meta.gloss || w.en,
                    glossAr: meta.glossAr || w.ar, domain: meta.domain || w.dom };
   }
+  { const w = localWord(res.entryId); if(w && w.img) meta.defaultImage = w.img; }
   const glossEn = meta.gloss || res.gloss || "";
   const glossAr = meta.glossAr || meta.ar || "";
   const tile = domainColor(meta.domain || res.entryId);
@@ -1311,7 +1371,7 @@ async function entryCard(res, lead){
   const scriptLabel = glossAr || meta.ref || "";
 
   const thumbHtml =
-    `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(meta.image||"")}" ` +
+    `<div class="thumb" style="--tile:${tile}" data-img="${escapeHtml(faceImage(meta))}" ` +
     `data-pic="${escapeHtml(meta.pic||"")}" data-script="${escapeHtml(scriptLabel)}" ` +
     `data-letter="${escapeHtml(letterFallback)}" data-entry="${escapeHtml(res.entryId)}"></div>`;
   let glossHtml;
@@ -1337,7 +1397,7 @@ async function entryCard(res, lead){
   // Collapsed header shows the entry's IDENTITY (emoji / identicon / script word).
   // The sound-shape (waveform, in sound tier) is painted when the detail loads.
   // A contributor's photo (add.html "show it") outranks the emoji.
-  if(meta.image) thumbEl.innerHTML = thumbImg(meta.image);
+  if(faceImage(meta)) thumbEl.innerHTML = thumbImg(faceImage(meta));
   else if(meta.pic) thumbEl.textContent = meta.pic;   // picture first in every tier
   // No picture → the identicon, in every tier (10-14: the Arabic-only tier used to
   // put the word itself here, which overflowed on long words and repeated the
@@ -1356,10 +1416,11 @@ async function entryCard(res, lead){
   // Repaint the picture and the text after an in-place edit (word tools), the
   // same way the header was first drawn; tags and voice counts stay put.
   const paintFace=(mt)=>{
-    if(mt.image) thumbEl.innerHTML = thumbImg(mt.image);
+    if(faceImage(mt)) thumbEl.innerHTML = thumbImg(faceImage(mt));
     else if(mt.pic) thumbEl.textContent = mt.pic;
     else thumbEl.innerHTML = AFDCore.identicon(res.entryId);
     thumbEl.dataset.pic = mt.pic || "";
+    thumbEl.dataset.img = faceImage(mt);
     if(!gc || CFG.mode()==="sound") return;
     [...gc.childNodes].forEach(n=>{ if(n.nodeType===3 || (n.classList && n.classList.contains("glossar"))) n.remove(); });
     const ar = mt.glossAr || mt.ref || "";

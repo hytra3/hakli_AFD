@@ -352,3 +352,72 @@ describe("word photo — storage", () => {
     await assertSucceeds(deleteObject(ref(stAs("uSteward"), P("uA"))));
   });
 });
+
+/* ---- a steward's photo for any word (11-08) ------------------------------
+   Edit word → 📷 Photo: a steward sets / replaces / clears the photo on any
+   word, seeded ones included. Each photo is its own write-once file,
+   afd_pics/{stewardUid}/{entryId}~{ms}.jpg; the entry may only point at the
+   steward's OWN file for THAT entry, stamped imageBy / imageAt. */
+describe("steward photo — any word, seeded included (11-08)", () => {
+  const SEED = "ent_fig";
+  const SP = (uid, id = SEED, ms = "1762592400000") => `afd_pics/${uid}/${id}~${ms}.jpg`;
+  const SURL = (uid, id = SEED, ms = "1762592400000") =>
+    `https://firebasestorage.googleapis.com/v0/b/afd-dev.firebasestorage.app/o/afd_pics%2F${uid}%2F${id}~${ms}.jpg?alt=media`;
+  const stamp = (uid) => ({ imageBy: uid, imageAt: serverTimestamp() });
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), "afd_entries", SEED), { gloss: "fig", pic: "🫒", seededAt: 1 });
+      await setDoc(doc(c.firestore(), "afd_entries", ID), { ...base("uA"), createdAt: 1, image: imageUrl("uA") });
+    });
+  });
+
+  it("a steward uploads a photo for a seeded word", async () => {
+    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), IMG, asJpeg));
+  });
+  it("…JPEG only, under 2 MB", async () => {
+    await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), IMG, asPng));
+    await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), new Uint8Array(2 * 1024 * 1024 + 1), asJpeg));
+  });
+  it("…write-once: a replacement is a new file, the old bytes stay", async () => {
+    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), IMG, asJpeg));
+    await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uSteward")), new Uint8Array([9, 9]), asJpeg));
+    await assertSucceeds(uploadBytes(ref(stAs("uSteward"), SP("uSteward", SEED, "1762592499999")), IMG, asJpeg));
+  });
+  it("a non-steward can't use the steward path", async () => {
+    await assertFails(uploadBytes(ref(stAs("uA"), SP("uA")), IMG, asJpeg));
+  });
+  it("…nor a steward under someone else's uid", async () => {
+    await assertFails(uploadBytes(ref(stAs("uSteward"), SP("uA")), IMG, asJpeg));
+  });
+  it("a steward points a seeded word at their own photo", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward"), SEED), { image: SURL("uSteward"), ...stamp("uSteward") }));
+  });
+  it("…and replaces a contributor's photo on their word", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward")), { image: SURL("uSteward", ID), ...stamp("uSteward") }));
+  });
+  it("…but not another entry's photo, someone else's, or an outside URL", async () => {
+    await assertFails(updateDoc(entry(fsAs("uSteward"), SEED), { image: SURL("uSteward", "ent_moon"), ...stamp("uSteward") }));
+    await assertFails(updateDoc(entry(fsAs("uSteward"), SEED), { image: SURL("uOther"), ...stamp("uSteward") }));
+    await assertFails(updateDoc(entry(fsAs("uSteward"), SEED), { image: "https://example.com/fig.jpg", ...stamp("uSteward") }));
+  });
+  it("…must be stamped with who and now", async () => {
+    await assertFails(updateDoc(entry(fsAs("uSteward"), SEED), { image: SURL("uSteward") }));
+    await assertFails(updateDoc(entry(fsAs("uSteward"), SEED), { image: SURL("uSteward"), imageBy: "uA", imageAt: serverTimestamp() }));
+  });
+  it("…and nothing else rides along", async () => {
+    await assertFails(updateDoc(entry(fsAs("uSteward"), SEED), { image: SURL("uSteward"), ...stamp("uSteward"), gloss: "x" }));
+  });
+  it("a steward can clear the photo (back to the emoji)", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward")), { image: deleteField(), ...stamp("uSteward") }));
+  });
+  it("a non-steward can't set a photo, even the word's creator", async () => {
+    await assertFails(updateDoc(entry(fsAs("uA"), SEED), { image: SURL("uA"), ...stamp("uA") }));
+    await assertFails(updateDoc(entry(fsAs("uA")), { image: SURL("uA", ID), ...stamp("uA") }));
+  });
+  it("not on a removed word", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await updateDoc(doc(c.firestore(), "afd_entries", ID), { removedAt: 1 });
+    });
+    await assertFails(updateDoc(entry(fsAs("uSteward")), { image: SURL("uSteward", ID), ...stamp("uSteward") }));
+  });
+});

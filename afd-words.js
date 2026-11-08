@@ -12,6 +12,9 @@
      pic  — emoji picture (the non-reader anchor)
      dom  — domain / semantic group
      ref  — Marty's field-note transcription (may be empty)
+     img  — optional picture that ships with the app (img/words/…, a 512px
+            square JPEG); shown when the word has no photo of its own. For
+            words no emoji fits (fig). A steward's photo (Edit word) wins.
 
    Bump the ?v= query on the <script src> when this file changes.
    ============================================================================ */
@@ -32,7 +35,7 @@ window.AFDWords = [
  {id:"bone",en:"bone",ar:"عظم",pic:"🦴",dom:"animals",ref:""},
  {id:"tree",en:"tree",ar:"شجرة",pic:"🌳",dom:"plants",ref:"heruu (was he.rn/hero)"},
  {id:"corn",en:"corn",ar:"ذرة",pic:"🌽",dom:"plants",ref:"mehindi"},
- {id:"fig",en:"fig",ar:"تين",pic:"🫒",dom:"plants",ref:""},
+ {id:"fig",en:"fig",ar:"تين",pic:"🫒",img:"img/words/fig.jpg",dom:"plants",ref:""},
  {id:"date",en:"date (fruit)",ar:"تمر",pic:"🌴",dom:"plants",ref:"toor"},
  {id:"bean",en:"bean",ar:"فاصولياء",pic:"🫘",dom:"plants",ref:"dugger"},
  {id:"hay",en:"hay",ar:"تبن",pic:"🌾",dom:"plants",ref:"TSaah / ehgroht"},

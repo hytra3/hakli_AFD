@@ -181,6 +181,24 @@ service firebase.storage {
       allow update: if false;
       allow delete: if isSteward();
     }
+    // ---------------- a steward's photo for ANY word (11-08) ----------------
+    // Edit word → 📷 Photo: a steward gives a card a picture, seeded words
+    // included (the fig had only an olive emoji). Each photo gets its own name,
+    // afd_pics/{stewardUid}/{entryId}~{ms}.jpg, so replacing a picture is a new
+    // write-once file and the old bytes are kept (never overwritten). Same shape
+    // as a contributor's photo: public read, JPEG only, 2 MB cap; the page
+    // re-encodes to a 512px square, dropping camera EXIF/GPS. The Firestore rule
+    // only lets the entry point at the steward's OWN file for THAT entry.
+    // (Separate match so the contributor path above stays exactly as it was;
+    // the two filename patterns can't overlap: this one needs the ~stamp.)
+    match /afd_pics/{uid}/{fileName} {
+      allow create: if isSteward()
+                    && request.auth.uid == uid
+                    && resource == null
+                    && fileName.matches('ent_[a-z0-9_]{1,60}~[0-9]{10,16}[.]jpg')
+                    && request.resource.size < 2 * 1024 * 1024
+                    && request.resource.contentType == 'image/jpeg';
+    }
     // ---------------- reports & notes to contributors (10-26) ----------------
     // afd_flags/{uid}/…    — a reporter's SPOKEN reason (optional). Evidence for
     //                        the steward, not corpus: owner + stewards read it,
