@@ -23,8 +23,8 @@ import { execSync } from "node:child_process";
 
 const [id, slotArg] = process.argv.slice(2).filter(a => !a.startsWith("--"));
 const APPLY = process.argv.includes("--apply");
-const TYPE = { word: "word", sentence: "context", context: "context", meaning: "definition", definition: "definition" }[(slotArg || "").toLowerCase()];
-const SLOT = { word: "word", context: "sentence", definition: "meaning" };
+const TYPE = { word: "word", sentence: "context", context: "context", meaning: "definition", definition: "definition", note: "note" }[(slotArg || "").toLowerCase()];
+const SLOT = { word: "word", context: "sentence", definition: "meaning", note: "voice note" };
 if (!id || !TYPE) { console.log("Usage: node scripts/refile-take.mjs <recordingId> <word|sentence|meaning> [--apply]"); process.exit(2); }
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 let by = process.env.AFD_STEWARD || "";

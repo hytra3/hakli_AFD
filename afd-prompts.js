@@ -42,7 +42,7 @@ window.AFDPrompts = [
     { key:"intro.tour.why", en:"Your language, kept in your own voice, for those who come after you.", ar:"لغتُك، محفوظةً بصوتك، لمن يأتي بعدك.", kind:"narration" },
   ]},
   { tab:"record", name:"Heard in the app now", ar:"تُسمَع في التطبيق الآن",
-    note:"The dictionary's home page and the Add-a-word page play these.", items:[
+    note:"The dictionary's home page, the Add-a-word page and the recorder play these.", items:[
     { key:"find_hint", en:"Hold the green circle and say a word — it will find it", ar:"اضغط الدائرة الخضراء مطوّلًا وقل كلمة — وستجدها", kind:"narration" },
     { key:"add.say",          en:"Say your word: hold the button and say it twice, with a short pause", ar:"قُل كلمتك: اضغط باستمرار وقُلها مرّتين، مع وقفة قصيرة", kind:"narration" },
     { key:"add.show",         en:"Now show what it means — a photo, a picture, or say it", ar:"والآن أَرِنا معناها — بصورة، أو رسم، أو قُلها", kind:"narration" },
@@ -57,6 +57,13 @@ window.AFDPrompts = [
     { key:"add.reopen",       en:"You hid your voice earlier. Do you want people to hear all your recordings again — not only this word?", ar:"أخفيتَ صوتك سابقًا. هل تريد أن يسمع الناس كلّ تسجيلاتك مجددًا — لا هذه الكلمة فقط؟", kind:"narration" },
     // 10-17: asked on Add when the word just recorded sounds like one already in the dictionary
     { key:"add.dup",          en:"Is it one of these words? Listen — if it's the same word, choose it, and your voice joins it there.", ar:"هل هي إحدى هذه الكلمات؟ استمع — إن كانت الكلمة نفسها فاخترها، ويُضاف صوتك إليها هناك.", kind:"narration" },
+    // 11-09: the recorder asks this after a voice note is kept, and each
+    // choice's ▶ plays its name. Until recorded, the question is text only.
+    { key:"note.lang.ask",    en:"Which language did you speak?", ar:"بأيّ لغة تكلّمت؟", kind:"narration" },
+    { key:"note.lang.own",    en:"Hakli", ar:"الحَكلي", kind:"label" },
+    { key:"note.lang.ar",     en:"Arabic", ar:"العربية", kind:"label" },
+    { key:"note.lang.en",     en:"English", ar:"الإنجليزية", kind:"label" },
+    { key:"note.lang.mul",    en:"A mix of languages", ar:"خليط من اللغات", kind:"label" },
   ]},
   { tab:"record", later:true, name:"Consent grant (most important)", ar:"إعطاء الإذن (الأهمّ)", items:[
     { key:"consent.explain", en:"What it means to let the world hear you — spoken plainly, before any yes", ar:"ماذا يعني أن تدع العالم يسمعك — بوضوحٍ، قبل أي موافقة", kind:"narration" },

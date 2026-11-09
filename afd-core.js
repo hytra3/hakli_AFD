@@ -1034,7 +1034,21 @@ window.AFDCore = (function(){
     "stw.err.nomic":        { en:"The microphone isn't available here.", ar:"الميكروفون غير متاح هنا." },
     "flag.say.done":        { en:"✓ Recorded ({s}s) — it will be sent with the report", ar:"✓ سُجِّل ({s} ث) — سيُرسَل مع البلاغ" },
     "stw.notify.done":      { en:"✓ Recorded ({s}s)", ar:"✓ سُجِّل ({s} ث)" },
-    "flag.say.empty":       { en:"No sound came through — try again.", ar:"لم يصل أي صوت — حاول مجددًا." }
+    "flag.say.empty":       { en:"No sound came through — try again.", ar:"لم يصل أي صوت — حاول مجددًا." },
+    // Voice notes (11-09, from the field): a fourth slot on every card for
+    // talking ABOUT the word — how it's used, a story, "my father" — in any
+    // language. Each note says which language it is in. Appended here so the
+    // prompts tool's numbers don't move.
+    "slot.notes":           { en:"voice notes",        ar:"ملاحظات صوتية" },
+    "slot.add.note":        { en:"Add a voice note",   ar:"أضف ملاحظة صوتية" },
+    "record.instr.note":    { en:"Say anything about this word — how it's used, a story, another form. *Any language.*", ar:"قل أيّ شيء عن هذه الكلمة — كيف تُستعمل، أو قصّة، أو صيغة أخرى. *بأيّ لغة.*" },
+    "note.lang.ask":        { en:"Which language did you speak?", ar:"بأيّ لغة تكلّمت؟" },
+    "note.lang.pick":       { en:"This one",           ar:"هذه" },
+    "note.lang.own":        { en:"Hakli",              ar:"الحَكلي" },
+    "note.lang.ar":         { en:"Arabic",             ar:"العربية" },
+    "note.lang.en":         { en:"English",            ar:"الإنجليزية" },
+    "note.lang.mul":        { en:"A mix",              ar:"خليط" },
+    "stw.voice.note":       { en:"voice note",         ar:"ملاحظة صوتية" }
   };
   function t(key, mode){
     const s = STRINGS[key];

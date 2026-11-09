@@ -270,6 +270,20 @@ function townLabel(town, mode){
 function avCaption(rec){
   return [rec.displayName, rec.town ? townLabel(rec.town, CFG.mode()) : ""].filter(Boolean);
 }
+/* A voice note's language (11-09), as a short tag beside the voice: notes are
+   the one place a take may be in any language, so each says which. The
+   dictionary's own language reads "Hakli"; "mul" is a mix. No tag in sound view,
+   which has no text; nothing on a note recorded before the language was asked. */
+function noteLangKey(code){
+  const own = window.AFDInstance && window.AFDInstance.language && window.AFDInstance.language.code;
+  return code === own ? "note.lang.own" : ({ ar:"note.lang.ar", en:"note.lang.en", mul:"note.lang.mul" })[code] || null;
+}
+function noteLangTag(rec){
+  if(rec.type !== "note" || !rec.lang || CFG.mode() === "sound") return "";
+  const k = noteLangKey(rec.lang);
+  const txt = k ? AFDCore.t(k, CFG.mode()==="auto" ? "auto" : "script") : rec.lang;
+  return `<span class="note-lang" data-lang="${escapeHtml(rec.lang)}">${escapeHtml(txt)}</span>`;
+}
 
 function photoAvatar(bg, url){
   return { bg, svg:`<img src="${url}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit">` };
@@ -369,6 +383,7 @@ async function listPlayable(entryId, opts){
     }
     return { url, recordingId:d.id, entryId, uid:v.uid, speakerId:v.speakerId||null, viaAgent: v.viaAgent===true,
              type: v.type || v.phase || "word",
+             lang: v.lang || null,     // shown on voice notes, which may be in any language
              // What the viewer can act on is whether others can HEAR it. A take
              // labelled public but uploaded hidden (its speaker card was withdrawn)
              // must offer Restore, not Withdraw — Restore reopens the card.
@@ -777,7 +792,14 @@ function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
   b.innerHTML=rec.avatar.svg;
   b.addEventListener("click",()=>{ b.setAttribute("aria-pressed","true");
     playVoiceInto(rec, thumbEl, playBtn, setUrl); });
-  const cap = avCaption(rec);
+  const cap = avCaption(rec), tag = noteLangTag(rec);
+  if(tag){                                   // a voice note: its language under the face
+    const wrap=document.createElement("span"); wrap.className="av-wrap";
+    wrap.appendChild(b);
+    cap.forEach((t,i)=>{ const nm=document.createElement("span"); nm.className = i===0 && rec.displayName ? "av-name" : "av-name av-town"; nm.textContent=t; wrap.appendChild(nm); });
+    wrap.insertAdjacentHTML("beforeend", tag);
+    return wrap;
+  }
   if(cap.length){                            // a "known" contributor's name and/or the speaker's town
     const wrap=document.createElement("span"); wrap.className="av-wrap";
     wrap.appendChild(b);
@@ -822,6 +844,7 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
     ? `<span class="av-wrap">${avSm}${cap.map((t,i)=>`<span class="av-name${i===0 && rec.displayName ? "" : " av-town"}">${escapeHtml(t)}</span>`).join("")}</span>`
     : avSm;
   play.innerHTML=avBlock+
+    noteLangTag(rec)+
     vrWave+
     `<svg class="pl" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
   play.addEventListener("click",()=>{
@@ -1145,7 +1168,7 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   // to be only the "Say it yourself" button at the foot of the card, which people
   // didn't find). The word goes to the recorder on that word (#entryId — the
   // recorder's default tab is Word); sentence/meaning add the type to the hash.
-  const addKey = { word:"slot.add.word", context:"slot.add.sentence", definition:"slot.add.meaning" }[type] || "slot.add.meaning";
+  const addKey = { word:"slot.add.word", context:"slot.add.sentence", definition:"slot.add.meaning", note:"slot.add.note" }[type] || "slot.add.meaning";
   const addHash = encodeURIComponent(entryId) + (type==="word" ? "" : "|" + type);
   const addLink =
     `<a class="slot-add" href="${CFG.recorderUrl}#${addHash}">` +
@@ -1469,6 +1492,7 @@ async function entryCard(res, lead){
     const wordRecs    = recs.filter(r => (r.type||"word")==="word");
     const contextRecs = recs.filter(r => r.type==="context");
     const defRecs     = recs.filter(r => r.type==="definition");
+    const noteRecs    = recs.filter(r => r.type==="note");
     firstPlayable = (wordRecs[0]||recs[0])?.url || null;
     if(currentUrl==null) currentUrl = firstPlayable;
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
@@ -1483,10 +1507,12 @@ async function entryCard(res, lead){
     let wordSlot = slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl);
     let ctxSlot  = slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{});
     let defSlot  = slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{});
+    let noteSlot = slotSection("slot.notes","note",res.entryId, noteRecs, null, playBtn, ()=>{});
     detail.appendChild(wordSlot);
     detail.appendChild(spellingSection(res.entryId, gc));
     detail.appendChild(ctxSlot);
     detail.appendChild(defSlot);
+    detail.appendChild(noteSlot);
     // More voices (10-19): the card holds a page of public voices, newest first.
     // When there are more, one row under the slots fetches the next page and the
     // slots are redrawn with every voice so far; a slot whose list was open stays
@@ -1523,6 +1549,7 @@ async function entryCard(res, lead){
         wordSlot = redraw(wordSlot, "slot.word", "word", allRecs.filter(r => (r.type||"word")==="word"), thumbEl, setUrl);
         ctxSlot  = redraw(ctxSlot, "slot.sentence", "context", allRecs.filter(r => r.type==="context"), null, ()=>{});
         defSlot  = redraw(defSlot, "slot.meaning", "definition", allRecs.filter(r => r.type==="definition"), null, ()=>{});
+        noteSlot = redraw(noteSlot, "slot.notes", "note", allRecs.filter(r => r.type==="note"), null, ()=>{});
         if(cursor) paintMore(); else more.remove();
       });
       detail.appendChild(more);

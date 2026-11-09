@@ -89,6 +89,12 @@ def on_finalize(cloud_event):
         return
 
     audio = blob.download_as_bytes()
+    if (doc.get("type") or doc.get("phase")) == "note":
+        # A voice note (11-09) is talk about a word, in any language — never a
+        # search match, so no vectors: just the checksum for the export.
+        ref.update({"sha256": hashlib.sha256(audio).hexdigest()})
+        print(f"voice note {entry_id}/{recording_id}: checksum only, not embedded")
+        return
     # Fixity for the export manifest: a checksum of the exact stored bytes,
     # written even if the embed below fails, so every recording can be
     # verified on export and import.

@@ -363,7 +363,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
      will be filed under. */
   #entryCardHost[data-rectype="word"] .slot-word,
   #entryCardHost[data-rectype="context"] .slot-context,
-  #entryCardHost[data-rectype="definition"] .slot-definition{
+  #entryCardHost[data-rectype="definition"] .slot-definition,
+  #entryCardHost[data-rectype="note"] .slot-note{
     box-shadow:0 0 0 2px var(--frank); border-radius:14px; padding:6px; margin:-6px; }
 /* ---------- spoken-withdrawal capture overlay ---------- */
 #wdProof{position:fixed;inset:0;z-index:60;display:none;
@@ -889,12 +890,27 @@ async function listOthers(entryId, excludeUid){
   return out;
 }
 
+// A spoken app prompt (prompts tool), once it is recorded: its playable URL, or
+// null. Used by the voice-note language question (11-09). One read per key.
+const _promptUrls = {};
+function promptUrl(key){
+  if(!(key in _promptUrls)) _promptUrls[key] = (async ()=>{
+    if(!CONFIGURED) return null;
+    const sn = await getDoc(doc(db, "afd_ui_prompts", key));
+    const x = sn.exists() ? (sn.data() || {}) : {};
+    if(x.status !== "recorded") return null;
+    return await getDownloadURL(ref(store, x.storagePath || ("afd_ui/" + key + ".webm")));
+  })().catch(()=>null);
+  return _promptUrls[key];
+}
+
 window.AFD = {
   configured: CONFIGURED,
   user: ()=>currentUser,
   isSignedIn: ()=>CONFIGURED && !!currentUser,
   uploadClip,
-  listOthers
+  listOthers,
+  promptUrl
 };
 
 /* Shared entry card (afd-card.js) — the same component find uses, so the recorder
@@ -2078,7 +2094,11 @@ let recType="word";
 // The instruction for each type lives in afd-core STRINGS (record.instr.*), so
 // speakers can review the Arabic in the prompts tool. *stars* mark the one
 // emphasised word; everything else is plain text.
-const REC_INSTR_KEY={ word:"record.instr.word", context:"record.instr.context", definition:"record.instr.definition" };
+const REC_INSTR_KEY={ word:"record.instr.word", context:"record.instr.context", definition:"record.instr.definition", note:"record.instr.note" };
+// Voice notes (11-09): talk about the word, in any language — longer than the
+// other slots, and the only takes whose language is asked (see keepBtn).
+const REC_TYPES=["word","context","definition","note"];
+const recMaxMs = t => t==="note" ? 60000 : 12000;
 function instrHTML(text){ return rosterEsc(text||"").replace(/\*([^*]+)\*/g,"<b>$1</b>"); }
 
 /* Display tier — shared with index.html through the same localStorage key, so a
@@ -2128,7 +2148,7 @@ const DISP_ICON={
 function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.auto;
   { const s=(AFDCore.STRINGS||{})["disp."+dispMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+dispMode); b.setAttribute("data-cap", s.ar); } } }
 function setRecType(t){
-  recType=(t==="context"||t==="definition")?t:"word";
+  recType=REC_TYPES.includes(t)?t:"word";
   const _host=document.getElementById("entryCardHost");   // 2c: ring the slot being filled
   if(_host) _host.setAttribute("data-rectype", recType);
   const instr=$("instruction");
@@ -2256,7 +2276,7 @@ async function applyDeepLink(){
   }
   idx=target;
   cameFrom={ entryId, w:WORDS[target] }; paintFromChip();
-  setRecType(type==="context"||type==="definition"?type:"word");
+  setRecType(REC_TYPES.includes(type)?type:"word");
   typeHeldFor=target;
   // If the recorder is already on screen (hash changed in place), repaint it.
   // On first load the recorder is hidden behind setup/mic; the existing
@@ -2300,7 +2320,7 @@ $("playGloss").onclick=()=>{
 /* ================= recording ================= */
 const recBtn=$("recBtn");
 let recStart=0, timerId=null, pressAt=0, mode=null;
-const MAX_MS=12000;      // safety stop
+// safety stop: recMaxMs(recType) — 12 s, or 60 s for a voice note
 const TAP_MS=350;        // shorter than this = a tap, not a hold
 
 /* Long-press normally opens Chrome's context menu and steals the pointer,
@@ -2343,7 +2363,7 @@ function startRec(){
     const el=recBtn.querySelector(".timer");
     const ms=Date.now()-recStart;
     if(el) el.textContent=(ms/1000).toFixed(1)+"s";
-    if(ms>=MAX_MS) stopRec();
+    if(ms>=recMaxMs(recType)) stopRec();
   },100);
   $("silLabel").textContent=AFDCore.t("status.listening",dispMode);
 
@@ -2598,7 +2618,7 @@ function renderQC(q){
   const fails=[];          // hard problems, in the order we'd coach the speaker
   let softNote="";         // keepable note (shown with a green verdict)
   const isWord = recType==="word";
-  const maxLen = isWord ? 8000 : 20000;
+  const maxLen = isWord ? 8000 : recType==="note" ? 60000 : 20000;
 
   const sr=q.sampleRate, srOk=sr>=44100;
   rows.push(row(srOk,"Sample rate",sr?sr+" Hz":"not reported",
@@ -2675,8 +2695,36 @@ $("redoBtn").onclick=()=>{
   liveBars=[]; drawBars([],false);
 };
 
+/* Which language a voice note is in (11-09). Notes are the one slot where a
+   take may be in any language, so it is asked once, right after Keep, in the
+   page: four big choices, each with ▶ for its spoken name, and the question
+   itself spoken once recorded (prompts tool, R2). Closing the question means
+   the dictionary's own language — the answer most notes will have; a steward
+   can correct it later. */
+async function askNoteLang(){
+  const own = (window.AFDInstance && window.AFDInstance.language && window.AFDInstance.language.code) || "";
+  const P = (window.AFD && window.AFD.promptUrl) || (()=>Promise.resolve(null));
+  const face = (t)=> '<span dir="ltr" style="font:700 '+(t.length > 2 ? 15 : 22)+'px/1 system-ui,sans-serif">'+t+'</span>';
+  const opts = [[own, "note.lang.own", "\u062D"], ["ar", "note.lang.ar", "\u0639"], ["en", "note.lang.en", "En"], ["mul", "note.lang.mul", "\u0639+En"]];
+  // ▶ only on a choice whose name is recorded (waits a moment, never long)
+  const urls = await Promise.race([Promise.all(opts.map(o => P(o[1]))), new Promise(r => setTimeout(()=> r([]), 1500))]);
+  const v = await AFDCore.ask({
+    mode: dispMode, titleKey: "note.lang.ask", pickKey: "note.lang.pick",
+    audio: P("note.lang.ask"),
+    choices: opts.map(([code, key, f], i)=>({ value: code, face: face(f), label: AFDCore.tHTML(key, dispMode === "sound" ? "script" : dispMode),
+      ...(urls[i] ? { play: ()=> Promise.resolve(urls[i]) } : {}) }))
+  });
+  return v || own;
+}
+
 $("keepBtn").onclick=async ()=>{
   const w=WORDS[idx];
+  let noteLang = null;
+  if(recType==="note"){
+    if($("keepBtn").dataset.asking) return;          // the language question is already up
+    $("keepBtn").dataset.asking = "1";
+    try{ noteLang = await askNoteLang(); } finally{ delete $("keepBtn").dataset.asking; }
+  }
   const rec={
     recordingId:"rec_"+w.id+"_"+(((window.AFD&&window.AFD.user())?window.AFD.user().uid:"anon").slice(0,6))+"_"+$("spkId").value+"_"+Date.now(),
     entryId:entryIdFor(w.id), gloss:w.en, domain:w.dom,
@@ -2709,6 +2757,7 @@ $("keepBtn").onclick=async ()=>{
     // uploadClip allowlist never copies this onto the public recording doc.
     speaker:speakerRecord(),
     ...(lastImported ? { source:"voicenote" } : {}),
+    ...(noteLang ? { lang:noteLang } : {}),
     blob:lastBlob
   };
   lastImported=false;

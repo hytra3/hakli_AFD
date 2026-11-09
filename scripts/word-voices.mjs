@@ -67,7 +67,7 @@ const who = async (uid) => {
   if (!emails.has(uid)) emails.set(uid, getAuth().getUser(uid).then(u => u.email || u.phoneNumber || u.displayName || uid.slice(0, 6) + "…").catch(() => uid.slice(0, 6) + "…"));
   return emails.get(uid);
 };
-const SLOT = { word: "word", context: "sentence", definition: "meaning" };
+const SLOT = { word: "word", context: "sentence", definition: "meaning", note: "voice note" };
 
 for (const e of entries) {
   const x = e.data() || {};

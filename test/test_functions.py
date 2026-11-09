@@ -319,6 +319,13 @@ class EmbedTrigger(unittest.TestCase):
         # take can still be verified on export even with no embedding
         ref.update.assert_called_once_with({"sha256": hashlib.sha256(b"audio").hexdigest()})
 
+    def test_a_voice_note_is_not_embedded_but_gets_its_checksum(self):
+        # 11-09: a note talks about a word, in any language — never a search match
+        ref, post = self._run({"uid": "uA", "storagePath": self.NAME, "type": "note"})
+        post.assert_not_called()
+        ref.set.assert_not_called()
+        ref.update.assert_called_once_with({"sha256": hashlib.sha256(b"audio").hexdigest()})
+
 
 # ------------------------------------------------------------ search corpus
 class SearchCorpus(unittest.TestCase):
@@ -338,6 +345,7 @@ class SearchCorpus(unittest.TestCase):
             rec("ent_deleted", consent="deleted", allowPlayback=False),
             rec("ent_private_take", consent="public", allowPlayback=False),
             rec("ent_legacy_no_flags"),
+            rec("ent_voice_note", consent="public", allowPlayback=True, type="note"),
         )
         firestore = sys.modules["google.cloud.firestore"]
         with mock.patch.object(firestore, "Client") as client:
