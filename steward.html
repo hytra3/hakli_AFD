@@ -870,7 +870,7 @@ async function voices(btn, entryId){
     if(!recs.length){ box.insertAdjacentHTML("beforeend", "<span>" + H("stw.voices.none") + "</span>"); return; }
     recs.forEach((r, i)=>{
       const b = document.createElement("button"); b.className = "btn";
-      const kind = { word:"stw.voice.word", context:"stw.voice.context", definition:"stw.voice.definition" }[r.type];
+      const kind = { word:"stw.voice.word", context:"stw.voice.context", definition:"stw.voice.definition", note:"stw.voice.note" }[r.type];
       b.textContent = "▶ " + (kind ? T(kind) : (r.type || "voice")) + " " + (i + 1);
       b.title = (r.speakerId || "") + (r.recordedAt ? " · " + when(r.recordedAt) : "");
       b.onclick = async ()=>{

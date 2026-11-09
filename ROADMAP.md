@@ -1481,3 +1481,22 @@ flat hierarchy, and it can't be rallied against a rival family); a steward decid
   a written spelling (stewards can already hide one); a rate limit on reports per
   account per day if holds get abused.
 
+
+## Voice notes (2026-11-09) — from the field; built
+
+Hakeem (Dhofar, 11-09) wanted to skip the meaning ("everybody knows *father*") but
+explain *my father*. **Decided:** a fourth slot on every card, **🗒 voice notes**, for
+talking *about* the word — use, a story, another form — in **any language**.
+
+- **The one exception to one-language-per-instance.** A note's language is asked once,
+  right after Keep, in the page (`AFDCore.ask`): the instance language · Arabic ·
+  English · a mix (`mul`), each ▶ playing its recorded name (R2.12–16). Closing the
+  question = the instance language. Stored as the recording's `lang` (rules already
+  allowed it). Word, sentence and meaning takes are still never asked.
+- **Never a search match.** The embed trigger writes only the checksum for `type:"note"`;
+  the matcher's `searchable()` skips notes too. *Needs `bash scripts/deploy-trigger.sh`*
+  (and `deploy-service.sh` when convenient) — until then a note is embedded like any take.
+- Up to 60 s (other slots: 12 s). Same consent, playback and report rules as any voice.
+  Not in the card's 🔊 💬 📖 counts.
+- **Deferred:** "other forms" (*my father* as its own findable form) — Marty wants to
+  understand the construction first (likely a possessive said fast enough to sound fused).

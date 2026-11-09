@@ -52,7 +52,7 @@ if (EMAIL) {
   try { uid = (await getAuth().getUserByEmail(EMAIL)).uid; }
   catch { console.log(`No account with the address ${EMAIL}.`); process.exit(1); }
 }
-const SLOT = { word: "word", context: "sentence", definition: "meaning" };
+const SLOT = { word: "word", context: "sentence", definition: "meaning", note: "voice note" };
 const typeOf = (r) => r.type || r.phase || "word";
 
 const all = (await db.collectionGroup("recordings").get()).docs

@@ -43,6 +43,11 @@
   "R2.9": "add.another",
   "R2.10": "add.reopen",
   "R2.11": "add.dup",
+  "R2.12": "note.lang.ask",
+  "R2.13": "note.lang.own",
+  "R2.14": "note.lang.ar",
+  "R2.15": "note.lang.en",
+  "R2.16": "note.lang.mul",
   "R3.1": "consent.explain",
   "R3.2": "consent.blessing",
   "R3.3": "consent.truth.world",
@@ -193,6 +198,8 @@
   "A2.59": "screen:card.photo.clear.ask",
   "A2.60": "screen:card.photo.keep",
   "A2.61": "screen:card.photo.failed",
+  "A2.62": "screen:slot.notes",
+  "A2.63": "screen:slot.add.note",
   "A3.1": "screen:add.title",
   "A3.2": "screen:add.step.say",
   "A3.3": "screen:add.step.show",
@@ -436,6 +443,7 @@
   "A7.44": "screen:list.allvoiced",
   "A7.45": "screen:list.empty",
   "A7.46": "screen:list.back",
+  "A7.47": "screen:record.instr.note",
   "A8.1": "screen:session.title",
   "A8.2": "screen:session.upload",
   "A8.3": "screen:session.export",
@@ -802,6 +810,13 @@
   "A11.250": "screen:stw.err.nomic",
   "A11.251": "screen:flag.say.done",
   "A11.252": "screen:stw.notify.done",
-  "A11.253": "screen:flag.say.empty"
+  "A11.253": "screen:flag.say.empty",
+  "A11.254": "screen:note.lang.ask",
+  "A11.255": "screen:note.lang.pick",
+  "A11.256": "screen:note.lang.own",
+  "A11.257": "screen:note.lang.ar",
+  "A11.258": "screen:note.lang.en",
+  "A11.259": "screen:note.lang.mul",
+  "A11.260": "screen:stw.voice.note"
  }
 }

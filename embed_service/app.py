@@ -326,7 +326,9 @@ def searchable(d: Dict[str, Any]) -> bool:
     """Only voices that are public RIGHT NOW may match a search. A withdrawn or
     erased take must not surface its entry (or gloss) to a searcher, even though
     its vector is still stored on the doc until the purge removes it."""
-    return d.get("allowPlayback") is True and d.get("consent") == "public"
+    # A voice note (11-09) talks ABOUT a word, in any language: never a match.
+    return (d.get("allowPlayback") is True and d.get("consent") == "public"
+            and (d.get("type") or d.get("phase")) != "note")
 
 
 class Corpus:
