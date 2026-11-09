@@ -505,6 +505,11 @@ function render(){
         ? '<div style="margin-top:8px">اترك ما بين الأقواس { } كما هو — يُستبدَل تلقائيًا بالاسم أو الرقم.<br><small>Keep anything in { } exactly as it is — the app fills in a name or number there.</small></div>' : "");
   $("cur-key").textContent = it.num+"  ·  "+it.key;
 
+  // A take left on the card counts as kept when the card moves on (11-09: in the
+  // field, "Keep it" looked chosen, so people tapped Next and lost the take).
+  // Only ↻ Redo throws a take away.
+  if(state.rec && state.rec.state==="recording" && state.recKey !== it.key) state.rec.stop();   // onstop keeps it
+  if(state.blob && state.blobKey && state.blobKey !== it.key){ const k = state.blobKey, b = state.blob; state.blob = null; keepTake(k, b); }
   resetRecUI();
   const done = state.recorded.has(it.key);
   $("sync").className = "sync " + (state.pending.has(it.key) ? "pending" : (done?"ok":""));
@@ -596,12 +601,16 @@ $("recbtn").onclick = async ()=>{
   try{
     if(!state.stream) state.stream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, noiseSuppression:true, echoCancellation:true } });
   }catch(e){ alert("Microphone permission is needed to record."); return; }
-  state.chunks=[];
+  state.chunks=[]; state.recKey = ITEMS[state.i].key;
   const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
   state.rec = new MediaRecorder(state.stream, mime?{mimeType:mime}:undefined);
   state.rec.ondataavailable = e=>{ if(e.data.size) state.chunks.push(e.data); };
   state.rec.onstop = ()=>{
-    state.blob = new Blob(state.chunks, {type: state.rec.mimeType || "audio/webm"});
+    const blob = new Blob(state.chunks, {type: state.rec.mimeType || "audio/webm"});
+    stopTimer();
+    // Moved to another line while still recording: keep the take for the line it was recorded on.
+    if(state.recKey !== ITEMS[state.i].key){ keepTake(state.recKey, blob); return; }
+    state.blob = blob; state.blobKey = state.recKey;
     const url = URL.createObjectURL(state.blob);
     $("player").src = url; $("player").classList.remove("hidden");
     $("review").classList.remove("hidden");
@@ -644,19 +653,28 @@ $("delactive").onclick = async ()=>{
   render();
 };
 
+/* Keep one take for one line: on the phone at once (survives reload), then upload. */
+async function keepTake(key, blob){
+  state.pending.set(key, blob);
+  state.recorded.add(key);
+  try{ await IDB.put({ key, blob }); }catch(_){}
+  renderList();
+  syncPending();
+}
+
 $("keep").onclick = async ()=>{
   const it = ITEMS[state.i];
   if(!state.blob) return;
-  const blob = state.blob;
-  await IDB.put({ key:it.key, blob });          // survives reload immediately
-  state.pending.set(it.key, blob);
-  state.recorded.add(it.key);
+  const blob = state.blob; state.blob = null;
   $("keep").disabled = true;
+  await keepTake(it.key, blob);
   render();
   $("keep").disabled = false;
-  syncPending();
   goNextPending();
 };
+
+// Leaving or reloading the page with a take not yet kept: ask before losing it.
+window.addEventListener("beforeunload", (e)=>{ if(state.blob){ e.preventDefault(); e.returnValue = ""; } });
 
 /* ---- upload pending to Firebase ---- */
 let syncing = false;
