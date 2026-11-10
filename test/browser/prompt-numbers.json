@@ -272,6 +272,12 @@
   "A3.70": "screen:add.dup.done",
   "A3.71": "screen:add.show.write.en",
   "A3.72": "screen:add.show.write.ar",
+  "A3.73": "screen:add.show.optional",
+  "A3.74": "screen:add.discard",
+  "A3.75": "screen:add.discard.ask",
+  "A3.76": "screen:add.discard.yes",
+  "A3.77": "screen:add.discard.no",
+  "A3.78": "screen:add.leave",
   "A4.1": "screen:hdr.display",
   "A4.2": "screen:hdr.signin",
   "A4.3": "screen:hdr.account",
@@ -819,6 +825,9 @@
   "A11.257": "screen:note.lang.ar",
   "A11.258": "screen:note.lang.en",
   "A11.259": "screen:note.lang.mul",
-  "A11.260": "screen:stw.voice.note"
+  "A11.260": "screen:stw.voice.note",
+  "A11.261": "screen:lang.pill.own",
+  "A11.262": "screen:lang.pill.ar",
+  "A11.263": "screen:lang.pill.en"
  }
 }

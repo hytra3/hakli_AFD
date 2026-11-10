@@ -155,6 +155,14 @@ details summary::-webkit-details-marker{display:none}
 .stack{display:flex; flex-direction:column; gap:10px}
 .who{display:flex; align-items:center; justify-content:center; gap:8px; font-size:14px; color:#4d6159; flex-wrap:wrap}
 .linkbtn{background:none; border:0; padding:0; font:inherit; color:var(--mountain); text-decoration:underline; cursor:pointer}
+/* 11-10: leaving Add on purpose — back to the dictionary (keeps the word), or throw it away (asks) */
+.leave{display:flex; flex-direction:column; align-items:center; gap:14px; margin:26px 0 6px}
+.leave .linkbtn{display:flex; flex-direction:column; align-items:center; text-align:center; text-decoration:none; font-size:15px}
+.leave .linkbtn .sub{font-size:12px}
+.leave .linkbtn.danger{color:var(--danger); opacity:.85}
+.trlabel{display:flex; align-items:baseline; gap:6px; margin:2px 0 6px}
+.trlabel .lang-pill{margin:0; font-size:12px}
+.trlabel .opt{color:var(--mist); font-size:12px}
 .banner{background:var(--resin-soft); color:#5a3a12; border-radius:14px; padding:10px 14px; font-size:14px; text-align:center}
 .banner.queue{display:block; width:100%; border:0; font:inherit; font-size:14px; margin:0 0 12px; cursor:default}
 .banner.queue.tap{cursor:pointer; text-decoration:underline; text-underline-offset:3px}
@@ -257,9 +265,9 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 
     <!-- a translation: Arabic first (most speakers' second language), English optional -->
     <div class="card panel" id="panelWrite" hidden>
-      <label class="note" for="glossArIn" data-k="add.show.write.ar"></label>
+      <label class="trlabel" for="glossArIn" id="lblAr"></label>
       <input type="text" class="ar" id="glossArIn" dir="rtl" lang="ar" maxlength="80" placeholder="…" autocomplete="off">
-      <label class="note" for="glossEnIn" data-k="add.show.write.en" style="margin-top:10px"></label>
+      <label class="trlabel" for="glossEnIn" id="lblEn" style="margin-top:12px"></label>
       <input type="text" id="glossEnIn" dir="ltr" lang="en" maxlength="80" placeholder="…" autocomplete="off">
     </div>
 
@@ -325,6 +333,11 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <button class="btn secondary" id="doneAnother" type="button" data-k="add.done.another"></button>
     <button class="btn ghost" id="doneInvite" type="button" data-k="add.done.invite"></button>
   </section>
+
+  <div class="leave" id="leaveRow">
+    <a class="linkbtn" id="leaveBtn" href="index.html" data-k="add.leave"></a>
+    <button class="linkbtn danger" id="discardBtn" type="button" data-k="add.discard" hidden></button>
+  </div>
 
   <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 </main>
@@ -466,7 +479,7 @@ function freshDraft(){
   };
 }
 let draft = freshDraft();
-async function saveDraft(d){ try{ const x = d || draft; await idbDo("readwrite", s=>s.put(x)); }catch(e){ console.warn("[AFD add] save draft", e); } }
+async function saveDraft(d){ try{ const x = d || draft; await idbDo("readwrite", s=>s.put(x)); }catch(e){ console.warn("[AFD add] save draft", e); } paintLeave(); }
 async function loadDraft(){ try{ return await idbDo("readonly", s=>s.get("current")) || null; }catch(_){ return null; } }
 async function clearDraft(){ try{ await idbDo("readwrite", s=>s.delete("current")); }catch(_){} }
 
@@ -543,6 +556,7 @@ function show(which, opt){
   if(which==="show") paintShow();
   if(which==="share"){ paintShare(); paintPark(); }
   if(which==="done") paintFace($("donePic"));
+  paintLeave(which);
   speakStep(which);
   window.scrollTo(0,0);
 }
@@ -1420,6 +1434,34 @@ $("doneInvite").onclick = async ()=>{
   try{ if(navigator.share){ await navigator.share({ text, url }); return; } }catch(e){ if(e && e.name==="AbortError") return; }
   window.open("https://wa.me/?text=" + encodeURIComponent(text + "\n" + url), "_blank", "noopener");   // a new tab, like every other share — this used to navigate the page away
 };
+
+/* ---------------- leaving on purpose (11-10) ----------------
+   "Back to the dictionary" on the first step (the other steps have Back): the
+   word waits, as it does when you leave by the glyph. "Throw this word away" on
+   every step once there's something to lose: asks in the page, Keep is the safe
+   answer; then the draft is gone and you're back in the dictionary. Leaving any
+   other way never deletes a word. */
+function paintLeave(which){
+  which = which || currentScreen();
+  if(!$("leaveRow")) return;
+  $("leaveRow").hidden = which === "done";
+  $("leaveBtn").hidden = which !== "say";
+  $("discardBtn").hidden = !(draft && (draft.word || anythingShown()));
+}
+$("discardBtn").onclick = async ()=>{
+  if(!(await C.ask({ mode: MODE, danger:true, titleKey:"add.discard.ask",
+        yesKey:"add.discard.yes", yesIcon:"trash", noKey:"add.discard.no", noIcon:"keep" }))) return;
+  await clearDraft();
+  draft = freshDraft(); openPanel = null;
+  if(photoUrl){ URL.revokeObjectURL(photoUrl); photoUrl = null; }
+  C.track("add", "discard");
+  location.href = "index.html";
+};
+// the two translation boxes are named by the same pills as everywhere else
+$("lblAr").innerHTML = C.langPill("ar");
+$("lblEn").innerHTML = C.langPill("en") + ' <span class="opt">(' + esc(C.STRINGS["add.show.optional"].ar) + ' · ' + esc(C.STRINGS["add.show.optional"].en) + ')</span>';
+$("glossArIn").setAttribute("aria-label", C.STRINGS["add.show.write.ar"].en);
+$("glossEnIn").setAttribute("aria-label", C.STRINGS["add.show.write.en"].en);
 
 /* ---------------- draft banner + start ---------------- */
 $("draftDiscard").onclick = async ()=>{

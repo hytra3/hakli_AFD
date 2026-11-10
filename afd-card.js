@@ -274,15 +274,9 @@ function avCaption(rec){
    the one place a take may be in any language, so each says which. The
    dictionary's own language reads "Hakli"; "mul" is a mix. No tag in sound view,
    which has no text; nothing on a note recorded before the language was asked. */
-function noteLangKey(code){
-  const own = window.AFDInstance && window.AFDInstance.language && window.AFDInstance.language.code;
-  return code === own ? "note.lang.own" : ({ ar:"note.lang.ar", en:"note.lang.en", mul:"note.lang.mul" })[code] || null;
-}
-function noteLangTag(rec){
+function noteLangTag(rec){                  // the same pill as everywhere a language is named (11-10)
   if(rec.type !== "note" || !rec.lang || CFG.mode() === "sound") return "";
-  const k = noteLangKey(rec.lang);
-  const txt = k ? AFDCore.t(k, CFG.mode()==="auto" ? "auto" : "script") : rec.lang;
-  return `<span class="note-lang" data-lang="${escapeHtml(rec.lang)}">${escapeHtml(txt)}</span>`;
+  return AFDCore.langPill(rec.lang, { cls:"note-lang" });
 }
 
 function photoAvatar(bg, url){
@@ -1408,9 +1402,10 @@ async function entryCard(res, lead){
     glossHtml = `<div class="gloss" aria-hidden="true"></div>`;
   }else if(CFG.mode()==="script"){
     const ar = glossAr || meta.ref || "";
-    glossHtml = `<div class="gloss">${ar?`<span class="glossar solo">${escapeHtml(ar)}</span>`:""}</div>`;
+    glossHtml = `<div class="gloss">${ar?`<span class="glossar solo">${escapeHtml(ar)}${glossAr?AFDCore.langPill("ar"):""}</span>`:""}</div>`;
   }else{
-    glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
+    // translations carry a language pill (shown once the card is open); bold amber is only ever Hakli
+    glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossEn?AFDCore.langPill("en",{cls:"gl-pill"}):""}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}${AFDCore.langPill("ar")}</span>`:""}</div>`;
   }
   const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>${DOTS}</button>`;
   const chevHtml  = lead ? "" : `<span class="card-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>`;
@@ -1451,11 +1446,13 @@ async function entryCard(res, lead){
     thumbEl.dataset.pic = mt.pic || "";
     thumbEl.dataset.img = faceImage(mt);
     if(!gc || CFG.mode()==="sound") return;
-    [...gc.childNodes].forEach(n=>{ if(n.nodeType===3 || (n.classList && n.classList.contains("glossar"))) n.remove(); });
+    [...gc.childNodes].forEach(n=>{ if(n.nodeType===3 || (n.classList && (n.classList.contains("glossar") || n.classList.contains("gl-pill")))) n.remove(); });
     const ar = mt.glossAr || mt.ref || "";
+    const pill = (code, cls)=>{ const t=document.createElement("template"); t.innerHTML=AFDCore.langPill(code, cls?{cls}:undefined); return t.content.firstChild; };
+    const arSpan = (cls)=>{ const s=Object.assign(document.createElement("span"), { className:cls, textContent:ar }); if(mt.glossAr) s.appendChild(pill("ar")); return s; };
     const parts = CFG.mode()==="script"
-      ? (ar ? [Object.assign(document.createElement("span"), { className:"glossar solo", textContent:ar })] : [])
-      : [document.createTextNode(mt.gloss||""), ...(mt.glossAr ? [Object.assign(document.createElement("span"), { className:"glossar", textContent:mt.glossAr })] : [])];
+      ? (ar ? [arSpan("glossar solo")] : [])
+      : [document.createTextNode(mt.gloss||""), ...(mt.gloss ? [pill("en","gl-pill")] : []), ...(mt.glossAr ? [arSpan("glossar")] : [])];
     gc.prepend(...parts);
     const sp = gc.querySelector(".spell"); if(sp) gc.prepend(sp);   // the spelling stays the headword
   };

@@ -83,6 +83,36 @@ window.AFDCore = (function(){
      start — including one that was still loading when the press came. */
   const uiAudios = new Set();
   let capturing = false;
+  /* ---- languages, named one way everywhere (11-10) ----------------------
+     The dictionary's own language first, then Arabic, then English — the order
+     of the voice-note question, Add's translation boxes and the card. A pill
+     marks a TRANSLATION or a note's language; bold amber marks the Hakli word
+     itself, so the pill for the dictionary's own language is amber-tinted and
+     every other pill is a quiet neutral. Each pill names its language in that
+     language (حَكلي · عربي · English), the same in every view. */
+  function ownLang(){ const I = (typeof window !== "undefined" && window.AFDInstance) || {}; return (I.language && I.language.code) || "qhk"; }
+  function langs(){ return [ownLang(), "ar", "en"]; }
+  const PILL_CSS = `.lang-pill{display:inline-block;font:600 11px/1.5 "IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif;
+    padding:0 8px;border-radius:9px;background:rgba(31,58,52,.08);color:#3E6B57;white-space:nowrap;vertical-align:middle;
+    letter-spacing:0;margin-inline:6px 0}
+  .lang-pill[data-own]{background:rgba(198,135,63,.17);color:#8a5a22}
+  @media (prefers-color-scheme:dark){.lang-pill{background:rgba(223,234,229,.1);color:#9cc4ae}.lang-pill[data-own]{background:rgba(224,176,98,.18);color:#e0b062}}`;
+  function langPill(code, opt){
+    opt = opt || {};
+    if(typeof document !== "undefined" && !document.getElementById("afd-pill-css")){
+      const st = document.createElement("style"); st.id = "afd-pill-css"; st.textContent = PILL_CSS; (document.head || document.documentElement).appendChild(st);
+    }
+    const own = code === ownLang();
+    const S = (k)=> STRINGS[k] || { en:k, ar:k };
+    let text, title;
+    if(own){ text = S("lang.pill.own").ar; title = S("lang.pill.own").en; }
+    else if(code === "ar"){ text = S("lang.pill.ar").ar; title = S("lang.pill.ar").en; }
+    else if(code === "en"){ text = S("lang.pill.en").en; title = S("lang.pill.en").ar; }
+    else if(code === "mul"){ text = S("lang.pill.ar").ar + " + " + S("lang.pill.en").en; title = (STRINGS["note.lang.mul"]||{}).en || "A mix"; }
+    else { text = String(code || ""); title = text; }
+    return `<span class="lang-pill${opt.cls ? " " + opt.cls : ""}" data-lang="${escHtml(code)}"${own ? " data-own" : ""} dir="auto" title="${escHtml(title)}">${escHtml(text)}</span>`;
+  }
+
   function hushUI(){
     uiAudios.forEach(a => { try{ a.pause(); }catch(_){} });
     uiAudios.clear(); uiNarration = null;
@@ -1073,7 +1103,19 @@ window.AFDCore = (function(){
     // "Write a translation" tile opens Arabic first (focused) with English
     // under it; the Hakli spelling keeps its own tile — it's the word itself.
     "add.show.write.en":    { en:"In English (if you like)", ar:"بالإنجليزية (إن شئت)" },
-    "add.show.write.ar":    { en:"In Arabic", ar:"بالعربية" }
+    "add.show.write.ar":    { en:"In Arabic", ar:"بالعربية" },
+    // 11-10: one way of naming languages everywhere (see langPill). Each pill
+    // names its language in that language: حَكلي · عربي · English.
+    "lang.pill.own":        { en:"Hakli",   ar:"حَكلي" },
+    "lang.pill.ar":         { en:"Arabic",  ar:"عربي" },
+    "lang.pill.en":         { en:"English", ar:"إنجليزي" },
+    "add.show.optional":    { en:"if you like", ar:"إن شئت" },
+    // 11-10: leaving Add on purpose — throw the word away (asks first)
+    "add.discard":          { en:"Throw this word away", ar:"تخلّص من هذه الكلمة" },
+    "add.discard.ask":      { en:"Throw this word away? Your recording of it will be deleted from this phone.", ar:"هل تتخلّص من هذه الكلمة؟ سيُحذف تسجيلك لها من هذا الهاتف." },
+    "add.discard.yes":      { en:"Throw it away", ar:"تخلّص منها" },
+    "add.discard.no":       { en:"Keep it",       ar:"أبقِها" },
+    "add.leave":            { en:"Back to the dictionary", ar:"العودة إلى القاموس" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1572,7 +1614,7 @@ window.AFDCore = (function(){
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,
-    hushUI, setCapturing, isCapturing,
+    hushUI, setCapturing, isCapturing, langs, langPill, ownLang,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
     identicon, stepHistory, dotsHTML, escHtml

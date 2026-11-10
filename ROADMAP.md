@@ -1514,3 +1514,13 @@ talking *about* the word — use, a story, another form — in **any language**.
   a note's language. `--undo` puts one back.
 - **`scripts/session-check.mjs`** (read-only): after a session — prompts recorded vs the
   R1/R2 lines the app plays, voices by slot (public, searchable), things to fix, phone errors.
+
+## Languages named one way; a way out of Add (2026-11-10)
+- **Pills mark translations and a note's language; bold amber marks Hakli.** `AFDCore.langPill(code)`
+  names each language in itself (حَكلي · عربي · English), the same in every view; the
+  instance language's pill is amber-tinted (echoing the bold Hakli word), every other pill
+  neutral. Used on voice notes, Add's translation boxes, and the open card's English and
+  Arabic (hidden on closed cards, so the list stays clean). Order everywhere: Hakli · Arabic · English.
+- **Add: leaving on purpose.** "Back to the dictionary" on the first step (the word waits,
+  as with the glyph); "Throw this word away" on every step once there's something to lose,
+  asking in red with Keep as the safe answer. Leaving any other way never deletes a word.
