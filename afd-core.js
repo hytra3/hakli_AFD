@@ -297,13 +297,10 @@ window.AFDCore = (function(){
   const STRINGS = {
     "slot.word":            { en:"THE WORD",           ar:"الكلمة", icon:"🔊" },
     "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة", icon:"💬" },
-    "slot.meaning":         { en:"WHAT IT MEANS",      ar:"المعنى", icon:"📖" },
     "group.word":           { en:"word",               ar:"كلمة" },
     "group.sentence":       { en:"sentence",           ar:"جملة" },
-    "group.meaning":        { en:"meaning",            ar:"معنى" },
     "slot.none":            { en:"none yet",           ar:"لا شيء بعد" },
     "slot.add.sentence":    { en:"Add a sentence",     ar:"أضف جملة", icon:"💬" },
-    "slot.add.meaning":     { en:"Add a meaning",      ar:"أضف معنى", icon:"📖" },
     "voice.takeback":       { en:"Withdraw",           ar:"اسحب" },
     "voice.shareagain":     { en:"Restore",            ar:"استرجع" },
     "roster.erased":        { en:"Erased",             ar:"محذوف" },
@@ -536,8 +533,8 @@ window.AFDCore = (function(){
     "add.show.photo.note":  { en:"Photos of things and places — not of people.", ar:"صوِّر الأشياء والأماكن — لا الأشخاص." },
     "add.show.emoji":       { en:"Choose a picture",    ar:"اختر رسمًا" },
     "add.show.emoji.type":  { en:"Or type any emoji",   ar:"أو اكتب أيّ رمز تعبيري" },
-    "add.show.meaning":     { en:"Say what it means",   ar:"قُل ماذا تعني" },
-    "add.show.meaning.hint":{ en:"Hold and explain the word, in Hakli or Arabic.", ar:"اضغط باستمرار واشرح الكلمة بالحَكلي أو بالعربية." },
+    "add.show.say":         { en:"Say something",       ar:"قل شيئًا" },
+    "add.show.say.hint":    { en:"Hold and say anything about the word — in any language.", ar:"اضغط باستمرار وقل أيّ شيء عن الكلمة — بأيّ لغة." },
     "add.show.write":       { en:"Write a translation", ar:"اكتب ترجمة" },
     "add.show.remove":      { en:"Remove",              ar:"إزالة" },
     "add.skip":             { en:"Skip",                ar:"تخطَّ" },
@@ -682,10 +679,10 @@ window.AFDCore = (function(){
     "wt.sentence.say":      { en:"Say a sentence using the word.", ar:"انطق جملةً تستعمل فيها الكلمة." },
     "wt.hearkeep":          { en:"Hear it — keep it.", ar:"استمع — احفظه." },
     "wt.sentence.kept":     { en:"Sentence kept.", ar:"حُفِظت الجملة." },
-    "wt.meaning.1":         { en:"And say what it means — in Hakli.", ar:"وأن تقول معناها — بالحَكلي." },
-    "wt.meaning.tap":       { en:"Tap “Add a meaning” on the card.", ar:"انقر «أضف معنى» على البطاقة." },
-    "wt.meaning.say":       { en:"Say what the word means.", ar:"قل ما تعنيه الكلمة." },
-    "wt.meaning.kept":      { en:"Meaning kept.", ar:"حُفِظ المعنى." },
+    "wt.say.1":             { en:"And say something about it — in any language.", ar:"وأن تقول شيئًا عنها — بأيّ لغة." },
+    "wt.say.tap":           { en:"Tap “Say something” on the card.", ar:"انقر «قل شيئًا» على البطاقة." },
+    "wt.say.say":           { en:"Say something about the word.", ar:"قل شيئًا عن الكلمة." },
+    "wt.say.kept":          { en:"Kept.", ar:"حُفِظ." },
     "wt.add.1":             { en:"Not in the dictionary yet? Add it, in your own voice.", ar:"ليست في القاموس بعد؟ أضِفها بصوتك." },
     "wt.add.tap":           { en:"Tap + beside the green circle.", ar:"انقر + بجانب الدائرة الخضراء." },
     "wt.add.say":           { en:"Say your new word twice.", ar:"قُل كلمتك الجديدة مرّتين." },
@@ -702,7 +699,7 @@ window.AFDCore = (function(){
     "wt.howto.hear":        { en:"Hear the voices", ar:"اسمع الأصوات" },
     "wt.howto.record":      { en:"Add your voice", ar:"أضِف صوتك" },
     "wt.howto.sentence":    { en:"Say it in a sentence", ar:"قُلها في جملة" },
-    "wt.howto.meaning":     { en:"Say what it means", ar:"قُل معناها" },
+    "wt.howto.say":         { en:"Say something", ar:"قل شيئًا" },
     "wt.howto.add":         { en:"Add a new word", ar:"أضِف كلمة جديدة" },
     "wt.howto.link":        { en:"More short how-to clips", ar:"مقاطع قصيرة: كيف تستعمله" },
     "wt.howto.voiced":      { en:"In Hakli", ar:"بالحَكلي" },
@@ -1119,7 +1116,12 @@ window.AFDCore = (function(){
     // 11-10: the person who uploaded a voice note can fix its language — tap
     // its pill. Asked with the same four choices as on Keep.
     "note.lang.change":     { en:"Change the language", ar:"غيّر اللغة" },
-    "note.lang.fail":       { en:"Couldn't change it — try again with signal.", ar:"تعذّر التغيير — حاول مجددًا عند توفّر الشبكة." }
+    "note.lang.fail":       { en:"Couldn't change it — try again with signal.", ar:"تعذّر التغيير — حاول مجددًا عند توفّر الشبكة." },
+    // 11-10: meaning + voice notes merged into ONE "say something" slot (three slots).
+    // A definition is a kind of thing said about the word; the per-note language
+    // question does the sorting. New takes record as notes; old definitions still show.
+    "slot.say":             { en:"SAY SOMETHING ABOUT THIS WORD", ar:"قل شيئًا عن هذه الكلمة", icon:"🗒" },
+    "slot.add.say":         { en:"Say something",      ar:"قل شيئًا", icon:"🗒" }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1611,8 +1613,26 @@ window.AFDCore = (function(){
     }catch(_){}
   }
 
+  /* The spoken "which language?" question for a voice note — four big choices,
+     each with ▶ for its recorded name, the question itself spoken if recorded.
+     Shared by the recorder (ask on Keep), the card (change a note's language),
+     and Add (ask on keep). Returns the chosen code, or null when dismissed —
+     each caller decides what a dismissal means. 11-10 */
+  async function askNoteLang(o){
+    const mode = o.mode, promptUrl = o.promptUrl || (()=> Promise.resolve(null));
+    const own = ownLang();
+    const face = (x)=> '<span dir="ltr" style="font:700 '+(x.length > 2 ? 15 : 22)+'px/1 system-ui,sans-serif">'+x+'</span>';
+    const opts = [[own, "note.lang.own", "ح"], ["ar", "note.lang.ar", "ع"], ["en", "note.lang.en", "En"], ["mul", "note.lang.mul", "ع+En"]];
+    const urls = await Promise.race([Promise.all(opts.map(p => promptUrl(p[1]))), new Promise(r => setTimeout(()=> r([]), 1500))]);
+    return ask({
+      mode, titleKey: "note.lang.ask", pickKey: "note.lang.pick", audio: promptUrl("note.lang.ask"),
+      choices: opts.map(([code, key, f], i)=>({ value: code, face: face(f), label: tHTML(key, mode === "sound" ? "script" : mode),
+        ...(urls[i] ? { play: ()=> Promise.resolve(urls[i]) } : {}) }))
+    });
+  }
+
   return {
-    ask, notice,
+    ask, notice, askNoteLang,
     errorSink, report, eventSink, track,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,

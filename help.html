@@ -162,7 +162,7 @@ let mode = /[?&]lang=en\b/.test(location.search) ? "en" : "ar";
 const W = (k) => { const x = STR[k] || {}; return (mode==="en" ? x.en : (x.ar || x.en)) || ""; };
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
 // the six clips, in teaching order (same ids and icons as howto.html)
-const CLIPS = [["find","🎙️"],["hear","▶️"],["record","➕"],["sentence","💬"],["meaning","💡"],["add","🆕"]];
+const CLIPS = [["find","🎙️"],["hear","▶️"],["record","➕"],["sentence","💬"],["say","🗒"],["add","🆕"]];
 const FAQ = [1,2,3,4,5];
 
 // "Ask a person": shown only once afd-instance.js names someone with a WhatsApp number.

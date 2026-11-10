@@ -14,13 +14,13 @@ await scenario("each slot has its own add link", async ()=>{
   await page.goto(srv.url + "/index.html#ent_sun");
   await page.waitForSelector(".slot-word", { timeout:10000 }); await page.waitForTimeout(300);
   if(SHOTS) await page.screenshot({ path: SHOTS + "/card-add.png", fullPage:true });
-  const a = await page.evaluate(()=> Object.fromEntries(["word","context","definition"].map(t=>{
+  const a = await page.evaluate(()=> Object.fromEntries(["word","context","say"].map(t=>{
     const l = document.querySelector(".slot-"+t+" .slot-add");
     return [t, l ? { href: l.getAttribute("href"), text: l.textContent.trim() } : null]; })));
   ok("the word slot has '+ Add a recording' to the recorder on this word",
      a.word && /recorder(\.html)?#ent_sun$/.test(a.word.href) && a.word.text === "Add a recording", JSON.stringify(a));
-  ok("sentence and meaning keep their typed links",
-     a.context && /#ent_sun\|context$/.test(a.context.href) && a.definition && /#ent_sun\|definition$/.test(a.definition.href), JSON.stringify(a));
+  ok("sentence keeps its typed link; 'say something' records as a note",
+     a.context && /#ent_sun\|context$/.test(a.context.href) && a.say && /#ent_sun\|note$/.test(a.say.href) && a.say.text === "Say something", JSON.stringify(a));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 

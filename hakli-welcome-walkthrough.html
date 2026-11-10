@@ -329,12 +329,12 @@
               <span class="saypill" id="saypill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.word"></span></span>
             </div>
             <div class="rc-mini"><span data-k="slot.sentence"></span><span class="none" data-k="slot.none"></span></div>
-            <div class="rc-mini"><span data-k="slot.meaning"></span><span class="none" data-k="slot.none"></span></div>
+            <div class="rc-mini"><span data-k="slot.say"></span><span class="none" data-k="slot.none"></span></div>
           </div>
         </div>
       </section>
 
-      <!-- RECORDER (word / sentence / meaning) -->
+      <!-- RECORDER (word / sentence / say something) -->
       <section class="surface recs idle" id="recs">
         <div class="topbar">
           <span class="stepdots" id="stepdots" dir="rtl"></span>
@@ -356,10 +356,10 @@
               <span class="slot-voices" id="vSent"></span></div>
             <span class="slot-add" id="addSent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.sentence"></span></span>
           </div>
-          <div class="slot slot-definition" id="slotMean">
-            <div class="slot-head"><span class="slot-label" data-k="slot.meaning"></span><span class="slot-empty" data-k="slot.none"></span>
+          <div class="slot slot-say" id="slotMean">
+            <div class="slot-head"><span class="slot-label" data-k="slot.say"></span><span class="slot-empty" data-k="slot.none"></span>
               <span class="slot-voices" id="vMean"></span></div>
-            <span class="slot-add" id="addMean"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.meaning"></span></span>
+            <span class="slot-add" id="addMean"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span data-k="slot.add.say"></span></span>
           </div>
         </div>
         <p class="instruction" id="instruction"></p>
@@ -391,7 +391,7 @@
           <div class="tiles">
             <span class="tile"><span class="ic">📷</span><span data-k="add.show.photo"></span></span>
             <span class="tile" id="tPic"><span class="ic">😀</span><span data-k="add.show.emoji"></span></span>
-            <span class="tile"><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></span>
+            <span class="tile"><span class="ic">🗣️</span><span data-k="add.show.say"></span></span>
             <span class="tile"><span class="ic">✍️</span><span data-k="add.show.write"></span></span>
           </div>
         </div>
@@ -467,15 +467,15 @@
 
   // The card's slots choose the record type, as in the live recorder: the chosen
   // slot is ringed amber, and a kept take adds a voice to it.
-  const SLOTS={word:$('slotWord'),context:$('slotSent'),definition:$('slotMean')};
-  const VOICES={word:$('vWord'),context:$('vSent'),definition:$('vMean')};
-  const INSTR={word:AB('record.instr.word'),context:AB('record.instr.context'),definition:AB('record.instr.definition')};
+  const SLOTS={word:$('slotWord'),context:$('slotSent'),say:$('slotMean')};
+  const VOICES={word:$('vWord'),context:$('vSent'),say:$('vMean')};
+  const INSTR={word:AB('record.instr.word'),context:AB('record.instr.context'),say:AB('record.instr.note')};
   let curSlot='word';
   function setSlot(type){curSlot=type;for(const k in SLOTS)SLOTS[k].classList.toggle('on',k===type);instruction.innerHTML=INSTR[type];}
   function addVoice(){const c=document.createElement('span');c.className='vchip mine';c.textContent='🙂';
     VOICES[curSlot].appendChild(c);SLOTS[curSlot].classList.add('filled');}
   function resetCard(){VOICES.word.querySelectorAll('.mine').forEach(n=>n.remove());
-    for(const k of ['context','definition']){VOICES[k].innerHTML='';SLOTS[k].classList.remove('filled');}
+    for(const k of ['context','say']){VOICES[k].innerHTML='';SLOTS[k].classList.remove('filled');}
     addSent.classList.remove('press');addMean.classList.remove('press');setSlot('word');}
   function recIdle(){rbtn.innerHTML='<span class="dot"></span>'+esc(A('record.hold'));}
   let timerEl=null;
@@ -545,14 +545,14 @@
       {t:8500,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
       {t:9400},
     ],
-    meaning:()=>[
-      {t:0,cue:'howto.meaning',fn(){showRecs();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setSlot('word');setCap('wt.meaning.1');moveTouch(addMean,1);}},
-      {t:800,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('definition');setCap('wt.meaning.tap');}},
-      {t:1700,fn(){moveTouch(rbtn,1);setCap('wt.meaning.say');}},
+    say:()=>[
+      {t:0,cue:'howto.say',fn(){showRecs();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setSlot('word');setCap('wt.say.1');moveTouch(addMean,1);}},
+      {t:800,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('say');setCap('wt.say.tap');}},
+      {t:1700,fn(){moveTouch(rbtn,1);setCap('wt.say.say');}},
       {t:2500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2600);}},
       {t:5200,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.hearkeep');}},
       {t:6600,fn(){moveTouch(keep,1);}},
-      {t:7300,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.meaning.kept');}},
+      {t:7300,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.say.kept');}},
       {t:8300,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
       {t:9200},
     ],

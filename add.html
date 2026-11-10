@@ -231,7 +231,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <div class="tiles">
       <button class="tile" id="tilePhoto" type="button"><span class="tick">✓</span><span class="ic">📷</span><span data-k="add.show.photo"></span></button>
       <button class="tile" id="tileEmoji" type="button"><span class="tick">✓</span><span class="ic">😀</span><span data-k="add.show.emoji"></span></button>
-      <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></button>
+      <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.say"></span></button>
       <button class="tile" id="tileWrite" type="button"><span class="tick">✓</span><span class="ic">✍️</span><span data-k="add.show.write"></span></button>
       <button class="tile wide" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
     </div>
@@ -253,7 +253,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     </div>
 
     <div class="card panel" id="panelMeaning" hidden>
-      <p class="note" data-k="add.show.meaning.hint"></p>
+      <p class="note" data-k="add.show.say.hint"></p>
       <div class="stage">
         <button class="hold small" id="meanBtn" type="button" aria-label="Hold to record the meaning">
           <span class="ring"></span>
@@ -834,7 +834,7 @@ function togglePanel(name){
   if(openPanel==="spell") setTimeout(()=>$("spellIn").focus(), 50);
 }
 $("tileEmoji").onclick   = ()=>{ sayLabel("add.show.picture"); togglePanel("emoji"); };
-$("tileMeaning").onclick = ()=>{ sayLabel("add.show.meaning"); togglePanel("meaning"); };
+$("tileMeaning").onclick = ()=>{ sayLabel("add.show.say"); togglePanel("meaning"); };
 $("tileWrite").onclick   = ()=> togglePanel("write");
 $("tileSpell").onclick   = ()=> togglePanel("spell");
 // Spellings exist only where the instance says its language is written
@@ -882,14 +882,17 @@ $("photoIn").addEventListener("change", async ()=>{
 });
 
 holdRecorder({
-  btn:$("meanBtn"), label:$("meanLabel"), maxMs:20000, type:"definition",
+  btn:$("meanBtn"), label:$("meanLabel"), maxMs:20000, type:"note",
   onError: e=> setMsg($("meanMsg"), "bad", micErrHTML(e)),
   onTake: async take=>{
-    const v = verdict(take.q, "definition");
+    const v = verdict(take.q, "note");
     setMsg($("meanMsg"), v.cls, bi(v.key));
     if(!v.keep) return;
     draft.meaning = { blob:take.blob, mime:take.mime, durationMs:take.durationMs, sampleRate:take.sampleRate,
-                      qc:qcOf(take.q,"definition"), envelope:take.q.envelope, recordedAt:take.recordedAt };
+                      qc:qcOf(take.q,"note"), envelope:take.q.envelope, recordedAt:take.recordedAt };
+    // ask which language, as the recorder does on Keep (shared question in afd-core).
+    // Dismiss → the dictionary's own; the uploader can change it later from the card.
+    draft.meaning.lang = (await C.askNoteLang({ mode: MODE, promptUrl })) || instanceLang();
     draft.up.meaning = false; draft.up.meaningId = null;
     await saveDraft(); paintShow();
   }
@@ -1011,6 +1014,9 @@ function takeRec(d, t, type, recordingId, speakerId){
   return {
     recordingId, entryId:d.entryId, gloss:"", domain:"",
     speakerId, phase:type, type, promptTier:"self", repetitionIndex:"both",
+    // a "say something" take is a voice note; default its language to the dictionary's
+    // own (the uploader can change it later from the card). 11-10
+    ...(type==="note" ? { lang: t.lang || instanceLang() } : {}),
     capture:{ sampleRate:t.sampleRate, codec:t.mime||"", durationMs:t.durationMs, bluetoothDetected:false },
     qc:t.qc, envelope:t.envelope||[], recordedAt:t.recordedAt, blob:t.blob
   };
@@ -1211,7 +1217,7 @@ async function sendWord(d, u, interactive){
     if(d.meaning && !up.meaning){
       at.step = "meaning";
       if(!up.meaningId){ up.meaningId = recId()+"_m"; await saveDraft(d); }
-      await uploadClip(ctx, takeRec(d, d.meaning, "definition", up.meaningId, up.speakerId), spk);
+      await uploadClip(ctx, takeRec(d, d.meaning, "note", up.meaningId, up.speakerId), spk);
       up.meaning = true; await saveDraft(d);
     }
 

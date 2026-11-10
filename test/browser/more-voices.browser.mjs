@@ -27,7 +27,7 @@ const init = (noIndex)=> `try{ localStorage.setItem("afd_display_mode","auto"); 
 const shown = (page)=> page.evaluate(()=>{
   return { chipWord: +(document.querySelector(".slot-word .voices-chip .count")||{}).textContent || 0,
            chipCtx:  +(document.querySelector(".slot-context .voices-chip .count")||{}).textContent || 0,
-           chipDef:  +(document.querySelector(".slot-definition .voices-chip .count")||{}).textContent || 0,
+           chipDef:  +(document.querySelector(".slot-say .voices-chip .count")||{}).textContent || 0,
            more: (()=>{ const m=document.querySelector(".more-voices"); return m ? m.textContent.replace(/\s+/g," ").trim() : null; })() };
 });
 

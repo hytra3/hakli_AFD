@@ -38,9 +38,9 @@ await scenario("the how-to page: six one-job clips, each with its own link", asy
     src:document.getElementById("frame").getAttribute("src"), t:document.getElementById("title").textContent }));
   ok("H2 six tiles, worded from the string table", h.n===6 && h.t==="كيف تستعمله", JSON.stringify(h));
   ok("H3 a link to #hear opens that clip", h.on.join()==="hear" && /scene=hear/.test(h.src), JSON.stringify(h));
-  await page.click('.tile[data-id="meaning"]'); await page.waitForTimeout(600);
+  await page.click('.tile[data-id="say"]'); await page.waitForTimeout(600);
   const m = await page.evaluate(()=>({ hash:location.hash, src:document.getElementById("frame").getAttribute("src") }));
-  ok("H4 tapping a tile plays that clip and the address names it", m.hash==="#meaning" && /scene=meaning/.test(m.src), JSON.stringify(m));
+  ok("H4 tapping a tile plays that clip and the address names it", m.hash==="#say" && /scene=say/.test(m.src), JSON.stringify(m));
   ok("H5 no page errors", !state.errors.length, state.errors.join(" | "));
 });
 
