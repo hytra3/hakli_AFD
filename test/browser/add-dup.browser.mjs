@@ -16,20 +16,21 @@ const sayWord = async (page)=>{
   await page.waitForTimeout(1600);
   await page.dispatchEvent("#sayBtn", "pointerup", { pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });
   await page.waitForTimeout(1500); };
-const toShare = async (page, typeAr)=>{ await sayWord(page); await page.click("#sayNext"); await page.waitForTimeout(400);
+const toShare = async (page, typeAr, typeEn)=>{ await sayWord(page); await page.click("#sayNext"); await page.waitForTimeout(400);
   if(typeAr){ await page.click("#tileWrite"); await page.waitForTimeout(200); await page.fill("#glossArIn", typeAr); await page.waitForTimeout(200); }
+  if(typeEn){ await page.click("#tileWriteEn"); await page.waitForTimeout(200); await page.fill("#glossEnIn", typeEn); await page.waitForTimeout(200); }
   await page.click("#showNext"); await page.waitForTimeout(600); };
 const counts = (page)=> page.evaluate(()=>{ const fs = globalThis.__FS || {};
   return { newCards: Object.entries(fs).filter(([k,v])=> /^afd_entries\/[^/]+$/.test(k) && v && v.source==="user").length,
            onWater: Object.keys(fs).filter(k=> k.startsWith("afd_entries/ent_water/recordings/")).length }; });
 const screen = (page)=> page.evaluate(()=> ["say","show","share","done"].find(id=> !document.getElementById(id).hidden));
 
-async function run(name, { matcher, typeAr }, after){
+async function run(name, { matcher, typeAr, typeEn }, after){
   await scenario(name, async ()=>{
     const t = await newPage(browser, srv.url, { fs:FS, user:ME, init:AUTO, matcher });
     t.page.on("dialog", d=> d.dismiss().catch(()=>{}));
     await t.page.goto(srv.url + "/add.html"); await t.page.waitForTimeout(1200);
-    await toShare(t.page, typeAr);
+    await toShare(t.page, typeAr, typeEn);
     const t0 = Date.now();
     await t.page.click("#shareBtn");
     await t.page.waitForFunction(()=> !!document.querySelector(".afd-ask") || !document.getElementById("done").hidden, null, { timeout:15000 }).catch(()=>{});
@@ -73,6 +74,19 @@ await run("text net: the typed Arabic matches 'ماء'", { matcher: ()=>({ statu
   const q = await page.evaluate(()=>{ const a=document.querySelector(".afd-ask"); return a ? a.innerText : ""; });
   ok("no audio match, but the typed Arabic (with a diacritic) finds water", /ماء/.test(q) && /Is it one of these/.test(q), JSON.stringify(q));
   await page.click(".ask-no");
+});
+
+// 11-10, from the field: Add had Arabic and Hakli but no English.
+const NONE = ()=>({ status:200, body:{ results:[], corpus_n:0 } });
+await run("text net: typed English 'Water' (any case) finds water", { matcher: NONE, typeEn:"Water" }, async ({ page })=>{
+  const q = await page.evaluate(()=>{ const a=document.querySelector(".afd-ask"); return a ? a.innerText : ""; });
+  ok("no audio match, but the typed English finds water", /ماء/.test(q) && /Is it one of these/.test(q), JSON.stringify(q));
+  await page.click(".ask-no");
+});
+await run("Write it in English: saved on the new card with the Arabic", { matcher: NONE, typeAr:"نهر", typeEn:"river" }, async ({ page })=>{
+  await page.waitForFunction(()=> !document.getElementById("done").hidden, null, { timeout:10000 }).catch(()=>{});
+  const card = await page.evaluate(()=> Object.values(globalThis.__FS || {}).find(v => v && v.source==="user") || null);
+  ok("the new card has gloss 'river', glosses {ar, en} and glossAr", !!card && card.gloss==="river" && card.glossAr==="نهر" && card.glosses && card.glosses.en==="river" && card.glosses.ar==="نهر", JSON.stringify(card));
 });
 
 await browser.close(); srv.close();

@@ -220,7 +220,8 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <button class="tile" id="tileEmoji" type="button"><span class="tick">✓</span><span class="ic">😀</span><span data-k="add.show.emoji"></span></button>
       <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></button>
       <button class="tile" id="tileWrite" type="button"><span class="tick">✓</span><span class="ic">✍️</span><span data-k="add.show.write"></span></button>
-      <button class="tile wide" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
+      <button class="tile" id="tileWriteEn" type="button"><span class="tick">✓</span><span class="ic">🔤</span><span data-k="add.show.write.en"></span></button>
+      <button class="tile" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
     </div>
     <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
 
@@ -257,6 +258,10 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
 
     <div class="card panel" id="panelWrite" hidden>
       <input type="text" class="ar" id="glossArIn" dir="rtl" maxlength="80" placeholder="…" autocomplete="off">
+    </div>
+
+    <div class="card panel" id="panelWriteEn" hidden>
+      <input type="text" id="glossEnIn" dir="ltr" lang="en" maxlength="80" placeholder="…" autocomplete="off">
     </div>
 
     <!-- the word itself in letters: one person's spelling, never "the" spelling -->
@@ -455,7 +460,7 @@ async function idbDo(mode, fn){
 function freshDraft(){
   return {
     key:"current", entryId:C.mintEntryId(), createdAt:Date.now(),
-    word:null, meaning:null, pic:"", photo:null, glossAr:"", spelling:"",
+    word:null, meaning:null, pic:"", photo:null, glossAr:"", glossEn:"", spelling:"",
     consent:{ play:true, archive:false, ml:false, touched:false },   // listening in the app is on by default (10-14); archive + ML stay opt-in
     up:{ uid:null, speakerId:null, photo:false, photoPath:"", entry:false,
          wordId:null, word:false, meaningId:null, meaning:false, spelling:false }
@@ -808,17 +813,21 @@ function togglePanel(name){
   openPanel = openPanel===name ? null : name;
   paintShow();
   if(openPanel==="write") setTimeout(()=>$("glossArIn").focus(), 50);
+  if(openPanel==="writeEn") setTimeout(()=>$("glossEnIn").focus(), 50);
   if(openPanel==="spell") setTimeout(()=>$("spellIn").focus(), 50);
 }
 $("tileEmoji").onclick   = ()=>{ sayLabel("add.show.picture"); togglePanel("emoji"); };
 $("tileMeaning").onclick = ()=>{ sayLabel("add.show.meaning"); togglePanel("meaning"); };
 $("tileWrite").onclick   = ()=> togglePanel("write");
+$("tileWriteEn").onclick = ()=> togglePanel("writeEn");
 $("tileSpell").onclick   = ()=> togglePanel("spell");
 // Spellings exist only where the instance says its language is written
 // (AFDInstance.spelling); the input takes that script's direction and tag.
 if(window.AFDInstance && window.AFDInstance.spelling){
   $("tileSpell").hidden = false;
   $("spellIn").dir = C.spellingDir(); $("spellIn").lang = C.spellingLang();
+}else{
+  $("tileWriteEn").classList.add("wide");          // no spelling tile: English closes the grid on its own row
 }
 $("spellIn").addEventListener("input", async ()=>{ draft.spelling = $("spellIn").value.slice(0,60); draft.up.spelling = false; await saveDraft(); paintShowTiles(); });
 $("tilePhoto").onclick   = ()=>{ sayLabel("add.show.photo"); if(draft.photo){ togglePanel("photo"); } else { $("photoIn").click(); } };
@@ -827,6 +836,7 @@ $("photoRemove").onclick = async ()=>{ draft.photo=null; if(photoUrl){ URL.revok
 $("emojiRemove").onclick = ()=>{ $("emojiIn").value=""; setPic(""); };
 $("emojiIn").addEventListener("input", ()=>{ const e = firstEmoji($("emojiIn").value); if(e) setPic(e); });
 $("glossArIn").addEventListener("input", async ()=>{ draft.glossAr = $("glossArIn").value.slice(0,80); await saveDraft(); paintShowTiles(); });
+$("glossEnIn").addEventListener("input", async ()=>{ draft.glossEn = $("glossEnIn").value.slice(0,80); await saveDraft(); paintShowTiles(); });
 
 // Centre-square, 512px JPEG. Drawing through a canvas also drops the camera's
 // EXIF (GPS included) — the photo is public, its location shouldn't be.
@@ -873,28 +883,31 @@ holdRecorder({
 $("meanPlay").onclick = ()=> play(draft.meaning && draft.meaning.blob);
 $("meanRemove").onclick = async ()=>{ draft.meaning=null; $("meanMsg").classList.add("hidden"); await saveDraft(); paintShow(); };
 
-function anythingShown(){ return !!(draft.photo || draft.pic || draft.meaning || draft.glossAr.trim() || (draft.spelling||"").trim()); }
+function anythingShown(){ return !!(draft.photo || draft.pic || draft.meaning || draft.glossAr.trim() || (draft.glossEn||"").trim() || (draft.spelling||"").trim()); }
 function paintShowTiles(){
   $("tilePhoto").classList.toggle("filled", !!draft.photo);
   $("tileEmoji").classList.toggle("filled", !!draft.pic);
   $("tileMeaning").classList.toggle("filled", !!draft.meaning);
   $("tileWrite").classList.toggle("filled", !!draft.glossAr.trim());
+  $("tileWriteEn").classList.toggle("filled", !!(draft.glossEn||"").trim());
   $("tileSpell").classList.toggle("filled", !!(draft.spelling||"").trim());
   $("showNext").innerHTML = bi(anythingShown() ? "add.next" : "add.skip");
 }
 function paintShow(){
   paintFace($("showPic"));
   paintShowTiles();
-  const panels = { photo:"panelPhoto", emoji:"panelEmoji", meaning:"panelMeaning", write:"panelWrite", spell:"panelSpell" };
+  const panels = { photo:"panelPhoto", emoji:"panelEmoji", meaning:"panelMeaning", write:"panelWrite", writeEn:"panelWriteEn", spell:"panelSpell" };
   for(const k in panels) $(panels[k]).hidden = openPanel!==k;
   $("tilePhoto").classList.toggle("open", openPanel==="photo");
   $("tileEmoji").classList.toggle("open", openPanel==="emoji");
   $("tileMeaning").classList.toggle("open", openPanel==="meaning");
   $("tileWrite").classList.toggle("open", openPanel==="write");
+  $("tileWriteEn").classList.toggle("open", openPanel==="writeEn");
   $("tileSpell").classList.toggle("open", openPanel==="spell");
   document.querySelectorAll("#emojiGrid button").forEach(b=> b.classList.toggle("on", b.textContent===draft.pic));
   $("meanReview").classList.toggle("hidden", !draft.meaning);
   if($("glossArIn").value !== draft.glossAr) $("glossArIn").value = draft.glossAr;
+  if($("glossEnIn").value !== (draft.glossEn||"")) $("glossEnIn").value = draft.glossEn||"";
   if($("spellIn").value !== (draft.spelling||"")) $("spellIn").value = draft.spelling||"";
 }
 $("showBack").onclick = ()=> show("say");
@@ -1024,15 +1037,17 @@ function startDupCheck(blob){
   dupCheck = me;
 }
 async function textMatches(d){
-  const ar = C.spellingKey(d.glossAr || ""), sp = C.spellingKey(d.spelling || "");
-  if(!ar && !sp) return [];
+  const enKey = (s)=> C.spellingKey(s || "").toLowerCase();         // English: "Father" is "father"
+  const ar = C.spellingKey(d.glossAr || ""), sp = C.spellingKey(d.spelling || ""), en = enKey(d.glossEn);
+  if(!ar && !sp && !en) return [];
   const keys = new Set([ar, sp].filter(Boolean)), out = new Set();
-  (window.AFDWords || []).forEach(w => { const k = C.spellingKey(w.ar || ""); if(k && keys.has(k)) out.add(C.entryIdFor(w.id)); });
+  const enHit = (s)=>{ const k = enKey(s); return !!(en && k && k === en); };
+  (window.AFDWords || []).forEach(w => { const k = C.spellingKey(w.ar || ""); if((k && keys.has(k)) || enHit(w.en)) out.add(C.entryIdFor(w.id)); });
   try{
     (await getDocs(collection(db, "afd_entries"))).forEach(sn => {
       const x = sn.data() || {}; if(x.removedAt || x.hiddenAt || x.heldAt || sn.id === d.entryId) return;
       const k = C.spellingKey(x.glossAr || (x.glosses && x.glosses.ar) || "");
-      if(k && keys.has(k)) out.add(sn.id);
+      if((k && keys.has(k)) || enHit(x.gloss || (x.glosses && x.glosses.en))) out.add(sn.id);
     });
   }catch(_){}
   if(sp){
@@ -1154,6 +1169,8 @@ async function sendWord(d, u, interactive){
       // glosses is the language-keyed form; glossAr stays until every reader
       // has moved over to glosses.
       if(ar){ data.glossAr = ar; data.glosses = { ar }; }
+      const en = (d.glossEn || "").trim().slice(0,80);
+      if(en){ data.gloss = en; data.glosses = Object.assign(data.glosses || {}, { en }); }
       try{ await setDoc(eref, data); }
       catch(e){
         let mine=false; try{ const sn = await getDoc(eref); mine = sn.exists() && (sn.data()||{}).createdBy===uid; }catch(_){}

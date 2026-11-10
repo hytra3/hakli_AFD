@@ -1068,7 +1068,9 @@ window.AFDCore = (function(){
     "note.lang.ar":         { en:"Arabic",             ar:"العربية" },
     "note.lang.en":         { en:"English",            ar:"الإنجليزية" },
     "note.lang.mul":        { en:"A mix",              ar:"خليط" },
-    "stw.voice.note":       { en:"voice note",         ar:"ملاحظة صوتية" }
+    "stw.voice.note":       { en:"voice note",         ar:"ملاحظة صوتية" },
+    // 11-10, from the field: Add offered Arabic and Hakli but not English.
+    "add.show.write.en":    { en:"Write it in English", ar:"اكتبها بالإنجليزية" }
   };
   function t(key, mode){
     const s = STRINGS[key];
