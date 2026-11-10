@@ -1616,8 +1616,26 @@ window.AFDCore = (function(){
     }catch(_){}
   }
 
+  /* The spoken "which language?" question for a voice note — four big choices,
+     each with ▶ for its recorded name, the question itself spoken if recorded.
+     Shared by the recorder (ask on Keep), the card (change a note's language),
+     and Add (ask on keep). Returns the chosen code, or null when dismissed —
+     each caller decides what a dismissal means. 11-10 */
+  async function askNoteLang(o){
+    const mode = o.mode, promptUrl = o.promptUrl || (()=> Promise.resolve(null));
+    const own = ownLang();
+    const face = (x)=> '<span dir="ltr" style="font:700 '+(x.length > 2 ? 15 : 22)+'px/1 system-ui,sans-serif">'+x+'</span>';
+    const opts = [[own, "note.lang.own", "ح"], ["ar", "note.lang.ar", "ع"], ["en", "note.lang.en", "En"], ["mul", "note.lang.mul", "ع+En"]];
+    const urls = await Promise.race([Promise.all(opts.map(p => promptUrl(p[1]))), new Promise(r => setTimeout(()=> r([]), 1500))]);
+    return ask({
+      mode, titleKey: "note.lang.ask", pickKey: "note.lang.pick", audio: promptUrl("note.lang.ask"),
+      choices: opts.map(([code, key, f], i)=>({ value: code, face: face(f), label: tHTML(key, mode === "sound" ? "script" : mode),
+        ...(urls[i] ? { play: ()=> Promise.resolve(urls[i]) } : {}) }))
+    });
+  }
+
   return {
-    ask, notice,
+    ask, notice, askNoteLang,
     errorSink, report, eventSink, track,
     spellingText, spellingKey, spellingLang, spellingDir,
     entrySlug, entryIdFor, mintEntryId,

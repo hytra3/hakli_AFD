@@ -69,5 +69,26 @@ await scenario("signed out, no signal: keep it; the note offers the sign-in", as
   await ctx.close();
 });
 
+await scenario("Add: a 'say something' take asks its language, which rides to upload (11-10)", async ()=>{
+  const { page, ctx, state } = await newPage(browser, srv.url, { user:ME, init:AUTO });
+  await page.goto(srv.url + "/add.html"); await page.waitForTimeout(1200);
+  await sayWord(page); await page.click("#sayNext"); await page.waitForTimeout(400);     // → SHOW
+  await page.click("#tileMeaning"); await page.waitForSelector("#meanBtn", { state:"visible", timeout:5000 }); await page.waitForTimeout(300);
+  await page.dispatchEvent("#meanBtn", "pointerdown", { pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });
+  await page.waitForTimeout(1600);
+  await page.dispatchEvent("#meanBtn", "pointerup", { pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });
+  const asked = await page.waitForSelector(".afd-ask .ask-choice", { timeout:6000 }).then(()=>true, ()=>false);
+  ok("keeping a 'say something' take asks which language", asked, "no language question appeared");
+  await page.evaluate(()=> document.querySelectorAll(".afd-ask .ask-cpick")[1].click());   // [own, ar, en, mul] → ar
+  await page.waitForFunction(()=> !document.querySelector(".afd-ask"), null, { timeout:4000 }).catch(()=>{});
+  await page.waitForTimeout(300);
+  await page.click("#showNext"); await page.waitForTimeout(500);                          // → SHARE
+  await page.click("#shareBtn"); await page.waitForTimeout(1800);
+  const note = await page.evaluate(()=> Object.values(globalThis.__FS||{}).find(v => v && v.type==="note") || null);
+  ok("the take uploads as a note, in the chosen language (ar)", !!note && note.type==="note" && note.lang==="ar", JSON.stringify(note));
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close(); srv.close();
 finish();

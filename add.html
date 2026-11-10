@@ -890,6 +890,9 @@ holdRecorder({
     if(!v.keep) return;
     draft.meaning = { blob:take.blob, mime:take.mime, durationMs:take.durationMs, sampleRate:take.sampleRate,
                       qc:qcOf(take.q,"note"), envelope:take.q.envelope, recordedAt:take.recordedAt };
+    // ask which language, as the recorder does on Keep (shared question in afd-core).
+    // Dismiss → the dictionary's own; the uploader can change it later from the card.
+    draft.meaning.lang = (await C.askNoteLang({ mode: MODE, promptUrl })) || instanceLang();
     draft.up.meaning = false; draft.up.meaningId = null;
     await saveDraft(); paintShow();
   }
@@ -1013,7 +1016,7 @@ function takeRec(d, t, type, recordingId, speakerId){
     speakerId, phase:type, type, promptTier:"self", repetitionIndex:"both",
     // a "say something" take is a voice note; default its language to the dictionary's
     // own (the uploader can change it later from the card). 11-10
-    ...(type==="note" ? { lang: instanceLang() } : {}),
+    ...(type==="note" ? { lang: t.lang || instanceLang() } : {}),
     capture:{ sampleRate:t.sampleRate, codec:t.mime||"", durationMs:t.durationMs, bluetoothDetected:false },
     qc:t.qc, envelope:t.envelope||[], recordedAt:t.recordedAt, blob:t.blob
   };

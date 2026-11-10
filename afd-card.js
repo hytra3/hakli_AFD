@@ -302,15 +302,8 @@ function cardPromptUrl(key){               // a spoken app prompt, once recorded
 }
 async function changeNoteLang(rec, pillEl){
   const m = CFG.mode();
-  const own = AFDCore.ownLang ? AFDCore.ownLang() : "";
-  const face = (t)=> '<span dir="ltr" style="font:700 '+(t.length > 2 ? 15 : 22)+'px/1 system-ui,sans-serif">'+t+'</span>';
-  const opts = [[own, "note.lang.own", "\u062D"], ["ar", "note.lang.ar", "\u0639"], ["en", "note.lang.en", "En"], ["mul", "note.lang.mul", "\u0639+En"]];
-  const urls = await Promise.race([Promise.all(opts.map(o => cardPromptUrl(o[1]))), new Promise(r => setTimeout(()=> r([]), 1500))]);
-  const v = await AFDCore.ask({
-    mode: m, titleKey: "note.lang.ask", pickKey: "note.lang.pick", audio: cardPromptUrl("note.lang.ask"),
-    choices: opts.map(([code, key, f], i)=>({ value: code, face: face(f), label: AFDCore.tHTML(key, m),
-      ...(urls[i] ? { play: ()=> Promise.resolve(urls[i]) } : {}) }))
-  });
+  // the spoken four-choice question is shared in afd-core (recorder + Add use it too)
+  const v = await AFDCore.askNoteLang({ mode: m, promptUrl: cardPromptUrl });
   if(!v || v === rec.lang) return;           // closed, or the same language: nothing to do
   try{
     await updateDoc(doc(CFG.db, "afd_entries", rec.entryId, "recordings", rec.recordingId), { lang: v });

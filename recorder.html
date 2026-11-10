@@ -2708,19 +2708,9 @@ $("redoBtn").onclick=()=>{
    the dictionary's own language — the answer most notes will have; a steward
    can correct it later. */
 async function askNoteLang(){
-  const own = (window.AFDInstance && window.AFDInstance.language && window.AFDInstance.language.code) || "";
   const P = (window.AFD && window.AFD.promptUrl) || (()=>Promise.resolve(null));
-  const face = (t)=> '<span dir="ltr" style="font:700 '+(t.length > 2 ? 15 : 22)+'px/1 system-ui,sans-serif">'+t+'</span>';
-  const opts = [[own, "note.lang.own", "\u062D"], ["ar", "note.lang.ar", "\u0639"], ["en", "note.lang.en", "En"], ["mul", "note.lang.mul", "\u0639+En"]];
-  // ▶ only on a choice whose name is recorded (waits a moment, never long)
-  const urls = await Promise.race([Promise.all(opts.map(o => P(o[1]))), new Promise(r => setTimeout(()=> r([]), 1500))]);
-  const v = await AFDCore.ask({
-    mode: dispMode, titleKey: "note.lang.ask", pickKey: "note.lang.pick",
-    audio: P("note.lang.ask"),
-    choices: opts.map(([code, key, f], i)=>({ value: code, face: face(f), label: AFDCore.tHTML(key, dispMode === "sound" ? "script" : dispMode),
-      ...(urls[i] ? { play: ()=> Promise.resolve(urls[i]) } : {}) }))
-  });
-  return v || own;
+  // shared with the card and Add (afd-core); a dismissal here means the own language
+  return (await AFDCore.askNoteLang({ mode: dispMode, promptUrl: P })) || AFDCore.ownLang();
 }
 
 $("keepBtn").onclick=async ()=>{
