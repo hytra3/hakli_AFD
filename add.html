@@ -18,14 +18,14 @@
 <meta property="og:locale:alternate" content="en_US">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://hakli.app/og-hakli-v2.png">
-<link rel="icon" href="favicon.svg?v=b1110f" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1110f" sizes="any">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1110f">
-<link rel="manifest" href="manifest.webmanifest?v=b1110f">
+<link rel="icon" href="favicon.svg?v=b1110g" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1110g" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1110g">
+<link rel="manifest" href="manifest.webmanifest?v=b1110g">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b1110f"></script>
-<script src="afd-words.js?v=b1110f"></script>
-<script src="afd-instance.js?v=b1110f"></script>
+<script src="afd-core.js?v=b1110g"></script>
+<script src="afd-words.js?v=b1110g"></script>
+<script src="afd-instance.js?v=b1110g"></script>
 <style>/* Same khareef tokens as index.html, so this reads as the same app. */
   :root{
     --fog:#EAF0EE; --cloud:#FFFFFF; --mountain:#1F3A34; --mist:#8CA39B; --mist-2:#C4D2CC;
@@ -376,10 +376,10 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getMetadata, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { uploadClip, instanceLang } from "./afd-upload.js?v=b1110f";
-import { startAppCheck, appCheckHeaders } from "./afd-appcheck.js?v=b1110f";
-import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace, listPlayable } from "./afd-card.js?v=b1110f";
-import { mountSignIn, finishEmailLink, signInSheet } from "./afd-signin.js?v=b1110f";
+import { uploadClip, instanceLang } from "./afd-upload.js?v=b1110g";
+import { startAppCheck, appCheckHeaders } from "./afd-appcheck.js?v=b1110g";
+import { initCard, withdrawSpeaker, shareEntry, shareFlow, voiceFile, voiceFace, listPlayable } from "./afd-card.js?v=b1110g";
+import { mountSignIn, finishEmailLink, signInSheet } from "./afd-signin.js?v=b1110g";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 const app   = initializeApp(firebaseConfig);
