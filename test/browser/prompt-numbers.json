@@ -200,6 +200,8 @@
   "A2.61": "screen:card.photo.failed",
   "A2.62": "screen:slot.notes",
   "A2.63": "screen:slot.add.note",
+  "A2.64": "screen:slot.say",
+  "A2.65": "screen:slot.add.say",
   "A3.1": "screen:add.title",
   "A3.2": "screen:add.step.say",
   "A3.3": "screen:add.step.show",

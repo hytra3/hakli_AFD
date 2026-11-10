@@ -882,14 +882,14 @@ $("photoIn").addEventListener("change", async ()=>{
 });
 
 holdRecorder({
-  btn:$("meanBtn"), label:$("meanLabel"), maxMs:20000, type:"definition",
+  btn:$("meanBtn"), label:$("meanLabel"), maxMs:20000, type:"note",
   onError: e=> setMsg($("meanMsg"), "bad", micErrHTML(e)),
   onTake: async take=>{
-    const v = verdict(take.q, "definition");
+    const v = verdict(take.q, "note");
     setMsg($("meanMsg"), v.cls, bi(v.key));
     if(!v.keep) return;
     draft.meaning = { blob:take.blob, mime:take.mime, durationMs:take.durationMs, sampleRate:take.sampleRate,
-                      qc:qcOf(take.q,"definition"), envelope:take.q.envelope, recordedAt:take.recordedAt };
+                      qc:qcOf(take.q,"note"), envelope:take.q.envelope, recordedAt:take.recordedAt };
     draft.up.meaning = false; draft.up.meaningId = null;
     await saveDraft(); paintShow();
   }
@@ -1011,6 +1011,9 @@ function takeRec(d, t, type, recordingId, speakerId){
   return {
     recordingId, entryId:d.entryId, gloss:"", domain:"",
     speakerId, phase:type, type, promptTier:"self", repetitionIndex:"both",
+    // a "say something" take is a voice note; default its language to the dictionary's
+    // own (the uploader can change it later from the card). 11-10
+    ...(type==="note" ? { lang: instanceLang() } : {}),
     capture:{ sampleRate:t.sampleRate, codec:t.mime||"", durationMs:t.durationMs, bluetoothDetected:false },
     qc:t.qc, envelope:t.envelope||[], recordedAt:t.recordedAt, blob:t.blob
   };
@@ -1211,7 +1214,7 @@ async function sendWord(d, u, interactive){
     if(d.meaning && !up.meaning){
       at.step = "meaning";
       if(!up.meaningId){ up.meaningId = recId()+"_m"; await saveDraft(d); }
-      await uploadClip(ctx, takeRec(d, d.meaning, "definition", up.meaningId, up.speakerId), spk);
+      await uploadClip(ctx, takeRec(d, d.meaning, "note", up.meaningId, up.speakerId), spk);
       up.meaning = true; await saveDraft(d);
     }
 

@@ -1218,8 +1218,10 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   // to be only the "Say it yourself" button at the foot of the card, which people
   // didn't find). The word goes to the recorder on that word (#entryId — the
   // recorder's default tab is Word); sentence/meaning add the type to the hash.
-  const addKey = { word:"slot.add.word", context:"slot.add.sentence", definition:"slot.add.meaning", note:"slot.add.note" }[type] || "slot.add.meaning";
-  const addHash = encodeURIComponent(entryId) + (type==="word" ? "" : "|" + type);
+  const addKey = { word:"slot.add.word", context:"slot.add.sentence", definition:"slot.add.meaning", note:"slot.add.note", say:"slot.add.say" }[type] || "slot.add.meaning";
+  // the combined "say something" slot records as a note (the surviving bucket)
+  const hashType = type === "say" ? "note" : type;
+  const addHash = encodeURIComponent(entryId) + (type==="word" ? "" : "|" + hashType);
   const addLink =
     `<a class="slot-add" href="${CFG.recorderUrl}#${addHash}">` +
     `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${escapeHtml(AFDCore.t(addKey, CFG.mode()))}</a>`;
@@ -1550,8 +1552,9 @@ async function entryCard(res, lead){
     finally{ clearTimeout(dotsT); if(dots) dots.remove(); }
     const wordRecs    = recs.filter(r => (r.type||"word")==="word");
     const contextRecs = recs.filter(r => r.type==="context");
-    const defRecs     = recs.filter(r => r.type==="definition");
-    const noteRecs    = recs.filter(r => r.type==="note");
+    // meaning + voice notes are one slot now (three slots, 11-10): a definition is
+    // a kind of thing said about the word. Old definitions still show here.
+    const sayRecs     = recs.filter(r => r.type==="definition" || r.type==="note");
     firstPlayable = (wordRecs[0]||recs[0])?.url || null;
     if(currentUrl==null) currentUrl = firstPlayable;
     applyBox(thumbEl, CFG.mode(), wordRecs.length?wordRecs:recs);   // now paint the sound-shape in sound tier
@@ -1565,13 +1568,11 @@ async function entryCard(res, lead){
     }
     let wordSlot = slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl);
     let ctxSlot  = slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{});
-    let defSlot  = slotSection("slot.meaning","definition",res.entryId, defRecs, null, playBtn, ()=>{});
-    let noteSlot = slotSection("slot.notes","note",res.entryId, noteRecs, null, playBtn, ()=>{});
+    let saySlot  = slotSection("slot.say","say",res.entryId, sayRecs, null, playBtn, ()=>{});
     detail.appendChild(wordSlot);
     detail.appendChild(spellingSection(res.entryId, gc));
     detail.appendChild(ctxSlot);
-    detail.appendChild(defSlot);
-    detail.appendChild(noteSlot);
+    detail.appendChild(saySlot);
     // More voices (10-19): the card holds a page of public voices, newest first.
     // When there are more, one row under the slots fetches the next page and the
     // slots are redrawn with every voice so far; a slot whose list was open stays
@@ -1607,8 +1608,7 @@ async function entryCard(res, lead){
         };
         wordSlot = redraw(wordSlot, "slot.word", "word", allRecs.filter(r => (r.type||"word")==="word"), thumbEl, setUrl);
         ctxSlot  = redraw(ctxSlot, "slot.sentence", "context", allRecs.filter(r => r.type==="context"), null, ()=>{});
-        defSlot  = redraw(defSlot, "slot.meaning", "definition", allRecs.filter(r => r.type==="definition"), null, ()=>{});
-        noteSlot = redraw(noteSlot, "slot.notes", "note", allRecs.filter(r => r.type==="note"), null, ()=>{});
+        saySlot  = redraw(saySlot, "slot.say", "say", allRecs.filter(r => r.type==="definition" || r.type==="note"), null, ()=>{});
         if(cursor) paintMore(); else more.remove();
       });
       detail.appendChild(more);

@@ -1,6 +1,6 @@
 // Voice notes (11-09, from the field): a fourth slot on every card, for talking
 // ABOUT the word in any language ("everybody knows father — but 'my father'…").
-// The card shows the slot with its own "+ Add a voice note", and each note says
+// The card shows the combined "say something" slot with its own "+ Say something", and each note says
 // which language it is in. The recorder records one (up to a minute), and on
 // Keep asks which language was spoken; closing the question means Hakli.
 import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.mjs";
@@ -23,22 +23,22 @@ const init = (m)=> new Function(`try{ localStorage.setItem("afd_display_mode","$
 await scenario("the card has a voice-notes slot, and each note says its language", async ()=>{
   const { page, state } = await newPage(browser, srv.url, { fs:FS, init:init("auto") });
   await page.goto(srv.url + "/index.html#ent_father");
-  await page.waitForSelector(".slot-note", { timeout:10000 }); await page.waitForTimeout(400);
-  const chip = await page.$(".slot-note .voices-chip"); if(chip) await chip.click();
+  await page.waitForSelector(".slot-say", { timeout:10000 }); await page.waitForTimeout(400);
+  const chip = await page.$(".slot-say .voices-chip"); if(chip) await chip.click();
   await page.waitForTimeout(300); await shot(page, "voice-notes-card", true);
   const a = await page.evaluate(()=>{
-    const s = document.querySelector(".slot-note");
+    const s = document.querySelector(".slot-say");
     const order = [...document.querySelectorAll(".slot")].map(x => [...x.classList].find(c => c.startsWith("slot-")));
     return { order, label: s.querySelector(".slot-label").textContent.trim(),
       add: (s.querySelector(".slot-add")||{}).getAttribute ? s.querySelector(".slot-add").getAttribute("href") : null,
       addText: (s.querySelector(".slot-add")||{}).textContent.trim(),
       tags: [...s.querySelectorAll(".note-lang")].map(t => t.textContent.trim()).sort(),
       wordTags: document.querySelectorAll(".slot-word .note-lang").length }; });
-  ok("the notes slot comes last, after the meaning", JSON.stringify(a.order.slice(-2)) === JSON.stringify(["slot-definition","slot-note"]), JSON.stringify(a.order));
-  ok("it is labelled voice notes, in English and Arabic", /voice notes/.test(a.label) && /ملاحظات صوتية/.test(a.label), a.label);
-  ok("'+ Add a voice note' opens the recorder on this word's notes", /recorder(\.html)?#ent_father\|note$/.test(a.add) && a.addText === "Add a voice note", JSON.stringify([a.add, a.addText]));
+  ok("the combined 'say something' slot comes last", JSON.stringify(a.order.slice(-2)) === JSON.stringify(["slot-context","slot-say"]), JSON.stringify(a.order));
+  ok("it is labelled 'say something about this word', in English and Arabic", /say something/i.test(a.label) && /قل شيئًا/.test(a.label), a.label);
+  ok("'+ Say something' opens the recorder on this word's notes", /recorder(\.html)?#ent_father\|note$/.test(a.add) && a.addText === "Say something", JSON.stringify([a.add, a.addText]));
   ok("each note shows its language as a pill (حَكلي · عربي); the word's voice has none", JSON.stringify(a.tags) === JSON.stringify(["حَكلي","عربي"]) && a.wordTags === 0, JSON.stringify(a));
-  const amber = await page.evaluate(()=>{ const p = document.querySelector('.slot-note .lang-pill[data-lang="qhk"]'), q = document.querySelector('.slot-note .lang-pill[data-lang="ar"]');
+  const amber = await page.evaluate(()=>{ const p = document.querySelector('.slot-say .lang-pill[data-lang="qhk"]'), q = document.querySelector('.slot-say .lang-pill[data-lang="ar"]');
     return p && q && { own: p.hasAttribute("data-own"), ownBg: getComputedStyle(p).backgroundColor, arBg: getComputedStyle(q).backgroundColor }; });
   ok("the Hakli pill is amber-tinted (data-own); the Arabic one is neutral", !!amber && amber.own && amber.ownBg !== amber.arBg, JSON.stringify(amber));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
@@ -47,7 +47,7 @@ await scenario("the card has a voice-notes slot, and each note says its language
 await scenario("sound view: the slot is there, with no language text", async ()=>{
   const { page, state } = await newPage(browser, srv.url, { fs:FS, init:init("sound") });
   await page.goto(srv.url + "/index.html#ent_father");
-  await page.waitForSelector(".slot-note", { timeout:10000 }); await page.waitForTimeout(400);
+  await page.waitForSelector(".slot-say", { timeout:10000 }); await page.waitForTimeout(400);
   ok("no language tags in sound view", await page.evaluate(()=> !document.querySelector(".note-lang")));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
@@ -58,14 +58,14 @@ await scenario("your own note: tap its language pill to change it (11-10)", asyn
     globalThis.__URLS = { "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uOther/rN1.webm":"data:audio/wav;base64,",
       "afd/uOther/rN2.webm":"data:audio/wav;base64,", "afd/uTest1/rMine.webm":"data:audio/wav;base64," };`) });
   await page.goto(srv.url + "/index.html#ent_father");
-  await page.waitForSelector(".slot-note", { timeout:10000 }); await page.waitForTimeout(400);
-  const chip = await page.$(".slot-note .voices-chip"); if(chip) await chip.click();
-  await page.waitForSelector('.slot-note .note-lang-edit', { timeout:6000 }).catch(()=>{});
-  const a = await page.evaluate(()=>({ edit: [...document.querySelectorAll(".slot-note .note-lang-edit")].map(p => p.getAttribute("data-lang")),
-    all: document.querySelectorAll(".slot-note .note-lang").length }));
+  await page.waitForSelector(".slot-say", { timeout:10000 }); await page.waitForTimeout(400);
+  const chip = await page.$(".slot-say .voices-chip"); if(chip) await chip.click();
+  await page.waitForSelector('.slot-say .note-lang-edit', { timeout:6000 }).catch(()=>{});
+  const a = await page.evaluate(()=>({ edit: [...document.querySelectorAll(".slot-say .note-lang-edit")].map(p => p.getAttribute("data-lang")),
+    all: document.querySelectorAll(".slot-say .note-lang").length }));
   ok("only your own note's pill is a button (others' are plain)", JSON.stringify(a.edit) === '["ar"]' && a.all === 3, JSON.stringify(a));
   await shot(page, "note-lang-edit-card", true);
-  await page.click(".slot-note .note-lang-edit");
+  await page.click(".slot-say .note-lang-edit");
   await page.waitForSelector(".afd-ask", { timeout:5000 });
   const q = await page.evaluate(()=>({ title: document.querySelector(".afd-ask h2").innerText, n: document.querySelectorAll(".afd-ask .ask-choice").length,
     playing: !!document.querySelector(".voice-row[aria-pressed=true]") }));
@@ -75,10 +75,10 @@ await scenario("your own note: tap its language pill to change it (11-10)", asyn
   await page.waitForFunction(()=> !document.querySelector(".afd-ask"), null, { timeout:3000 });
   await page.waitForFunction(()=> (globalThis.__FS["afd_entries/ent_father/recordings/rMine"]||{}).lang === "en", null, { timeout:4000 }).catch(()=>{});
   const after = await page.evaluate(()=>({ lang: globalThis.__FS["afd_entries/ent_father/recordings/rMine"].lang,
-    pill: (document.querySelector(".slot-note .note-lang-edit")||{}).getAttribute ? document.querySelector(".slot-note .note-lang-edit").getAttribute("data-lang") : null }));
+    pill: (document.querySelector(".slot-say .note-lang-edit")||{}).getAttribute ? document.querySelector(".slot-say .note-lang-edit").getAttribute("data-lang") : null }));
   ok("the note is saved as English and its pill says so", after.lang === "en" && after.pill === "en", JSON.stringify(after));
   // closing the question changes nothing
-  await page.click(".slot-note .note-lang-edit"); await page.waitForSelector(".afd-ask", { timeout:5000 });
+  await page.click(".slot-say .note-lang-edit"); await page.waitForSelector(".afd-ask", { timeout:5000 });
   await page.click(".afd-ask .ask-x"); await page.waitForTimeout(400);
   ok("closing the question leaves it as it was", await page.evaluate(()=> globalThis.__FS["afd_entries/ent_father/recordings/rMine"].lang === "en"));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
@@ -90,10 +90,10 @@ await scenario("a narrow phone: your own voice's Withdraw · Erase never cover i
     globalThis.__URLS = { "afd/uOther/rN1.webm":"data:audio/wav;base64,", "afd/uOther/rN2.webm":"data:audio/wav;base64,", "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uTest1/rMine.webm":"data:audio/wav;base64," };`) });
   await page.setViewportSize({ width:360, height:1600 });
   await page.goto(srv.url + "/index.html#ent_father");
-  await page.waitForSelector(".slot-note", { timeout:10000 }); await page.waitForTimeout(400);
-  const chip = await page.$(".slot-note .voices-chip"); if(chip) await chip.click();
-  await page.waitForSelector(".slot-note .vr-controls", { timeout:6000 }).catch(()=>{});
-  const r = await page.evaluate(()=>{ const row = document.querySelector(".slot-note .vr-controls").closest(".voice-row");
+  await page.waitForSelector(".slot-say", { timeout:10000 }); await page.waitForTimeout(400);
+  const chip = await page.$(".slot-say .voices-chip"); if(chip) await chip.click();
+  await page.waitForSelector(".slot-say .vr-controls", { timeout:6000 }).catch(()=>{});
+  const r = await page.evaluate(()=>{ const row = document.querySelector(".slot-say .vr-controls").closest(".voice-row");
     const a = row.querySelector(".vr-play .pl").getBoundingClientRect(), c = row.querySelector(".vr-controls").getBoundingClientRect(),
           w = row.querySelector(".vr-wave").getBoundingClientRect();
     return { overlap: !(a.right <= c.left || c.bottom <= a.top || a.bottom <= c.top), wave: Math.round(w.width) }; });
@@ -122,7 +122,7 @@ await scenario("recorder: a voice note asks its language on Keep", async ()=>{
   ok("the link opens on the notes slot, with its own instruction", r.type==="note" && /Any language/.test(r.instr) && /بأيّ لغة/.test(r.instr), JSON.stringify(r));
 
   await recordFor(page, 2500);
-  const before = await page.evaluate(()=> document.querySelectorAll("#entryCardHost .slot-note [data-lang]").length);
+  const before = await page.evaluate(()=> document.querySelectorAll("#entryCardHost .slot-say [data-lang]").length);
   await page.click("#keepBtn");
   await page.waitForSelector(".afd-ask", { timeout:5000 }); await page.waitForTimeout(200);
   await shot(page, "voice-notes-ask");
@@ -137,9 +137,9 @@ await scenario("recorder: a voice note asks its language on Keep", async ()=>{
   let notes = await notesIn(page);
   ok("the note uploads as type note, language ar", notes.length===1 && notes[0].lang==="ar", JSON.stringify(notes));
   // 11-10: the card on screen redraws once the take is uploaded — no reload
-  const shown = await page.waitForFunction((b)=> document.querySelectorAll("#entryCardHost .slot-note [data-lang]").length > b, before, { timeout:6000 }).then(()=>true, ()=>false);
+  const shown = await page.waitForFunction((b)=> document.querySelectorAll("#entryCardHost .slot-say [data-lang]").length > b, before, { timeout:6000 }).then(()=>true, ()=>false);
   ok("the new note shows on the card without a reload (" + before + " → more)", shown,
-     await page.evaluate(()=> (document.querySelector("#entryCardHost .slot-note")||{}).innerText));
+     await page.evaluate(()=> (document.querySelector("#entryCardHost .slot-say")||{}).innerText));
 
   // a second note; closing the question files it under the dictionary's own language
   await page.click('#entryCardHost a.slot-add[href$="|note"]'); await page.waitForTimeout(800);

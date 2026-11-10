@@ -32,26 +32,26 @@ for(const m of ["auto","script","sound"]){
     await page.goto(srv.url + "/recorder.html#ent_camel"); await page.waitForTimeout(1500);
     await toRecorder(page);
     const word = await rs(page);
-    await pick(page, "context");    const sentence = await rs(page);
-    await pick(page, "definition"); const meaning  = await rs(page);
-    if(m==="auto") await shot(page, "recorder-meaning-slot");
+    await pick(page, "context"); const sentence = await rs(page);
+    await pick(page, "note");    const say      = await rs(page);
+    if(m==="auto") await shot(page, "recorder-say-slot");
 
-    ok(m+": no Word / Sentence / Meaning tabs; the card's slots choose word → sentence → meaning",
-       word.tabs===0 && word.type==="word" && sentence.type==="context" && meaning.type==="definition" && word.rec && !state.errors.length,
-       JSON.stringify([word.tabs, word.type, sentence.type, meaning.type, state.errors.slice(0,2)]));
-    ok(m+": choosing a slot stays on step 3 (it used to drop to step 1)", sentence.onRec && meaning.onRec && /\|definition$/.test(meaning.hash), JSON.stringify([sentence.onRec, meaning.onRec, meaning.hash]));
+    ok(m+": no Word / Sentence / Meaning tabs; the card's slots choose word → sentence → say something",
+       word.tabs===0 && word.type==="word" && sentence.type==="context" && say.type==="note" && word.rec && !state.errors.length,
+       JSON.stringify([word.tabs, word.type, sentence.type, say.type, state.errors.slice(0,2)]));
+    ok(m+": choosing a slot stays on step 3 (it used to drop to step 1)", sentence.onRec && say.onRec && /\|note$/.test(say.hash), JSON.stringify([sentence.onRec, say.onRec, say.hash]));
 
     // the instruction for each type, in this display mode
-    const noStars = [word, sentence, meaning].every(x=> !x.instr.includes("*"));
+    const noStars = [word, sentence, say].every(x=> !x.instr.includes("*"));
     if(m==="sound"){
-      ok("sound: the instruction is dots — two for the word, one for a sentence or a meaning", word.dots===2 && sentence.dots===1 && meaning.dots===1 && !/[A-Za-z؀-ۿ]{3}/.test(word.instr.replace(/<[^>]+>/g,"")), JSON.stringify([word.dots, sentence.dots, meaning.dots]));
+      ok("sound: the instruction is dots — two for the word, one for a sentence; a note is a single take", word.dots===2 && sentence.dots===1 && say.dots===1 && !/[A-Za-z؀-ۿ]{3}/.test(word.instr.replace(/<[^>]+>/g,"")), JSON.stringify([word.dots, sentence.dots, say.dots]));
     }else{
       const en = m==="auto";
-      ok(m+": the instruction names what to say, with the one word in bold"+(en?", Arabic then English":", Arabic only"),
-         noStars && /<b>مرّتين<\/b>/.test(word.instr) && /<b>جملة<\/b>/.test(sentence.instr) && /<b>تعنيه<\/b>/.test(meaning.instr)
-         && (en ? /<b>twice<\/b>/.test(word.instr) && /<b>sentence<\/b>/.test(sentence.instr) && /<b>means<\/b>/.test(meaning.instr)
+      ok(m+": the instruction names what to say, with the key words in bold"+(en?", Arabic then English":", Arabic only"),
+         noStars && /<b>مرّتين<\/b>/.test(word.instr) && /<b>جملة<\/b>/.test(sentence.instr) && /<b>[^<]+<\/b>/.test(say.instr)
+         && (en ? /<b>twice<\/b>/.test(word.instr) && /<b>sentence<\/b>/.test(sentence.instr) && /[A-Za-z]{4}/.test(say.instr.replace(/<[^>]+>/g,""))
                 : !/[A-Za-z]{4}/.test(word.instr.replace(/<[^>]+>/g,""))),
-         JSON.stringify([word.instr, sentence.instr, meaning.instr]));
+         JSON.stringify([word.instr, sentence.instr, say.instr]));
     }
     // the readout: Arabic always, English only in the bilingual mode
     const arOK = /^‹?\s*الكلمة [٠-٩]+ من [٠-٩]+/.test(word.progress), enOK = /STEP 3 \/ 3 · WORD \d+ OF \d+$/.test(word.progress);
