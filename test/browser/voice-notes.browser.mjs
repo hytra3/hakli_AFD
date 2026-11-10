@@ -84,6 +84,23 @@ await scenario("your own note: tap its language pill to change it (11-10)", asyn
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 
+await scenario("a narrow phone: your own voice's Withdraw · Erase never cover its ▶ (11-10)", async ()=>{
+  const fs = { ...FS, "afd_entries/ent_father/recordings/rMine": take("rMine", { type:"note", lang:"ar", uid:"uTest1", speakerId:"spk_t_01", storagePath:"afd/uTest1/rMine.webm" }) };
+  const { page, state } = await newPage(browser, srv.url, { fs, user:USER, init: new Function(`try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+    globalThis.__URLS = { "afd/uOther/rN1.webm":"data:audio/wav;base64,", "afd/uOther/rN2.webm":"data:audio/wav;base64,", "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uTest1/rMine.webm":"data:audio/wav;base64," };`) });
+  await page.setViewportSize({ width:360, height:1600 });
+  await page.goto(srv.url + "/index.html#ent_father");
+  await page.waitForSelector(".slot-note", { timeout:10000 }); await page.waitForTimeout(400);
+  const chip = await page.$(".slot-note .voices-chip"); if(chip) await chip.click();
+  await page.waitForSelector(".slot-note .vr-controls", { timeout:6000 }).catch(()=>{});
+  const r = await page.evaluate(()=>{ const row = document.querySelector(".slot-note .vr-controls").closest(".voice-row");
+    const a = row.querySelector(".vr-play .pl").getBoundingClientRect(), c = row.querySelector(".vr-controls").getBoundingClientRect(),
+          w = row.querySelector(".vr-wave").getBoundingClientRect();
+    return { overlap: !(a.right <= c.left || c.bottom <= a.top || a.bottom <= c.top), wave: Math.round(w.width) }; });
+  ok("the ▶ and the controls don't overlap; the waveform keeps some width", !r.overlap && r.wave >= 40, JSON.stringify(r));
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+});
+
 const toRecorder = async (page)=>{
   await page.click("#toMic"); await page.waitForSelector("#miccheck:not(.hidden)", { timeout:8000 });
   if(await page.isVisible("#startMic")){ await page.click("#startMic"); await page.waitForSelector("#toRecord:not(.hidden)", { state:"visible", timeout:10000 }); }
