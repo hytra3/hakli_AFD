@@ -689,6 +689,7 @@ function holdRecorder({ btn, label, maxMs, type, onTake, onError }){
     chunks=[]; rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
     rec.onstop = finish;
     rec.start(); t0 = Date.now();
+    C.setCapturing(true);                          // nothing the app says may end up in the take
     btn.classList.add("rec");
     label.innerHTML = bi("record.holding")+'<span class="timer" id="'+btn.id+'T">0.0s</span>';
     tick = setInterval(()=>{
@@ -713,6 +714,7 @@ function holdRecorder({ btn, label, maxMs, type, onTake, onError }){
     try{ rec.stop(); }catch(_){}
   }
   async function finish(){
+    C.setCapturing(false);
     const ms = Date.now()-t0, mime = rec.mimeType || "audio/webm";
     rec = null;
     if(ms < 400){ label.innerHTML = bi("add.say.short"); return; }

@@ -77,6 +77,18 @@ window.AFDCore = (function(){
   const QUIET_KEY = "afd_quiet";
   const quietSubs = new Set();
   let uiNarration = null;                        // the narration clip playing now, if any
+  /* 11-10, from the field: a spoken step prompt still playing when someone
+     pressed record ended up IN the recording. While any page is recording
+     (setCapturing(true)), every interface sound stops at once and none can
+     start — including one that was still loading when the press came. */
+  const uiAudios = new Set();
+  let capturing = false;
+  function hushUI(){
+    uiAudios.forEach(a => { try{ a.pause(); }catch(_){} });
+    uiAudios.clear(); uiNarration = null;
+  }
+  function setCapturing(on){ capturing = !!on; if(capturing) hushUI(); }
+  function isCapturing(){ return capturing; }
   function getQuiet(){
     try{ return localStorage.getItem(QUIET_KEY) === "1"; }catch(_){ return false; }
   }
@@ -97,8 +109,11 @@ window.AFDCore = (function(){
   // Play an interface sound; returns the Audio element, or null if quiet held it back.
   function playUI(url, kind){
     kind = kind || "narration";
-    if(!url || !mayPlayUI(kind)) return null;
+    if(!url || !mayPlayUI(kind) || capturing) return null;
     const a = new Audio(url);
+    uiAudios.add(a);
+    const gone = () => uiAudios.delete(a);
+    a.addEventListener("ended", gone); a.addEventListener("pause", gone);
     if(kind === "narration"){
       if(uiNarration){ try{ uiNarration.pause(); }catch(_){} }
       uiNarration = a;
@@ -1552,6 +1567,7 @@ window.AFDCore = (function(){
     entrySlug, entryIdFor, mintEntryId,
     DISP_MODES, DISP_KEY, getDisplayMode, setDisplayMode,
     QUIET_KEY, getQuiet, setQuiet, onQuietChange, mayPlayUI, playUI, attachQuietToggle,
+    hushUI, setCapturing, isCapturing,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
     identicon, stepHistory, dotsHTML, escHtml
