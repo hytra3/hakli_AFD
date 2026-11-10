@@ -52,6 +52,38 @@ await scenario("sound view: the slot is there, with no language text", async ()=
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 
+await scenario("your own note: tap its language pill to change it (11-10)", async ()=>{
+  const fs = { ...FS, "afd_entries/ent_father/recordings/rMine": take("rMine", { type:"note", lang:"ar", uid:"uTest1", speakerId:"spk_t_01", storagePath:"afd/uTest1/rMine.webm" }) };
+  const { page, state } = await newPage(browser, srv.url, { fs, user:USER, init: new Function(`try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+    globalThis.__URLS = { "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uOther/rN1.webm":"data:audio/wav;base64,",
+      "afd/uOther/rN2.webm":"data:audio/wav;base64,", "afd/uTest1/rMine.webm":"data:audio/wav;base64," };`) });
+  await page.goto(srv.url + "/index.html#ent_father");
+  await page.waitForSelector(".slot-note", { timeout:10000 }); await page.waitForTimeout(400);
+  const chip = await page.$(".slot-note .voices-chip"); if(chip) await chip.click();
+  await page.waitForSelector('.slot-note .note-lang-edit', { timeout:6000 }).catch(()=>{});
+  const a = await page.evaluate(()=>({ edit: [...document.querySelectorAll(".slot-note .note-lang-edit")].map(p => p.getAttribute("data-lang")),
+    all: document.querySelectorAll(".slot-note .note-lang").length }));
+  ok("only your own note's pill is a button (others' are plain)", JSON.stringify(a.edit) === '["ar"]' && a.all === 3, JSON.stringify(a));
+  await shot(page, "note-lang-edit-card", true);
+  await page.click(".slot-note .note-lang-edit");
+  await page.waitForSelector(".afd-ask", { timeout:5000 });
+  const q = await page.evaluate(()=>({ title: document.querySelector(".afd-ask h2").innerText, n: document.querySelectorAll(".afd-ask .ask-choice").length,
+    playing: !!document.querySelector(".voice-row[aria-pressed=true]") }));
+  ok("tapping it asks the same question, with four choices (and doesn't play the voice)", /Which language/.test(q.title) && q.n === 4 && !q.playing, JSON.stringify(q));
+  await shot(page, "note-lang-edit-ask");
+  await page.click(".afd-ask .ask-choice:nth-child(3) .ask-cpick");          // English
+  await page.waitForFunction(()=> !document.querySelector(".afd-ask"), null, { timeout:3000 });
+  await page.waitForFunction(()=> (globalThis.__FS["afd_entries/ent_father/recordings/rMine"]||{}).lang === "en", null, { timeout:4000 }).catch(()=>{});
+  const after = await page.evaluate(()=>({ lang: globalThis.__FS["afd_entries/ent_father/recordings/rMine"].lang,
+    pill: (document.querySelector(".slot-note .note-lang-edit")||{}).getAttribute ? document.querySelector(".slot-note .note-lang-edit").getAttribute("data-lang") : null }));
+  ok("the note is saved as English and its pill says so", after.lang === "en" && after.pill === "en", JSON.stringify(after));
+  // closing the question changes nothing
+  await page.click(".slot-note .note-lang-edit"); await page.waitForSelector(".afd-ask", { timeout:5000 });
+  await page.click(".afd-ask .ask-x"); await page.waitForTimeout(400);
+  ok("closing the question leaves it as it was", await page.evaluate(()=> globalThis.__FS["afd_entries/ent_father/recordings/rMine"].lang === "en"));
+  ok("no page errors", !state.errors.length, state.errors.join(" | "));
+});
+
 const toRecorder = async (page)=>{
   await page.click("#toMic"); await page.waitForSelector("#miccheck:not(.hidden)", { timeout:8000 });
   if(await page.isVisible("#startMic")){ await page.click("#startMic"); await page.waitForSelector("#toRecord:not(.hidden)", { state:"visible", timeout:10000 }); }

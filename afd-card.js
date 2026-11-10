@@ -276,7 +276,61 @@ function avCaption(rec){
    which has no text; nothing on a note recorded before the language was asked. */
 function noteLangTag(rec){                  // the same pill as everywhere a language is named (11-10)
   if(rec.type !== "note" || !rec.lang || CFG.mode() === "sound") return "";
-  return AFDCore.langPill(rec.lang, { cls:"note-lang" });
+  const pill = AFDCore.langPill(rec.lang, { cls:"note-lang" + (noteLangEditable(rec) ? " note-lang-edit" : "") });
+  if(!noteLangEditable(rec)) return pill;
+  // your own note: the pill is a button that changes the language (11-10)
+  const tip = escapeHtml(AFDCore.t("note.lang.change", CFG.mode()));
+  return pill.replace('<span class="lang-pill', `<span role="button" tabindex="0" aria-label="${tip}" data-tip="${tip}" class="lang-pill`)
+             .replace(/ title="[^"]*"/, ` title="${tip}"`).replace(/<\/span>$/, ' \u25BE</span>');
+}
+/* Changing a voice note's language (11-10). Only the account that uploaded the
+   note (rules: uid, type note, only `lang` moves) — the speaker, or whoever
+   recorded on an elder's behalf — in case the wrong choice was picked on Keep.
+   Same four choices as the recorder's question; closing it changes nothing. */
+function noteLangEditable(rec){
+  return rec.type === "note" && rec.mine && rec.consent !== "deleted" && !!CFG.db;
+}
+const _cardPrompts = {};
+function cardPromptUrl(key){               // a spoken app prompt, once recorded (prompts tool)
+  if(!(key in _cardPrompts)) _cardPrompts[key] = (async ()=>{
+    const sn = await getDoc(doc(CFG.db, "afd_ui_prompts", key));
+    const x = sn.exists() ? (sn.data() || {}) : {};
+    if(x.status !== "recorded") return null;
+    return await getDownloadURL(ref(CFG.store, x.storagePath || ("afd_ui/" + key + ".webm")));
+  })().catch(()=>null);
+  return _cardPrompts[key];
+}
+async function changeNoteLang(rec, pillEl){
+  const m = CFG.mode();
+  const own = AFDCore.ownLang ? AFDCore.ownLang() : "";
+  const face = (t)=> '<span dir="ltr" style="font:700 '+(t.length > 2 ? 15 : 22)+'px/1 system-ui,sans-serif">'+t+'</span>';
+  const opts = [[own, "note.lang.own", "\u062D"], ["ar", "note.lang.ar", "\u0639"], ["en", "note.lang.en", "En"], ["mul", "note.lang.mul", "\u0639+En"]];
+  const urls = await Promise.race([Promise.all(opts.map(o => cardPromptUrl(o[1]))), new Promise(r => setTimeout(()=> r([]), 1500))]);
+  const v = await AFDCore.ask({
+    mode: m, titleKey: "note.lang.ask", pickKey: "note.lang.pick", audio: cardPromptUrl("note.lang.ask"),
+    choices: opts.map(([code, key, f], i)=>({ value: code, face: face(f), label: AFDCore.tHTML(key, m),
+      ...(urls[i] ? { play: ()=> Promise.resolve(urls[i]) } : {}) }))
+  });
+  if(!v || v === rec.lang) return;           // closed, or the same language: nothing to do
+  try{
+    await updateDoc(doc(CFG.db, "afd_entries", rec.entryId, "recordings", rec.recordingId), { lang: v });
+  }catch(e){
+    await AFDCore.ask({ mode: m, titleKey: "note.lang.fail", yesKey: "notice.ok" });
+    return;
+  }
+  rec.lang = v;
+  const tmp = document.createElement("span"); tmp.innerHTML = noteLangTag(rec);
+  const fresh = tmp.firstElementChild;
+  if(fresh && pillEl && pillEl.parentNode){ pillEl.replaceWith(fresh); wireNoteLang(fresh.parentNode, rec); }
+}
+function wireNoteLang(host, rec){
+  if(!host) return;
+  host.querySelectorAll(".note-lang-edit").forEach(p => {
+    if(p.dataset.wired) return; p.dataset.wired = "1";
+    const go = (e)=>{ e.preventDefault(); e.stopPropagation(); changeNoteLang(rec, p); };
+    p.addEventListener("click", go);
+    p.addEventListener("keydown", (e)=>{ if(e.key === "Enter" || e.key === " ") go(e); });
+  });
 }
 
 function photoAvatar(bg, url){
@@ -792,6 +846,7 @@ function voiceAvatarBtn(rec, thumbEl, playBtn, setUrl){
     wrap.appendChild(b);
     cap.forEach((t,i)=>{ const nm=document.createElement("span"); nm.className = i===0 && rec.displayName ? "av-name" : "av-name av-town"; nm.textContent=t; wrap.appendChild(nm); });
     wrap.insertAdjacentHTML("beforeend", tag);
+    wireNoteLang(wrap, rec);
     return wrap;
   }
   if(cap.length){                            // a "known" contributor's name and/or the speaker's town
@@ -847,6 +902,7 @@ function buildVoiceRow(rec, thumbEl, playBtn, setUrl, onErased){
     row.setAttribute("aria-pressed","true");
     playVoiceInto(rec, thumbEl, playBtn, setUrl);
   });
+  wireNoteLang(play, rec);                   // your own note: its pill changes the language
   row.appendChild(play);
 
   if(!rec.mine) row.appendChild(flagBtn(rec, ()=>{
