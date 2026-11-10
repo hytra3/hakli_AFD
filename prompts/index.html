@@ -45,8 +45,16 @@
   .hint{font-size:13px; color:var(--muted); margin-top:8px;}
   .key{font-size:11px; color:var(--muted); font-family:ui-monospace,monospace; margin-top:10px;}
   .controls{display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:20px;}
-  .recbtn{width:96px; height:96px; border-radius:50%; border:none; background:var(--go); color:#fff; font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; user-select:none;}
+  .recbtn{width:104px; height:104px; border-radius:50%; border:none; background:var(--go); color:#fff; font-size:13px; font-weight:600; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; line-height:1.15; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:manipulation; position:relative;}
+  .recbtn .ic{font-size:26px; line-height:1;}
   .recbtn.rec{background:var(--stop);}
+  /* 11-10: recording must LOOK like recording — a pulsing ring, not just a colour */
+  .recbtn.rec::after{content:""; position:absolute; inset:-7px; border-radius:50%; border:3px solid var(--stop); animation:recpulse 1.1s ease-out infinite; pointer-events:none;}
+  @keyframes recpulse{from{transform:scale(1); opacity:.9} to{transform:scale(1.22); opacity:0}}
+  @media (prefers-reduced-motion:reduce){ .recbtn.rec::after{animation:none} }
+  .rechint{font-size:13px; color:var(--muted); text-align:center; max-width:30ch; min-height:34px; margin-top:6px;}
+  .rechint .ar{display:block; direction:rtl;}
+  .rechint.live{color:var(--stop); font-weight:600;}
   .recbtn:disabled{opacity:.4;}
   .timer{font-variant-numeric:tabular-nums; font-size:15px; color:var(--muted); min-height:20px;}
   .review{display:flex; gap:10px; margin-top:14px; width:100%; justify-content:center;}
@@ -142,7 +150,8 @@
       <div class="recclosed hidden" id="recclosed"><b>⏸ Recording is closed right now</b>Your earlier recordings are safe — this opens again when a session is scheduled.</div>
 
       <div class="controls">
-        <button id="recbtn" class="recbtn">Record</button>
+        <button id="recbtn" class="recbtn" data-state="idle"><span class="ic">🎙</span><span class="lb">Record</span></button>
+        <div class="rechint" id="rechint"></div>
         <div class="timer" id="timer"></div>
         <audio id="player" class="hidden" controls></audio>
         <div class="review hidden" id="review">
@@ -514,7 +523,7 @@ function render(){
   const done = state.recorded.has(it.key);
   $("sync").className = "sync " + (state.pending.has(it.key) ? "pending" : (done?"ok":""));
   $("sync").textContent = state.pending.has(it.key) ? "saved here — will send when online" : (done ? "✓ recorded" : "");
-  $("recbtn").textContent = done ? "Record again" : "Record";
+  recLabel(done);
   $("recdone").classList.toggle("hidden", !(done || state.pending.has(it.key)));
 
   // Recording window: when closed, block new takes (the rules also refuse the
@@ -522,6 +531,7 @@ function render(){
   const recOpen = state.recordOpen === true;
   $("recclosed").classList.toggle("hidden", recOpen || isScreen(it));
   $("recbtn").disabled = !recOpen;
+  $("rechint").classList.toggle("hidden", !recOpen);
   // On-screen text is read, not heard: no recording controls at all.
   const ctl = document.querySelector(".controls");
   if(ctl) ctl.classList.toggle("hidden", isScreen(it));
@@ -551,6 +561,7 @@ function resetRecUI(){
   state.blob = null; state.chunks = [];
   $("recbtn").classList.remove("rec"); $("recbtn").disabled=false;
   $("timer").textContent="";
+  recLabel(state.recorded.has(ITEMS[state.i].key));
   $("player").classList.add("hidden"); $("player").removeAttribute("src");
   $("review").classList.add("hidden");
 }
@@ -596,34 +607,78 @@ function renderList(){
 }
 
 /* ---- recording ---- */
-$("recbtn").onclick = async ()=>{
+/* The button works like every other record button in the app — HOLD and speak,
+   let go to stop — and also as a toggle: a quick TAP starts it, and it keeps
+   recording until the next tap. (11-10, from the field: it was tap-only, the
+   rest of the app is hold, and nothing on screen said which.) The label and the
+   line under it always say what will stop it; a pulsing ring shows it's live. */
+const TAP_MS = 350;                    // let go sooner than this = a tap, not a hold
+function recLabel(again){
+  const b = $("recbtn"), live = !!(state.rec && state.rec.state==="recording");
+  b.dataset.state = live ? (state.tapMode ? "tap" : "hold") : "idle";
+  b.querySelector(".ic").textContent = live ? "■" : "🎙";
+  b.querySelector(".lb").textContent = live ? (state.tapMode ? "Tap to stop" : "Recording") : (again ? "Record again" : "Record");
+  const h = $("rechint");
+  h.classList.toggle("live", live);
+  h.innerHTML = !live ? 'Hold and speak, or tap to start<span class="ar">اضغط باستمرار وتكلّم، أو انقر للبدء</span>'
+    : state.tapMode ? '● Recording — tap ■ to stop<span class="ar">● يسجّل — انقر ■ للإيقاف</span>'
+    : '● Recording — let go to stop<span class="ar">● يسجّل — أفلت للإيقاف</span>';
+}
+state.tapMode = false; state.pressAt = 0;
+$("recbtn").addEventListener("pointerdown", (e)=>{
+  if($("recbtn").disabled || e.button > 0) return;
+  e.preventDefault();
+  try{ $("recbtn").setPointerCapture(e.pointerId); }catch(_){}   // a finger sliding off still lets go here
+  if(state.rec && state.rec.state==="recording"){ state.rec.stop(); state.pressAt = 0; return; }   // the tap that stops
+  state.pressAt = Date.now(); state.tapMode = false;
+  startRec();
+});
+$("recbtn").addEventListener("pointerup", ()=>{
+  if(!state.pressAt) return;
+  const held = Date.now() - state.pressAt; state.pressAt = 0;
+  if(held < TAP_MS){ state.tapMode = true; recLabel(); return; }           // a tap: keep going until the next tap
+  if(state.rec && state.rec.state==="recording") state.rec.stop();
+  else state.stopWhenStarted = true;                                       // let go while the mic was still opening
+});
+$("recbtn").addEventListener("pointercancel", ()=>{ if(state.pressAt){ state.pressAt = 0; if(state.rec && state.rec.state==="recording") state.rec.stop(); else state.stopWhenStarted = true; } });
+$("recbtn").addEventListener("contextmenu", e => e.preventDefault());       // a long press is a hold, not a menu
+$("recbtn").addEventListener("keydown", (e)=>{                             // keyboard: Enter / Space toggle
+  if(e.key !== "Enter" && e.key !== " ") return; e.preventDefault();
   if(state.rec && state.rec.state==="recording"){ state.rec.stop(); return; }
+  state.tapMode = true; startRec();
+});
+
+async function startRec(){
+  state.stopWhenStarted = false;
   try{
     if(!state.stream) state.stream = await navigator.mediaDevices.getUserMedia({ audio:{ channelCount:1, noiseSuppression:true, echoCancellation:true } });
-  }catch(e){ alert("Microphone permission is needed to record."); return; }
+  }catch(e){ state.pressAt = 0; alert("Microphone permission is needed to record."); return; }
+  // The first time, the permission prompt takes the press: treat it as a tap.
+  if(state.stopWhenStarted){ state.stopWhenStarted = false; state.tapMode = true; }
   state.chunks=[]; state.recKey = ITEMS[state.i].key;
   const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
   state.rec = new MediaRecorder(state.stream, mime?{mimeType:mime}:undefined);
   state.rec.ondataavailable = e=>{ if(e.data.size) state.chunks.push(e.data); };
   state.rec.onstop = ()=>{
     const blob = new Blob(state.chunks, {type: state.rec.mimeType || "audio/webm"});
-    stopTimer();
+    stopTimer(); state.tapMode = false;
     // Moved to another line while still recording: keep the take for the line it was recorded on.
     if(state.recKey !== ITEMS[state.i].key){ keepTake(state.recKey, blob); return; }
     state.blob = blob; state.blobKey = state.recKey;
     const url = URL.createObjectURL(state.blob);
     $("player").src = url; $("player").classList.remove("hidden");
     $("review").classList.remove("hidden");
-    $("recbtn").classList.remove("rec"); $("recbtn").textContent="Record again"; $("recbtn").disabled=false;
+    $("recbtn").classList.remove("rec"); $("recbtn").disabled=false; state.tapMode = false;
+    recLabel(true);
     stopTimer();
   };
   state.rec.start();
-  $("recbtn").classList.add("rec"); $("recbtn").textContent="Stop";
+  $("recbtn").classList.add("rec"); recLabel();
   $("review").classList.add("hidden"); $("player").classList.add("hidden");
   startTimer();
 };
 
-$("redo").onclick = ()=>{ resetRecUI(); $("recbtn").textContent = state.recorded.has(ITEMS[state.i].key)?"Record again":"Record"; };
+$("redo").onclick = ()=>{ resetRecUI(); };
 
 /* Play the active prompt's saved recording — before it's uploaded the blob is
    local (state.pending); after upload the local copy is gone, so fetch Storage. */

@@ -25,6 +25,7 @@ const [id, slotArg] = process.argv.slice(2).filter(a => !a.startsWith("--"));
 const APPLY = process.argv.includes("--apply");
 const TYPE = { word: "word", sentence: "context", context: "context", meaning: "definition", definition: "definition", note: "note" }[(slotArg || "").toLowerCase()];
 const SLOT = { word: "word", context: "sentence", definition: "meaning", note: "voice note" };
+if (TYPE === "note") { console.log("A voice note needs its language: use  node scripts/meanings-to-notes.mjs <id>:<qhk|ar|en|mul>"); process.exit(2); }
 if (!id || !TYPE) { console.log("Usage: node scripts/refile-take.mjs <recordingId> <word|sentence|meaning> [--apply]"); process.exit(2); }
 const PROJECT_ID = process.env.AFD_PROJECT_ID || "afd-dev";
 let by = process.env.AFD_STEWARD || "";

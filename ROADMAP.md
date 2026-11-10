@@ -1500,3 +1500,17 @@ talking *about* the word — use, a story, another form — in **any language**.
   Not in the card's 🔊 💬 📖 counts.
 - **Deferred:** "other forms" (*my father* as its own findable form) — Marty wants to
   understand the construction first (likely a possessive said fast enough to sound fused).
+
+## After the first prompts session (2026-11-10) — from the field
+- **Narration plays only in the sound view.** Spoken hints the app volunteers (`find_hint`,
+  Add's steps, a question sheet's spoken question) surprised readers in the Arabic view.
+  `AFDCore.mayPlayUI("narration")` is now true only in the sound view (every page's
+  default) and not quiet. A tapped 🔈 / ▶ ("asked") still plays in every view.
+- **Prompts tool record button = the rest of the app.** Hold and speak, let go to stop;
+  a quick tap starts it and the next tap stops it. The button and a line under it
+  (English + Arabic) always say what stops it, with a pulsing ring while live.
+- **Meaning takes → voice notes:** `scripts/meanings-to-notes.mjs` lists meaning takes and
+  moves the named ones (`id:lang`) into notes, dropping their search vectors. Also sets
+  a note's language. `--undo` puts one back.
+- **`scripts/session-check.mjs`** (read-only): after a session — prompts recorded vs the
+  R1/R2 lines the app plays, voices by slot (public, searchable), things to fix, phone errors.
