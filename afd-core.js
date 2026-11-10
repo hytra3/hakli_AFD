@@ -69,8 +69,8 @@ window.AFDCore = (function(){
                    label, a tapped ▶ / "hear in English". Always plays — they
                    asked for it.
        narration — sound the app volunteers: spoken hints on arrival, guidance
-                   between steps. The scaffolding a speaker outgrows. Quiet
-                   silences this, and only this.
+                   between steps. The scaffolding a speaker outgrows. Plays
+                   only in the sound view (11-10); quiet silences it there too.
      Every volunteered interface sound must go through playUI(url, "narration")
      (or check mayPlayUI) so quiet is honoured everywhere from day one.
      Persisted shared, like the display mode. See ROADMAP "Mute / quiet mode". */
@@ -88,7 +88,12 @@ window.AFDCore = (function(){
     quietSubs.forEach(fn => { try{ fn(on); }catch(_){} });
   }
   function onQuietChange(fn){ quietSubs.add(fn); return () => quietSubs.delete(fn); }
-  function mayPlayUI(kind){ return kind !== "narration" || !getQuiet(); }
+  /* 11-10, from the field: narration is for the people who can't read the
+     screen, so it plays only in the SOUND view (the wordless tier, and every
+     page's default). In Arabic or Arabic · English the words are on screen, and
+     a spoken Hakli hint on arrival surprised readers. A tapped 🔈 / ▶ is ASKED
+     for, and plays in every view. Quiet still silences narration everywhere. */
+  function mayPlayUI(kind){ return kind !== "narration" || (!getQuiet() && getDisplayMode("sound") === "sound"); }
   // Play an interface sound; returns the Audio element, or null if quiet held it back.
   function playUI(url, kind){
     kind = kind || "narration";
