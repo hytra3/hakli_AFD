@@ -59,7 +59,7 @@
 .afdcard .card:not(.lead) .play{width:44px; height:44px}
 /* the word's own voice, drawn inside its box in place of a letter */
   .afdcard .thumb-wave{width:78%; height:56%; fill:rgba(255,255,255,.92); display:block}
-.afdcard .voice-row .vr-wave{flex:1; height:26px; min-width:0; margin:0 6px; display:block}
+.afdcard .voice-row .vr-wave{flex:1; height:26px; min-width:40px; margin:0 6px; display:block}
 .afdcard .voice-row .vr-wave svg{width:100%; height:100%; display:block; fill:var(--mist-2)}
 .afdcard .voice-row[aria-pressed="true"] .vr-wave svg{fill:var(--resin)}
 .afdcard .voice-row.withdrawn .vr-wave svg{fill:var(--mist-2); opacity:.5}
@@ -108,7 +108,10 @@
 .afdcard .voice-row .av-sm svg{width:60%;height:60%}
 .afdcard .voice-row .pl{color:var(--mountain); flex:0 0 auto; margin-left:auto}
 .afdcard .voice-row[aria-pressed="true"]{border-color:var(--resin); outline:2px solid var(--resin); outline-offset:0}
-.afdcard .voice-row .vr-play{flex:1; display:flex; align-items:center; gap:12px; border:none; background:transparent;
+/* flex-basis (11-10): the play area keeps room for face · wave · ▶, so on a narrow
+   phone your own voice's Withdraw · Erase wrap to a line of their own instead of
+   sitting on top of the ▶ (the row already wraps, below) */
+.afdcard .voice-row .vr-play{flex:1 1 190px; display:flex; align-items:center; gap:12px; border:none; background:transparent;
       cursor:pointer; padding:0; color:inherit; text-align:left; min-width:0}
 .afdcard .voice-row .vr-play .pl{margin-left:auto}
 .afdcard .voice-ctl{border:1.5px solid var(--mist-2); background:transparent; color:var(--mountain); flex:0 0 auto;
