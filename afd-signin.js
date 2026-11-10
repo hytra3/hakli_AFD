@@ -74,7 +74,22 @@ const CSS = `
 @media (min-width:600px){.afd-si-sheet{align-items:center}.afd-si-sheet .si-panel{border-radius:22px}}
 .afd-si-sheet h2{margin:0 0 4px;font-size:19px;text-align:center}
 .afd-si-sheet h2 .sub{font-size:12px;opacity:.7}
+/* a mark per sign-in method (Google, phone, envelope), so a non-reader can tell
+   the ways apart at a glance; and a 🔈 by the reason, once it has been recorded */
+.afd-si .si-ic{display:inline-block;vertical-align:middle;line-height:1;font-size:19px}
+.afd-si .si-ic svg{display:block;width:22px;height:22px}
+.afd-si .si-btn .si-ic{margin-inline-end:9px}
+.afd-si .si-note .si-ic,.afd-si summary .si-ic{margin-inline-end:7px}
+.afd-si-sheet .si-say{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+  border:1px solid var(--mist-2,#C4D2CC);border-radius:999px;background:var(--cloud,#fff);font-size:19px;
+  line-height:1;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
 `;
+/* the four-colour Google mark */
+const GICON = '<span class="si-ic" aria-hidden="true"><svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">'+
+  '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>'+
+  '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>'+
+  '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>'+
+  '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg></span>';
 function injectCss(){
   if(document.getElementById("afd-si-css")) return;
   const s = document.createElement("style"); s.id = "afd-si-css"; s.textContent = CSS;
@@ -110,11 +125,11 @@ export function mountSignIn(host, opts){
   const capId = "afd-si-recaptcha-" + (++_seq);
   host.innerHTML = `
   <div class="afd-si">
-    <button class="si-btn" id="googleBtn" type="button" data-k="setup.google"></button>
+    <button class="si-btn" id="googleBtn" type="button">${GICON}<span class="si-lbl" data-k="setup.google"></span></button>
     <p class="si-note si-hidden" id="browserHint" data-k="add.share.browser"></p>
     <div class="si-or" aria-hidden="true"></div>
     <div class="si-box" id="phoneBox">
-      <p class="si-note" data-k="add.auth.phone"></p>
+      <p class="si-note" id="phoneNote"><span class="si-ic" aria-hidden="true">📱</span><span data-k="add.auth.phone"></span></p>
       <input type="tel" id="authPhone" placeholder="+968 9123 4567" autocomplete="tel" inputmode="tel" dir="ltr">
       <button class="si-btn si-alt" id="phoneBtn" type="button" data-k="add.auth.phone.send"></button>
       <div class="si-box si-hidden" id="codeBox">
@@ -126,7 +141,7 @@ export function mountSignIn(host, opts){
       <p class="si-legal" id="recaptchaNote"></p>
     </div>
     <details id="emailBox">
-      <summary data-k="setup.oremail"></summary>
+      <summary><span class="si-ic" aria-hidden="true">✉️</span><span data-k="setup.oremail"></span></summary>
       <div class="si-box">
         <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="username" dir="ltr">
         <input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password" dir="ltr">
@@ -270,7 +285,8 @@ export function signInSheet(opts){
     wrap.className = "afd-si-sheet"; wrap.setAttribute("role", "dialog"); wrap.setAttribute("aria-modal", "true");
     wrap.innerHTML = `<div class="si-panel">
       <h2 id="afdSiTitle">${L(o.titleKey || "setup.signin.title")}</h2>
-      <p class="si-note" style="text-align:center;margin:0 0 14px">${L(o.noteKey || "setup.signin.note")}</p>
+      <p class="si-note" style="text-align:center;margin:0 0 4px">${L(o.noteKey || "setup.signin.note")}</p>
+      <div style="text-align:center;margin:0 0 14px"><button class="si-say" type="button" hidden aria-label="استمع">🔈</button></div>
       <div class="si-host"></div>
       <p class="si-note si-err" role="status" aria-live="polite" style="color:var(--danger,#9E4433);min-height:1.2em"></p>
       <button class="si-close" type="button" style="display:block;margin:6px auto 0;background:none;border:0;font:inherit;color:var(--mountain,#1F3A34);padding:10px 16px;cursor:pointer">${L("auth.close")}</button>
@@ -290,6 +306,14 @@ export function signInSheet(opts){
     wrap.querySelector(".si-close").onclick = ()=> finish(null);
     document.addEventListener("keydown", onKey);
     document.body.appendChild(wrap);
+    // 🔈 the reason, spoken — shown only once that line has been recorded (the
+    // caller resolves the clip; a sound the person asks for, so it plays in any view)
+    if(typeof o.sayUrl === "function"){
+      const sayBtn = wrap.querySelector(".si-say");
+      Promise.resolve(o.sayUrl(o.noteKey || "setup.signin.note")).then(url => {
+        if(url && sayBtn){ sayBtn.hidden = false; sayBtn.onclick = ()=>{ try{ C.playUI(url, "asked"); }catch(_){} }; }
+      }).catch(()=>{});
+    }
     mountSignIn(host, { auth, label: L, text: o.text, showError: (h)=>{ err.innerHTML = h || ""; } });
     // signed in by any route (popup, code, password) → done
     unsub = onAuthStateChanged(auth, (u)=>{ if(u && !u.isAnonymous) finish(u); });

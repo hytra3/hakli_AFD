@@ -91,6 +91,9 @@ body{
 .coverage{display:none; align-items:center; gap:10px; width:calc(100% - 44px); margin:-6px 0 0; color:var(--mist); font-size:12px}
 body.browsing.has-results .coverage{display:flex}
 .cov-label{flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums}
+/* sound view (non-readers): "0 / 45" means nothing without its label, so drop the
+   number and let the fill bar stand alone as the wordless progress picture. 11-10 */
+body[data-mode="sound"] .cov-label{display:none}
 .cov-bar{flex:1; height:6px; background:var(--mist-2); border-radius:3px; overflow:hidden; transition:height .25s ease}
 .cov-fill{height:100%; width:0; background:var(--mountain); border-radius:3px; transition:width .5s ease}
 .vm-sep{height:1px; background:var(--mist-2); margin:5px 4px}
@@ -1515,7 +1518,10 @@ if(accountBtn){
     // otherwise get a named account: the shared sign-in (afd-signin.js) in a
     // sheet — Google, a texted code (works inside WhatsApp's own browser), or email
     await signInSheet({ auth, label: (k)=> AFDCore.tHTML(k, displayMode === "sound" ? "script" : displayMode),
-                        titleKey: "setup.signin.title", noteKey: "setup.signin.note" });
+                        titleKey: "setup.signin.title", noteKey: "setup.signin.note",
+                        sayUrl: async (key)=>{ try{ const s=await getDoc(doc(db,"afd_ui_prompts",key)); if(!s.exists()) return null;
+                          const d=s.data()||{}; if(d.status && d.status!=="recorded") return null;
+                          const p=d.storagePath||d.path; return p ? await getDownloadURL(ref(store,p)) : null; }catch(_){ return null; } } });
   });
 }
 if(acctEdit) acctEdit.addEventListener("click", ()=>{ closeAcctMenu(); location.href="recorder.html#profile"; });
