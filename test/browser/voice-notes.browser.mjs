@@ -17,6 +17,7 @@ const FS = {
   "afd_entries/ent_father/recordings/rN2": take("rN2", { type:"note", lang:"ar" }),
 };
 const init = (m)=> new Function(`try{ localStorage.setItem("afd_display_mode","${m}"); }catch(_){ }
+  globalThis.__UPLOAD_DELAY = 1500;
   globalThis.__URLS = { "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uOther/rN1.webm":"data:audio/wav;base64,", "afd/uOther/rN2.webm":"data:audio/wav;base64," };`);
 
 await scenario("the card has a voice-notes slot, and each note says its language", async ()=>{
@@ -69,6 +70,7 @@ await scenario("recorder: a voice note asks its language on Keep", async ()=>{
   ok("the link opens on the notes slot, with its own instruction", r.type==="note" && /Any language/.test(r.instr) && /بأيّ لغة/.test(r.instr), JSON.stringify(r));
 
   await recordFor(page, 2500);
+  const before = await page.evaluate(()=> document.querySelectorAll("#entryCardHost .slot-note [data-lang]").length);
   await page.click("#keepBtn");
   await page.waitForSelector(".afd-ask", { timeout:5000 }); await page.waitForTimeout(200);
   await shot(page, "voice-notes-ask");
@@ -78,16 +80,21 @@ await scenario("recorder: a voice note asks its language on Keep", async ()=>{
   ok("…with four choices: Hakli, Arabic, English, a mix", q.choices.length===4 && /Hakli/.test(q.choices[0]) && /Arabic/.test(q.choices[1]) && /English/.test(q.choices[2]) && /mix/.test(q.choices[3]), JSON.stringify(q.choices));
   await page.click(".afd-ask .ask-choice:nth-child(2) .ask-cpick");          // Arabic
   await page.waitForFunction(()=> !document.querySelector(".afd-ask"), null, { timeout:3000 });
-  await page.waitForTimeout(1500);
+  const waitNotes = (n)=> page.waitForFunction((n)=> Object.entries(globalThis.__FS||{}).filter(([k,v]) => /recordings\//.test(k) && v && v.type==="note" && v.uid==="uTest1").length >= n, n, { timeout:8000 }).catch(()=>{});
+  await waitNotes(1);
   let notes = await notesIn(page);
   ok("the note uploads as type note, language ar", notes.length===1 && notes[0].lang==="ar", JSON.stringify(notes));
+  // 11-10: the card on screen redraws once the take is uploaded — no reload
+  const shown = await page.waitForFunction((b)=> document.querySelectorAll("#entryCardHost .slot-note [data-lang]").length > b, before, { timeout:6000 }).then(()=>true, ()=>false);
+  ok("the new note shows on the card without a reload (" + before + " → more)", shown,
+     await page.evaluate(()=> (document.querySelector("#entryCardHost .slot-note")||{}).innerText));
 
   // a second note; closing the question files it under the dictionary's own language
   await page.click('#entryCardHost a.slot-add[href$="|note"]'); await page.waitForTimeout(800);
   if(await page.isVisible("#recBtn")){
     await recordFor(page, 1500);
     await page.click("#keepBtn"); await page.waitForSelector(".afd-ask", { timeout:5000 });
-    await page.click(".afd-ask .ask-x"); await page.waitForTimeout(1500);
+    await page.click(".afd-ask .ask-x"); await waitNotes(2);
     notes = await notesIn(page);
     ok("closing the question means Hakli (qhk)", notes.length===2 && notes.some(n => n.lang==="qhk"), JSON.stringify(notes));
   }else ok("record button back for a second note", false, "recBtn hidden after compare");
