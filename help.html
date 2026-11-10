@@ -71,6 +71,10 @@
   .faq summary::after{content:"+"; margin-inline-start:auto; color:var(--frank); font-weight:700}
   .faq details[open] summary::after{content:"−"}
   .faq p{margin:0; padding:0 16px 16px; font-size:17px}
+  /* 🔈 a spoken version of each consent answer — shown only once it's recorded */
+  .faq .say{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; min-width:40px;
+    margin-inline-end:8px; vertical-align:middle; border:1px solid var(--line); border-radius:999px;
+    background:var(--cloud); font-size:19px; line-height:1; cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent}
   .contact{margin-top:6px}
   .contact p{margin:0 2px 10px; font-size:17px}
   .wa{display:inline-flex; align-items:center; gap:8px; font-size:18px; color:#fff; background:#1F7A4D; border-radius:999px;
@@ -181,8 +185,11 @@ function render(){
   document.querySelector("#tour .t").textContent = W("help.tour");
   document.querySelector("#tour .go").textContent = mode==="en" ? "→" : "←";
   document.getElementById("voiceH").textContent = W("help.voice.title");
-  document.getElementById("faq").innerHTML = FAQ.map(n =>
-    '<details><summary>'+esc(W("help.voice.q"+n))+'</summary><p>'+esc(W("help.voice.a"+n))+'</p></details>').join("");
+  document.getElementById("faq").innerHTML = FAQ.map(n => {
+    const au = (window.AFD_FAQ_AUDIO || {})["help.voice.a"+n];
+    const say = au ? '<button type="button" class="say" data-k="help.voice.a'+n+'" aria-label="'+(mode==="en"?"Listen":"استمع")+'">🔈</button> ' : "";
+    return '<details><summary>'+esc(W("help.voice.q"+n))+'</summary><p>'+say+esc(W("help.voice.a"+n))+'</p></details>';
+  }).join("");
   const c = contact(), box = document.getElementById("contact");
   box.hidden = !c;
   if(c){
@@ -259,6 +266,13 @@ document.getElementById("tour").addEventListener("click", e => countThenGo(e, e.
 document.getElementById("faq").addEventListener("toggle", e => {
   if(e.target.open) track("help", "faq." + (1 + [...document.querySelectorAll("#faq details")].indexOf(e.target)));
 }, true);
+// 🔈 play the recorded spoken answer (a sound the person asked for: plays in any view)
+document.getElementById("faq").addEventListener("click", e => {
+  const b = e.target.closest(".say"); if(!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const url = (window.AFD_FAQ_AUDIO || {})[b.dataset.k];
+  if(url){ try{ AFDCore.playUI(url, "asked"); }catch(_){} track("help", "faq.say"); }
+});
 document.getElementById("wa").addEventListener("click", () => track("help", "ask"));
 </script>
 <script type="module">
@@ -273,6 +287,8 @@ window.AFDSaved = { stats: savedStats, clearAll: savedClear };
 savedTrim().catch(()=>{}).then(() => { try{ paintSaved(); }catch(_){} });
 import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, getDownloadURL }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 try{
   const app = initializeApp(window.AFDInstance.firebase);
   startAppCheck(app);            // App Check (10-19)
@@ -284,6 +300,22 @@ try{
   if(d && d.words > 0){
     window.afdShowCount(d);
   }
+  // 🔈 spoken answers (11-10): each "Who can hear my voice?" answer gets a speaker
+  // button — but only once that answer is recorded in the prompts tool, the same
+  // rule the Add steps follow. These consent explanations matter most to non-readers.
+  try{
+    const store = getStorage(app);
+    const AUD = {};
+    await Promise.all([1,2,3,4,5].map(async n => {
+      const k = "help.voice.a" + n;
+      const s = await getDoc(doc(db, "afd_ui_prompts", k));
+      if(!s.exists()) return;
+      const x = s.data() || {};
+      if(x.status !== "recorded") return;
+      AUD[k] = await getDownloadURL(ref(store, x.storagePath || x.path || ("afd_ui/" + k + ".webm")));
+    }));
+    if(Object.keys(AUD).length){ window.AFD_FAQ_AUDIO = AUD; render(); }
+  }catch(e){ console.warn("[AFD help] voice answers", e); }
 }catch(e){ console.warn("[AFD help] counter", e); }
 </script>
 </body>

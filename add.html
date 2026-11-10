@@ -83,6 +83,11 @@ h2{font-size:24px; margin:6px 0 0; text-align:center; color:var(--mountain)}
 h2 .sub{font-size:14px}
 .hint{margin:0; text-align:center; font-size:16px; line-height:1.5; color:var(--mountain)}
 .note{margin:0; font-size:13px; line-height:1.45; color:#4d6159}
+/* sound view (non-readers): don't lead the step with a written instruction.
+   The gesture (the hold button below) leads, and the spoken step prompt carries
+   the words — it auto-plays on arrival here, and 🔈 replays it. 11-10 */
+body[data-tier="sound"] .titlerow h2{display:none}
+body[data-tier="sound"] .hint{display:none}
 .card{background:var(--cloud); border-radius:var(--r); padding:16px; box-shadow:0 10px 30px rgba(31,58,52,.08)}
 
 .btn{display:block; width:100%; min-height:56px; padding:10px 16px; border-radius:16px; border:0;
@@ -1318,7 +1323,7 @@ async function paintQueue(){
   b.innerHTML = bi(signedOut ? "add.queue.signin" : "add.queue.n", { n });
   b.classList.toggle("tap", signedOut);
   b.onclick = signedOut ? async ()=>{
-    await signInSheet({ auth, label:(k)=> bi(k), titleKey:"setup.signin.title", noteKey:"setup.signin.note" });
+    await signInSheet({ auth, label:(k)=> bi(k), titleKey:"setup.signin.title", noteKey:"setup.signin.note", sayUrl: promptUrl });
     kickQueue(300);
   } : null;
 }

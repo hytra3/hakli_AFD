@@ -1223,10 +1223,16 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   const addLink =
     `<a class="slot-add" href="${CFG.recorderUrl}#${addHash}">` +
     `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> ${escapeHtml(AFDCore.t(addKey, CFG.mode()))}</a>`;
+  // sound view (non-readers): the slot wears its icon (🔊 💬 📖 🗒), not Arabic text
+  const m = CFG.mode();
+  const labelHtml = (m === "sound" && L.icon)
+      ? '<span class="slot-ic" aria-hidden="true">' + escapeHtml(L.icon) + '</span>'
+      : m === "auto" ? labelEn + ' <span class="ar">' + escapeHtml(labelAr) + '</span>'
+                     : '<span class="ar solo">' + escapeHtml(labelAr) + '</span>';
   s.innerHTML =
-    `<div class="slot-head"><span class="slot-label">${CFG.mode()==="auto" ? labelEn+' <span class="ar">'+escapeHtml(labelAr)+'</span>' : '<span class="ar solo">'+escapeHtml(labelAr)+'</span>'}</span>` +
+    `<div class="slot-head"><span class="slot-label">${labelHtml}</span>` +
     // no signal: an empty slot may not be empty, so don't say "none yet"
-    `<span class="slot-empty"${(has || voicesOffline(entryId))?" hidden":""}>${escapeHtml(AFDCore.t("slot.none", CFG.mode()))}</span></div>` +
+    `<span class="slot-empty"${(has || voicesOffline(entryId))?" hidden":""}>${escapeHtml(AFDCore.t("slot.none", m))}</span></div>` +
     `<div class="slot-body"></div>` + addLink;
   if(has) buildVoices(s.querySelector(".slot-body"), recs, thumbEl, playBtn, setUrl);
   return s;

@@ -147,6 +147,9 @@
   .afdcard .slot .slot-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px}
 .afdcard .slot .slot-label{font:600 12px/1.2 var(--sans); color:var(--mountain); letter-spacing:.06em; text-transform:uppercase}
 .afdcard .slot .slot-label .ar{color:var(--mist); font-weight:400; letter-spacing:0; text-transform:none; margin-inline-start:6px}
+/* sound view: the slot's icon stands in for its written label (🔊 💬 📖 🗒) */
+.afdcard .slot .slot-label .slot-ic{font-size:21px; line-height:1; text-transform:none; letter-spacing:0}
+body[data-mode="sound"] .afdcard .slot-add{font-size:18px; padding:11px 15px}
 .afdcard .slot .slot-empty{font:400 12px/1 var(--sans); color:var(--mist)}
 .afdcard .slot-add{display:inline-flex; align-items:center; gap:6px; color:var(--mist); text-decoration:none;
       border:1.5px dashed var(--mist-2); border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); margin-top:10px}

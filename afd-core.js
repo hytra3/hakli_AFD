@@ -295,15 +295,15 @@ window.AFDCore = (function(){
      every line after it. test/browser/prompt-numbers.json snapshots the numbers;
      check that its diff only adds lines. */
   const STRINGS = {
-    "slot.word":            { en:"THE WORD",           ar:"الكلمة" },
-    "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة" },
-    "slot.meaning":         { en:"WHAT IT MEANS",      ar:"المعنى" },
+    "slot.word":            { en:"THE WORD",           ar:"الكلمة", icon:"🔊" },
+    "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة", icon:"💬" },
+    "slot.meaning":         { en:"WHAT IT MEANS",      ar:"المعنى", icon:"📖" },
     "group.word":           { en:"word",               ar:"كلمة" },
     "group.sentence":       { en:"sentence",           ar:"جملة" },
     "group.meaning":        { en:"meaning",            ar:"معنى" },
     "slot.none":            { en:"none yet",           ar:"لا شيء بعد" },
-    "slot.add.sentence":    { en:"Add a sentence",     ar:"أضف جملة" },
-    "slot.add.meaning":     { en:"Add a meaning",      ar:"أضف معنى" },
+    "slot.add.sentence":    { en:"Add a sentence",     ar:"أضف جملة", icon:"💬" },
+    "slot.add.meaning":     { en:"Add a meaning",      ar:"أضف معنى", icon:"📖" },
     "voice.takeback":       { en:"Withdraw",           ar:"اسحب" },
     "voice.shareagain":     { en:"Restore",            ar:"استرجع" },
     "roster.erased":        { en:"Erased",             ar:"محذوف" },
@@ -602,7 +602,7 @@ window.AFDCore = (function(){
     "import.fail":          { en:"Couldn't read that file. In WhatsApp, share the voice note to this phone's Files, then load it from there.", ar:"تعذّرت قراءة الملف. في واتساب شارك الرسالة الصوتية إلى «الملفات» في هذا الهاتف ثم حمّلها من هناك." },
     "card.failed":          { en:"Couldn't do that just now — please try again.", ar:"تعذّر ذلك الآن — يرجى المحاولة مجددًا." },
     // the word slot's own "+ add" (added 10-14, kept last so review numbers hold)
-    "slot.add.word":        { en:"Add a recording",    ar:"أضف تسجيلًا" },
+    "slot.add.word":        { en:"Add a recording",    ar:"أضف تسجيلًا", icon:"🔊" },
     // edit a word's text and emoji (word tools; added 10-14)
     "card.edit":            { en:"Edit word",          ar:"عدّل الكلمة" },
     "card.edit.en":         { en:"English",            ar:"الإنجليزية" },
@@ -1089,8 +1089,8 @@ window.AFDCore = (function(){
     // talking ABOUT the word — how it's used, a story, "my father" — in any
     // language. Each note says which language it is in. Appended here so the
     // prompts tool's numbers don't move.
-    "slot.notes":           { en:"voice notes",        ar:"ملاحظات صوتية" },
-    "slot.add.note":        { en:"Add a voice note",   ar:"أضف ملاحظة صوتية" },
+    "slot.notes":           { en:"voice notes",        ar:"ملاحظات صوتية", icon:"🗒" },
+    "slot.add.note":        { en:"Add a voice note",   ar:"أضف ملاحظة صوتية", icon:"🗒" },
     "record.instr.note":    { en:"Say anything about this word — how it's used, a story, another form. *Any language.*", ar:"قل أيّ شيء عن هذه الكلمة — كيف تُستعمل، أو قصّة، أو صيغة أخرى. *بأيّ لغة.*" },
     "note.lang.ask":        { en:"Which language did you speak?", ar:"بأيّ لغة تكلّمت؟" },
     "note.lang.pick":       { en:"This one",           ar:"هذه" },
