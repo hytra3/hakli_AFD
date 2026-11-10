@@ -22,7 +22,7 @@
    intro.welcome, intro.longpress, intro.hold_to_speak, intro.find.
    10-15 (welcome v2, still nothing recorded): R1 cut to the eight clips of the
    three-scene welcome — what · find · hear · record · review · add · yours · why.
-   howto.sentence / howto.meaning moved to the last section (how-to segments),
+   howto.sentence / howto.say moved to the last section (how-to segments),
    intro.tour.waits to "Everywhere", intro.tour.new retired (howto.add says it).
    Keeping numbers stable from here: a new line goes at the END of its section,
    a new section at the END of its tab. Recordings and suggestions are keyed by
@@ -48,7 +48,7 @@ window.AFDPrompts = [
     { key:"add.show",         en:"Now show what it means — a photo, a picture, or say it", ar:"والآن أَرِنا معناها — بصورة، أو رسم، أو قُلها", kind:"narration" },
     { key:"add.show.photo",   en:"Take a photo", ar:"التقط صورة", kind:"label" },
     { key:"add.show.picture", en:"Choose a picture", ar:"اختر رسمًا", kind:"label" },
-    { key:"add.show.meaning", en:"Say what it means", ar:"قُل ماذا تعني", kind:"label" },
+    { key:"add.show.say", en:"Say something", ar:"قل شيئًا", kind:"label" },
     { key:"add.share",        en:"Share it: your word goes into the Hakli dictionary, and it stays yours", ar:"شارِكها: تُضاف كلمتك إلى قاموس الحَكلي، وتبقى لك", kind:"narration" },
     { key:"add.done",         en:"Thank you — your word is in the dictionary. Together we strengthen Hakli", ar:"شكرًا لك — كلمتك الآن في القاموس. معًا نُقوّي الحَكلي", kind:"narration" },
     { key:"add.another",      en:"Add another word", ar:"أضِف كلمة أخرى", kind:"label" },
@@ -141,6 +141,6 @@ window.AFDPrompts = [
   { tab:"record", later:true, name:"How-to segments", ar:"مقاطع «كيف أفعل»",
     note:"Narration for the one-job clips (hakli-welcome-walkthrough.html?scene=…). Moved out of R1 on 10-15.", items:[
     { key:"howto.sentence", en:"You can also say the word inside a sentence", ar:"ويمكنك أن تقول الكلمة داخل جملة", kind:"narration" },
-    { key:"howto.meaning", en:"And you can say what the word means, in Hakli", ar:"وأن تقول معنى الكلمة، بالحَكلي", kind:"narration" },
+    { key:"howto.say", en:"And you can say something about the word, in any language", ar:"ويمكنك أن تقول شيئًا عن الكلمة — بأيّ لغة", kind:"narration" },
   ]},
 ];

@@ -391,7 +391,7 @@
           <div class="tiles">
             <span class="tile"><span class="ic">📷</span><span data-k="add.show.photo"></span></span>
             <span class="tile" id="tPic"><span class="ic">😀</span><span data-k="add.show.emoji"></span></span>
-            <span class="tile"><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></span>
+            <span class="tile"><span class="ic">🗣️</span><span data-k="add.show.say"></span></span>
             <span class="tile"><span class="ic">✍️</span><span data-k="add.show.write"></span></span>
           </div>
         </div>
@@ -545,14 +545,14 @@
       {t:8500,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
       {t:9400},
     ],
-    meaning:()=>[
-      {t:0,cue:'howto.meaning',fn(){showRecs();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setSlot('word');setCap('wt.meaning.1');moveTouch(addMean,1);}},
-      {t:800,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('say');setCap('wt.meaning.tap');}},
-      {t:1700,fn(){moveTouch(rbtn,1);setCap('wt.meaning.say');}},
+    say:()=>[
+      {t:0,cue:'howto.say',fn(){showRecs();setRecs('idle');recIdle();stepdots.textContent=PROGRESS;setSlot('word');setCap('wt.say.1');moveTouch(addMean,1);}},
+      {t:800,fn(){moveTouch(addMean,.9);contact();addMean.classList.add('press');setSlot('say');setCap('wt.say.tap');}},
+      {t:1700,fn(){moveTouch(rbtn,1);setCap('wt.say.say');}},
       {t:2500,fn(){moveTouch(rbtn,.86);contact();rbtn.classList.add('press');setRecs('rec');recHold();silLabel.textContent=A('status.listening');waveRun(2600);}},
       {t:5200,fn(){rbtn.classList.remove('press');park();setRecs('review');silLabel.textContent=A('status.ready');setCap('wt.hearkeep');}},
       {t:6600,fn(){moveTouch(keep,1);}},
-      {t:7300,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.meaning.kept');}},
+      {t:7300,fn(){moveTouch(keep,.88);contact();keep.classList.add('press');addVoice();setCap('wt.say.kept');}},
       {t:8300,fn(){keep.classList.remove('press');park();setRecs('idle');recIdle();}},
       {t:9200},
     ],

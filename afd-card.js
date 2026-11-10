@@ -1211,7 +1211,7 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   // to be only the "Say it yourself" button at the foot of the card, which people
   // didn't find). The word goes to the recorder on that word (#entryId — the
   // recorder's default tab is Word); sentence/meaning add the type to the hash.
-  const addKey = { word:"slot.add.word", context:"slot.add.sentence", definition:"slot.add.meaning", note:"slot.add.note", say:"slot.add.say" }[type] || "slot.add.meaning";
+  const addKey = { word:"slot.add.word", context:"slot.add.sentence", note:"slot.add.note", say:"slot.add.say" }[type] || "slot.add.say";
   // the combined "say something" slot records as a note (the surviving bucket)
   const hashType = type === "say" ? "note" : type;
   const addHash = encodeURIComponent(entryId) + (type==="word" ? "" : "|" + hashType);

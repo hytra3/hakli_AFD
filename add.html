@@ -231,7 +231,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <div class="tiles">
       <button class="tile" id="tilePhoto" type="button"><span class="tick">✓</span><span class="ic">📷</span><span data-k="add.show.photo"></span></button>
       <button class="tile" id="tileEmoji" type="button"><span class="tick">✓</span><span class="ic">😀</span><span data-k="add.show.emoji"></span></button>
-      <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></button>
+      <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.say"></span></button>
       <button class="tile" id="tileWrite" type="button"><span class="tick">✓</span><span class="ic">✍️</span><span data-k="add.show.write"></span></button>
       <button class="tile wide" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
     </div>
@@ -253,7 +253,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     </div>
 
     <div class="card panel" id="panelMeaning" hidden>
-      <p class="note" data-k="add.show.meaning.hint"></p>
+      <p class="note" data-k="add.show.say.hint"></p>
       <div class="stage">
         <button class="hold small" id="meanBtn" type="button" aria-label="Hold to record the meaning">
           <span class="ring"></span>
@@ -834,7 +834,7 @@ function togglePanel(name){
   if(openPanel==="spell") setTimeout(()=>$("spellIn").focus(), 50);
 }
 $("tileEmoji").onclick   = ()=>{ sayLabel("add.show.picture"); togglePanel("emoji"); };
-$("tileMeaning").onclick = ()=>{ sayLabel("add.show.meaning"); togglePanel("meaning"); };
+$("tileMeaning").onclick = ()=>{ sayLabel("add.show.say"); togglePanel("meaning"); };
 $("tileWrite").onclick   = ()=> togglePanel("write");
 $("tileSpell").onclick   = ()=> togglePanel("spell");
 // Spellings exist only where the instance says its language is written
