@@ -47,6 +47,9 @@
         box-shadow:0 6px 16px rgba(31,58,52,.22)}
 .afdcard .card.lead .play{width:60px; height:60px; background:var(--resin)}
 .afdcard .play svg{width:42%;height:42%}
+/* a word with no voice yet: a hollow mic ("add your voice"), set apart from the filled ▶ */
+.afdcard .play.addvoice{background:var(--cloud); color:var(--resin); border:2px solid var(--resin); box-shadow:none}
+.afdcard .play.addvoice svg{width:52%; height:52%}
 /* (10-14) list cards, tighter: smaller picture and play button, English and
    Arabic on one line, counts underneath — about five words to a phone screen
    instead of three or four. The lead (best-match) card keeps its full size. */
@@ -155,7 +158,7 @@ body[data-mode="sound"] .afdcard .slot-add{font-size:18px; padding:11px 15px}
       border:1.5px dashed var(--mist-2); border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); margin-top:10px}
 .afdcard .slot-body{display:flex; flex-direction:column; gap:8px; align-items:flex-start}
 .afdcard .slot-body:empty{display:none}
-.afdcard .head-counts{display:flex;gap:10px;margin-top:5px;font:600 11px/1 var(--sans);color:var(--mist)}
+.afdcard .head-counts{display:flex;gap:12px;margin-top:5px;font:600 13px/1 var(--sans);color:var(--mist)}
 .afdcard .card.open .head-counts{display:none}
 /* "your voice mattered": +n new voices on a collapsed card of yours, and a quiet
    line at the top of the open card */

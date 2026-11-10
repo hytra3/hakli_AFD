@@ -195,7 +195,7 @@ const _countsCache = new Map();   // entryId -> { at, p }
 // afd_entries. Primed counts hold for the same 15 s as a fetched answer.
 function primeCounts(entryId, voices){
   if(!voices || typeof voices !== "object") return false;
-  const c = { word: +voices.word || 0, context: +voices.context || 0, definition: +voices.definition || 0 };
+  const c = { word: +voices.word || 0, context: +voices.context || 0, definition: +voices.definition || 0, note: +voices.note || 0 };
   _countsCache.set(entryId, { at: Date.now(), p: Promise.resolve(c) });
   return true;
 }
@@ -207,7 +207,7 @@ function entryCounts(entryId){
   return p;
 }
 async function loadCounts(entryId){
-  const c={word:0,context:0,definition:0};
+  const c={word:0,context:0,definition:0,note:0};
   try{
     const snap=await getDocs(query(collection(CFG.db,"afd_entries",entryId,"recordings"),
                                    where("allowPlayback","==",true), limit(50)));
@@ -1415,7 +1415,7 @@ function feedback(entryId, meta, recs, detail, hc){
 }
 function rememberSeen(entryId, hc){
   entryCounts(entryId).then(c => {
-    try{ localStorage.setItem("afd.seen." + entryId, String(c.word + c.context + c.definition)); }catch(_){}
+    try{ localStorage.setItem("afd.seen." + entryId, String(c.word + c.context + c.definition + c.note)); }catch(_){}
     hc && hc.querySelector(".fb-new")?.remove();
   });
 }
@@ -1475,6 +1475,17 @@ async function entryCard(res, lead){
   const thumbEl = el.querySelector(".thumb");
   const detail  = el.querySelector(".detail");
 
+  // A word with no voice yet shows an "add your voice" mic in place of the ▶, so
+  // the first tap records on that word instead of hitting a dead end that only
+  // shakes. Set once the counts confirm it's empty (not merely offline). 11-10
+  let addVoiceHref = null;
+  function makeAddVoice(){
+    addVoiceHref = CFG.recorderUrl + "#" + encodeURIComponent(res.entryId);
+    playBtn.classList.add("addvoice");
+    playBtn.setAttribute("aria-label", AFDCore.t("slot.add.word", CFG.mode()));
+    playBtn.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg>`;
+  }
+
   // Collapsed header shows the entry's IDENTITY (emoji / identicon / script word).
   // The sound-shape (waveform, in sound tier) is painted when the detail loads.
   // A contributor's photo (add.html "show it") outranks the emoji.
@@ -1514,17 +1525,24 @@ async function entryCard(res, lead){
     const sp = gc.querySelector(".spell"); if(sp) gc.prepend(sp);   // the spelling stays the headword
   };
   let hc=null;
-  if(gc){ hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc);
-    entryCounts(res.entryId).then(c=>{ hc.innerHTML=`<span>\u{1F50A} ${c.word}</span><span>\u{1F4AC} ${c.context}</span><span>\u{1F4D6} ${c.definition}</span>`;
-      // a word this phone has a voice on, with voices added since it was last
-      // opened here: a small "+n" so the contributor sees they were answered
-      const was = seenCount(res.entryId), now = c.word + c.context + c.definition;
+  if(gc){ hc=document.createElement("div"); hc.className="head-counts"; gc.appendChild(hc); }
+  entryCounts(res.entryId).then(c=>{
+    const say = c.definition + c.note, total = c.word + c.context + say;
+    if(total === 0 && !voicesOffline(res.entryId)) makeAddVoice();
+    if(hc){
+      // the count row — hide zeros, enlarge what remains (🔊 word · 💬 sentence · 🗒 say)
+      hc.innerHTML = [ c.word ? `<span>\u{1F50A} ${c.word}</span>` : "",
+                       c.context ? `<span>\u{1F4AC} ${c.context}</span>` : "",
+                       say ? `<span>\u{1F5D2} ${say}</span>` : "" ].join("");
+      // voices added since this phone last opened the word → a small "+n"
+      const was = seenCount(res.entryId), now = total;
       if(was != null && now > was){
         const nb=document.createElement("span"); nb.className="fb-new";
         nb.textContent="+"+(now-was)+" \u{1F50A}"; nb.title=AFDCore.t("card.fb.new", CFG.mode());
         nb.setAttribute("aria-label", nb.title); hc.appendChild(nb);
       }
-    }); }
+    }
+  });
 
   let currentUrl=null, firstPlayable=null, detailP=null;
   const setUrl = (u)=>{ currentUrl = u; };
@@ -1671,6 +1689,7 @@ async function entryCard(res, lead){
     try{ n.scrollIntoView({ block:"nearest", behavior:"smooth" }); }catch(_){}
   }
   playBtn.addEventListener("click", (e)=>{ e.stopPropagation();
+    if(addVoiceHref){ location.href = addVoiceHref; return; }   // voiceless word → add your voice
     if(currentUrl){ playInto(playBtn, currentUrl); return; }
     const done = busyBtn(playBtn);             // dots from the tap, through the load, until it sounds
     loadDetail().then(()=>{ if(currentUrl) playInto(playBtn, currentUrl, done); else { done(); noVoice(); } }, done);
