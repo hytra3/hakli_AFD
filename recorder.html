@@ -1381,6 +1381,7 @@ function closeWithdrawProof(){
   if(wd.armTimer){ clearTimeout(wd.armTimer); wd.armTimer=null; }
   wd.armed=false;
   try{ if(wd.rec && wd.recording) wd.rec.stop(); }catch(_){}
+  AFDCore.setCapturing(false);
   if(wd.stream){ wd.stream.getTracks().forEach(t=>{ try{ t.stop(); }catch(_){} }); wd.stream=null; }
   wd.recording=false; wd.blob=null; wd.chunks=[];
 }
@@ -1403,13 +1404,14 @@ function wdStartRec(){
     $("wdPlayer").src=URL.createObjectURL(wd.blob);
     wd.el.classList.add("reviewing");
   };
-  try{ wd.rec.start(); }catch(e){ wd.recording=false; }
+  try{ wd.rec.start(); AFDCore.setCapturing(true); }catch(e){ wd.recording=false; }
 }
 function wdStopRec(){
   if(!wd.recording) return;
   wd.recording=false;
   if(wd.timer){ clearInterval(wd.timer); wd.timer=null; }
   $("wdRecBtn").classList.remove("recording"); wdIdleBtn();
+  AFDCore.setCapturing(false);
   try{ wd.rec.stop(); }catch(_){}
 }
 $("wdRecBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); wdStartRec(); });
@@ -1522,6 +1524,7 @@ function closeGrantProof(){
   gr.el.classList.remove("open","reviewing");
   if(gr.timer){ clearInterval(gr.timer); gr.timer=null; }
   try{ if(gr.rec && gr.recording) gr.rec.stop(); }catch(_){}
+  AFDCore.setCapturing(false);
   if(gr.stream){ gr.stream.getTracks().forEach(t=>{ try{ t.stop(); }catch(_){} }); gr.stream=null; }
   gr.recording=false; gr.blob=null; gr.chunks=[];
 }
@@ -1544,13 +1547,14 @@ function grStartRec(){
     $("grantPlayer").src=URL.createObjectURL(gr.blob);
     gr.el.classList.add("reviewing");
   };
-  try{ gr.rec.start(); }catch(e){ gr.recording=false; }
+  try{ gr.rec.start(); AFDCore.setCapturing(true); }catch(e){ gr.recording=false; }
 }
 function grStopRec(){
   if(!gr.recording) return;
   gr.recording=false;
   if(gr.timer){ clearInterval(gr.timer); gr.timer=null; }
   $("grantRecBtn").classList.remove("recording"); grIdleBtn();
+  AFDCore.setCapturing(false);
   try{ gr.rec.stop(); }catch(_){}
 }
 $("grantRecBtn").addEventListener("pointerdown",e=>{ e.preventDefault(); grStartRec(); });
@@ -2375,6 +2379,7 @@ function startRec(){
   recorder.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
   recorder.onstop=onRecStop;
   recorder.start();
+  AFDCore.setCapturing(true);                 // no app sound may reach the mic (11-10)
   ensureLiveMeter();
 }
 
@@ -2387,6 +2392,7 @@ function stopRec(){
   setRecIdle();
   $("silLabel").textContent=AFDCore.t("status.checking",dispMode);
   if(rafId) cancelAnimationFrame(rafId);
+  AFDCore.setCapturing(false);
   try{ recorder.stop(); }catch(e){}
 }
 

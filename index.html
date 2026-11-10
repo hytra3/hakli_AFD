@@ -584,7 +584,7 @@ async function startHold(){
   catch(e){ holding=false; stopStream(); setHintKey("find.idle"); showResults(); return; }
   mediaRec.ondataavailable = e => { if(e.data.size) chunks.push(e.data); };
   mediaRec.onstop = onClip;
-  try{ mediaRec.start(100); }   // 100ms timeslice: flush data during the hold, not only on stop
+  try{ mediaRec.start(100); AFDCore.setCapturing(true); }   // 100ms timeslice: flush data during the hold, not only on stop · no app sound may reach the mic (11-10)
   catch(e){
     // Stream became unrecordable — force a fresh one on the next hold rather than
     // leaving an uncaught rejection and a dead-feeling button.
@@ -597,6 +597,7 @@ function endHold(){
   document.body.classList.remove("rec");
   bloom.style.setProperty("--lvl",0);
   if(mediaRec && mediaRec.state!=="inactive") mediaRec.stop();
+  AFDCore.setCapturing(false);
   if(ac){ ac.close().catch(()=>{}); ac=null; }
 }
 function meter(stream){

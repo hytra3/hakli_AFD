@@ -15,7 +15,11 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const store = {};
-const sandbox = { window: {}, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+class FakeAudio { constructor(u){ this.src=u; this.paused=true; this.l={}; FakeAudio.all.push(this); }
+  play(){ this.paused=false; return Promise.resolve(); } pause(){ this.paused=true; (this.l.pause||[]).forEach(f=>f()); }
+  addEventListener(e,f){ (this.l[e]=this.l[e]||[]).push(f); } }
+FakeAudio.all = [];
+const sandbox = { Audio: FakeAudio, window: {}, localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
                   document: { addEventListener(){}, readyState: "complete" } };
 vm.createContext(sandbox);
 vm.runInContext(readFileSync(new URL("../afd-core.js", import.meta.url), "utf8"), sandbox);
@@ -30,4 +34,21 @@ describe("narration plays only in the sound view", () => {
   it("quiet silences narration in the sound view", () => { set("sound", true); assert.equal(C.mayPlayUI("narration"), false); });
   for (const m of ["sound", "script", "auto"]) for (const q of [false, true])
     it(`a sound someone asked for always plays (${m}${q ? ", quiet" : ""})`, () => { set(m, q); assert.equal(C.mayPlayUI("asked"), true); });
+});
+
+describe("nothing the app says can end up in a recording (11-10)", () => {
+  it("recording stops a prompt that is playing", () => {
+    set("sound", false); C.setCapturing(false);
+    const a = C.playUI("u1", "narration"); assert.ok(a && !a.paused);
+    C.setCapturing(true); assert.equal(a.paused, true);
+  });
+  it("while recording, no prompt can start — narration or asked", () => {
+    C.setCapturing(true);
+    assert.equal(C.playUI("u2", "narration"), null);
+    assert.equal(C.playUI("u3", "asked"), null);
+  });
+  it("after recording, prompts play again", () => {
+    C.setCapturing(false);
+    const a = C.playUI("u4", "asked"); assert.ok(a && !a.paused);
+  });
 });
