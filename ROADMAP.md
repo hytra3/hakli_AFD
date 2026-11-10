@@ -1524,3 +1524,15 @@ talking *about* the word — use, a story, another form — in **any language**.
 - **Add: leaving on purpose.** "Back to the dictionary" on the first step (the word waits,
   as with the glyph); "Throw this word away" on every step once there's something to lose,
   asking in red with Keep as the safe answer. Leaving any other way never deletes a word.
+
+## A voice note's language can be corrected by whoever uploaded it (2026-11-10)
+- **Tap your own note's pill.** On a voice note you uploaded (as the speaker, or recording on an
+  elder's behalf), the language pill is a button (outlined, with ▾). It asks the same question as
+  Keep (Hakli · Arabic · English · a mix, ▶ for each recorded name); picking one saves it at once,
+  closing it changes nothing. Other people's pills stay plain text. Not in the sound view, which
+  shows no pills; a steward can still use `scripts/meanings-to-notes.mjs <id>:<lang> --apply`.
+- **Rules:** a fourth recording-update branch: the uploader (`uid`), on a note (`type` or `phase`
+  = note), not erased, may change `lang` and nothing else, to a language code. Word, sentence and
+  meaning takes stay frozen. Tests: `test/note-lang.rules.test.mjs`; browser scenario in
+  `voice-notes.browser.mjs`. **Deploy the Firestore rules with the site.**
+- Notes are never search matches, so a change needs no re-indexing.

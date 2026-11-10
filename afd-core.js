@@ -1115,7 +1115,11 @@ window.AFDCore = (function(){
     "add.discard.ask":      { en:"Throw this word away? Your recording of it will be deleted from this phone.", ar:"هل تتخلّص من هذه الكلمة؟ سيُحذف تسجيلك لها من هذا الهاتف." },
     "add.discard.yes":      { en:"Throw it away", ar:"تخلّص منها" },
     "add.discard.no":       { en:"Keep it",       ar:"أبقِها" },
-    "add.leave":            { en:"Back to the dictionary", ar:"العودة إلى القاموس" }
+    "add.leave":            { en:"Back to the dictionary", ar:"العودة إلى القاموس" },
+    // 11-10: the person who uploaded a voice note can fix its language — tap
+    // its pill. Asked with the same four choices as on Keep.
+    "note.lang.change":     { en:"Change the language", ar:"غيّر اللغة" },
+    "note.lang.fail":       { en:"Couldn't change it — try again with signal.", ar:"تعذّر التغيير — حاول مجددًا عند توفّر الشبكة." }
   };
   function t(key, mode){
     const s = STRINGS[key];

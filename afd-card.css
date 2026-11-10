@@ -83,6 +83,8 @@
    translations: only once the card is open, so the word list stays clean. */
 .afdcard .note-lang{flex:0 0 auto; margin-inline:0}
 .afdcard .voice-row .note-lang{margin-inline:4px}
+.afdcard .note-lang-edit{cursor:pointer; box-shadow:inset 0 0 0 1px currentColor}
+.afdcard .note-lang-edit:focus-visible{outline:2px solid currentColor; outline-offset:2px}
 .afdcard .card:not(.open) .gloss .lang-pill{display:none}
 .afdcard .gloss .lang-pill{font-size:10.5px; vertical-align:2px}
 /* collapsed count chip — a language-free "N voices", tap to itemize */

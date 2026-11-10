@@ -462,6 +462,18 @@ service cloud.firestore {
                         && !('modClearedAt' in resource.data)
                         && resource.data.get('consent', '') != 'deleted'
                         && existsAfter(/databases/$(database)/documents/afd_flags/$(entryId + '~' + recordingId + '~' + request.auth.uid)))
+                    // A VOICE NOTE'S LANGUAGE (11-10) — the account that uploaded a
+                    // note may correct the language it picked on Keep, and nothing
+                    // else. Only on a note (the one slot that may be in any
+                    // language); word, sentence and meaning takes stay frozen.
+                    || (notAnon()
+                        && resource.data.uid == request.auth.uid
+                        && (resource.data.get('type', '') == 'note'
+                            || resource.data.get('phase', '') == 'note')
+                        && resource.data.get('consent', '') != 'deleted'
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['lang'])
+                        && langOK(request.resource.data.get('lang', '')))
                     // STEWARD DECIDES — release the hold (heldAt only ever REMOVED),
                     // clear (modClearedAt) or hide (modHiddenAt) or show again,
                     // stamped modBy. Playable again only if the speaker's own
