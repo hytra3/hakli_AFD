@@ -2860,6 +2860,13 @@ async function syncOne(rec){
     AFDCore.track("rec", "upload", { n: Math.round((Date.now() - (Date.parse(rec.recordedAt) || Date.now())) / 60000) });
     await idbPut(STORE, rec);
     renderClips();
+    // 11-10, from the field: a voice note (or a sentence, or a second take)
+    // keeps you on the same word, so the card on screen was drawn before this
+    // take reached the dictionary and didn't show it until a reload. Redraw the
+    // card once the upload lands, if it's still the word on screen.
+    const host=document.getElementById("entryCardHost");
+    if(host && host.dataset.entry===rec.entryId && window.AFD && window.AFD.renderCard)
+      window.AFD.renderCard(rec.entryId, host);
     return true;
   }catch(e){
     console.warn("upload failed, kept locally:", e);

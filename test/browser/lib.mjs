@@ -122,7 +122,8 @@ const URLS = (globalThis.__URLS = globalThis.__URLS || {});
 export function getStorage(){ return {}; }
 export function ref(s, p){ return { fullPath:p, name:String(p).split("/").pop() }; }
 export async function getDownloadURL(r){ if(navigator.onLine===false){ const e=new Error("Max retry time for operation exceeded"); e.code="storage/retry-limit-exceeded"; throw e; } if(URLS[r.fullPath]) return URLS[r.fullPath]; const e=new Error("storage/object-not-found"); e.code="storage/object-not-found"; throw e; }
-export async function uploadBytes(r, b, m){ URLS[r.fullPath] = "data:audio/wav;base64,"; return { ref:r, metadata:m||{} }; }
+export async function uploadBytes(r, b, m){ if(globalThis.__UPLOAD_DELAY) await new Promise(x=>setTimeout(x, globalThis.__UPLOAD_DELAY));   // a real network takes a while
+  URLS[r.fullPath] = "data:audio/wav;base64,"; return { ref:r, metadata:m||{} }; }
 export async function getMetadata(r){ if(URLS[r.fullPath]) return { fullPath:r.fullPath, customMetadata:{} }; const e=new Error("storage/object-not-found"); e.code="storage/object-not-found"; throw e; }
 export async function deleteObject(r){ delete URLS[r.fullPath]; }
 `,
