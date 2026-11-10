@@ -508,7 +508,7 @@ window.AFDCore = (function(){
     "add.show.emoji.type":  { en:"Or type any emoji",   ar:"أو اكتب أيّ رمز تعبيري" },
     "add.show.meaning":     { en:"Say what it means",   ar:"قُل ماذا تعني" },
     "add.show.meaning.hint":{ en:"Hold and explain the word, in Hakli or Arabic.", ar:"اضغط باستمرار واشرح الكلمة بالحَكلي أو بالعربية." },
-    "add.show.write":       { en:"Write it in Arabic",  ar:"اكتبها بالعربية" },
+    "add.show.write":       { en:"Write a translation", ar:"اكتب ترجمة" },
     "add.show.remove":      { en:"Remove",              ar:"إزالة" },
     "add.skip":             { en:"Skip",                ar:"تخطَّ" },
     "add.share.hint":       { en:"Your word goes into the Hakli dictionary.", ar:"تُضاف كلمتك إلى قاموس الحَكلي." },
@@ -1068,7 +1068,12 @@ window.AFDCore = (function(){
     "note.lang.ar":         { en:"Arabic",             ar:"العربية" },
     "note.lang.en":         { en:"English",            ar:"الإنجليزية" },
     "note.lang.mul":        { en:"A mix",              ar:"خليط" },
-    "stw.voice.note":       { en:"voice note",         ar:"ملاحظة صوتية" }
+    "stw.voice.note":       { en:"voice note",         ar:"ملاحظة صوتية" },
+    // 11-10, from the field: Add offered Arabic and Hakli but not English. One
+    // "Write a translation" tile opens Arabic first (focused) with English
+    // under it; the Hakli spelling keeps its own tile — it's the word itself.
+    "add.show.write.en":    { en:"In English (if you like)", ar:"بالإنجليزية (إن شئت)" },
+    "add.show.write.ar":    { en:"In Arabic", ar:"بالعربية" }
   };
   function t(key, mode){
     const s = STRINGS[key];

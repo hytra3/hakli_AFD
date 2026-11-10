@@ -270,6 +270,8 @@
   "A3.68": "screen:add.dup.this",
   "A3.69": "screen:add.dup.new",
   "A3.70": "screen:add.dup.done",
+  "A3.71": "screen:add.show.write.en",
+  "A3.72": "screen:add.show.write.ar",
   "A4.1": "screen:hdr.display",
   "A4.2": "screen:hdr.signin",
   "A4.3": "screen:hdr.account",

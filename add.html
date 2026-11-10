@@ -255,8 +255,12 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       </div>
     </div>
 
+    <!-- a translation: Arabic first (most speakers' second language), English optional -->
     <div class="card panel" id="panelWrite" hidden>
-      <input type="text" class="ar" id="glossArIn" dir="rtl" maxlength="80" placeholder="…" autocomplete="off">
+      <label class="note" for="glossArIn" data-k="add.show.write.ar"></label>
+      <input type="text" class="ar" id="glossArIn" dir="rtl" lang="ar" maxlength="80" placeholder="…" autocomplete="off">
+      <label class="note" for="glossEnIn" data-k="add.show.write.en" style="margin-top:10px"></label>
+      <input type="text" id="glossEnIn" dir="ltr" lang="en" maxlength="80" placeholder="…" autocomplete="off">
     </div>
 
     <!-- the word itself in letters: one person's spelling, never "the" spelling -->
@@ -455,7 +459,7 @@ async function idbDo(mode, fn){
 function freshDraft(){
   return {
     key:"current", entryId:C.mintEntryId(), createdAt:Date.now(),
-    word:null, meaning:null, pic:"", photo:null, glossAr:"", spelling:"",
+    word:null, meaning:null, pic:"", photo:null, glossAr:"", glossEn:"", spelling:"",
     consent:{ play:true, archive:false, ml:false, touched:false },   // listening in the app is on by default (10-14); archive + ML stay opt-in
     up:{ uid:null, speakerId:null, photo:false, photoPath:"", entry:false,
          wordId:null, word:false, meaningId:null, meaning:false, spelling:false }
@@ -827,6 +831,7 @@ $("photoRemove").onclick = async ()=>{ draft.photo=null; if(photoUrl){ URL.revok
 $("emojiRemove").onclick = ()=>{ $("emojiIn").value=""; setPic(""); };
 $("emojiIn").addEventListener("input", ()=>{ const e = firstEmoji($("emojiIn").value); if(e) setPic(e); });
 $("glossArIn").addEventListener("input", async ()=>{ draft.glossAr = $("glossArIn").value.slice(0,80); await saveDraft(); paintShowTiles(); });
+$("glossEnIn").addEventListener("input", async ()=>{ draft.glossEn = $("glossEnIn").value.slice(0,80); await saveDraft(); paintShowTiles(); });
 
 // Centre-square, 512px JPEG. Drawing through a canvas also drops the camera's
 // EXIF (GPS included) — the photo is public, its location shouldn't be.
@@ -873,12 +878,12 @@ holdRecorder({
 $("meanPlay").onclick = ()=> play(draft.meaning && draft.meaning.blob);
 $("meanRemove").onclick = async ()=>{ draft.meaning=null; $("meanMsg").classList.add("hidden"); await saveDraft(); paintShow(); };
 
-function anythingShown(){ return !!(draft.photo || draft.pic || draft.meaning || draft.glossAr.trim() || (draft.spelling||"").trim()); }
+function anythingShown(){ return !!(draft.photo || draft.pic || draft.meaning || draft.glossAr.trim() || (draft.glossEn||"").trim() || (draft.spelling||"").trim()); }
 function paintShowTiles(){
   $("tilePhoto").classList.toggle("filled", !!draft.photo);
   $("tileEmoji").classList.toggle("filled", !!draft.pic);
   $("tileMeaning").classList.toggle("filled", !!draft.meaning);
-  $("tileWrite").classList.toggle("filled", !!draft.glossAr.trim());
+  $("tileWrite").classList.toggle("filled", !!(draft.glossAr.trim() || (draft.glossEn||"").trim()));
   $("tileSpell").classList.toggle("filled", !!(draft.spelling||"").trim());
   $("showNext").innerHTML = bi(anythingShown() ? "add.next" : "add.skip");
 }
@@ -895,6 +900,7 @@ function paintShow(){
   document.querySelectorAll("#emojiGrid button").forEach(b=> b.classList.toggle("on", b.textContent===draft.pic));
   $("meanReview").classList.toggle("hidden", !draft.meaning);
   if($("glossArIn").value !== draft.glossAr) $("glossArIn").value = draft.glossAr;
+  if($("glossEnIn").value !== (draft.glossEn||"")) $("glossEnIn").value = draft.glossEn||"";
   if($("spellIn").value !== (draft.spelling||"")) $("spellIn").value = draft.spelling||"";
 }
 $("showBack").onclick = ()=> show("say");
@@ -1024,15 +1030,17 @@ function startDupCheck(blob){
   dupCheck = me;
 }
 async function textMatches(d){
-  const ar = C.spellingKey(d.glossAr || ""), sp = C.spellingKey(d.spelling || "");
-  if(!ar && !sp) return [];
+  const enKey = (s)=> C.spellingKey(s || "").toLowerCase();         // English: "Father" is "father"
+  const ar = C.spellingKey(d.glossAr || ""), sp = C.spellingKey(d.spelling || ""), en = enKey(d.glossEn);
+  if(!ar && !sp && !en) return [];
   const keys = new Set([ar, sp].filter(Boolean)), out = new Set();
-  (window.AFDWords || []).forEach(w => { const k = C.spellingKey(w.ar || ""); if(k && keys.has(k)) out.add(C.entryIdFor(w.id)); });
+  const enHit = (s)=>{ const k = enKey(s); return !!(en && k && k === en); };
+  (window.AFDWords || []).forEach(w => { const k = C.spellingKey(w.ar || ""); if((k && keys.has(k)) || enHit(w.en)) out.add(C.entryIdFor(w.id)); });
   try{
     (await getDocs(collection(db, "afd_entries"))).forEach(sn => {
       const x = sn.data() || {}; if(x.removedAt || x.hiddenAt || x.heldAt || sn.id === d.entryId) return;
       const k = C.spellingKey(x.glossAr || (x.glosses && x.glosses.ar) || "");
-      if(k && keys.has(k)) out.add(sn.id);
+      if((k && keys.has(k)) || enHit(x.gloss || (x.glosses && x.glosses.en))) out.add(sn.id);
     });
   }catch(_){}
   if(sp){
@@ -1154,6 +1162,8 @@ async function sendWord(d, u, interactive){
       // glosses is the language-keyed form; glossAr stays until every reader
       // has moved over to glosses.
       if(ar){ data.glossAr = ar; data.glosses = { ar }; }
+      const en = (d.glossEn || "").trim().slice(0,80);
+      if(en){ data.gloss = en; data.glosses = Object.assign(data.glosses || {}, { en }); }
       try{ await setDoc(eref, data); }
       catch(e){
         let mine=false; try{ const sn = await getDoc(eref); mine = sn.exists() && (sn.data()||{}).createdBy===uid; }catch(_){}

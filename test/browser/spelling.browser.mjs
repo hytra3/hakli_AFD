@@ -137,7 +137,7 @@ await scenario("add a word: a 'Write it in Hakli' tile", async ()=>{
   await page.goto(srv.url + "/add.html"); await page.waitForTimeout(600);
   await page.evaluate(()=>{ document.getElementById("say").hidden = true; document.getElementById("show").hidden = false; });
   const tile = await page.evaluate(()=>{ const t = document.getElementById("tileSpell"); return { shown: !t.hidden, text: t.textContent }; });
-  ok("the tile is there, named apart from 'Write it in Arabic'", tile.shown && /Write it in Hakli/.test(tile.text), JSON.stringify(tile));
+  ok("the tile is there, named apart from 'Write a translation'", tile.shown && /Write it in Hakli/.test(tile.text), JSON.stringify(tile));
   await page.click("#tileSpell");
   const i = await page.evaluate(()=>{ const e = document.getElementById("spellIn"); return { open: !document.getElementById("panelSpell").hidden, dir: e.dir, lang: e.lang }; });
   ok("its panel opens with a right-to-left, qhk-Arab box", i.open && i.dir === "rtl" && i.lang === "qhk-Arab", JSON.stringify(i));
