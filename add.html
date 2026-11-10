@@ -220,8 +220,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <button class="tile" id="tileEmoji" type="button"><span class="tick">✓</span><span class="ic">😀</span><span data-k="add.show.emoji"></span></button>
       <button class="tile" id="tileMeaning" type="button"><span class="tick">✓</span><span class="ic">🗣️</span><span data-k="add.show.meaning"></span></button>
       <button class="tile" id="tileWrite" type="button"><span class="tick">✓</span><span class="ic">✍️</span><span data-k="add.show.write"></span></button>
-      <button class="tile" id="tileWriteEn" type="button"><span class="tick">✓</span><span class="ic">🔤</span><span data-k="add.show.write.en"></span></button>
-      <button class="tile" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
+      <button class="tile wide" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
     </div>
     <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
 
@@ -256,11 +255,11 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       </div>
     </div>
 
+    <!-- a translation: Arabic first (most speakers' second language), English optional -->
     <div class="card panel" id="panelWrite" hidden>
-      <input type="text" class="ar" id="glossArIn" dir="rtl" maxlength="80" placeholder="…" autocomplete="off">
-    </div>
-
-    <div class="card panel" id="panelWriteEn" hidden>
+      <label class="note" for="glossArIn" data-k="add.show.write.ar"></label>
+      <input type="text" class="ar" id="glossArIn" dir="rtl" lang="ar" maxlength="80" placeholder="…" autocomplete="off">
+      <label class="note" for="glossEnIn" data-k="add.show.write.en" style="margin-top:10px"></label>
       <input type="text" id="glossEnIn" dir="ltr" lang="en" maxlength="80" placeholder="…" autocomplete="off">
     </div>
 
@@ -813,21 +812,17 @@ function togglePanel(name){
   openPanel = openPanel===name ? null : name;
   paintShow();
   if(openPanel==="write") setTimeout(()=>$("glossArIn").focus(), 50);
-  if(openPanel==="writeEn") setTimeout(()=>$("glossEnIn").focus(), 50);
   if(openPanel==="spell") setTimeout(()=>$("spellIn").focus(), 50);
 }
 $("tileEmoji").onclick   = ()=>{ sayLabel("add.show.picture"); togglePanel("emoji"); };
 $("tileMeaning").onclick = ()=>{ sayLabel("add.show.meaning"); togglePanel("meaning"); };
 $("tileWrite").onclick   = ()=> togglePanel("write");
-$("tileWriteEn").onclick = ()=> togglePanel("writeEn");
 $("tileSpell").onclick   = ()=> togglePanel("spell");
 // Spellings exist only where the instance says its language is written
 // (AFDInstance.spelling); the input takes that script's direction and tag.
 if(window.AFDInstance && window.AFDInstance.spelling){
   $("tileSpell").hidden = false;
   $("spellIn").dir = C.spellingDir(); $("spellIn").lang = C.spellingLang();
-}else{
-  $("tileWriteEn").classList.add("wide");          // no spelling tile: English closes the grid on its own row
 }
 $("spellIn").addEventListener("input", async ()=>{ draft.spelling = $("spellIn").value.slice(0,60); draft.up.spelling = false; await saveDraft(); paintShowTiles(); });
 $("tilePhoto").onclick   = ()=>{ sayLabel("add.show.photo"); if(draft.photo){ togglePanel("photo"); } else { $("photoIn").click(); } };
@@ -888,21 +883,19 @@ function paintShowTiles(){
   $("tilePhoto").classList.toggle("filled", !!draft.photo);
   $("tileEmoji").classList.toggle("filled", !!draft.pic);
   $("tileMeaning").classList.toggle("filled", !!draft.meaning);
-  $("tileWrite").classList.toggle("filled", !!draft.glossAr.trim());
-  $("tileWriteEn").classList.toggle("filled", !!(draft.glossEn||"").trim());
+  $("tileWrite").classList.toggle("filled", !!(draft.glossAr.trim() || (draft.glossEn||"").trim()));
   $("tileSpell").classList.toggle("filled", !!(draft.spelling||"").trim());
   $("showNext").innerHTML = bi(anythingShown() ? "add.next" : "add.skip");
 }
 function paintShow(){
   paintFace($("showPic"));
   paintShowTiles();
-  const panels = { photo:"panelPhoto", emoji:"panelEmoji", meaning:"panelMeaning", write:"panelWrite", writeEn:"panelWriteEn", spell:"panelSpell" };
+  const panels = { photo:"panelPhoto", emoji:"panelEmoji", meaning:"panelMeaning", write:"panelWrite", spell:"panelSpell" };
   for(const k in panels) $(panels[k]).hidden = openPanel!==k;
   $("tilePhoto").classList.toggle("open", openPanel==="photo");
   $("tileEmoji").classList.toggle("open", openPanel==="emoji");
   $("tileMeaning").classList.toggle("open", openPanel==="meaning");
   $("tileWrite").classList.toggle("open", openPanel==="write");
-  $("tileWriteEn").classList.toggle("open", openPanel==="writeEn");
   $("tileSpell").classList.toggle("open", openPanel==="spell");
   document.querySelectorAll("#emojiGrid button").forEach(b=> b.classList.toggle("on", b.textContent===draft.pic));
   $("meanReview").classList.toggle("hidden", !draft.meaning);
