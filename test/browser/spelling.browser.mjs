@@ -52,7 +52,7 @@ await scenario("script mode keeps the two Arabic lines apart; sound mode shows n
     const s = await page.evaluate(()=>{
       const c = [...document.querySelectorAll(".card")].find(c => c.querySelector('.thumb[data-entry="ent_sun"]'));
       const sp = c.querySelector(".spell"), ar = c.querySelector(".glossar");
-      return { sp: parseFloat(getComputedStyle(sp).fontSize), ar: parseFloat(getComputedStyle(ar).fontSize), arText: ar.textContent };
+      return { sp: parseFloat(getComputedStyle(sp).fontSize), ar: parseFloat(getComputedStyle(ar).fontSize), arText: ar.firstChild && ar.firstChild.textContent };
     });
     ok("script: the spelling is larger than the Arabic translation under it", s.sp > s.ar + 3 && s.arText === "الشمس", JSON.stringify(s));
     if(SHOTS) await page.screenshot({ path: SHOTS + "/spelling-script.png" }); }

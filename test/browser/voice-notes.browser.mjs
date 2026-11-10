@@ -37,7 +37,10 @@ await scenario("the card has a voice-notes slot, and each note says its language
   ok("the notes slot comes last, after the meaning", JSON.stringify(a.order.slice(-2)) === JSON.stringify(["slot-definition","slot-note"]), JSON.stringify(a.order));
   ok("it is labelled voice notes, in English and Arabic", /voice notes/.test(a.label) && /ملاحظات صوتية/.test(a.label), a.label);
   ok("'+ Add a voice note' opens the recorder on this word's notes", /recorder(\.html)?#ent_father\|note$/.test(a.add) && a.addText === "Add a voice note", JSON.stringify([a.add, a.addText]));
-  ok("each note shows its language (Hakli · Arabic); the word's voice has no tag", JSON.stringify(a.tags) === JSON.stringify(["Arabic","Hakli"]) && a.wordTags === 0, JSON.stringify(a));
+  ok("each note shows its language as a pill (حَكلي · عربي); the word's voice has none", JSON.stringify(a.tags) === JSON.stringify(["حَكلي","عربي"]) && a.wordTags === 0, JSON.stringify(a));
+  const amber = await page.evaluate(()=>{ const p = document.querySelector('.slot-note .lang-pill[data-lang="qhk"]'), q = document.querySelector('.slot-note .lang-pill[data-lang="ar"]');
+    return p && q && { own: p.hasAttribute("data-own"), ownBg: getComputedStyle(p).backgroundColor, arBg: getComputedStyle(q).backgroundColor }; });
+  ok("the Hakli pill is amber-tinted (data-own); the Arabic one is neutral", !!amber && amber.own && amber.ownBg !== amber.arBg, JSON.stringify(amber));
   ok("no page errors", !state.errors.length, state.errors.join(" | "));
 });
 
