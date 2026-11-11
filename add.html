@@ -294,7 +294,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     </div>
   </section>
 
-  <!-- ============ 3. SHARE IT ============ -->
+  <!-- ============ 3. ADD IT ============ -->
   <section id="share" hidden>
     <div class="banner hidden" id="draftBanner">
       <span id="draftText"></span>
@@ -362,7 +362,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
      1. SAY IT   — hold the button, say the word twice (the corpus protocol).
      2. SHOW IT  — optional: a photo, an emoji, a spoken meaning, or the word
                    in Arabic, so other people can tell what it means.
-     3. SHARE IT — the three permissions, then sign in ONCE and it goes up.
+     3. ADD IT  — the three permissions, then sign in ONCE and it goes up.
 
    Nothing needs an account until step 3: the take, photo and choices are a
    draft kept in this phone's IndexedDB, so a sign-in popup, a closed tab or no
@@ -934,7 +934,7 @@ function paintShow(){
 $("showBack").onclick = ()=> show("say");
 $("showNext").onclick = ()=> show("share");
 
-/* ---------------- 3. SHARE IT ---------------- */
+/* ---------------- 3. ADD IT ---------------- */
 const realUser = ()=>{ const u = auth.currentUser; return (u && !u.isAnonymous) ? u : null; };
 let wantShare = false;    // a sign-in started from the share screen carries on into sharing
 
