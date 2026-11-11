@@ -437,8 +437,10 @@ const EMBED_URL = window.AFDInstance.embedUrl;   // afd-instance.js
    swallowed — a warm-up that fails must never surface to the user. Runs once
    per page load. (Note: /healthz can't be used to warm — Cloud Run intercepts
    it before the container; only a real endpoint like /search boots the app.) */
-(function prewarmMatcher(){
+let _warmInFlight = false;
+function warmPing(reason){
   if(!EMBED_URL || EMBED_URL.includes("PASTE-")) return;
+  if(_warmInFlight) return;                       // one in flight is enough
   try{
     const sr=16000, n=Math.floor(sr*0.25), bytes=44+n*2;
     const view=new DataView(new ArrayBuffer(bytes));
@@ -450,12 +452,15 @@ const EMBED_URL = window.AFDInstance.embedUrl;   // afd-instance.js
     for(let i=0;i<n;i++) view.setInt16(44+i*2, Math.round(Math.sin(i/8)*200), true); // faint, non-zero
     const fd=new FormData();
     fd.append("file", new Blob([view.buffer],{type:"audio/wav"}), "warm.wav");
+    _warmInFlight = true;
     // with the App Check token too, or every page open counts as "missing" (10-20)
     appCheckHeaders().then(headers=> fetch(`${EMBED_URL}/search?top_k=1`, {method:"POST", body:fd, headers}))
-      .then(()=>console.log("[AFD] matcher pre-warmed"))
-      .catch(()=>{});   // silent — a failed warm-up is not the user's problem
-  }catch(_){}
-})();
+      .then(()=>{ if(reason!=="keepwarm") console.log("[AFD] matcher pre-warmed"); })
+      .catch(()=>{})                              // silent — a failed warm-up is not the user's problem
+      .finally(()=>{ _warmInFlight = false; });
+  }catch(_){ _warmInFlight = false; }
+}
+warmPing("load");   // one head start the moment the find page opens
 
 /* Confidence gates on cosine distance. PLACEHOLDERS — recalibrate once
    real cross-speaker data exists. Within-speaker self-repeats sat at
@@ -502,6 +507,34 @@ try{ db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManag
 catch(e){ console.warn("[AFD] offline cache unavailable", e); db = getFirestore(app); }
 const store = getStorage(app);
 const auth  = getAuth(app);
+
+/* ---- keep the matcher warm during a field week ---------------------------
+   A sleeping afd-embed (min-instances=0) cold-starts the first search after a
+   quiet spell — 60–80s. The steward's field-week switch (afd_ui_config/watch,
+   the same openUntil window moderation uses) now also keeps it warm from here:
+   while that window is open AND the finder is on screen, re-fire the warm ping
+   every few minutes so an open dictionary never lets the instance go cold. Off
+   a field week, nothing extra runs — the page-open warmPing above is all.
+   (A village with NO finder open still cold-starts; closing that fully needs
+   Cloud Run min-instances=1 — scripts/set-warm.sh on — left as an ops choice.)
+   afd_ui_config/* is public-read, so this needs no sign-in and no rules change. */
+(async function fieldWeekKeepWarm(){
+  try{
+    const snap = await getDoc(doc(db, "afd_ui_config", "watch"));
+    const u = snap.exists() && snap.data().openUntil;
+    const openUntil = (u && typeof u.toMillis === "function") ? u.toMillis() : 0;
+    if(openUntil <= Date.now()) return;                      // not a field week
+    let timer = null;
+    const tick  = () => { if(document.visibilityState === "visible" && Date.now() < openUntil) warmPing("keepwarm"); };
+    const start = () => { if(!timer) timer = setInterval(tick, 4*60*1000); };
+    const stop  = () => { if(timer){ clearInterval(timer); timer = null; } };
+    document.addEventListener("visibilitychange", () => {
+      if(document.visibilityState === "visible"){ warmPing("keepwarm"); start(); } else stop();
+    });
+    start();
+  }catch(_){}   // a keep-warm that fails is never the user's problem
+})();
+
 // field error log — AFDCore.report() writes here (afd_client_errors: create-only,
 // stewards read, deleted 30 days on by TTL; scripts/client-errors.mjs lists them)
 AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),

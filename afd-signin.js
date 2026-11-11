@@ -62,9 +62,13 @@ const CSS = `
 .afd-si input:focus{outline:none;border-color:var(--mountain,#1F3A34)}
 .afd-si .si-box{display:flex;flex-direction:column;gap:10px}
 .afd-si details{text-align:center}
-.afd-si summary{cursor:pointer;padding:8px;color:var(--mountain,#1F3A34);font-size:14px;list-style:none}
+/* "or use an email address" reads as a tappable button, not a line of text:
+   a quiet bordered pill at the 44px floor, matching the sign-in buttons above. */
+.afd-si summary{cursor:pointer;padding:11px 14px;color:var(--mountain,#1F3A34);font-size:15px;font-weight:600;list-style:none;
+  border:1.5px solid var(--mist-2,#C4D2CC);border-radius:14px;min-height:44px;box-sizing:border-box;
+  display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .afd-si summary::-webkit-details-marker{display:none}
-.afd-si details[open] summary{margin-bottom:8px}
+.afd-si details[open] summary{margin-bottom:10px;background:var(--mist-1,#EAF1ED)}
 .afd-si .si-or{height:1px;background:var(--mist-2,#C4D2CC);margin:6px 0 2px}
 .afd-si-sheet{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;
   background:rgba(23,36,31,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
@@ -115,6 +119,15 @@ function phoneNumber(raw){
   if(!n.startsWith("+") && n.length === 8) n = cc + n;
   else if(!n.startsWith("+") && n.length >= 10) n = "+" + n;
   return n;
+}
+
+// The in-app browsers people land in from a shared link — WhatsApp, Instagram,
+// Facebook/Messenger, and the like — routinely can't open the Google popup. On
+// those we don't wait for Google to fail: we lead with the texted code (which
+// needs no popup) and demote Google. Everywhere else, Google stays first.
+function inAppBrowser(){
+  const ua = navigator.userAgent || "";
+  return /(FBAN|FBAV|FB_IAB|FBIOS|Instagram|WhatsApp|Line\/|MicroMessenger|WeChat|Snapchat|TikTok|musical_ly)/i.test(ua);
 }
 
 let _seq = 0;
@@ -173,6 +186,17 @@ export function mountSignIn(host, opts){
     }
   }
   repaint();
+
+  // In an in-app browser (WhatsApp &c.), put the texted code first and demote
+  // Google, since its popup usually can't open here. The hint that normally
+  // appears only after Google fails is shown up front to explain the order.
+  if(inAppBrowser()){
+    const phoneBox = $("phoneBox");
+    if(phoneBox) root.insertBefore(phoneBox, root.firstChild);     // phone to the top
+    $("phoneBtn").classList.remove("si-alt");                      // phone becomes the primary button
+    $("googleBtn").classList.add("si-alt");                        // Google becomes secondary
+    $("browserHint").classList.remove("si-hidden");                // show the "use your phone / open in Chrome" note
+  }
 
   function failed(e){
     console.warn("[AFD] sign-in", e);
@@ -289,7 +313,7 @@ export function signInSheet(opts){
       <div style="text-align:center;margin:0 0 14px"><button class="si-say" type="button" hidden aria-label="استمع">🔈</button></div>
       <div class="si-host"></div>
       <p class="si-note si-err" role="status" aria-live="polite" style="color:var(--danger,#9E4433);min-height:1.2em"></p>
-      <button class="si-close" type="button" style="display:block;margin:6px auto 0;background:none;border:0;font:inherit;color:var(--mountain,#1F3A34);padding:10px 16px;cursor:pointer">${L("auth.close")}</button>
+      <button class="si-close" type="button" style="display:block;margin:12px auto 0;background:var(--cloud,#fff);border:1.5px solid var(--mist-2,#C4D2CC);border-radius:14px;font:inherit;font-weight:600;color:var(--mountain,#1F3A34);padding:12px 24px;min-height:44px;cursor:pointer;-webkit-tap-highlight-color:transparent">${L("auth.close")}</button>
     </div>`;
     wrap.setAttribute("aria-labelledby", "afdSiTitle");
     const err = wrap.querySelector(".si-err");

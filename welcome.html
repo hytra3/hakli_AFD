@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <!--
   الحَكلي — Audio First Dictionary · welcome / introduction
-  Hakli-first: opens in audio mode. Each line plays its recorded Hakli clip
+  Opens on Arabic until the narrated arc (R1) has clips, then defaults to the
+  Hakli audio tab on its own. Each line plays its recorded Hakli clip
   (afd_ui/intro.tour.*.webm) and falls back to Arabic text until that clip exists,
   so the page lights up on its own as your speaker records the intro.tour.* prompts.
   Arabic text is MSA draft — pending Dhofari review, like the app strings.
@@ -215,7 +216,12 @@ const HINTS = {
 };
 
 const urls = {};                 // key -> download URL (recorded clips only)
-let mode = "hakli";              // hakli | ar | en
+// Open on Arabic until R1 (the narrated arc) has clips: an empty Hakli tab with
+// "narration is coming" is a poor first screen for the literate relatives who
+// arrive first from a WhatsApp link. Once any R1 clip is recorded, loadClips()
+// promotes the default to Hakli — unless the person has already picked a tab.
+let mode = "ar";                 // hakli | ar | en
+let userPicked = false;          // set once the person taps a tab themselves
 const player = document.getElementById("player");
 
 /* Which intro.tour.* clips have been recorded? afd_ui_prompts + afd_ui/ are public-read. */
@@ -241,6 +247,9 @@ async function loadClips(){
       }
     });
     await Promise.all(jobs);
+    // R1 recorded? Promote the default to Hakli, unless the person already chose.
+    const r1Recorded = [...LINES, CLOSE].some(l => urls[l.k]);
+    if(r1Recorded && !userPicked && mode === "ar") mode = "hakli";
     render();   // re-render to light up the recorded Hakli audio
   }catch(e){ console.warn("[AFD] welcome: audio unavailable — showing text only", e); }
 }
@@ -409,7 +418,7 @@ function syncFrameLang(){
   if(f && f.contentWindow) f.contentWindow.postMessage({type:"afd:lang", mode:mode}, "*");
 }
 
-function setMode(m){ stop(); mode = m; render(); }
+function setMode(m){ stop(); userPicked = true; mode = m; render(); }
 
 render();      // text renders immediately — no Firebase needed …
 loadClips();   // … then Hakli audio lights up if the CDN is reachable

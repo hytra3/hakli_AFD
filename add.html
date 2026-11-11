@@ -111,6 +111,12 @@ body[data-tier="sound"] .hint{display:none}
 .hold.rec{background:var(--resin)}
 .hold.rec .ring{opacity:.7}
 .hold:disabled{opacity:.5}
+/* Honour "reduce motion": still the level ring's constant scaling and the
+   button transitions — the ring stays a steady marker instead of pulsing. */
+@media (prefers-reduced-motion:reduce){
+  .hold, .hold .ring{transition:none}
+  .hold .ring{transform:none}
+}
 .hold-label{margin:0; font-size:15px; text-align:center; color:var(--mountain); min-height:2.6em}
 .timer{font-variant-numeric:tabular-nums}
 
