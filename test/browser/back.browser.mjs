@@ -4,7 +4,7 @@ import { ROOT, serve, launch, newPage, hold, hintText, ok, scenario, finish, sho
 
 const srv = await serve(ROOT);
 const browser = await launch();
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const SOUND = ()=>{ try{ localStorage.setItem("afd_display_mode","sound"); }catch(_){ } };
 const USER = { uid:"uTest1", isAnonymous:false, displayName:"Test Steward", email:"test@example.com" };
 const FS = { "afd_entries/ent_camel": { gloss:"camel", glossAr:"جمل", pic:"🐪" } };

@@ -8,7 +8,7 @@ const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uFatma1", isAnonymous:false, displayName:"Fatma", email:"f@example.org", providerData:[{ providerId:"phone" }] };
 // a returning speaker: a saved speaker on this phone (the recorder's fast path skips to recording)
-const seedSpeaker = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const seedSpeaker = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   const rq = indexedDB.open("hakli_recorder", 1);
   rq.onupgradeneeded = e=>{ const d=e.target.result; d.createObjectStore("clips",{keyPath:"recordingId"}); d.createObjectStore("meta",{keyPath:"key"}); };
   rq.onsuccess = e=>{ const d=e.target.result; d.transaction("meta","readwrite").objectStore("meta").put({ key:"speaker", speakerId:"spk_uFatma_01", viaAgent:false,
@@ -38,7 +38,7 @@ await scenario("a contributor's photo fills its circle", async ()=>{
     "afd_entries/ent_sun/recordings/r1": { recordingId:"r1", entryId:"ent_sun", uid:"uFatma1", speakerId:"spk_uFatma_01", type:"context",
       viaAgent:false, consent:"public", allowPlayback:true, storagePath:"afd/uFatma1/r1.webm", envelope:[], uploadedAt:{ __ts:1 } },
   };
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:new Function(`try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:new Function(`try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
     globalThis.__URLS = { "afd/uFatma1/r1.webm":"data:audio/wav;base64,", "afd_avatars/uFatma1/avatar":${JSON.stringify(PNG)} };`) });
   await page.goto(srv.url + "/index.html#ent_sun"); await page.waitForSelector(".slot-context .av img", { timeout:10000 }); await page.waitForTimeout(400);
   const r = await page.evaluate(()=>{ const b=document.querySelector(".slot-context .av"), i=b.querySelector("img"), cs=getComputedStyle(b);

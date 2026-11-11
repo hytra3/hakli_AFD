@@ -4,7 +4,7 @@ import { ROOT, serve, launch, newPage, hold, hintText, ok, scenario, finish, sho
 
 const srv = await serve(ROOT);
 const browser = await launch();
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const USER = { uid:"uTest1", isAnonymous:false, displayName:"Test Steward", email:"test@example.com" };
 const FS = { "afd_entries/ent_camel": { gloss:"camel", glossAr:"جمل", pic:"🐪" } };
 const HIT = { status:200, body:{ results:[{ entryId:"ent_camel", gloss:"camel", distance:0.09 }, { entryId:"ent_deer", gloss:"deer", distance:0.21 }], corpus_n:12 } };
@@ -79,7 +79,7 @@ await scenario("6 — a link to a word that doesn't exist", async ()=>{ const { 
   ok("6a unknown word link → says so, over the whole list", /isn't in the dictionary/.test(a.hint) && a.cards > 40 && a.url==="/index.html", JSON.stringify(a));
   await ctx.close(); });
 await scenario("6b no answer from Firestore → the link is not called missing", async ()=>{ // Firestore can't answer (no signal) → must NOT claim the word is missing
-  const { page, ctx } = await open("/index.html#ent_u_abc", { init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } globalThis.__FS_FAIL = true; } });
+  const { page, ctx } = await open("/index.html#ent_u_abc", { init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } globalThis.__FS_FAIL = true; } });
   const a = await st(page);
   ok("6b no answer from Firestore → the link is not called missing", a.cards===1 && !/isn't in the dictionary/.test(a.hint) && a.url.endsWith("#ent_u_abc"), JSON.stringify(a));
   await ctx.close(); });

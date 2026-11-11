@@ -13,7 +13,7 @@ const FS = () => ({
   "afd_entries/ent_sun/recordings/r1": take("r1", "uA"),
   "afd_entries/ent_sun/recordings/r2": take("r2", "uB"),
 });
-const seen3 = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); localStorage.setItem("afd.seen.ent_sun","1"); }catch(_){ } };
+const seen3 = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); localStorage.setItem("afd.seen.ent_sun","1"); }catch(_){ } };
 const badge = (page)=> page.evaluate(()=>{ const t=document.querySelector('.thumb[data-entry="ent_sun"]');
   const b=t && t.closest(".card").querySelector(".fb-new"); return b ? b.textContent : null; });
 
@@ -31,7 +31,7 @@ await scenario("a remembered count with no voice of mine: opening the card clear
 });
 
 await scenario("a phone that never had a voice on it gets no badge and stores nothing", async ()=>{
-  const { page } = await newPage(browser, srv.url, { fs:FS(), init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+  const { page } = await newPage(browser, srv.url, { fs:FS(), init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
   await page.goto(srv.url + "/index.html#ent_sun");
   await page.waitForSelector(".card.open .slot-word", { timeout:10000 }); await page.waitForTimeout(800);
   ok("no badge", (await badge(page)) === null);

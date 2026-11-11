@@ -8,7 +8,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uDup1", isAnonymous:false, displayName:"Salim", email:"s@example.org", providerData:[{ providerId:"phone" }] };
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const FS = { "afd_entries/ent_water": { gloss:"water", glossAr:"ماء", pic:"💧" } };
 const near = (d)=> ()=> ({ status:200, body:{ results:[{ entryId:"ent_water", gloss:"water", distance:d }], corpus_n:5 } });
 const sayWord = async (page)=>{

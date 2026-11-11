@@ -10,7 +10,7 @@ const events = (page)=> page.evaluate(()=> Object.entries(globalThis.__FS||{})
   .filter(([k])=> k.startsWith("afd_events/")).map(([,v])=> v));
 const thin = (list)=> list.every(e => Object.keys(e).every(k => ALLOWED.includes(k)));
 const ME = { uid:"uCount1", isAnonymous:false, displayName:"Fatma", email:"f@example.org", providerData:[{ providerId:"google.com" }] };
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const SOUND = ()=>{ try{ localStorage.setItem("afd_display_mode","sound"); }catch(_){ } };
 const HIT = { status:200, body:{ results:[{ entryId:"ent_camel", gloss:"camel", distance:0.09 }, { entryId:"ent_deer", gloss:"deer", distance:0.21 }], corpus_n:12, corpus_age_s:3 } };
 
@@ -76,7 +76,7 @@ await scenario("Dictionary: a search is counted with how it came out, never the 
   await page.waitForFunction(()=> Object.entries(globalThis.__FS||{}).some(([k,v])=> k.startsWith("afd_events/") && v.ev==="search"), null, { timeout:15000 }).catch(()=>{});
   const ev = await events(page), s = ev.filter(e=>e.ev==="search");
   ok("one search|here, with how long it took", s.length===1 && s[0].v==="here" && Number.isInteger(s[0].n), JSON.stringify(s));
-  ok("the view was counted first, in picture mode", ev[0] && ev[0].ev==="view" && ev[0].v==="auto", JSON.stringify(ev[0]));
+  ok("the view was counted first, in picture mode", ev[0] && ev[0].ev==="view" && ev[0].v==="bridge", JSON.stringify(ev[0]));
   ok("no event names the word or the person", !JSON.stringify(ev).includes("camel") && !JSON.stringify(ev).includes("uCount") && thin(ev), JSON.stringify(ev));
   await page.click("#skin");
   await page.waitForFunction(()=> Object.entries(globalThis.__FS||{}).some(([k,v])=> k.startsWith("afd_events/") && v.ev==="mode"), null, { timeout:15000 }).catch(()=>{});
@@ -104,7 +104,7 @@ const SEED = {
   "afd_stats/day_2026-10-16": { counts:{ "search|here":3, "search|none":1, "play|word":5, "rec|keep":2 } },
   "afd_stats/day_2026-10-17": { counts:{ "search|here":6, "play|word":9, "play|novoice":2 } },
   "afd_events/e1": { ev:"view", v:"sound", page:"index.html", at: ago(2) },
-  "afd_events/e2": { ev:"view", v:"auto", page:"index.html", at: ago(30) },
+  "afd_events/e2": { ev:"view", v:"bridge", page:"index.html", at: ago(30) },
   "afd_events/e3": { ev:"search", v:"here", n:2100, page:"index.html", at: ago(2) },
   "afd_events/e7": { ev:"search", v:"pick", n:52000, page:"index.html", at: ago(40) },
   "afd_events/e4": { ev:"search", v:"err.timeout", n:120000, page:"index.html", at: ago(2) },

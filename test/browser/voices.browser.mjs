@@ -5,7 +5,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 
 const srv = await serve(ROOT);
 const browser = await launch();
-const INIT = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const INIT = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   globalThis.__URLS = { "afd/uA/r1.webm": location.origin + "/test/browser/fixtures/voice.wav",
                         "afd/uA/r2.webm": location.origin + "/test/browser/fixtures/voice.wav?2" }; };
 const take = (id, extra) => ({ recordingId:id, entryId:"ent_sun", uid:"uA", speakerId:"spk_uA_01", type:"word", viaAgent:false,

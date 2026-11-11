@@ -13,7 +13,7 @@ const ME = { uid:"uTest1", isAnonymous:false, displayName:null, email:"me@exampl
 const take = (id, uid, extra) => ({ recordingId:id, entryId:"ent_sun", uid, speakerId:"spk_" + uid.slice(0,6) + "_01",
   type:"word", viaAgent:false, consent:"public", allowPlayback:true, storagePath:`afd/${uid}/${id}.webm`, envelope:[],
   uploadedAt:{ __ts:Date.now() }, ...extra });
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   globalThis.__URLS = { "afd/uOther/rA.webm":"data:audio/wav;base64,", "afd/uOther/rB.webm":"data:audio/wav;base64,",
                         "afd/uTest1/rMine.webm":"data:audio/wav;base64,", "afd/uOther/rW.webm":"data:audio/wav;base64," }; };
 const fsOf = (page) => page.evaluate(() => JSON.parse(JSON.stringify(globalThis.__FS)));

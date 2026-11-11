@@ -9,7 +9,7 @@ const browser = await launch();
 const FS = { "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس", pic:"☀️" },
              "afd_entries/ent_moon": { gloss:"moon", glossAr:"القمر", pic:"🌙" } };
 const STEW = { uid:"uSteward", isAnonymous:false, displayName:null, email:"steward@example.org", providerData:[{ providerId:"password" }] };
-const slow = new Function(`globalThis.__FS_DELAY = 1500; try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }`);
+const slow = new Function(`globalThis.__FS_DELAY = 1500; try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }`);
 const dotsIn = (page, sel)=> page.evaluate((sel)=> !!document.querySelector(sel + " .afd-dots"), sel);
 
 await scenario("recorder: the word card's wait shows dots", async ()=>{

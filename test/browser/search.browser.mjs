@@ -12,7 +12,7 @@ const browser = await launch();
 const resultsHidden = (page)=> page.evaluate(()=> document.getElementById("results").classList.contains("hidden"));
 const HIT = { status:200, body:{ results:[{ entryId:"ent_camel", gloss:"camel", distance:0.09 }, { entryId:"ent_deer", gloss:"deer", distance:0.21 }], corpus_n:12, corpus_age_s:3 } };
 
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 async function open(matcher, opts={}){
   const t = await newPage(browser, srv.url, { matcher, init:AUTO, ...opts });
   await t.page.goto(srv.url + "/index.html");

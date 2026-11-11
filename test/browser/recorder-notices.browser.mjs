@@ -6,7 +6,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uFatma1", isAnonymous:false, displayName:"Fatma", email:"f@example.org", providerData:[{ providerId:"phone" }] };
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const noticeOf = (page)=> page.evaluate(()=>{ const n=document.querySelector(".afd-notice"); return n ? { text:n.innerText, kind:n.className } : null; });
 
 await scenario("upload with nothing waiting: a notice, not an alert", async ()=>{

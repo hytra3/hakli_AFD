@@ -13,7 +13,7 @@ const FS = {
   "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس", pic:"☀️" },
   "afd_entries/ent_u_abc": { source:"user", createdBy:"uAnna", gloss:"", glossAr:"قهوة", pic:"☕" },
 };
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const hasEdit = (page)=> page.evaluate(()=> [...document.querySelectorAll(".wt-btn")].some(b=>/Edit word/.test(b.textContent)));
 
 await scenario("a steward edits a seeded word's text and emoji", async ()=>{

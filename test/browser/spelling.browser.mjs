@@ -30,7 +30,7 @@ const headOf = (page, id)=> page.evaluate((id)=>{
 }, id);
 
 await scenario("the list: spellings are the headword, read in one go", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:mode("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:mode("bridge") });
   await page.goto(srv.url + "/index.html");
   await page.waitForSelector('.thumb[data-entry="ent_sun"]', { timeout:10000 }); await page.waitForTimeout(500);
   const h = await headOf(page, "ent_sun");
@@ -65,7 +65,7 @@ await scenario("script mode keeps the two Arabic lines apart; sound mode shows n
 });
 
 await scenario("an open card lists every spelling, attributed, none ranked", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:mode("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:mode("bridge") });
   await page.goto(srv.url + "/index.html#ent_sun");
   await page.waitForSelector(".slot-spell .spell-row", { timeout:10000 }); await page.waitForTimeout(400);
   const rows = await page.evaluate(()=> [...document.querySelectorAll(".slot-spell .spell-row")].map(r => ({
@@ -78,7 +78,7 @@ await scenario("an open card lists every spelling, attributed, none ranked", asy
 });
 
 await scenario("a signed-in person writes, changes and removes their own spelling", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:ANNA, init:mode("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:ANNA, init:mode("bridge") });
   await page.goto(srv.url + "/index.html#ent_moon");
   await page.waitForSelector(".slot-spell .spell-tools .wt-btn", { timeout:10000 }); await page.waitForTimeout(300);
   ok("an empty card invites the first spelling", await page.evaluate(()=>
@@ -113,7 +113,7 @@ await scenario("a signed-in person writes, changes and removes their own spellin
 });
 
 await scenario("a steward hides a spelling and shows it again", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:STEW, init:mode("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:STEW, init:mode("bridge") });
   await page.goto(srv.url + "/index.html#ent_sun");
   await page.waitForSelector(".slot-spell .spell-hide", { timeout:10000 }); await page.waitForTimeout(400);
   const rows = await page.evaluate(()=> [...document.querySelectorAll(".slot-spell .spell-row")].map(r => ({
@@ -133,7 +133,7 @@ await scenario("a steward hides a spelling and shows it again", async ()=>{
 });
 
 await scenario("add a word: a 'Write it in Hakli' tile", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { user:ANNA, init:mode("auto") });
+  const { page, state } = await newPage(browser, srv.url, { user:ANNA, init:mode("bridge") });
   await page.goto(srv.url + "/add.html"); await page.waitForTimeout(600);
   await page.evaluate(()=>{ document.getElementById("say").hidden = true; document.getElementById("show").hidden = false; });
   const tile = await page.evaluate(()=>{ const t = document.getElementById("tileSpell"); return { shown: !t.hidden, text: t.textContent }; });

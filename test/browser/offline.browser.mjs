@@ -8,7 +8,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 
 const srv = await serve(ROOT);
 const browser = await launch();
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   globalThis.__URLS = { "afd/uA/r1.webm":"data:audio/wav;base64," }; };
 const FS = {
   "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس", pic:"☀️", voices:{ word:1, context:0, definition:0 } },

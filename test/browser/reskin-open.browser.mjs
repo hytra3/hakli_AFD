@@ -9,7 +9,7 @@ const FS = {
   "afd_entries/ent_sun":  { gloss:"sun",  glossAr:"الشمس", pic:"☀️" },
   "afd_entries/ent_moon": { gloss:"moon", glossAr:"القمر", pic:"🌙" },
 };
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const openIds = (page)=> page.evaluate(()=> [...document.querySelectorAll("#results > .card.open .thumb[data-entry]")].map(t=>t.dataset.entry));
 const topOf = (page, id)=> page.evaluate((id)=>{ const t=document.querySelector(`.thumb[data-entry="${id}"]`); return t ? Math.round(t.closest(".card").getBoundingClientRect().top) : null; }, id);
 
@@ -28,7 +28,7 @@ await scenario("a language switch keeps the open card open and in place", async 
   await page.click("#skin");                       // auto → next mode
   await page.waitForFunction(()=> document.querySelector('#results > .card.open .thumb[data-entry="ent_moon"]'), null, { timeout:10000 });
   await page.waitForTimeout(400);
-  ok("after the switch the mode changed", await page.evaluate(()=> document.body.dataset.mode) !== "auto");
+  ok("after the switch the mode changed", await page.evaluate(()=> document.body.dataset.mode) !== "bridge");
   ok("moon is still open after the switch", JSON.stringify(await openIds(page)) === '["ent_moon"]', JSON.stringify(await openIds(page)));
   const after = await topOf(page, "ent_moon");
   ok("moon stays where it was on screen (within a line; the new mode settles the cards above a moment later)", before !== null && after !== null && Math.abs(after - before) <= 16, `before ${before}, after ${after}`);

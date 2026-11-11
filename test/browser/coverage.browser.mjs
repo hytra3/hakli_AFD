@@ -17,7 +17,7 @@ const FS = {
 };
 
 await scenario("coverage of the standard lists", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:STEW, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } }, width:640, height:1200 });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:STEW, init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } }, width:640, height:1200 });
   await page.goto(srv.url + "/steward.html"); await page.waitForTimeout(1200);
   await page.click('.tab[data-tab="coverage"]');
   await page.waitForSelector("#covList", { timeout:8000 });

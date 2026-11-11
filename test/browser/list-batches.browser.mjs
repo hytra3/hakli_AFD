@@ -5,7 +5,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish } from "./lib.mjs";
 
 const srv = await serve(ROOT);
 const browser = await launch();
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const many = (n) => { const fs = {};
   for(let i=0;i<n;i++) fs[`afd_entries/ent_u_${String(i).padStart(4,"0")}`] =
     { source:"user", createdBy:"uX", gloss:"word"+i, glossAr:"كلمة"+i, pic:"🔹", createdAt:{ __ts: Date.now()-i*1000 }, voices:{ word:1, context:0, definition:0 } };

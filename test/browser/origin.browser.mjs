@@ -14,13 +14,13 @@ const FS = {
 };
 const urls = `globalThis.__URLS = { "afd/uOwner/spk_town.webm":"data:audio/wav;base64,", "afd/uOwner/spk_none.webm":"data:audio/wav;base64," };`;
 
-for(const mode of ["auto", "script"]){
+for(const mode of ["bridge", "script"]){
   await scenario(mode + ": the town shows under the voice of a speaker who chose it", async ()=>{
     const { page, ctx, state } = await newPage(browser, srv.url, { fs:FS, init:`(()=>{ ${urls} try{ localStorage.setItem("afd_display_mode","${mode}"); }catch(_){ } })()` });
     await page.goto(srv.url + "/index.html#ent_sun"); await page.waitForTimeout(2500);
     const towns = await page.evaluate(()=> [...document.querySelectorAll(".av-town")].map(x=>x.textContent));
     ok(mode + ": exactly one town label, for the speaker who chose it", towns.length === 1, JSON.stringify(towns));
-    ok(mode + ": shown in the mode's own words", mode === "auto" ? towns[0] === "Taqah" : towns[0] === "طاقة", JSON.stringify(towns));
+    ok(mode + ": shown in the mode's own words", mode === "bridge" ? towns[0] === "Taqah" : towns[0] === "طاقة", JSON.stringify(towns));
     ok(mode + ": no page errors", !state.errors.length, state.errors.join(" | "));
     await ctx.close();
   });

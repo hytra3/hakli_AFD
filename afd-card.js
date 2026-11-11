@@ -14,7 +14,7 @@ import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1110i";
 import { reportSheet } from "./afd-flag.js?v=b1110i";
 
 let CFG = { db:null, store:null, recorderUrl:"index.html",
-            mode:()=>"auto", user:()=>null, banner:()=>{} };
+            mode:()=>"bridge", user:()=>null, banner:()=>{} };
 export function initCard(cfg){ CFG = Object.assign(CFG, cfg); }
 
 let audioEl = new Audio();
@@ -592,7 +592,7 @@ async function stillNeeded(data){
     && ![...glossKeys(c.gloss)].some(k => names.has(k)));
 }
 function emojiPicker(host, entryId, meta, m){
-  const ar = m !== "auto";
+  const ar = m !== "bridge";
   host.innerHTML =
     `<div class="ep-now"><span class="ep-cur" aria-live="polite"></span>`+
     `<input type="text" data-f="pic" maxlength="32" autocomplete="off" aria-label="${escapeHtml(AFDCore.t("card.edit.pic", m))}" placeholder="${escapeHtml(AFDCore.t("ep.other", m))}">`+
@@ -821,7 +821,7 @@ function playLabel(rec){
 // display mode's own text (as AFDCore.t gives it).
 function biLabel(key){
   const m=CFG.mode(), s=(AFDCore.STRINGS||{})[key];
-  if(m==="auto" && s && s.ar) return escapeHtml(s.en)+' <span class="ar">'+escapeHtml(s.ar)+'</span>';
+  if(m==="bridge" && s && s.ar) return escapeHtml(s.en)+' <span class="ar">'+escapeHtml(s.ar)+'</span>';
   return escapeHtml(AFDCore.t(key, m));
 }
 
@@ -859,7 +859,7 @@ function flagBtn(rec, gone){
   const b=document.createElement("button");
   b.type="button"; b.className="vr-flag";
   b.textContent="\u2691";
-  b.title=AFDCore.t("flag.btn.voice", CFG.mode()==="sound" ? "auto" : CFG.mode());
+  b.title=AFDCore.t("flag.btn.voice", CFG.mode()==="sound" ? "bridge" : CFG.mode());
   b.setAttribute("aria-label", b.title);
   b.addEventListener("click", async (e)=>{
     e.stopPropagation();
@@ -1110,7 +1110,7 @@ function spellingSection(entryId, gc){
   if(!spellingsOn() || m === "sound"){ sec.hidden = true; return sec; }
   const L = (AFDCore.STRINGS || {})["card.spell.label"] || { en:"", ar:"" };
   sec.innerHTML =
-    `<div class="slot-head"><span class="slot-label">${m==="auto" ? escapeHtml(L.en)+' <span class="ar">'+escapeHtml(L.ar)+'</span>' : '<span class="ar solo">'+escapeHtml(L.ar)+'</span>'}</span>` +
+    `<div class="slot-head"><span class="slot-label">${m==="bridge" ? escapeHtml(L.en)+' <span class="ar">'+escapeHtml(L.ar)+'</span>' : '<span class="ar solo">'+escapeHtml(L.ar)+'</span>'}</span>` +
     `<span class="slot-empty" hidden>${escapeHtml(AFDCore.t("slot.none", m))}</span></div>` +
     `<div class="spell-list"></div><div class="spell-tools"></div>`;
   const listEl = sec.querySelector(".spell-list"), toolsEl = sec.querySelector(".spell-tools"),
@@ -1222,7 +1222,7 @@ function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   const m = CFG.mode();
   const labelHtml = (m === "sound" && L.icon)
       ? '<span class="slot-ic" aria-hidden="true">' + escapeHtml(L.icon) + '</span>'
-      : m === "auto" ? labelEn + ' <span class="ar">' + escapeHtml(labelAr) + '</span>'
+      : m === "bridge" ? labelEn + ' <span class="ar">' + escapeHtml(labelAr) + '</span>'
                      : '<span class="ar solo">' + escapeHtml(labelAr) + '</span>';
   s.innerHTML =
     `<div class="slot-head"><span class="slot-label">${labelHtml}</span>` +
@@ -1249,7 +1249,7 @@ async function shareEntry(entryId, meta, heard, mode, voice){
     const key = !w ? "card.share.heard0" : heard ? "card.share.heard" : "card.share.unheard";
     return AFDCore.STRINGS[key][lang].split("{w}").join(w || "");
   };
-  const text = pic + (mode === "auto" ? line("ar") + "\n" + line("en") : line("ar"));
+  const text = pic + (mode === "bridge" ? line("ar") + "\n" + line("en") : line("ar"));
   try{
     // The voice itself, as a playable file, where the phone can share files:
     // it lands in WhatsApp as audio that plays in the chat — no link to open
@@ -1403,7 +1403,7 @@ function feedback(entryId, meta, recs, detail, hc){
   else if(others.size > 1){
     const x = AFDCore.STRINGS["card.fb.othersN"], n = String(others.size);
     const ar = `<span class="bi-ar" dir="rtl">${escapeHtml(x.ar.split("{n}").join(n))}</span>`;
-    html = m==="auto" ? ar + `<small class="sub">${escapeHtml(x.en.split("{n}").join(n))}</small>` : ar;
+    html = m==="bridge" ? ar + `<small class="sub">${escapeHtml(x.en.split("{n}").join(n))}</small>` : ar;
   }
   else if(creator && mine.some(r => r.consent==="public")) html = AFDCore.tHTML("card.fb.first", m);
   if(html){
@@ -1652,7 +1652,7 @@ async function entryCard(res, lead){
       const rp=document.createElement("button");
       rp.type="button"; rp.className="sayit reportit";
       rp.innerHTML = CFG.mode()==="sound" ? "\u2691" : "\u2691 "+biLabel("flag.btn.card");
-      rp.setAttribute("aria-label", AFDCore.t("flag.btn.card", CFG.mode()==="sound" ? "auto" : CFG.mode()));
+      rp.setAttribute("aria-label", AFDCore.t("flag.btn.card", CFG.mode()==="sound" ? "bridge" : CFG.mode()));
       rp.addEventListener("click", async (e)=>{
         e.stopPropagation();
         const u = CFG.user();

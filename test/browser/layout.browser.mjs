@@ -7,7 +7,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, SHOTS } from "./lib
 const srv = await serve(ROOT);
 const browser = await launch();
 
-for(const mode of ["auto", "script"]){
+for(const mode of ["bridge", "script"]){
   await scenario("list layout folds and unfolds — " + mode, async ()=>{
     const { page, state } = await newPage(browser, srv.url, { width:412, height:880,
       init:new Function(`try{ localStorage.setItem("afd_display_mode","${mode}"); }catch(_){ }`) });

@@ -25,7 +25,7 @@ const step = (page)=> page.evaluate(()=> ["setup","miccheck","recorder"].find(id
 const pick = async (page, type)=>{ await page.click('#entryCardHost a.slot-add[href$="|'+type+'"]', { timeout:5000 });
   await page.waitForFunction((t)=> document.getElementById("entryCardHost").getAttribute("data-rectype")===t, type, { timeout:5000 }); await page.waitForTimeout(700); };
 
-for(const m of ["auto","script","sound"]){
+for(const m of ["bridge","script","sound"]){
   await scenario(m+": step 3 of the recorder", async ()=>{
     const { page, ctx, state } = await newPage(browser, srv.url, { fs:FS, user:USER });
     await ctx.addInitScript(mode(m));
@@ -34,7 +34,7 @@ for(const m of ["auto","script","sound"]){
     const word = await rs(page);
     await pick(page, "context"); const sentence = await rs(page);
     await pick(page, "note");    const say      = await rs(page);
-    if(m==="auto") await shot(page, "recorder-say-slot");
+    if(m==="bridge") await shot(page, "recorder-say-slot");
 
     ok(m+": no Word / Sentence / Meaning tabs; the card's slots choose word → sentence → say something",
        word.tabs===0 && word.type==="word" && sentence.type==="context" && say.type==="note" && word.rec && !state.errors.length,
@@ -46,7 +46,7 @@ for(const m of ["auto","script","sound"]){
     if(m==="sound"){
       ok("sound: the instruction is dots — two for the word, one for a sentence; a note is a single take", word.dots===2 && sentence.dots===1 && say.dots===1 && !/[A-Za-z؀-ۿ]{3}/.test(word.instr.replace(/<[^>]+>/g,"")), JSON.stringify([word.dots, sentence.dots, say.dots]));
     }else{
-      const en = m==="auto";
+      const en = m==="bridge";
       ok(m+": the instruction names what to say, with the key words in bold"+(en?", Arabic then English":", Arabic only"),
          noStars && /<b>مرّتين<\/b>/.test(word.instr) && /<b>جملة<\/b>/.test(sentence.instr) && /<b>[^<]+<\/b>/.test(say.instr)
          && (en ? /<b>twice<\/b>/.test(word.instr) && /<b>sentence<\/b>/.test(sentence.instr) && /[A-Za-z]{4}/.test(say.instr.replace(/<[^>]+>/g,""))
@@ -55,7 +55,7 @@ for(const m of ["auto","script","sound"]){
     }
     // the readout: Arabic always, English only in the bilingual mode
     const arOK = /^‹?\s*الكلمة [٠-٩]+ من [٠-٩]+/.test(word.progress), enOK = /STEP 3 \/ 3 · WORD \d+ OF \d+$/.test(word.progress);
-    ok(m+": the step-3 readout reads 'الكلمة N من M'"+(m==="auto"?" and 'STEP 3 / 3 · WORD N OF M'":", with no English"), arOK && (m==="auto" ? enOK : !/[A-Za-z]{3}/.test(word.progress)), JSON.stringify(word.progress));
+    ok(m+": the step-3 readout reads 'الكلمة N من M'"+(m==="bridge"?" and 'STEP 3 / 3 · WORD N OF M'":", with no English"), arOK && (m==="bridge" ? enOK : !/[A-Za-z]{3}/.test(word.progress)), JSON.stringify(word.progress));
 
     // choosing a slot added nothing to the history: Back goes to step 2, Forward returns
     await page.evaluate(()=>history.back());
@@ -69,14 +69,14 @@ for(const m of ["auto","script","sound"]){
     await page.click("#progressWrap"); await page.waitForSelector("#setup:not(.hidden)", { timeout:5000 });
     await page.click("#listenOnlyBtn"); await page.waitForSelector("#recorder:not(.hidden)", { timeout:5000 }); await page.waitForTimeout(600);
     const listen = await rs(page);
-    ok(m+": listening reads 'استماع · الكلمة N من M'"+(m==="auto"?" and 'LISTENING · WORD N OF M'":""),
-       /استماع · الكلمة [٠-٩]+ من [٠-٩]+/.test(listen.progress) && (m==="auto" ? /LISTENING · WORD \d+ OF \d+$/.test(listen.progress) : !/[A-Za-z]{3}/.test(listen.progress)) && !listen.rec, JSON.stringify(listen.progress));
+    ok(m+": listening reads 'استماع · الكلمة N من M'"+(m==="bridge"?" and 'LISTENING · WORD N OF M'":""),
+       /استماع · الكلمة [٠-٩]+ من [٠-٩]+/.test(listen.progress) && (m==="bridge" ? /LISTENING · WORD \d+ OF \d+$/.test(listen.progress) : !/[A-Za-z]{3}/.test(listen.progress)) && !listen.rec, JSON.stringify(listen.progress));
     await ctx.close();
   });
 }
 
 await scenario("speaker chip", async ()=>{
-  const { page, ctx } = await newPage(browser, srv.url, { fs:FS, user:USER }); await ctx.addInitScript(mode("auto"));
+  const { page, ctx } = await newPage(browser, srv.url, { fs:FS, user:USER }); await ctx.addInitScript(mode("bridge"));
   await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1500);
   const t = await page.evaluate(()=>{ document.getElementById("agentMode").checked=true;
     document.getElementById("spkGender").value="f"; renderSpeakerChip(); const f=document.getElementById("recChip").innerText;
@@ -87,7 +87,7 @@ await scenario("speaker chip", async ()=>{
 
 await scenario("arrows beside the word counter step through words while recording", async ()=>{
   const { page, ctx, state } = await newPage(browser, srv.url, { fs:FS, user:USER });
-  await ctx.addInitScript(mode("auto"));
+  await ctx.addInitScript(mode("bridge"));
   await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1500);
   await toRecorder(page);
   const at = ()=> page.evaluate(()=> document.getElementById("progress").innerText.match(/WORD (\d+) OF (\d+)/));

@@ -7,7 +7,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish } from "./lib.mjs";
 const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uFatma1", isAnonymous:false, displayName:"Fatma", email:"f@example.org", providerData:[{ providerId:"phone" }] };
-const seed = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const seed = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   const rq = indexedDB.open("hakli_recorder", 1);
   rq.onupgradeneeded = e=>{ const d=e.target.result; d.createObjectStore("clips",{keyPath:"recordingId"}); d.createObjectStore("meta",{keyPath:"key"}); };
   rq.onsuccess = e=>{ const d=e.target.result; d.transaction("meta","readwrite").objectStore("meta").put({ key:"speaker", speakerId:"spk_uFatma_01", viaAgent:false,

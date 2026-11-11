@@ -19,7 +19,7 @@ const FS = {
   // shared once, then withdrawn
   "afd_entries/ent_sun/recordings/rWdr":  take("rWdr",  { consent:"withdrawn", allowPlayback:false, type:"context" }),
 };
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   globalThis.__URLS = { "afd/uSpeaker1/rPriv.webm":"data:audio/wav;base64,", "afd/uSpeaker1/rWdr.webm":"data:audio/wav;base64," }; };
 
 await scenario("owner sees a private voice and can share it", async ()=>{
@@ -47,7 +47,7 @@ await scenario("owner sees a private voice and can share it", async ()=>{
 
 await scenario("new speakers start with listening ticked; archive and ML stay opt-in", async ()=>{
   for(const pg of ["add.html", "recorder.html"]){
-    const { page, state } = await newPage(browser, srv.url, { user:ME, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+    const { page, state } = await newPage(browser, srv.url, { user:ME, init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
     await page.goto(srv.url + "/" + pg); await page.waitForTimeout(800);
     const c = await page.evaluate(()=>({ play: document.getElementById("cPlay").checked,
       archive: document.getElementById("cArchive").checked, ml: document.getElementById("cML").checked }));

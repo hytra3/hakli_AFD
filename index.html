@@ -511,7 +511,7 @@ AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
 AFDCore.eventSink(rec => addDoc(collection(db, "afd_events"),
   Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 90*864e5) })));
 // an email sign-in link that came back to the dictionary (signInSheet → email link)
-finishEmailLink(auth, { label: (k)=> AFDCore.tHTML(k, "auto") });
+finishEmailLink(auth, { label: (k)=> AFDCore.tHTML(k, "bridge") });
 let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
 // A *named* account, not the anonymous key the find flow may already hold.
 // This mirrors notAnon() in afd-firestore.rules: anonymous can read (search
@@ -905,7 +905,7 @@ function paintAllBtn(show){
   const v = VIEWS.find(x=>x.id===currentView) || VIEWS[0];
   allBtn.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`+
     `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-  allBtn.setAttribute("aria-label", AFDCore.tf("list.back", displayMode, { w: (displayMode!=="auto" && v.ar) || v.en })); allBtn.title = v.en;
+  allBtn.setAttribute("aria-label", AFDCore.tf("list.back", displayMode, { w: (displayMode!=="bridge" && v.ar) || v.en })); allBtn.title = v.en;
   allBtn.setAttribute("data-cap", v.ar);
   allBtn.classList.toggle("hidden", !show);
 }
@@ -998,7 +998,7 @@ function setCoverage(withVoice, total){
   const el=$("coverage"); if(!el) return;
   const pct = total ? Math.round(withVoice/total*100) : 0;
   const lbl=el.querySelector(".cov-label"), fill=el.querySelector(".cov-fill");
-  if(lbl) lbl.textContent = withVoice+" / "+total + (displayMode==="auto" ? "  with a voice" : "");
+  if(lbl) lbl.textContent = withVoice+" / "+total + (displayMode==="bridge" ? "  with a voice" : "");
   if(fill) fill.style.width = pct+"%";
 }
 
@@ -1163,11 +1163,11 @@ function askWordsButton(items){
       .map(it => [Math.random(), it]).sort((a,c)=>a[0]-c[0]).slice(0,5).map(x=>x[1]);
     const head = AFDCore.STRINGS["needs.ask.text"];
     const lines = pick.map(it=>{
-      const m = it.meta, name = displayMode==="auto"
+      const m = it.meta, name = displayMode==="bridge"
         ? [m.gloss, m.glossAr].filter(Boolean).join(" · ") : (m.glossAr || m.gloss);
       return (m.pic ? m.pic+" " : "") + name + "\n" + new URL("index.html#"+encodeURIComponent(it.entryId), location.href).href;
     });
-    const text = (displayMode==="auto" ? head.ar+"\n"+head.en : head.ar) + "\n\n" + lines.join("\n\n");
+    const text = (displayMode==="bridge" ? head.ar+"\n"+head.en : head.ar) + "\n\n" + lines.join("\n\n");
     try{ if(navigator.share){ await navigator.share({ text }); return; } }
     catch(e){ if(e && e.name==="AbortError") return; }
     window.open("https://wa.me/?text="+encodeURIComponent(text), "_blank", "noopener");
@@ -1195,7 +1195,7 @@ function renderEmpty(best){
   const div=document.createElement("div");
   div.className="empty";
   const none = AFDCore.STRINGS["find.none"];
-  div.innerHTML=(displayMode==="auto"
+  div.innerHTML=(displayMode==="bridge"
     ? `<h2>${escapeHtml(none.en)}</h2>
     <p>Be the first — add this word.<span class="ar">${escapeHtml(none.ar)}</span></p>`
     : `<h2 dir="rtl">${escapeHtml(none.ar)}</h2>`)+`
@@ -1247,7 +1247,7 @@ function paintHint(){
   const s = h.key ? (AFDCore.STRINGS[h.key] || { en:h.key, ar:"" }) : h;
   // Audio-first tiers (sound / script) speak to non-readers in Arabic; auto keeps
   // English with Arabic beneath, for you and bilingual helpers.
-  if(displayMode!=="auto" && s.ar) hint.innerHTML = `<span class="ar solo">${escapeHtml(s.ar)}</span>`;
+  if(displayMode!=="bridge" && s.ar) hint.innerHTML = `<span class="ar solo">${escapeHtml(s.ar)}</span>`;
   else hint.innerHTML = escapeHtml(s.en||"") + (s.ar?`<span class="ar">${escapeHtml(s.ar)}</span>`:"");
   if(h.code){ const c=document.createElement("span"); c.className="code"; c.textContent=h.code; hint.appendChild(c); }
 }
@@ -1356,7 +1356,7 @@ function renderMasthead(){
   const ic=$("mastIcon"), arEl=$("mastAr"), enEl=$("mastEn");
   if(ic){ ic.innerHTML=m.ic; ic.style.color=m.color; }
   if(arEl){ arEl.textContent=ar; arEl.style.display=""; }   // Arabic title in every tier — an unlabeled page icon told a newcomer nothing
-  if(enEl){ enEl.textContent=en; enEl.style.display=(displayMode==="auto")?"":"none"; }
+  if(enEl){ enEl.textContent=en; enEl.style.display=(displayMode==="bridge")?"":"none"; }
 }
 function setMastView(v){ mastView=v; renderMasthead(); }
 
@@ -1364,7 +1364,7 @@ function setMastView(v){ mastView=v; renderMasthead(); }
 const viewMenu=$("viewMenu"), mastScreen=$("mastScreen");
 function viewMenuClose(){ if(viewMenu){ viewMenu.classList.remove("open"); viewMenu.setAttribute("aria-hidden","true"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","false"); }
 function viewMenuOpen(){ if(viewMenu){ viewMenu.classList.add("open"); viewMenu.setAttribute("aria-hidden","false"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","true"); }
-function viewLabel(v){ if(displayMode==="sound") return ""; return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="auto"?'<span class="vm-en">'+v.en+'</span>':''); }
+function viewLabel(v){ if(displayMode==="sound") return ""; return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="bridge"?'<span class="vm-en">'+v.en+'</span>':''); }
 function renderViewMenu(){
   if(!viewMenu) return;
   let html="";
@@ -1416,12 +1416,12 @@ mic.addEventListener("keyup",   e=>{ if(e.key===" "||e.key==="Enter"){ e.prevent
 
 /* the wordless view-changer: cycles picture → sound → script and re-skins */
 const SKIN_ICON = {
-  auto:  `<span class="lbl" style="display:inline-flex;align-items:center;gap:1.5px;direction:ltr;line-height:1"><span>أ</span><span style="font-size:.72em">A</span></span>`,
+  bridge:  `<span class="lbl" style="display:inline-flex;align-items:center;gap:1.5px;direction:ltr;line-height:1"><span>أ</span><span style="font-size:.72em">A</span></span>`,
   sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10v-3a6 6 0 1 1 12 0v6a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3v-1a2 2 0 0 1 4 0"/><path d="M15 16a3 3 0 0 1 -3 3"/></svg>`,
   script:`<span class="lbl">أ</span>`,
 };
-// The caption names the mode you're in (disp.auto / disp.script / disp.sound).
-function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto;
+// The caption names the mode you're in (disp.bridge / disp.script / disp.sound).
+function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.bridge;
   document.body.dataset.mode = displayMode;      // CSS: no ⌨ in sound mode
   if(typeof paintTypeLabels === "function") try{ paintTypeLabels(); }catch(_){}
   { const s=(AFDCore.STRINGS||{})["disp."+displayMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+displayMode); b.setAttribute("data-cap", s.ar); } } }
