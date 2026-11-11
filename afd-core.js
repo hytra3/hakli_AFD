@@ -512,7 +512,7 @@ window.AFDCore = (function(){
     "speaker.erase.none":    { en:"No recordings found for {spk} to erase.", ar:"لا توجد تسجيلات لحذفها لـ {spk}." },
     "qc.good":              { en:"Sounds good",         ar:"الصوت جيّد" },
     "qc.retry":             { en:"Let\u2019s try that again", ar:"لنجرّب مرّة أخرى" },
-    "qc.saytwice":          { en:"Say the word twice, with a small pause between", ar:"قل الكلمة مرّتين، مع وقفة قصيرة بينهما" },
+    "qc.saytwice":          { en:"One time is enough — say it again for a stronger record", ar:"مرّة واحدة تكفي — قُلها مرّة أخرى لتسجيلٍ أقوى" },
     "qc.reps.heard":        { en:"Repetitions heard",   ar:"التكرارات المسموعة" },
     "qc.reps.match":        { en:"Repetitions match",   ar:"تطابق التكرارات" },
     "qc.segments":          { en:"Speech segments",     ar:"مقاطع الكلام" },
@@ -655,7 +655,7 @@ window.AFDCore = (function(){
     // prompts tool could not list them. Wording unchanged. In the three
     // instructions, *stars* mark the one emphasised word (shown bold); drop
     // them and the line simply has no bold. Added at the END.
-    "record.instr.word":       { en:"Say the Hakli word *twice*, with a short pause between.", ar:"قل الكلمة الحكلية *مرّتين*، مع وقفة قصيرة بينهما." },
+    "record.instr.word":       { en:"Say the Hakli word *once* — then, if you can, again.", ar:"قل الكلمة الحكلية *مرّة* — ثم، إن استطعت، مرّة أخرى." },
     "record.instr.context":    { en:"Say a short *sentence* using this word — one time.", ar:"قل *جملة* قصيرة تستخدم هذه الكلمة — مرّة واحدة." },
     "record.instr.definition": { en:"Say what this word *means*, in Hakli — one time.", ar:"قل ما *تعنيه* هذه الكلمة، بالحكلية — مرّة واحدة." },
     "record.progress.word":      { en:"WORD {i} OF {n}", ar:"الكلمة {i} من {n}" },

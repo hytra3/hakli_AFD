@@ -139,6 +139,7 @@ body:not([data-tier="bridge"]) :is(#setup,#miccheck,#consentGate,#finishStep) .s
 .instruction.rtl{direction:rtl}
 .reps-cue{display:inline-flex;gap:9px;align-items:center;justify-content:center;min-height:20px}
 .reps-cue .dot{width:12px;height:12px;border-radius:50%;background:var(--frank);display:inline-block}
+.reps-cue .dot.opt{background:transparent;border:2px solid var(--frank);box-sizing:border-box}
 .bicon{font-size:22px;line-height:1}
 .buildstamp{text-align:center;color:#9AB0A8;font-size:11px;letter-spacing:.09em;
   padding:20px 0 28px;font-family:var(--sans)}
@@ -688,7 +689,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <p class="gloss" id="glossEn">sun</p>
     <p class="gloss-ar" id="glossAr"></p>
     <button class="btn ghost" id="hearOthers" style="margin-top:8px">Hear how others said it in Hakli</button>
-    <p class="instruction" id="instruction">Say the Hakli word <b>twice</b>, with a short pause between.</p>
+    <p class="instruction" id="instruction">Say the Hakli word <b>once</b> — then, if you can, say it again.</p>
     <button class="gloss-audio hidden" id="playGloss" type="button">▶ Hear the word in English</button>
     <!-- "Speaker doesn't know this word": a word-level action, up here with the
          word — moved out from directly under the sticky Record button. -->
@@ -2218,11 +2219,12 @@ function setRecType(t){
   const instr=$("instruction");
   if(instr){
     if(dispMode==="sound"){
-      // wordless: how many times to say it, as amber dots (two = twice, one = once)
+      // wordless cue: one solid dot (needed) + one hollow dot (a second time, if
+      // you can) for a word; a single dot for sentence/note. Never reads as required.
       const twice = recType==="word";
       instr.classList.remove("rtl");
-      instr.innerHTML = '<span class="reps-cue" role="img" aria-label="'+(twice?'say it twice':'say it once')+'">'+
-                        '<b class="dot"></b>'+(twice?'<b class="dot"></b>':'')+'</span>';
+      instr.innerHTML = '<span class="reps-cue" role="img" aria-label="'+(twice?'say it once, then once more if you can':'say it once')+'">'+
+                        '<b class="dot"></b>'+(twice?'<b class="dot opt"></b>':'')+'</span>';
     }else{
       // script: Arabic only · auto: Arabic first, English underneath (same
       // convention as tHTML everywhere else on the page)
@@ -2710,11 +2712,16 @@ function renderQC(q){
   if(!speechOk) fails.push(AFDCore.t("qc.fail.quiet",dispMode));
 
   if(isWord){
-    const twoOk=q.bursts===2;
-    rows.push(row(twoOk,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
-      q.bursts<2?"say the word twice, with a pause":q.bursts>2?"extra speech detected":"",
-      q.bursts>2?"warn":undefined));
-    if(q.bursts<2) fails.push(AFDCore.t("qc.saytwice",dispMode));
+    // 2026-11-11: one clear repetition is enough to keep. The second rep is
+    // encouraged — it feeds QC (do the reps agree?) and threshold calibration —
+    // but never required: bursts<2 is now an amber nudge on a still-GREEN verdict,
+    // not a hard fail, so Keep stays the primary action. Mirrors add.html's
+    // keepable warn. Costs some calibration data by design (ROADMAP decision #5).
+    const twoReps=q.bursts===2;
+    rows.push(row(twoReps,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
+      q.bursts<2?AFDCore.t("qc.saytwice",dispMode):q.bursts>2?"extra speech detected":"",
+      twoReps?undefined:"warn"));
+    if(q.bursts<2 && !softNote) softNote=AFDCore.t("qc.saytwice",dispMode);
     else if(q.bursts>2 && !softNote) softNote=AFDCore.t("qc.note.extra",dispMode);
 
     if(q.burstBalance!==null){
