@@ -13,6 +13,7 @@ and ffmpeg on the PATH:
 """
 import hashlib
 import importlib.util
+import numpy as np
 import os
 import sys
 import time
@@ -819,6 +820,51 @@ class Watch(unittest.TestCase):
     def test_no_mail_settings_only_logs(self):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertFalse(self.m.send_mail("s", "b"))
+
+
+class FindReps(unittest.TestCase):
+    """VAD rep-splitting (pure numpy, no model). Locks in the single-rep and
+    silent-clip behaviour so VAD tuning can't silently turn a one-rep take into
+    a reject — the recorder now accepts one rep as a keepable take (2026-11-11,
+    ROADMAP decision #5). A loud 200 Hz tone is speech; np.zeros is silence
+    (rms floor -> ~-120 dB, well under the peak-relative gate)."""
+
+    SR = service.TARGET_SR
+
+    def _tone(self, ms, amp=0.5, f=200.0):
+        n = int(self.SR * ms / 1000)
+        t = np.arange(n, dtype=np.float32) / self.SR
+        return (amp * np.sin(2 * np.pi * f * t)).astype(np.float32)
+
+    def _sil(self, ms):
+        return np.zeros(int(self.SR * ms / 1000), dtype=np.float32)
+
+    def _clip(self, *parts):
+        return np.concatenate(parts).astype(np.float32)
+
+    def test_two_reps_with_a_clear_pause(self):
+        audio = self._clip(self._sil(300), self._tone(300), self._sil(400),
+                           self._tone(300), self._sil(300))
+        reps = service.find_reps(audio)
+        self.assertEqual(len(reps), 2)
+        # ordered, non-overlapping, inside the clip
+        self.assertLessEqual(reps[0][1], reps[1][0])
+        self.assertGreaterEqual(reps[0][0], 0.0)
+        self.assertLessEqual(reps[-1][1], audio.size / self.SR + 1e-6)
+
+    def test_one_rep_is_a_single_burst_not_a_reject(self):
+        audio = self._clip(self._sil(300), self._tone(500), self._sil(300))
+        reps = service.find_reps(audio)
+        self.assertEqual(len(reps), 1)        # kept as one rep, not []
+
+    def test_all_silence_returns_no_reps(self):
+        self.assertEqual(service.find_reps(self._sil(800)), [])
+
+    def test_short_blip_is_dropped_leaving_one_rep(self):
+        # a real word plus an 80 ms click (< VAD_MIN_SEG_MS) across a clear gap
+        audio = self._clip(self._sil(300), self._tone(400), self._sil(250),
+                           self._tone(80), self._sil(300))
+        self.assertEqual(len(service.find_reps(audio)), 1)
 
 
 if __name__ == "__main__":
