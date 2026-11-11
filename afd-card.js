@@ -1201,6 +1201,81 @@ function spellingSection(entryId, gc){
   return sec;
 }
 
+/* ---- translation: the word's meaning in Arabic and English, written on the
+   card (11-11) ---------------------------------------------------------------
+   Its own editable slot, so a translation is added right here rather than hidden
+   under "Edit word". Arabic first and larger — most Hakli speakers read Arabic,
+   not English. The gloss lives on the entry doc (gloss / glossAr), which only the
+   word's creator or a steward may write (afd-firestore faceEditOK), so everyone
+   else just reads the translations here and in the header. Kept apart from the
+   Hakli spelling above, which is the word itself, not a translation. */
+async function translationSection(entryId, meta, paintFace){
+  const m = CFG.mode();
+  const sec = document.createElement("div");
+  sec.className = "slot slot-tr";
+  if(m === "sound"){ sec.hidden = true; return sec; }     // non-readers: no written translations
+  const u = CFG.user();
+  const canEdit = !!u && ((meta.source==="user" && meta.createdBy===u.uid) || await amSteward());
+  const L = AFDCore.STRINGS["slot.translation"] || { en:"TRANSLATION", ar:"الترجمة" };
+  const labelHtml = m==="bridge" ? escapeHtml(L.en)+' <span class="ar">'+escapeHtml(L.ar)+'</span>'
+                                 : '<span class="ar solo">'+escapeHtml(L.ar)+'</span>';
+  sec.innerHTML = `<div class="slot-head"><span class="slot-label">${labelHtml}</span></div><div class="tr-body"></div>`;
+  const body = sec.querySelector(".tr-body");
+  const plus = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`;
+
+  function paint(){
+    const ar = meta.glossAr || "", en = meta.gloss || "";
+    body.innerHTML = "";
+    if(ar || en){
+      const show = document.createElement("div"); show.className = "tr-show";
+      if(ar){ const s=document.createElement("span"); s.className="tr-ar"; s.dir="rtl"; s.textContent=ar; show.appendChild(s); }
+      if(en){ const s=document.createElement("span"); s.className="tr-en"; s.dir="ltr"; s.textContent=en; show.appendChild(s); }
+      body.appendChild(show);
+    }else if(!canEdit){
+      const none=document.createElement("span"); none.className="slot-empty"; none.textContent=AFDCore.t("slot.none", m);
+      body.appendChild(none);
+    }
+    if(canEdit){
+      const btn=document.createElement("button"); btn.type="button"; btn.className="slot-add tr-open";
+      btn.innerHTML = plus + " " + escapeHtml(AFDCore.t("add.show.write", m));
+      btn.addEventListener("click", openEditor);
+      body.appendChild(btn);
+    }
+  }
+
+  function openEditor(){
+    body.innerHTML = "";
+    const form=document.createElement("div"); form.className="tr-edit";
+    const field=(f, dir)=>`<label class="wt-field"><span>${AFDCore.tHTML(f==="ar"?"card.edit.ar":"card.edit.en", m)}</span>`+
+      `<input type="text" data-f="${f}" dir="${dir}" maxlength="80" autocomplete="off"></label>`;
+    form.innerHTML = field("ar","rtl") + field("en","ltr") +   // Arabic first
+      `<div class="tr-btns"><button type="button" class="wt-btn wt-save tr-save">${AFDCore.tHTML("card.edit.save", m)}</button>`+
+      `<button type="button" class="wt-btn tr-cancel">${AFDCore.tHTML("card.cancel", m)}</button></div>`;
+    const inF=(f)=> form.querySelector(`[data-f="${f}"]`);
+    inF("ar").value = meta.glossAr || ""; inF("en").value = meta.gloss || "";
+    body.appendChild(form); inF("ar").focus();
+    form.querySelector(".tr-cancel").addEventListener("click", paint);
+    form.querySelector(".tr-save").addEventListener("click", async ()=>{
+      const ar=inF("ar").value.trim().replace(/\s+/g," ").slice(0,80);
+      const en=inF("en").value.trim().replace(/\s+/g," ").slice(0,80);
+      const glosses={}; if(en) glosses.en=en; if(ar) glosses.ar=ar;
+      const sv=form.querySelector(".tr-save"); sv.disabled=true;
+      try{
+        await updateDoc(doc(CFG.db,"afd_entries",entryId), {
+          gloss:en, glossAr:ar,
+          glosses: Object.keys(glosses).length ? glosses : deleteField(),
+          editedAt: serverTimestamp(), editedBy: u.uid });
+        meta.gloss=en; meta.glossAr=ar; meta.glosses=glosses;
+        if(typeof paintFace==="function") paintFace(meta);
+        paint();
+      }catch(e){ console.warn("[AFD] translation", e); CFG.banner(AFDCore.t("card.failed", m)); sv.disabled=false; }
+    });
+  }
+
+  paint();
+  return sec;
+}
+
 function slotSection(labelKey, type, entryId, recs, thumbEl, playBtn, setUrl){
   const L=(AFDCore.STRINGS||{})[labelKey] || { en:labelKey, ar:labelKey };
   const labelEn=escapeHtml(L.en), labelAr=L.ar;
@@ -1459,10 +1534,11 @@ async function entryCard(res, lead){
     glossHtml = `<div class="gloss" aria-hidden="true"></div>`;
   }else if(CFG.mode()==="script"){
     const ar = glossAr || meta.ref || "";
-    glossHtml = `<div class="gloss">${ar?`<span class="glossar solo">${escapeHtml(ar)}${glossAr?AFDCore.langPill("ar"):""}</span>`:""}</div>`;
+    glossHtml = `<div class="gloss">${ar?`<span class="glossar solo">${escapeHtml(ar)}</span>`:""}</div>`;
   }else{
-    // translations carry a language pill (shown once the card is open); bold amber is only ever Hakli
-    glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossEn?AFDCore.langPill("en",{cls:"gl-pill"}):""}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}${AFDCore.langPill("ar")}</span>`:""}</div>`;
+    // no language pills in the header (11-11): dark English + light-grey Arabic
+    // already tell the two translations apart, and bold amber is only ever Hakli
+    glossHtml = `<div class="gloss">${escapeHtml(glossEn)}${glossAr?`<span class="glossar">${escapeHtml(glossAr)}</span>`:""}</div>`;
   }
   const playHtml  = `<button class="play" aria-label="Play pronunciation"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>${DOTS}</button>`;
   const chevHtml  = lead ? "" : `<span class="card-chev" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>`;
@@ -1516,11 +1592,10 @@ async function entryCard(res, lead){
     if(!gc || CFG.mode()==="sound") return;
     [...gc.childNodes].forEach(n=>{ if(n.nodeType===3 || (n.classList && (n.classList.contains("glossar") || n.classList.contains("gl-pill")))) n.remove(); });
     const ar = mt.glossAr || mt.ref || "";
-    const pill = (code, cls)=>{ const t=document.createElement("template"); t.innerHTML=AFDCore.langPill(code, cls?{cls}:undefined); return t.content.firstChild; };
-    const arSpan = (cls)=>{ const s=Object.assign(document.createElement("span"), { className:cls, textContent:ar }); if(mt.glossAr) s.appendChild(pill("ar")); return s; };
+    const arSpan = (cls)=> Object.assign(document.createElement("span"), { className:cls, textContent:ar });
     const parts = CFG.mode()==="script"
       ? (ar ? [arSpan("glossar solo")] : [])
-      : [document.createTextNode(mt.gloss||""), ...(mt.gloss ? [pill("en","gl-pill")] : []), ...(mt.glossAr ? [arSpan("glossar")] : [])];
+      : [document.createTextNode(mt.gloss||""), ...(mt.glossAr ? [arSpan("glossar")] : [])];
     gc.prepend(...parts);
     const sp = gc.querySelector(".spell"); if(sp) gc.prepend(sp);   // the spelling stays the headword
   };
@@ -1582,6 +1657,7 @@ async function entryCard(res, lead){
     let saySlot  = slotSection("slot.say","say",res.entryId, sayRecs, null, playBtn, ()=>{});
     detail.appendChild(wordSlot);
     detail.appendChild(spellingSection(res.entryId, gc));
+    detail.appendChild(await translationSection(res.entryId, meta, paintFace));
     detail.appendChild(ctxSlot);
     detail.appendChild(saySlot);
     // More voices (10-19): the card holds a page of public voices, newest first.

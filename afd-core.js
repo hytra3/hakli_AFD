@@ -311,6 +311,9 @@ window.AFDCore = (function(){
   const STRINGS = {
     "slot.word":            { en:"THE WORD",           ar:"الكلمة", icon:"🔊" },
     "slot.sentence":        { en:"USED IN A SENTENCE", ar:"مثال في جملة", icon:"💬" },
+    // the word's meaning in the contact languages, written on the card (11-11; ar provisional, review)
+    "slot.translation":     { en:"TRANSLATION",        ar:"الترجمة", icon:"🔤" },
+    "card.cancel":          { en:"Cancel",             ar:"إلغاء" },
     "group.word":           { en:"word",               ar:"كلمة" },
     "group.sentence":       { en:"sentence",           ar:"جملة" },
     "slot.none":            { en:"none yet",           ar:"لا شيء بعد" },
