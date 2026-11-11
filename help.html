@@ -59,6 +59,7 @@
     padding:10px 6px; border-radius:18px; background:var(--cloud); border:1.5px solid var(--line);
     color:var(--mountain); text-decoration:none; box-shadow:0 6px 16px rgba(31,58,52,.07); transition:transform .12s}
   .tile:active{transform:scale(.97)}
+  @media (prefers-reduced-motion:reduce){ .tile{transition:none} .tile:active{transform:none} }
   .tile .ic{font-size:30px; line-height:1}
   .tile .t{font-size:17px; font-weight:700; text-align:center; line-height:1.25}
   .row{display:flex; align-items:center; gap:12px; margin-top:10px; padding:14px 16px; border-radius:18px; background:var(--cloud);

@@ -207,6 +207,19 @@ window.AFDCore = (function(){
     return '<span class="afd-dots'+(big?' big':'')+'" role="status" aria-label="…"><span></span><span></span><span></span></span>';
   }
 
+  /* A short haptic confirmation for people who aren't looking at the screen —
+     the start and stop of a recording. No-op where the device can't vibrate,
+     and skipped when the person has asked for reduced motion (someone sensitive
+     to motion may not want buzzes either). The pattern is milliseconds, as
+     navigator.vibrate() takes it. */
+  function buzz(pattern){
+    try{
+      if(!navigator.vibrate) return;
+      if(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      navigator.vibrate(pattern);
+    }catch(_){}
+  }
+
   function quietToast(on){
     const mode = getDisplayMode("bridge");
     if(mode === "sound") return;                 // wordless tier: the bubble says it
@@ -1642,6 +1655,6 @@ window.AFDCore = (function(){
     hushUI, setCapturing, isCapturing, langs, langPill, ownLang,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
-    identicon, stepHistory, dotsHTML, escHtml
+    identicon, stepHistory, dotsHTML, escHtml, buzz
   };
 })();

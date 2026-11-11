@@ -2360,6 +2360,7 @@ recBtn.addEventListener("pointercancel",()=>{ if(recording && mode!=="tap") stop
 function startRec(){
   if(recording||!stream) return;
   recording=true; chunks=[]; liveBars=[]; paintWordNav();
+  AFDCore.buzz(25);                 // a short buzz on start, for eyes-off recording
   recStart=Date.now(); mode=null;
   recBtn.classList.add("recording");
   recBtn.innerHTML='<span class="dot"></span>'+(dispMode==="sound"?"":AFDCore.tHTML("record.holding",dispMode))+'<span class="timer">0.0s</span>';
@@ -2386,6 +2387,7 @@ function startRec(){
 function stopRec(){
   if(!recording) return;
   recording=false; mode=null; paintWordNav();
+  AFDCore.buzz([16,36,16]);         // a double buzz on stop, distinct from start
   notRecordingWaiters.splice(0).forEach(r=>{ try{ r(); }catch(_){} });
   if(timerId){ clearInterval(timerId); timerId=null; }
   recBtn.classList.remove("recording");
