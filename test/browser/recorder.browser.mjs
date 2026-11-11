@@ -48,8 +48,8 @@ for(const m of ["bridge","script","sound"]){
     }else{
       const en = m==="bridge";
       ok(m+": the instruction names what to say, with the key words in bold"+(en?", Arabic then English":", Arabic only"),
-         noStars && /<b>مرّتين<\/b>/.test(word.instr) && /<b>جملة<\/b>/.test(sentence.instr) && /<b>[^<]+<\/b>/.test(say.instr)
-         && (en ? /<b>twice<\/b>/.test(word.instr) && /<b>sentence<\/b>/.test(sentence.instr) && /[A-Za-z]{4}/.test(say.instr.replace(/<[^>]+>/g,""))
+         noStars && /<b>مرّة<\/b>/.test(word.instr) && /<b>جملة<\/b>/.test(sentence.instr) && /<b>[^<]+<\/b>/.test(say.instr)
+         && (en ? /<b>once<\/b>/.test(word.instr) && /<b>sentence<\/b>/.test(sentence.instr) && /[A-Za-z]{4}/.test(say.instr.replace(/<[^>]+>/g,""))
                 : !/[A-Za-z]{4}/.test(word.instr.replace(/<[^>]+>/g,""))),
          JSON.stringify([word.instr, sentence.instr, say.instr]));
     }
