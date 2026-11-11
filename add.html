@@ -718,6 +718,7 @@ function holdRecorder({ btn, label, maxMs, type, onTake, onError }){
     chunks=[]; rec.ondataavailable = e=>{ if(e.data.size) chunks.push(e.data); };
     rec.onstop = finish;
     rec.start(); t0 = Date.now();
+    C.buzz(25);                                    // short buzz on start, for eyes-off recording (matches the recorder)
     C.setCapturing(true);                          // nothing the app says may end up in the take
     btn.classList.add("rec");
     label.innerHTML = bi("record.holding")+'<span class="timer" id="'+btn.id+'T">0.0s</span>';
@@ -741,6 +742,7 @@ function holdRecorder({ btn, label, maxMs, type, onTake, onError }){
     btn.style.setProperty("--lvl", 0);
     btn.classList.remove("rec");
     try{ rec.stop(); }catch(_){}
+    C.buzz([16,36,16]);                            // distinct double buzz on stop
   }
   async function finish(){
     C.setCapturing(false);
