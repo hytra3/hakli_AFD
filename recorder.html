@@ -5,17 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="google" content="notranslate">
 <title>Hakli Word Recorder</title>
-<link rel="icon" href="favicon.svg?v=b1111c" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1111c" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1111c">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1111c">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1111c">
-<link rel="manifest" href="manifest.webmanifest?v=b1111c">
+<link rel="icon" href="favicon.svg?v=b1111d" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1111d" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1111d">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1111d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1111d">
+<link rel="manifest" href="manifest.webmanifest?v=b1111d">
 <meta name="theme-color" content="#17241F">
-<script src="afd-core.js?v=b1111c"></script>
-<script src="afd-words.js?v=b1111c"></script>
-<script src="afd-instance.js?v=b1111c"></script>
-<link rel="stylesheet" href="afd-card.css?v=b1111c">
+<script src="afd-core.js?v=b1111d"></script>
+<script src="afd-words.js?v=b1111d"></script>
+<script src="afd-instance.js?v=b1111d"></script>
+<link rel="stylesheet" href="afd-card.css?v=b1111d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -139,6 +139,7 @@ body:not([data-tier="bridge"]) :is(#setup,#miccheck,#consentGate,#finishStep) .s
 .instruction.rtl{direction:rtl}
 .reps-cue{display:inline-flex;gap:9px;align-items:center;justify-content:center;min-height:20px}
 .reps-cue .dot{width:12px;height:12px;border-radius:50%;background:var(--frank);display:inline-block}
+.reps-cue .dot.opt{background:transparent;border:2px solid var(--frank);box-sizing:border-box}
 .bicon{font-size:22px;line-height:1}
 .buildstamp{text-align:center;color:#9AB0A8;font-size:11px;letter-spacing:.09em;
   padding:20px 0 28px;font-family:var(--sans)}
@@ -688,7 +689,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <p class="gloss" id="glossEn">sun</p>
     <p class="gloss-ar" id="glossAr"></p>
     <button class="btn ghost" id="hearOthers" style="margin-top:8px">Hear how others said it in Hakli</button>
-    <p class="instruction" id="instruction">Say the Hakli word <b>twice</b>, with a short pause between.</p>
+    <p class="instruction" id="instruction">Say the Hakli word <b>once</b> — then, if you can, say it again.</p>
     <button class="gloss-audio hidden" id="playGloss" type="button">▶ Hear the word in English</button>
     <!-- "Speaker doesn't know this word": a word-level action, up here with the
          word — moved out from directly under the sticky Record button. -->
@@ -846,7 +847,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
    "Your apps" -> Web app -> Config
 ================================================================*/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { startAppCheck } from "./afd-appcheck.js?v=b1111c";
+import { startAppCheck } from "./afd-appcheck.js?v=b1111d";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
@@ -854,9 +855,9 @@ import { getFirestore, doc, getDoc, setDoc, serverTimestamp,
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b1111c";
-import { uploadClip as sharedUploadClip } from "./afd-upload.js?v=b1111c";
-import { mountSignIn, finishEmailLink } from "./afd-signin.js?v=b1111c";
+import { initCard, entryCard, withdrawSpeaker } from "./afd-card.js?v=b1111d";
+import { uploadClip as sharedUploadClip } from "./afd-upload.js?v=b1111d";
+import { mountSignIn, finishEmailLink } from "./afd-signin.js?v=b1111d";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
@@ -1266,7 +1267,7 @@ window.__afdWhenNotRecording = ()=> recording ? new Promise(r=>notRecordingWaite
 let idx=0, kept=[], lastBlob=null, lastQC=null;
 let rafId=null, liveBars=[];
 
-const BUILD="b1111c";   // bump every publish; shown in the header + console
+const BUILD="b1111d";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
 try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
@@ -2218,11 +2219,12 @@ function setRecType(t){
   const instr=$("instruction");
   if(instr){
     if(dispMode==="sound"){
-      // wordless: how many times to say it, as amber dots (two = twice, one = once)
+      // wordless cue: one solid dot (needed) + one hollow dot (a second time, if
+      // you can) for a word; a single dot for sentence/note. Never reads as required.
       const twice = recType==="word";
       instr.classList.remove("rtl");
-      instr.innerHTML = '<span class="reps-cue" role="img" aria-label="'+(twice?'say it twice':'say it once')+'">'+
-                        '<b class="dot"></b>'+(twice?'<b class="dot"></b>':'')+'</span>';
+      instr.innerHTML = '<span class="reps-cue" role="img" aria-label="'+(twice?'say it once, then once more if you can':'say it once')+'">'+
+                        '<b class="dot"></b>'+(twice?'<b class="dot opt"></b>':'')+'</span>';
     }else{
       // script: Arabic only · auto: Arabic first, English underneath (same
       // convention as tHTML everywhere else on the page)
@@ -2710,11 +2712,16 @@ function renderQC(q){
   if(!speechOk) fails.push(AFDCore.t("qc.fail.quiet",dispMode));
 
   if(isWord){
-    const twoOk=q.bursts===2;
-    rows.push(row(twoOk,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
-      q.bursts<2?"say the word twice, with a pause":q.bursts>2?"extra speech detected":"",
-      q.bursts>2?"warn":undefined));
-    if(q.bursts<2) fails.push(AFDCore.t("qc.saytwice",dispMode));
+    // 2026-11-11: one clear repetition is enough to keep. The second rep is
+    // encouraged — it feeds QC (do the reps agree?) and threshold calibration —
+    // but never required: bursts<2 is now an amber nudge on a still-GREEN verdict,
+    // not a hard fail, so Keep stays the primary action. Mirrors add.html's
+    // keepable warn. Costs some calibration data by design (ROADMAP decision #5).
+    const twoReps=q.bursts===2;
+    rows.push(row(twoReps,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
+      q.bursts<2?AFDCore.t("qc.saytwice",dispMode):q.bursts>2?"extra speech detected":"",
+      twoReps?undefined:"warn"));
+    if(q.bursts<2 && !softNote) softNote=AFDCore.t("qc.saytwice",dispMode);
     else if(q.bursts>2 && !softNote) softNote=AFDCore.t("qc.note.extra",dispMode);
 
     if(q.burstBalance!==null){

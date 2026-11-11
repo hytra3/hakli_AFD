@@ -35,7 +35,7 @@ window.AFDPrompts = [
     { key:"intro.tour.what", en:"This is a place to hear the Hakli language — and to keep it, in the voices of its people.", ar:"هذا مكانٌ لسماع لغة الحَكلي، ولحفظها بأصوات أهلها.", kind:"narration" },
     { key:"howto.find", en:"To find a word: hold the green circle and say it", ar:"للعثور على كلمة: اضغط الدائرة الخضراء مطوّلًا وقُلها", kind:"narration" },
     { key:"howto.hear", en:"To hear a word: tap play — every voice that has said it is there", ar:"لسماع كلمة: انقر ▶ — وستجد كلّ صوتٍ قالها", kind:"narration" },
-    { key:"howto.record", en:"To add your voice: hold the amber button and say the word twice", ar:"لإضافة صوتك: اضغط الزرّ الكهرماني مطوّلًا وقُل الكلمة مرّتين", kind:"narration" },
+    { key:"howto.record", en:"To add your voice: hold the amber button and say the word — then once more, if you can", ar:"لإضافة صوتك: اضغط الزرّ الكهرماني مطوّلًا وقُل الكلمة — ثم مرّة أخرى، إن استطعت", kind:"narration" },
     { key:"howto.review", en:"Then listen back — keep it, or record again", ar:"ثم استمع إليه — احفظه، أو أعد التسجيل", kind:"narration" },
     { key:"howto.add", en:"And if a word isn't here yet, tap the plus and add it in your own voice", ar:"وإن لم تكن الكلمة هنا بعد، انقر + وأضِفها بصوتك", kind:"narration" },
     { key:"intro.tour.yours", en:"Every recording is yours — you can take it back anytime.", ar:"كل تسجيلٍ هو ملكك — ويمكنك سحبه في أي وقت.", kind:"narration" },
@@ -44,7 +44,7 @@ window.AFDPrompts = [
   { tab:"record", name:"Heard in the app now", ar:"تُسمَع في التطبيق الآن",
     note:"The dictionary's home page, the Add-a-word page and the recorder play these.", items:[
     { key:"find_hint", en:"Hold the green circle and say a word — it will find it", ar:"اضغط الدائرة الخضراء مطوّلًا وقل كلمة — وستجدها", kind:"narration" },
-    { key:"add.say",          en:"Say your word: hold the button and say it twice, with a short pause", ar:"قُل كلمتك: اضغط باستمرار وقُلها مرّتين، مع وقفة قصيرة", kind:"narration" },
+    { key:"add.say",          en:"Say your word: hold the button and say it — then once more, if you can", ar:"قُل كلمتك: اضغط باستمرار وقُلها — ثم مرّة أخرى، إن استطعت", kind:"narration" },
     { key:"add.show",         en:"Now show what it means — a photo, a picture, or say it", ar:"والآن أَرِنا معناها — بصورة، أو رسم، أو قُلها", kind:"narration" },
     { key:"add.show.photo",   en:"Take a photo", ar:"التقط صورة", kind:"label" },
     { key:"add.show.picture", en:"Choose a picture", ar:"اختر رسمًا", kind:"label" },

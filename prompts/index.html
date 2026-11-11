@@ -5,7 +5,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Hakli voice prompts</title>
-<link rel="icon" href="../favicon.svg?v=b1111c" type="image/svg+xml" />
+<link rel="icon" href="../favicon.svg?v=b1111d" type="image/svg+xml" />
 <style>
   :root{
     --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
@@ -40,6 +40,7 @@
   .b-narr{background:var(--warm-bg); color:var(--warm);}
   .b-label{background:var(--accent-bg); color:var(--accent);}
   .b-tag{background:var(--line); color:var(--muted);}
+  .b-redo{background:var(--warm-bg); color:var(--warm); border:1px solid var(--warm); font-weight:600;}
   .gloss{font-size:24px; font-weight:600; margin:12px 0 4px;}
   .gloss-ar{font-size:22px; color:var(--muted); direction:rtl; text-align:right; min-height:0;}
   .hint{font-size:13px; color:var(--muted); margin-top:8px;}
@@ -204,12 +205,12 @@
 
 <!-- The app's on-screen string table (window.AFDCore.STRINGS) — listed below as
      suggest-only "On-screen text" so one review pass covers every Arabic line. -->
-<script src="../afd-core.js?v=b1111c"></script>
-<script src="../afd-instance.js?v=b1111c"></script>
-<script src="../afd-prompts.js?v=b1111c"></script>
+<script src="../afd-core.js?v=b1111d"></script>
+<script src="../afd-instance.js?v=b1111d"></script>
+<script src="../afd-prompts.js?v=b1111d"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { startAppCheck } from "../afd-appcheck.js?v=b1111c";
+import { startAppCheck } from "../afd-appcheck.js?v=b1111d";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -284,7 +285,7 @@ const IDB = (()=>{
 })();
 
 const $ = id => document.getElementById(id);
-const state = { i:0, tab:"record", recorded:new Set(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null, week:null };
+const state = { i:0, tab:"record", recorded:new Set(), recordedMeta:new Map(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null, week:null };
 
 /* ---- tabs and links ----
    #record / #review open a tab; #R1, #A3 … open a section at its first item, so
@@ -414,6 +415,10 @@ async function loadProgress(db){
     snap.forEach(d => { const x = d.data() || {};
       if(x.status !== "recorded") return;
       state.recorded.add(d.id);
+      // Remember the text this take was recorded against and which phone made it,
+      // so a line whose wording has since drifted can be flagged for re-recording
+      // and a replace by a DIFFERENT phone can ask first (decision #1 guard).
+      state.recordedMeta.set(d.id, { en: x.intent||"", ar: x.intentAr||"", by: x.by||"" });
       const t = x.recordedAt && typeof x.recordedAt.toMillis === "function" ? x.recordedAt.toMillis() : 0;
       if(t > weekAgo){ lines++; if(x.by) people.add(x.by); }
     });
@@ -493,6 +498,17 @@ const TABNOTE = {
   review: '<b>اقرأ النصّ العربيّ، واقترح كيف يكتبه أهل ظفار.</b><small>Read the Arabic on the app\'s screens, and suggest how a Dhofari speaker would put it. Nothing changes until Marty approves it.</small>'
 };
 
+/* A kept take stores the text it was recorded against (intent = English,
+   intentAr = Arabic). If the string has since been reworded, the recording no
+   longer matches it — flag the line for re-recording. Legacy takes stored only
+   English, so Arabic drift is only checked when intentAr is present. */
+function textDrifted(it){
+  const m = state.recordedMeta.get(it.key); if(!m) return false;
+  if(m.en && m.en !== (it.en||"")) return true;
+  if(m.ar && m.ar !== (it.ar||"")) return true;
+  return false;
+}
+
 function render(){
   if(!ITEMS[state.i] || ITEMS[state.i].tab !== state.tab) state.i = firstOf(state.tab);
   $("tabRecord").setAttribute("aria-selected", state.tab==="record");
@@ -509,7 +525,10 @@ function render(){
   bits.push(isScreen(it) ? '<span class="badge b-tag">on-screen text · suggest only</span>'
           : it.kind==="narration" ? '<span class="badge b-narr">longer phrase</span>' : '<span class="badge b-label">short label</span>');
   if(it.tag) bits.push('<span class="badge b-tag">'+it.tag+'</span>');
+  const drifted = state.recorded.has(it.key) && textDrifted(it);
+  if(drifted) bits.push('<span class="badge b-redo">✎ text changed · re-record</span>');
   $("cur-hint").innerHTML = bits.join("") + (it.kind==="narration" ? '<div style="margin-top:8px">Take your time — a quiet room helps.</div>' : "")
+    + (drifted ? '<div style="margin-top:8px;color:var(--warm)">النصّ تغيّر منذ التسجيل — سجّله من جديد.<br><small>The wording changed since this was recorded — please record it again.</small></div>' : "")
     + (isScreen(it) && /\{[a-z]+\}/.test(it.ar||"")
         ? '<div style="margin-top:8px">اترك ما بين الأقواس { } كما هو — يُستبدَل تلقائيًا بالاسم أو الرقم.<br><small>Keep anything in { } exactly as it is — the app fills in a name or number there.</small></div>' : "");
   $("cur-key").textContent = it.num+"  ·  "+it.key;
@@ -598,6 +617,7 @@ function renderList(){
         '<div class="rowtext"><div class="g">'+escHtml(it.en)+'</div>'+
           (it.ar ? '<div class="a'+(it.ar.startsWith("[توجيه]")?' dir':'')+'">'+escHtml(it.ar)+'</div>' : '')+
           '<div class="k">'+it.key+'</div></div>'+
+        (done && textDrifted(it) ? '<span class="sug" title="Text changed since recorded — re-record">✎</span>' : '')+
         (suggestedSet().has(it.key) ? '<span class="sug" title="You suggested an edit">✍️</span>' : '');
       row.onclick = ()=>{ state.i = gi; render(); window.scrollTo({top:0,behavior:"smooth"}); };
       row.title = it.num;
@@ -712,6 +732,10 @@ $("delactive").onclick = async ()=>{
 async function keepTake(key, blob){
   state.pending.set(key, blob);
   state.recorded.add(key);
+  // This take now matches the current text and is ours, so clear any drift flag
+  // and stop a replace-confirm from firing on our own re-record.
+  const kit = ITEMS.find(x=>x.key===key);
+  if(kit) state.recordedMeta.set(key, { en: kit.en||"", ar: kit.ar||"", by: state.uid||"" });
   try{ await IDB.put({ key, blob }); }catch(_){}
   renderList();
   syncPending();
@@ -720,6 +744,14 @@ async function keepTake(key, blob){
 $("keep").onclick = async ()=>{
   const it = ITEMS[state.i];
   if(!state.blob) return;
+  // Decision #1 guard: this line already has a recording from ANOTHER phone, and
+  // keeping overwrites the one file for this prompt. Ask first, so a helper's take
+  // can't vanish without anyone knowing. (Your own earlier take replaces silently —
+  // that's a redo. Keeping every take as history is the fuller follow-up.)
+  const m = state.recordedMeta.get(it.key);
+  if(m && m.by && state.uid && m.by !== state.uid && !state.pending.has(it.key)){
+    if(!window.confirm("هذا السطر مُسجَّل بالفعل من جهازٍ آخر. هل تستبدله؟\n\nThis line already has a recording from another phone. Replace it?")) return;
+  }
   const blob = state.blob; state.blob = null;
   $("keep").disabled = true;
   await keepTake(it.key, blob);
@@ -741,7 +773,7 @@ async function syncPending(){
       const it = ITEMS.find(x=>x.key===key) || {};
       await uploadBytes(ref(state.store, "afd_ui/"+key+".webm"), blob, { contentType: blob.type || "audio/webm" });
       await setDoc(doc(state.db,"afd_ui_prompts",key), {
-        key, intent: it.en||"", kind: it.kind||"label", section: it.section||"",
+        key, intent: it.en||"", intentAr: it.ar||"", kind: it.kind||"label", section: it.section||"",
         status:"recorded", storagePath:"afd_ui/"+key+".webm", by: state.uid || "",
         contentType: blob.type||"audio/webm", recordedAt: serverTimestamp()
       }, { merge:true });
