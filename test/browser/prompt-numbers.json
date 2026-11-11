@@ -829,6 +829,19 @@
   "A11.262": "screen:lang.pill.ar",
   "A11.263": "screen:lang.pill.en",
   "A11.264": "screen:note.lang.change",
-  "A11.265": "screen:note.lang.fail"
+  "A11.265": "screen:note.lang.fail",
+  "A11.266": "screen:who.title",
+  "A11.267": "screen:who.note",
+  "A11.268": "screen:who.start",
+  "A11.269": "screen:cg.title",
+  "A11.270": "screen:cg.ask",
+  "A11.271": "screen:cg.agent",
+  "A11.272": "screen:cg.keep",
+  "A11.273": "screen:cg.decline",
+  "A11.274": "screen:cg.needsignin",
+  "A11.275": "screen:cg.needspoken",
+  "A11.276": "screen:fs.title",
+  "A11.277": "screen:fs.ask",
+  "A11.278": "screen:fs.later"
  }
 }

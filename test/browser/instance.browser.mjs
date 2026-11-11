@@ -24,7 +24,7 @@ const read = (page)=> page.evaluate(()=>{
   return {
     ids: ["spkTown","spkTribe","spkAge","spkGender"].filter(id=>q(id)),
     towns: [...document.querySelectorAll("datalist option")].map(o=>o.value),
-    halfRows: document.querySelectorAll("#setup .row .field").length,
+    halfRows: document.querySelectorAll("#spkDetails .row .field").length,
     noteShown: !!document.querySelector('[data-str="speaker.nodialect"]'),
   };
 });
