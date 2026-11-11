@@ -42,18 +42,18 @@ body{background:radial-gradient(120% 80% at 50% -10%, #F3F7F5 0%, var(--fog) 55%
 
 /* bilingual labels: Arabic leads; the English line shows only in the "auto" tier */
 .bi-ar{display:block}
-.sub{display:block; font-size:.78em; opacity:.72; margin-top:2px; direction:ltr}
+.sub{display:block; font-size:13px; opacity:.72; margin-top:2px; direction:ltr}
 body:not([data-tier="auto"]) .sub{display:none}
 
 header{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:12px;
   padding:calc(12px + env(safe-area-inset-top)) 16px 12px; background:#F3F7F5;
   box-shadow:0 2px 10px rgba(31,58,52,.05); color:var(--mountain)}
-.home{height:30px; display:inline-flex; color:var(--ink)}
-.home svg{height:100%; width:auto}
+.home{min-width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; color:var(--ink)}
+.home svg{height:30px; width:auto}
 header h1{font-size:17px; margin:0; flex:1; line-height:1.2; text-align:center}
-header h1 .sub{font-size:12px}
+header h1 .sub{font-size:13px}
 /* the display button — same control, icons and caption as the dictionary header */
-.skin{width:42px; height:42px; flex:0 0 auto; border-radius:50%; border:1px solid var(--mist-2);
+.skin{width:44px; height:44px; flex:0 0 auto; border-radius:50%; border:1px solid var(--mist-2);
   background:var(--cloud); color:var(--mountain); display:grid; place-items:center; cursor:pointer;
   box-shadow:0 2px 8px rgba(31,58,52,.10); margin-bottom:12px}
 .skin svg{width:20px; height:20px}
@@ -61,6 +61,10 @@ header h1 .sub{font-size:12px}
 .acct.in{background:var(--mountain); color:#fff; border-color:var(--mountain)}
 .acct:not(.in){color:var(--mist-2); box-shadow:none}
 .skin .lbl{font-family:"Iowan Old Style",Palatino,Georgia,serif; font-size:18px; line-height:1}
+.help-btn{width:44px; height:44px; flex:0 0 auto; border-radius:50%; border:1px solid var(--mist-2);
+  background:var(--cloud); color:var(--mountain); display:inline-flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10); text-decoration:none}
+.help-btn:focus-visible{outline:2px solid var(--mountain); outline-offset:3px}
 .capd{position:relative}
 .capd::after{content:attr(data-cap); position:absolute; top:calc(100% + 4px); left:50%; transform:translateX(-50%);
   font:500 10.5px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#6F8A81; white-space:nowrap;
@@ -162,8 +166,8 @@ details summary::-webkit-details-marker{display:none}
 .linkbtn{background:none; border:0; padding:0; font:inherit; color:var(--mountain); text-decoration:underline; cursor:pointer}
 /* 11-10: leaving Add on purpose — back to the dictionary (keeps the word), or throw it away (asks) */
 .leave{display:flex; flex-direction:column; align-items:center; gap:14px; margin:26px 0 6px}
-.leave .linkbtn{display:flex; flex-direction:column; align-items:center; text-align:center; text-decoration:none; font-size:15px}
-.leave .linkbtn .sub{font-size:12px}
+.leave .linkbtn{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; text-decoration:none; font-size:15px; min-height:44px; padding:6px 10px}
+.leave .linkbtn .sub{font-size:13px}
 .leave .linkbtn.danger{color:var(--danger); opacity:.85}
 .trlabel{display:flex; align-items:baseline; gap:6px; margin:2px 0 6px}
 .trlabel .lang-pill{margin:0; font-size:12px}
@@ -174,8 +178,6 @@ details summary::-webkit-details-marker{display:none}
 .err{color:var(--danger); font-size:14px; text-align:center; margin:0; min-height:1em}
 a{color:var(--mountain)}
 a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-content:center; text-decoration:none; text-align:center}
-.buildstamp{text-align:center; padding:28px 0 0; font-size:11px; letter-spacing:.12em;
-  text-transform:uppercase; color:var(--mist)}
 .big-thanks{font-size:56px; text-align:center; line-height:1}
 </style>
 </head>
@@ -185,6 +187,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
   <a class="home" href="index.html" aria-label="Home — the dictionary" title="Home"><svg viewBox="569 239 909 1568" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" d="M585 912 L586 1124 L747 1651 L785 1791 L1260 1791 L1461 1125 L1462 912 L1439 912 L1349 1071 L697 1071 L612 912ZM1042 255 L1034 261 L1010 286 L994 307 L982 326 L972 345 L965 362 L959 383 L957 403 L956 404 L956 429 L957 430 L957 438 L962 463 L974 496 L998 542 L1006 562 L1012 585 L1013 612 L1014 613 L1009 637 L1002 656 L993 674 L972 707 L958 735 L954 747 L950 767 L951 802 L959 832 L972 859 L985 879 L998 896 L1012 912 L1021 920 L1007 880 L1002 861 L998 840 L997 814 L998 813 L998 805 L1000 795 L1006 778 L1016 758 L1033 730 L1045 707 L1056 674 L1057 661 L1058 660 L1057 632 L1053 612 L1045 590 L1046 589 L1061 610 L1077 643 L1085 673 L1086 703 L1087 704 L1085 708 L1083 727 L1074 757 L1061 788 L1050 809 L1056 806 L1064 799 L1087 775 L1100 759 L1115 736 L1115 734 L1117 733 L1128 711 L1137 686 L1141 668 L1142 649 L1143 648 L1142 624 L1141 623 L1140 611 L1134 587 L1129 574 L1119 554 L1103 529 L1069 485 L1051 458 L1037 432 L1027 405 L1021 376 L1021 365 L1020 364 L1021 336 L1022 335 L1024 315 L1029 293 L1035 274 L1042 258Z"/></svg></a>
   <h1 data-k="add.title"></h1>
   <button class="skin capd" id="skin" type="button" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
+  <a class="help-btn" id="helpBtn" href="help.html" aria-label="مساعدة · Help" title="Help"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.6 2.3-2.6 4"/><path d="M12 17.4h.01"/></svg></a>
   <!-- who's signed in, at a glance (the dictionary's "حسابي" button) -->
   <button class="skin capd acct" id="acct" type="button" data-cap="حسابي" aria-label="Account"></button>
 </header>
@@ -343,8 +346,6 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
     <a class="linkbtn" id="leaveBtn" href="index.html" data-k="add.leave"></a>
     <button class="linkbtn danger" id="discardBtn" type="button" data-k="add.discard" hidden></button>
   </div>
-
-  <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 </main>
 
 <script type="module">
@@ -441,12 +442,6 @@ function plain(key, vars){
 }
 function paintStrings(root){ (root||document).querySelectorAll("[data-k]").forEach(el=>{ el.innerHTML = bi(el.dataset.k); }); }
 paintStrings();
-// Build stamp: the ?v= that sync-stamp.sh writes on every publish, read back off
-// this page's own afd-core.js tag, so it can never disagree with what's loaded.
-try{
-  const v = new URL(document.querySelector('script[src*="afd-core.js"]').src).searchParams.get("v");
-  if(v) $("buildStamp").textContent = "build " + v;
-}catch(_){}
 $("whoNote").innerHTML = bi("add.share.who");
 $("notYou").innerHTML = bi("add.share.notyou");
 $("draftText").innerHTML = bi("add.draft");

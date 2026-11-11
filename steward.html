@@ -57,12 +57,12 @@
   .lead{font-size:13px; color:var(--muted); margin-bottom:14px;}
   /* Arabic + English (afd-tools.js): Arabic first, English under it in blocks,
      beside it in buttons, tabs and badges. Arabic only: the page turns RTL. */
-  .t-ar{display:block}
-  .t-en{display:block; opacity:.72; font-size:.92em}
+  .t-ar{display:block; font-size:max(13px,1em)}
+  .t-en{display:block; opacity:.72; font-size:max(13px,.92em)}
   :is(.btn,.tab,.badge,.nav,a.small,.who,.meta,.covpick,.cov h3) :is(.t-ar,.t-en){display:inline}
   :is(.btn,.tab,.badge,.nav,a.small,.who,.meta,.covpick,.cov h3) .t-en::before{content:" · "}
   a.back::before{content:"← "} html[dir="rtl"] a.back::before{content:"→ "}
-  .t-switch{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:20px; padding:4px 11px; font-size:12px; cursor:pointer; white-space:nowrap}
+  .t-switch{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:20px; padding:4px 14px; min-height:44px; font-size:13px; cursor:pointer; white-space:nowrap}
   .navrow{display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px}
   .navrow .nav{margin-bottom:0}
   html[dir="rtl"] .who{text-align:left}
@@ -72,7 +72,7 @@
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:12px;}
   .card h2{font-size:15px; margin:0 0 2px;}
   .btnrow{display:flex; flex-wrap:wrap; gap:8px;}
-  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:9px 13px; font-size:14px; cursor:pointer;}
+  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:9px 13px; min-height:44px; font-size:14px; cursor:pointer;}
   .btn.primary{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
   .btn.danger{border-color:var(--stop); color:var(--stop);}
   .btn:disabled{opacity:.5; cursor:default;}
@@ -84,7 +84,7 @@
   .who{font-size:12px; color:var(--muted); text-align:right;}
   a.small{font-size:12px; color:var(--accent);}
   .tip{font-size:12px; color:var(--muted); margin-top:12px; line-height:1.45;}
-  .nav{font-size:12px; color:var(--muted); margin-bottom:10px;}
+  .nav{font-size:13px; color:var(--muted); margin-bottom:10px;}
   .nav a{color:var(--accent);}
 
   .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;}
@@ -117,7 +117,7 @@
   .flagrow{display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:13px; padding:6px 8px; border-radius:10px; background:var(--bg)}
   .flagrow .ic{font-size:20px; line-height:1}
   .flagrow .meta{margin:0}
-  .flagrow .btn{padding:4px 9px; font-size:12px}
+  .flagrow .btn{padding:4px 9px; font-size:13px}
   .flagrow.done{opacity:.6}
   .compose{margin-top:10px; padding:12px; border:1px dashed var(--line); border-radius:12px}
   .compose .picks{display:flex; gap:6px; flex-wrap:wrap; margin-top:6px}
