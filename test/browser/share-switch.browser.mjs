@@ -16,7 +16,7 @@ const FS = {
   "afd_entries/ent_sun/recordings/rPriv": take("rPriv", { consent:"public", allowPlayback:false, type:"context" }),   // uploaded while the box was unticked
   "afd_entries/ent_sun/recordings/rGone": take("rGone", { consent:"deleted", allowPlayback:false, type:"definition" }),
 };
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const states = (page)=> page.evaluate(()=> Object.fromEntries(["rPub","rPriv","rGone"].map(id=>{
   const r = globalThis.__FS["afd_entries/ent_sun/recordings/"+id]; return [id, (r.allowPlayback?"on":"off")+"/"+r.consent]; })));
 // 10-17: the question is asked in the page (AFDCore.ask), not with confirm()

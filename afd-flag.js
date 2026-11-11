@@ -93,7 +93,7 @@ function lab(key, mode, withIcon, vars){
   if(mode === "sound") return esc(s.icon || fill(s.ar || key));
   const ic = withIcon && s.icon ? esc(s.icon) + " " : "";
   let h = `<span dir="rtl">${ic}${esc(fill(s.ar || s.en || key))}</span>`;
-  if(mode === "auto" && s.en && s.en !== s.ar) h += `<small class="sub">${esc(fill(s.en))}</small>`;
+  if(mode === "bridge" && s.en && s.en !== s.ar) h += `<small class="sub">${esc(fill(s.en))}</small>`;
   return h;
 }
 
@@ -187,7 +187,7 @@ export function audioExt(b){ return /mp4|aac|m4a/.test((b && b.type) || "") ? "m
    ago — the report still goes, queued without a hold.
    Resolves "held" | "queued" | "already" | null (closed, or not signed in). */
 export async function reportSheet(o){
-  const m = o.mode || "auto";
+  const m = o.mode || "bridge";
   const u = o.user && o.user();
   if(!u || u.isAnonymous){ C().notice("flag.signin", { mode:m }); return null; }
   const flagId = flagIdFor(o.entryId, o.kind === "voice" ? o.recordingId : null, u.uid);
@@ -199,7 +199,7 @@ export async function reportSheet(o){
     const w = document.createElement("div");
     w.className = "afd-flag"; w.setAttribute("role", "dialog"); w.setAttribute("aria-modal", "true");
     w.innerHTML = `<div class="fl-panel">
-      <button class="fl-x" type="button" aria-label="${esc(C().t("flag.cancel", "auto"))}">✕</button>
+      <button class="fl-x" type="button" aria-label="${esc(C().t("flag.cancel", "bridge"))}">✕</button>
       ${o.face ? `<div class="fl-face">${o.face}</div>` : ""}
       <h2>${lab(o.kind === "voice" ? "flag.title.voice" : "flag.title.card", m)}</h2>
       <div class="fl-grid">${REASONS.map(r => `<button class="fl-tile" type="button" data-r="${r}" aria-pressed="false">
@@ -210,7 +210,7 @@ export async function reportSheet(o){
         <button class="fl-go" type="button" disabled>${lab("flag.send", m, true)}</button>
         <button class="fl-no" type="button">${lab("flag.cancel", m, true)}</button>
       </div></div>`;
-    if(m === "sound") w.querySelectorAll(".fl-tile").forEach(b => b.setAttribute("aria-label", C().t("flag.r." + b.dataset.r, "auto")));
+    if(m === "sound") w.querySelectorAll(".fl-tile").forEach(b => b.setAttribute("aria-label", C().t("flag.r." + b.dataset.r, "bridge")));
     let reason = null, done = false, hasNote = false;
     const go = w.querySelector(".fl-go");
     // Send opens with a picture picked or a reason spoken (a spoken reason on
@@ -301,7 +301,7 @@ export async function checkNotices(o){
   }
 }
 async function showNotice(o, n){
-  const m = (o.mode && o.mode()) || "auto", d = n.d;
+  const m = (o.mode && o.mode()) || "bridge", d = n.d;
   addCss();
   // the word it's about: its picture, else the identicon
   let face = C().identicon ? C().identicon(d.entryId || "") : "";

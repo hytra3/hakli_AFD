@@ -16,7 +16,7 @@ const FS = {
   "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس", pic:"☀️" },
   "afd_entries/ent_u_abc": { source:"user", createdBy:"uAnna", glossAr:"قهوة", pic:"☕" },
 };
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 // a tiny real PNG, so the page's canvas re-encode has something to draw
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DwHwyBNBgwMDAwAAD/7wf5cCRYnwAAAABJRU5ErkJggg==", "base64");
 const thumbOf = (page, id)=> page.evaluate((id)=>{ const t=document.querySelector(`.thumb[data-entry="${id}"]`);

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -58,7 +58,7 @@ body{
 #setup > .stepdots, #miccheck > .stepdots, #setup > .brand{display:none}
 /* Display tier on steps 1–2: those screens are forms and can't go wordless, so
    "script" and "sound" both mean Arabic only — the English subtitle lines drop. */
-body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
+body:not([data-tier="bridge"]) :is(#setup,#miccheck) .sub{display:none}
 /* ---------- brand mark ---------- */
 .brand{display:flex;align-items:center;gap:10px;margin:2px 0 16px;color:var(--mountain)}
 .brand svg{width:auto;height:32px;flex:0 0 auto}
@@ -68,8 +68,8 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
   margin:0 -16px 8px;padding:calc(12px + env(safe-area-inset-top)) 16px 14px;
   background:#F3F7F5;box-shadow:0 2px 10px rgba(31,58,52,.05)}
 .rec-left{display:flex; align-items:center; gap:12px; min-width:0}
-.rec-home{width:auto; height:32px; flex:0 0 auto; display:inline-flex; align-items:center; cursor:pointer; color:var(--ink)}  /* was link blue/visited purple */
-.rec-home svg{height:100%; width:auto; display:block}
+.rec-home{width:auto; min-width:44px; height:44px; flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink)}  /* was link blue/visited purple */
+.rec-home svg{height:30px; width:auto; display:block}
 .rec-topbar .stepdots{margin-bottom:0; cursor:pointer; display:flex; align-items:center; gap:4px; min-width:0}
 .rec-topbar .stepdots.is-static{cursor:default}
 #progress{display:inline-block; min-width:0}
@@ -91,7 +91,7 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
 .fromchip .fc-t{display:flex;flex-direction:column;align-items:flex-start;min-width:0;line-height:1.12}
 .fromchip .fc-ar{font-family:var(--serif);font-size:15px}
 .fromchip .fc-en{font-family:var(--sans);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:1px}
-.account{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
+.account{width:44px;height:44px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
   background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;overflow:hidden}
 .account.in{background:var(--mountain);color:#fff;border-color:var(--mountain)}
 .account .acct-initial{font:600 16px/1 system-ui,sans-serif}
@@ -119,7 +119,7 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
 .sharechip.pub{color:#2E6B4F;border-color:#B9D8C6;background:#EEF6F1}
 .sharechip.priv{color:#8A5A1E;border-color:var(--frank-soft);background:#FBF3E8;cursor:pointer}
 .sharechip .bi-ar{font-size:13px}
-.sharechip .sub{font-size:11px}
+.sharechip .sub{font-size:13px}
 .topbtns{display:flex;gap:8px;align-items:center}
 /* Small Arabic captions under the round header icons — a first-time visitor
    couldn't tell what the page / waveform / person icons did. Arabic in every
@@ -129,7 +129,7 @@ body:not([data-tier="auto"]) :is(#setup,#miccheck) .sub{display:none}
   font:500 10.5px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:#6F8A81; white-space:nowrap;
   pointer-events:none; letter-spacing:0; direction:rtl}
 
-.dispskin{width:42px;height:42px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
+.dispskin{width:44px;height:44px;flex:0 0 auto;border-radius:50%;border:1.5px solid var(--hairline);
   background:var(--paper);color:var(--mountain);display:grid;place-items:center;cursor:pointer;padding:0;
   text-decoration:none}
 .dispskin svg{width:20px;height:20px}
@@ -182,13 +182,13 @@ label.field{display:block;margin:14px 0 0}
 label.field span{display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:var(--ink)}
 /* bilingual entry chrome — Arabic primary + English subtitle (unconditional) */
 .bi-ar{font-family:var(--sans)}
-.sub{display:block;font-family:var(--sans);font-weight:400;font-size:11.5px;line-height:1.35;color:var(--ink-soft);direction:ltr;margin-top:3px;text-transform:none;letter-spacing:normal;font-style:normal}
+.sub{display:block;font-family:var(--sans);font-weight:400;font-size:13px;line-height:1.35;color:var(--ink-soft);direction:ltr;margin-top:3px;text-transform:none;letter-spacing:normal;font-style:normal}
 h1 .sub{font-size:15px}
 .btn .sub{text-align:center}
 .btn:not(.secondary):not(.ghost) .sub{color:rgba(255,255,255,.85)}
-.check .sub{font-size:11px}
-.check .note-sm{display:block;font-size:12px;opacity:.75;margin-top:4px}
-.stepdots .sub{display:inline;margin:0;font-size:10px}
+.check .sub{font-size:13px}
+.check .note-sm{display:block;font-size:13px;opacity:.75;margin-top:4px}
+.stepdots .sub{display:inline;margin:0;font-size:13px}
 .rec .sub, #wdRecBtn .sub{color:rgba(255,255,255,.88)}
 /* Long Arabic NOTES read as proper RTL paragraphs (right-aligned); the English
    subtitle keeps its own LTR, left-aligned flow — standard bilingual convention.
@@ -243,8 +243,8 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .gloss-ar{font-size:23px;font-weight:400;color:var(--ink-soft);margin:3px 0 0;direction:rtl}
 .instruction{font-size:15px;line-height:1.45;color:var(--ink);margin:0}
 .instruction .bi-ar{display:block;direction:rtl;font-size:16px}
-.instruction .sub{text-align:center;font-size:12.5px}
-.counter{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em}
+.instruction .sub{text-align:center;font-size:13px}
+.counter{font-family:var(--mono);font-size:13px;color:var(--ink-soft);letter-spacing:.1em}
 
 /* ---------- signature: silhouette strip ---------- */
 .silhouette{
@@ -322,15 +322,15 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 .sync.pend{background:#FBF0E2;color:#7A4A11}
 #roster{margin:2px 0 12px}
 #roster .roster-row.current b::after{content:"•";color:var(--frank);margin-inline-start:6px}
-#roster .wd{padding:6px 12px;font-size:12px;background:transparent;border:1px solid var(--hairline);color:var(--ink-soft);border-radius:10px}
+#roster .wd{padding:6px 12px;font-size:13px;background:transparent;border:1px solid var(--hairline);color:var(--ink-soft);border-radius:10px}
 #roster .roster-row.withdrawn{opacity:.55}
-.stepdots{font-family:var(--mono);font-size:11px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:14px}
+.stepdots{font-family:var(--mono);font-size:13px;color:var(--ink-soft);letter-spacing:.1em;margin-bottom:14px}
 /* Arabic must never be letter-spaced — tracking pulls the joined letters apart
    (the step label read as disconnected glyphs). The mono + tracking stays on the
    English line only. */
-.sil-label.is-ar{letter-spacing:0;font-family:var(--sans);font-size:12px}
+.sil-label.is-ar{letter-spacing:0;font-family:var(--sans);font-size:13px}
 .stepdots .bi-ar{display:block;font-family:var(--sans);font-size:13px;letter-spacing:0;line-height:1.3}
-.stepdots .sub{font-family:var(--mono);font-size:10px;letter-spacing:.1em;margin-top:1px}
+.stepdots .sub{font-family:var(--mono);font-size:13px;letter-spacing:.1em;margin-top:1px}
 .bi-ar,[dir="rtl"]{letter-spacing:0}
   /* The shared entry card now carries the picture, word and voices, so the
      recorder's own picture / gloss / "hear others" line is redundant — hide it,
@@ -843,7 +843,7 @@ if(CONFIGURED) onAuthStateChanged(auth, raw=>{
 
 // The sign-in controls (afd-signin.js, shared with Add and the dictionary).
 // Labels in the recorder's own bilingual style (biHTML, defined further down).
-const biLabel = (k)=> (typeof window.biHTML === "function" ? window.biHTML(k) : AFDCore.tHTML(k, "auto"));
+const biLabel = (k)=> (typeof window.biHTML === "function" ? window.biHTML(k) : AFDCore.tHTML(k, "bridge"));
 if(CONFIGURED){
   mountSignIn($("signinHost"), { auth, label: biLabel, text: (k)=> (typeof window.tBi === "function" ? window.tBi(k) : k),
     showError: (h)=>{ const e=$("authErr"); if(e) e.innerHTML = h || ""; } });
@@ -918,7 +918,7 @@ window.AFD = {
    current word. The capture loop below is untouched. mode reads from AFDCore so it
    tracks the display-tier toggle; user/db/store are the recorder's own handles. */
 initCard({ db, store, recorderUrl:"recorder.html",
-           mode:()=>AFDCore.getDisplayMode("sound"),   // match the recorder's own default (was "auto" → English card labels inside a wordless page)
+           mode:()=>AFDCore.getDisplayMode("sound"),   // match the recorder's own default (was "bridge" → English card labels inside a wordless page)
            user:()=>currentUser,
            banner:(m)=>{ AFDCore.notice({ text:m }, { mode:dispMode }); } });   // in the page, not alert() (10-17)
 window.AFD.withdrawSpeaker = withdrawSpeaker;
@@ -1772,7 +1772,7 @@ function paintStepHeader(which){
   if(!src) return;
   const ar=src.querySelector(".bi-ar"), en=src.querySelector(".sub");
   $("progress").innerHTML='<span class="bi-ar" dir="rtl">'+(ar?ar.innerHTML:"")+'</span>'+
-    (dispMode==="auto" && en ? '<small class="sub">'+en.innerHTML+'</small>' : '');
+    (dispMode==="bridge" && en ? '<small class="sub">'+en.innerHTML+'</small>' : '');
 }
 /* The step readout is a breadcrumb back to the speaker step (from 2 and 3), so a
    fast-pathed session (which lands straight on step 3) can still reach 1 and 2. */
@@ -2003,14 +2003,14 @@ function renderPrompt(){
   else if(w.pic){ $("picto").textContent=w.pic; } else { $("picto").innerHTML=AFDCore.identicon(entryIdFor(w.id)); }
   // Display tier: auto = English + Arabic · script = Arabic only · sound = neither
   // (the picture + audio carry it). Empty lines get hidden so they leave no gap.
-  const enText = (dispMode==="auto") ? w.en : "";
-  const arText = (dispMode==="auto"||dispMode==="script") ? w.ar : "";
+  const enText = (dispMode==="bridge") ? w.en : "";
+  const arText = (dispMode==="bridge"||dispMode==="script") ? w.ar : "";
   $("glossEn").textContent=enText; $("glossEn").classList.toggle("hidden",!enText);
   $("glossAr").textContent=arText; $("glossAr").classList.toggle("hidden",!arText);
   // Audio buttons: words for readers (auto / script), friendly icons for non-readers (sound)
   const wordless = (dispMode==="sound");
   // English audio is for the English tier only — hidden in sound AND script.
-  $("playGloss").classList.toggle("hidden", dispMode!=="auto" || !w.en);   // nothing to speak on a user-created entry (no English gloss yet)
+  $("playGloss").classList.toggle("hidden", dispMode!=="bridge" || !w.en);   // nothing to speak on a user-created entry (no English gloss yet)
   $("playGloss").innerHTML  = '▶ '+AFDCore.tHTML("action.hear.word",dispMode);
   $("hearOthers").innerHTML = wordless ? '<span class="bicon" role="img" aria-label="Hear how others said it">🗣️</span>'
                                        : AFDCore.tHTML("action.hear.others",dispMode);
@@ -2048,11 +2048,11 @@ function renderPrompt(){
   const f=()=>el.classList.toggle("is-ar", /[\u0600-\u06FF]/.test(el.textContent||""));
   new MutationObserver(f).observe(el,{childList:true,characterData:true,subtree:true}); f(); })();
 
-// Bilingual text helpers for the session area. Short badges in the "auto" tier
+// Bilingual text helpers for the session area. Short badges in the "bridge" tier
 // read "Arabic · ENGLISH"; pop-ups read Arabic, then English on the next line.
 // Other tiers get Arabic alone (AFDCore.t already does that). {x} fills vars.
 /* Bilingual chrome from a STRINGS key — Arabic line + English .sub (the .sub is
-   hidden outside "auto" by CSS on steps 1–2). */
+   hidden outside "bridge" by CSS on steps 1–2). */
 function biHTML(key, vars){
   const x=(AFDCore.STRINGS||{})[key]||{en:key,ar:key}, f=(t)=>fill(t,vars||{});
   const esc=(t)=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
@@ -2064,17 +2064,17 @@ function verdictHTML(tKey, bKey, vars){
 function fill(str, vars){ let o=String(str); for(const k in (vars||{})) o=o.split("{"+k+"}").join(vars[k]); return o; }
 function tBi(key, vars){
   const s=(AFDCore.STRINGS||{})[key];
-  if(dispMode!=="auto" || !s || !s.ar) return fill(AFDCore.t(key, dispMode), vars);
+  if(dispMode!=="bridge" || !s || !s.ar) return fill(AFDCore.t(key, dispMode), vars);
   return fill(s.ar, vars)+" · "+fill(s.en, vars);
 }
 function tMsg(key, vars){
   const s=(AFDCore.STRINGS||{})[key];
-  if(dispMode!=="auto" || !s || !s.ar) return fill(AFDCore.t(key, dispMode), vars);
+  if(dispMode!=="bridge" || !s || !s.ar) return fill(AFDCore.t(key, dispMode), vars);
   return fill(s.ar, vars)+"\n"+fill(s.en, vars);
 }
 
 // Step 3 / listening label: Arabic first ("الكلمة ١ من ٤٠"), English line only
-// in the "auto" tier — the same convention as tHTML. Was English-only.
+// in the "bridge" tier — the same convention as tHTML. Was English-only.
 // leadKey: a STRINGS key for what goes in front ("record.progress.listening"),
 // or "" to use enLead alone (step 3 has no Arabic lead, only "STEP 3 / 3").
 function setProgress(leadKey, enLead, recording){
@@ -2083,7 +2083,7 @@ function setProgress(leadKey, enLead, recording){
   const ar=(lead&&lead.ar?lead.ar+" · ":"")+fill(w.ar, { i:n(idx+1), n:n(WORDS.length) });
   const en=(lead?lead.en:enLead)+" · "+fill(w.en, { i:idx+1, n:WORDS.length });
   const el=$("progress"); if(!el) return;
-  el.innerHTML='<span class="bi-ar" dir="rtl">'+ar+'</span>'+(dispMode==="auto"?'<small class="sub">'+en+'</small>':'');
+  el.innerHTML='<span class="bi-ar" dir="rtl">'+ar+'</span>'+(dispMode==="bridge"?'<small class="sub">'+en+'</small>':'');
 }
 
 // the ONE place an id is derived
@@ -2112,7 +2112,7 @@ function instrHTML(text){ return rosterEsc(text||"").replace(/\*([^*]+)\*/g,"<b>
    non-English tiers, rendered in Arabic (Marty: "Arabic or visual hint"). The
    emoji picture is the constant visual anchor across all tiers. */
 const DISP_MODES=AFDCore.DISP_MODES;
-let dispMode=AFDCore.getDisplayMode("sound");   // shared setting; recorder now defaults to sound (audio-first), matching find — English only if a user picks "auto"
+let dispMode=AFDCore.getDisplayMode("sound");   // shared setting; recorder now defaults to sound (audio-first), matching find — English only if a user picks "bridge"
 function setDispMode(m){ dispMode=m; AFDCore.setDisplayMode(m); document.body.setAttribute("data-tier", m); paintFormTier(); }
 document.body.setAttribute("data-tier", dispMode);
 /* Form text that can't hold two lines — placeholders and <select> options —
@@ -2125,7 +2125,7 @@ function paintFormTier(){
   document.querySelectorAll("[data-str]").forEach(el=>{
     const x=S[el.dataset.str]; if(!x) return;
     const inList = el.parentElement && el.parentElement.tagName==="DATALIST";
-    const t = (dispMode==="auto" && !inList) ? x.ar+" · "+x.en : x.ar;
+    const t = (dispMode==="bridge" && !inList) ? x.ar+" · "+x.en : x.ar;
     if(el.tagName==="OPTION") el.textContent=t; else el.placeholder=t;
   });
 }
@@ -2144,12 +2144,12 @@ function paintStaticStrings(root){
 }
 paintStaticStrings();
 const DISP_ICON={
-  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  bridge:  `<span class="lbl" style="display:inline-flex;align-items:center;gap:1.5px;direction:ltr;line-height:1"><span>أ</span><span style="font-size:.72em">A</span></span>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10v-3a6 6 0 1 1 12 0v6a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3v-1a2 2 0 0 1 4 0"/><path d="M15 16a3 3 0 0 1 -3 3"/></svg>`,
   script:`<span class="lbl">أ</span>`
 };
-// The caption names the mode you're in (disp.auto / disp.script / disp.sound).
-function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.auto;
+// The caption names the mode you're in (disp.bridge / disp.script / disp.sound).
+function updateDispSkin(){ const b=$("dispSkin"); if(b) b.innerHTML=DISP_ICON[dispMode]||DISP_ICON.bridge;
   { const s=(AFDCore.STRINGS||{})["disp."+dispMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+dispMode); b.setAttribute("data-cap", s.ar); } } }
 function setRecType(t){
   recType=REC_TYPES.includes(t)?t:"word";
@@ -2169,7 +2169,7 @@ function setRecType(t){
       instr.classList.remove("rtl");
       const s=(AFDCore.STRINGS||{})[REC_INSTR_KEY[recType]] || { en:"", ar:"" };
       instr.innerHTML = '<span class="bi-ar" dir="rtl">'+instrHTML(s.ar)+'</span>'+
-                        (dispMode==="auto" ? '<small class="sub">'+instrHTML(s.en)+'</small>' : '');
+                        (dispMode==="bridge" ? '<small class="sub">'+instrHTML(s.en)+'</small>' : '');
     }
   }
 }
@@ -2233,7 +2233,7 @@ function paintFromChip(){
   const w=cameFrom.w||{};
   el.href="index.html#"+encodeURIComponent(cameFrom.entryId);
   const pic = w.image ? '<img src="'+rosterEsc(w.image)+'" alt="">' : w.pic ? rosterEsc(w.pic) : AFDCore.identicon(cameFrom.entryId);
-  const ar = dispMode!=="sound" ? (w.ar||"") : "", en = dispMode==="auto" ? (w.en||"") : "";
+  const ar = dispMode!=="sound" ? (w.ar||"") : "", en = dispMode==="bridge" ? (w.en||"") : "";
   el.innerHTML='<svg class="fc-back" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>'+
     '<span class="fc-pic">'+pic+'</span>'+
     ((ar||en) ? '<span class="fc-t">'+(ar?'<span class="fc-ar" dir="rtl">'+rosterEsc(ar)+'</span>':'')+(en?'<span class="fc-en">'+rosterEsc(en)+'</span>':'')+'</span>' : '');
@@ -2415,7 +2415,7 @@ function showReview(){
   recBtn.classList.add("hidden");        // nothing to collide with while reviewing
   $("skipBtn").classList.add("hidden");
   $("silLabel").textContent = isRepType(recType)
-    ? (dispMode==="auto" ? lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard"
+    ? (dispMode==="bridge" ? lastQC.bursts+" repetition"+(lastQC.bursts===1?"":"s")+" heard"
                          : lastQC.bursts+" "+AFDCore.t("unit.reps",dispMode))
     : AFDCore.t("status.recorded",dispMode);
   if(lastImported) $("silLabel").textContent=AFDCore.t("import.loaded",dispMode);
@@ -2980,7 +2980,7 @@ function sumLines(n, up, other){
   const S=AFDCore.STRINGS||{}, line=(lang)=>
     fill((S["session.summary"]||{})[lang]||"", {n, up}) +
     (other ? " "+fill((S["session.othermore"]||{})[lang]||"", {n:other}) : "");
-  if(dispMode!=="auto") return '<span dir="rtl" class="bi-ar">'+line("ar")+'</span>';
+  if(dispMode!=="bridge") return '<span dir="rtl" class="bi-ar">'+line("ar")+'</span>';
   return '<span dir="rtl" class="bi-ar" style="display:block">'+line("ar")+'</span>'+
          '<small class="sub">'+line("en")+'</small>';
 }
@@ -2992,7 +2992,7 @@ function renderClips(){
   const T=(k)=>tBi(k);                 // bilingual in auto, Arabic in the other tiers
   // The take's word: Arabic in the sound/script tiers (was always the English gloss).
   const arOf=(k)=>{ const w=(window.AFDWords||[]).find(x=>entryIdFor(x.id)===k.entryId); return w&&w.ar; };
-  const nameOf=(k)=>{ const ar=arOf(k); return dispMode==="auto" ? k.gloss+(ar?' · '+ar:'') : (ar||k.gloss); };
+  const nameOf=(k)=>{ const ar=arOf(k); return dispMode==="bridge" ? k.gloss+(ar?' · '+ar:'') : (ar||k.gloss); };
   // "Speaker doesn't know this word" taps stay saved (they go in the export) but
   // aren't listed: a column of "skipped" rows buried the real takes (10-14).
   if(!real.length){
@@ -3002,7 +3002,7 @@ function renderClips(){
       (S["session.norecordings"]||{})[lang] +
       (otherAcct ? " "+fill((S["session.otheracct"]||{})[lang]||"", {n:otherAcct}) : "");
     $("clips").innerHTML='<p class="note"><span dir="rtl" class="bi-ar" style="display:block">'+line("ar")+'</span>'+
-      (dispMode==="auto" ? '<small class="sub">'+line("en")+'</small>' : '')+'</p>';
+      (dispMode==="bridge" ? '<small class="sub">'+line("en")+'</small>' : '')+'</p>';
     return;
   }
   $("clips").innerHTML=mine.map((k,n)=>({k,n})).filter(x=>!x.k.skipped).reverse().map(({k,n})=>{

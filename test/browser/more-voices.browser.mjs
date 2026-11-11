@@ -21,7 +21,7 @@ for(let i = 1; i <= 30; i++){
     uploadedAt:{ __ts: T0 + i*60000 } };
   URLS[`afd/u${id}/${id}.webm`] = "data:audio/wav;base64,";
 }
-const init = (noIndex)=> `try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const init = (noIndex)=> `try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   globalThis.__URLS = ${JSON.stringify(URLS)}; ${noIndex ? "globalThis.__FS_NOINDEX = true;" : ""}`;
 // how many voices the open card holds in each slot, and the More voices row's text
 const shown = (page)=> page.evaluate(()=>{

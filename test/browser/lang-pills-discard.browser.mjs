@@ -10,7 +10,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uP1", isAnonymous:false, displayName:"S", email:"s@e.org" };
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 
 await scenario("card: translations carry pills once the card is open", async ()=>{
   const { page, state } = await newPage(browser, srv.url, { fs:{}, init:AUTO });

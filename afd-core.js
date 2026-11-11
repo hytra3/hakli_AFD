@@ -42,17 +42,18 @@ window.AFDCore = (function(){
   /* ---- display tier ---------------------------------------------------------
      One setting shared by every surface, persisted under a single key so a
      speaker sets it once and the whole app obeys.
-       auto   = picture + English + Arabic
-       sound  = picture only (no text) — the non-reader view
-       script = picture + Arabic */
-  const DISP_MODES = ["auto", "sound", "script"];
+       sound  = picture + Hakli audio only (no text) — the non-reader view
+       script = picture + Arabic text
+       bridge = picture + Arabic + English (the two-script "bridge" view; was "auto") */
+  const DISP_MODES = ["bridge", "sound", "script"];
   const DISP_KEY   = "afd_display_mode";
   function getDisplayMode(fallback){
     try{
-      const m = localStorage.getItem(DISP_KEY);
+      let m = localStorage.getItem(DISP_KEY);
+      if(m === "auto") m = "bridge";               // migrate the renamed value (auto → bridge, 11-10)
       if(m && DISP_MODES.includes(m)) return m;
     }catch(_){}
-    return DISP_MODES.includes(fallback) ? fallback : "auto";
+    return DISP_MODES.includes(fallback) ? fallback : "bridge";
   }
   function setDisplayMode(m){
     if(!DISP_MODES.includes(m)) return;
@@ -207,7 +208,7 @@ window.AFDCore = (function(){
   }
 
   function quietToast(on){
-    const mode = getDisplayMode("auto");
+    const mode = getDisplayMode("bridge");
     if(mode === "sound") return;                 // wordless tier: the bubble says it
     let el = document.querySelector(".afd-quiet-toast");
     if(!el){ el = document.createElement("div"); el.className = "afd-quiet-toast";
@@ -754,7 +755,7 @@ window.AFDCore = (function(){
 
     // The display switch names the mode you're in (its caption on the
     // dictionary, add and recorder pages). Short: it sits under a 40px icon.
-    "disp.auto":            { en:"Arabic · English", ar:"عربي · EN" },
+    "disp.bridge":            { en:"Arabic · English", ar:"عربي · EN" },
     "disp.script":          { en:"Arabic",           ar:"عربي" },
     "disp.sound":           { en:"Sound",            ar:"صوت" },
 
@@ -1502,12 +1503,12 @@ window.AFDCore = (function(){
     const s = (key && typeof key === "object") ? key : STRINGS[key]; if(!s) return escHtml(key);
     const ar = fillVars(s.ar || s.en, vars), en = s.en ? fillVars(s.en, vars) : "";
     let h = `<span dir="rtl">${escHtml(ar)}</span>`;
-    if(mode === "auto" && en && en !== ar) h += `<small class="sub">${escHtml(en)}</small>`;
+    if(mode === "bridge" && en && en !== ar) h += `<small class="sub">${escHtml(en)}</small>`;
     return h;
   }
   function ask(o){
     o = o || {};
-    const mode = o.mode || getDisplayMode("auto");
+    const mode = o.mode || getDisplayMode("bridge");
     if(!document.getElementById("afd-ask-css")){
       const st = document.createElement("style"); st.id = "afd-ask-css"; st.textContent = ASK_CSS;
       document.head.appendChild(st);
@@ -1517,14 +1518,14 @@ window.AFDCore = (function(){
       const w = document.createElement("div");
       w.className = "afd-ask"; w.setAttribute("role", "alertdialog"); w.setAttribute("aria-modal", "true");
       w.innerHTML = `<div class="ask-panel">
-        <button class="ask-hear" type="button" hidden aria-label="${escHtml(t("add.hear", "auto"))}">${ASK_ICONS.hear}</button>
-        <button class="ask-x" type="button" aria-label="${escHtml(t("auth.close", "auto"))}">✕</button>
+        <button class="ask-hear" type="button" hidden aria-label="${escHtml(t("add.hear", "bridge"))}">${ASK_ICONS.hear}</button>
+        <button class="ask-x" type="button" aria-label="${escHtml(t("auth.close", "bridge"))}">✕</button>
         ${o.face ? `<div class="ask-face">${o.face}</div>` : ""}
         <h2 id="afdAskTitle">${askHTML(o.titleKey, mode, o.vars)}</h2>
         ${o.subKey ? `<p class="ask-sub">${askHTML(o.subKey, mode, o.vars)}</p>` : ""}
         ${o.choices ? `<div class="ask-choices">${o.choices.map((c, i) => `<div class="ask-choice">
             <div class="ask-cface">${c.face || ""}</div><div class="ask-ctext">${c.label || ""}</div>
-            ${c.play ? `<button class="ask-cplay" type="button" data-i="${i}" aria-label="${escHtml(t("add.hear","auto"))}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>` : ""}
+            ${c.play ? `<button class="ask-cplay" type="button" data-i="${i}" aria-label="${escHtml(t("add.hear","bridge"))}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>` : ""}
             <button class="ask-cpick" type="button" data-i="${i}">${askHTML(o.pickKey || "add.dup.this", mode)}</button></div>`).join("")}</div>` : ""}
         <div class="ask-btns">
           ${o.yesKey ? `<button class="ask-btn ask-yes${o.danger ? " ask-danger" : ""}" type="button">${ASK_ICONS[o.yesIcon || "open"] || ""}<span>${askHTML(o.yesKey, mode)}</span></button>` : ""}
@@ -1590,7 +1591,7 @@ window.AFDCore = (function(){
   function notice(key, o){
     try{
       o = o || {};
-      const mode = o.mode || getDisplayMode("auto"), kind = o.kind || "info";
+      const mode = o.mode || getDisplayMode("bridge"), kind = o.kind || "info";
       if(!document.getElementById("afd-notice-css")){
         const st = document.createElement("style"); st.id = "afd-notice-css"; st.textContent = NOTICE_CSS;
         document.head.appendChild(st);
@@ -1604,7 +1605,7 @@ window.AFDCore = (function(){
       const n = document.createElement("div");
       n.className = "afd-notice " + kind;
       n.setAttribute("role", kind === "err" ? "alert" : "status");
-      n.innerHTML = `<div class="n-body">${body}</div><button class="n-x" type="button" aria-label="${escHtml(t("auth.close","auto"))}">✕</button>`;
+      n.innerHTML = `<div class="n-body">${body}</div><button class="n-x" type="button" aria-label="${escHtml(t("auth.close","bridge"))}">✕</button>`;
       const close = ()=>{ clearTimeout(_noticeTimer); n.remove(); };
       n.querySelector(".n-x").onclick = close;
       document.body.appendChild(n);

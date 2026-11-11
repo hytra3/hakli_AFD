@@ -6,7 +6,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uQueue1", isAnonymous:false, displayName:"Salim", email:"s@example.org", providerData:[{ providerId:"phone" }] };
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const screen = (page)=> page.evaluate(()=> ["say","show","share","done"].find(id=> !document.getElementById(id).hidden));
 const sayWord = async (page)=>{
   await page.dispatchEvent("#sayBtn", "pointerdown", { pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });

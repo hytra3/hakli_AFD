@@ -11,7 +11,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uSpeaker1", isAnonymous:false, displayName:null, email:"speaker@example.org", providerData:[{ providerId:"password" }] };
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const withdrawnFS = ()=>({
   "afd_speakers/spk_uSpeak_01": { stewardUid:"uSpeaker1", speakerId:"spk_uSpeak_01", consent:"withdrawn", viaAgent:false,
                                   grant:{ publicPlayback:false } },

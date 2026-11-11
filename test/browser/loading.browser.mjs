@@ -11,7 +11,7 @@ const FS = {
   "afd_entries/ent_sun/recordings/r1": { recordingId:"r1", entryId:"ent_sun", uid:"uX", speakerId:"spk_x_01", type:"word",
     consent:"public", allowPlayback:true, storagePath:"afd/uX/r1.webm", envelope:[] },
 };
-const init = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const init = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   globalThis.__URLS = { "afd/uX/r1.webm":"data:audio/wav;base64," }; };
 const sunCard = `[...document.querySelectorAll("#results .card")].find(c=>/^sun/.test(c.querySelector(".gloss").textContent))`;
 
@@ -46,7 +46,7 @@ await scenario("dots on the play button while the voice is on its way", async ()
 });
 
 await scenario("a word with no picture shows the identicon in every tier", async ()=>{
-  for(const mode of ["auto","script"]){
+  for(const mode of ["bridge","script"]){
     const { page } = await newPage(browser, srv.url, { fs:{ "afd_entries/ent_u_rain": { source:"user", createdBy:"uX", glossAr:"امطاراً غزيرة" } },
       init:new Function(`try{ localStorage.setItem("afd_display_mode","${mode}"); }catch(_){ }`) });
     await page.goto(srv.url + "/index.html#ent_u_rain"); await page.waitForTimeout(1500);

@@ -11,7 +11,7 @@ const srv = await serve(ROOT, fast);
 const browser = await launch();
 const HIT = { status:200, body:{ results:[{ entryId:"ent_camel", gloss:"camel", distance:0.09 }], corpus_n:12 } };
 // a fake wake lock that counts what the page holds; `slow` makes the request take a while
-const fakeWake = (slowMs)=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+const fakeWake = (slowMs)=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
   const W = (globalThis.__wake = { held:0, asked:0, released:0 });
   Object.defineProperty(navigator, "wakeLock", { configurable:true, value:{ request: async ()=>{
     W.asked++; if(slowMs) await new Promise(r=>setTimeout(r, slowMs));
@@ -52,7 +52,7 @@ await scenario("K4 a lock that arrives after the search ended is released at onc
   ok("K4 a lock that arrives after the search ended is released at once", after.asked===1 && after.held===0, JSON.stringify(after));
   await ctx.close(); });
 await scenario("K5 without wake-lock support the search still works", async ()=>{ // no wake lock in this browser: search works exactly as before
-  const { page, ctx, state } = await newPage(browser, srv.url, { matcher:()=>HIT, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); delete Navigator.prototype.wakeLock; }catch(_){ } } });
+  const { page, ctx, state } = await newPage(browser, srv.url, { matcher:()=>HIT, init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); delete Navigator.prototype.wakeLock; }catch(_){ } } });
   await page.goto(srv.url + "/"); await ready(page);
   const has = await page.evaluate(()=> "wakeLock" in navigator);
   await hold(page); await done(page, /Here it is|Did you mean/);
@@ -67,7 +67,7 @@ await scenario("L1 sound tier: idle hint and the no-match card are Arabic only",
   const empty = await page.innerText(".empty h2");
   ok("L1 sound tier: idle hint and the no-match card are Arabic only", idle.trim()==="تكلّم" && /ليست في القاموس بعد/.test(empty) && !/[A-Za-z]{3}/.test(empty), JSON.stringify([idle, empty]));
   await ctx.close(); });
-await scenario("L2 bilingual tier reads exactly as before", async ()=>{ const { page, ctx } = await newPage(browser, srv.url, { matcher:()=>({ status:200, body:{ results:[], corpus_n:0 } }), init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+await scenario("L2 bilingual tier reads exactly as before", async ()=>{ const { page, ctx } = await newPage(browser, srv.url, { matcher:()=>({ status:200, body:{ results:[], corpus_n:0 } }), init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
   await page.goto(srv.url + "/"); await ready(page); await page.waitForTimeout(300);
   const idle = await page.innerText("#hint");
   await page.click("#mastScreen"); await page.waitForTimeout(200);
@@ -205,7 +205,7 @@ await scenario("N4 404 page shows the table's wording (a corrected string reache
 
 // the account badge for someone signed in by phone
 await scenario("the account badge for someone signed in by phone", async ()=>{
-  const badge = async (path, sel, user)=>{ const { page, ctx } = await newPage(browser, srv.url, { user, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+  const badge = async (path, sel, user)=>{ const { page, ctx } = await newPage(browser, srv.url, { user, init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
     await page.goto(srv.url + path); await page.waitForTimeout(1500);
     const t = (await page.innerText(sel)).trim(); await ctx.close(); return t; };
   const PHONE = { uid:"uPhone", isAnonymous:false, displayName:null, email:null, phoneNumber:"+96891234567" };

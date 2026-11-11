@@ -44,12 +44,12 @@ const CSS = `
    bottom corner (it covered "Just listen" in the recorder). Google allows hiding
    it when the page says, beside the form, that reCAPTCHA protects it — .si-legal. */
 .grecaptcha-badge{visibility:hidden!important}
-.afd-si .si-legal{margin:0;font-size:11px;line-height:1.45;color:var(--ink-soft,#5B6E66);opacity:.85}
+.afd-si .si-legal{margin:0;font-size:13px;line-height:1.45;color:var(--ink-soft,#5B6E66);opacity:.85}
 .afd-si .si-legal a{color:inherit;text-decoration:underline}
-.afd-si .si-legal .sub{font-size:10.5px}
+.afd-si .si-legal .sub{font-size:13px}
 .afd-si .si-note{margin:2px 0 0;font-size:14px;line-height:1.45;color:var(--ink-soft,#5B6E66)}
 .afd-si .bi-ar,.afd-si-sheet .bi-ar{display:block}
-.afd-si .sub,.afd-si-sheet .sub{display:block;font-size:12px;opacity:.78;margin-top:1px;font-weight:400;color:inherit}
+.afd-si .sub,.afd-si-sheet .sub{display:block;font-size:13px;opacity:.78;margin-top:1px;font-weight:400;color:inherit}
 .afd-si .si-btn{display:block;width:100%;min-height:52px;padding:12px 16px;border-radius:16px;border:0;
   font:inherit;font-size:16px;font-weight:600;cursor:pointer;background:var(--mountain,#1F3A34);color:#fff;
   -webkit-tap-highlight-color:transparent;touch-action:manipulation}
@@ -73,7 +73,7 @@ const CSS = `
   box-shadow:0 -10px 40px rgba(0,0,0,.18)}
 @media (min-width:600px){.afd-si-sheet{align-items:center}.afd-si-sheet .si-panel{border-radius:22px}}
 .afd-si-sheet h2{margin:0 0 4px;font-size:19px;text-align:center}
-.afd-si-sheet h2 .sub{font-size:12px;opacity:.7}
+.afd-si-sheet h2 .sub{font-size:13px;opacity:.7}
 /* a mark per sign-in method (Google, phone, envelope), so a non-reader can tell
    the ways apart at a glance; and a 🔈 by the reason, once it has been recorded */
 .afd-si .si-ic{display:inline-block;vertical-align:middle;line-height:1;font-size:19px}

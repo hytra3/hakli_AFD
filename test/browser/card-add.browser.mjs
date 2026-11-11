@@ -10,7 +10,7 @@ const FS = { "afd_entries/ent_sun": { gloss:"sun", glossAr:"الشمس" } };
 
 await scenario("each slot has its own add link", async ()=>{
   const { page, state } = await newPage(browser, srv.url, { fs:FS,
-    init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+    init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
   await page.goto(srv.url + "/index.html#ent_sun");
   await page.waitForSelector(".slot-word", { timeout:10000 }); await page.waitForTimeout(300);
   if(SHOTS) await page.screenshot({ path: SHOTS + "/card-add.png", fullPage:true });

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -60,23 +60,23 @@ body{
 /* ---------------------------------------------------------------- header */
   header{
     position:sticky; top:0; z-index:40;
-    display:flex; align-items:center; gap:10px;
-    padding:18px 20px calc(20px + env(safe-area-inset-top));
+    display:flex; align-items:center; gap:8px;
+    padding:18px 14px calc(20px + env(safe-area-inset-top));
     color:var(--mountain);
     background:#F3F7F5;
     box-shadow:0 2px 10px rgba(31,58,52,.05);
   }
-.glyph{width:auto;height:32px;flex:0 0 auto;display:inline-flex;align-items:center;cursor:pointer;color:var(--ink)}
+.glyph{width:auto;min-width:44px;height:44px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
 .glyph:focus-visible{outline:2px solid var(--mountain);outline-offset:3px;border-radius:6px}
-.glyph svg{height:100%;width:auto;display:block}
+.glyph svg{height:30px;width:auto;display:block}
 .screen{display:flex; align-items:center; gap:9px; min-width:0}
 .screen-wrap{position:relative; min-width:0}
-#mastScreen{cursor:pointer}
+#mastScreen{cursor:pointer; min-height:44px}
 .view-menu{position:absolute; top:calc(100% + 8px); inset-inline-start:0; z-index:60; min-width:230px;
   background:var(--cloud); border:1px solid var(--mist-2); border-radius:12px;
   box-shadow:0 10px 30px rgba(0,0,0,.16); padding:6px; display:none}
 .view-menu.open{display:block}
-.view-menu button{display:flex; align-items:center; gap:10px; width:100%;
+.view-menu button{display:flex; align-items:center; gap:10px; width:100%; min-height:44px;
   text-align:start; padding:9px 10px; border:0; background:none; font:inherit; font-size:14px;
   color:var(--mountain); border-radius:8px; cursor:pointer}
 .view-menu button:hover{background:var(--mist-2)}
@@ -87,10 +87,10 @@ body{
 .view-menu .vm-t{display:flex; flex-direction:column; line-height:1.12; min-width:0}
 .view-menu .vm-t:empty{display:none}
 .view-menu .vm-ar{font-family:var(--serif); font-size:15px; direction:rtl; text-align:start}
-.view-menu .vm-en{font-family:var(--sans); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-top:1px}
-.coverage{display:none; align-items:center; gap:10px; width:calc(100% - 44px); margin:-6px 0 0; color:var(--mist); font-size:12px}
+.view-menu .vm-en{font-family:var(--sans); font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:var(--mist); margin-top:1px}
+.coverage{display:none; align-items:center; gap:10px; width:calc(100% - 44px); margin:-6px 0 0; color:var(--mist); font-size:13px}
 body.browsing.has-results .coverage{display:flex}
-.cov-label{flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums}
+.cov-label{flex:0 0 auto; white-space:nowrap; font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate}
 /* sound view (non-readers): "0 / 45" means nothing without its label, so drop the
    number and let the fill bar stand alone as the wordless progress picture. 11-10 */
 body[data-mode="sound"] .cov-label{display:none}
@@ -102,8 +102,8 @@ body[data-mode="sound"] .cov-label{display:none}
 .screen-ic svg{width:100%;height:100%}
 .screen-t{display:flex;flex-direction:column;line-height:1.05;min-width:0}
 .screen-ar{font-family:var(--serif); font-size:19px; letter-spacing:.2px; direction:rtl}
-.screen-en{color:var(--mist); font-family:var(--sans); font-size:11px; letter-spacing:.12em; text-transform:uppercase; margin-top:2px}
-.skin{margin-inline-start:auto; width:42px; height:42px; flex:0 0 auto; border-radius:50%;
+.screen-en{color:var(--mist); font-family:var(--sans); font-size:13px; letter-spacing:.12em; text-transform:uppercase; margin-top:2px}
+.skin{margin-inline-start:auto; width:44px; height:44px; flex:0 0 auto; border-radius:50%;
         border:1px solid var(--hairline); background:var(--cloud); color:var(--mountain);
         display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
 .skin svg{width:20px;height:20px}
@@ -180,7 +180,7 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 /* ---------------------------------------------------------------- results */
   .results{width:100%; max-width:560px; display:flex; flex-direction:column; gap:10px; margin-top:10px}
 /* header account button — sign in to manage your own voice */
-  .account{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
+  .account{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--mist-2);background:var(--cloud);
       color:var(--mountain);display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
 .account.in{background:var(--mountain);color:var(--cloud);border-color:var(--mountain)}
 .account .acct-initial{font:600 16px/1 system-ui,sans-serif}
@@ -189,6 +189,11 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 .account{padding:0; overflow:hidden}
 .account:has(> img.acct-photo){background:transparent; border-color:transparent}
 .account-wrap{position:relative;flex:0 0 auto}
+/* a plain "?" in the header → Help, so it isn't hidden behind the ☰ (11-10) */
+.help-btn{width:44px;height:44px;flex:0 0 auto;border-radius:50%;border:1px solid var(--hairline);
+  background:var(--cloud);color:var(--mountain);display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;box-shadow:0 2px 8px rgba(31,58,52,.10);text-decoration:none}
+.help-btn:focus-visible{outline:2px solid var(--mountain);outline-offset:3px}
 .acct-menu{position:absolute;top:48px;right:0;z-index:60;min-width:210px;background:var(--cloud);
   border:1px solid var(--mist-2);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:6px;display:none}
 .acct-menu.open{display:block}
@@ -200,7 +205,7 @@ body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 /* Arabic on its own line, English small beneath (10-16): tHTML's two spans ran
    together ("تسجيل الخروجSign out") with nothing here to stack them */
 .acct-menu button .bi-ar{display:block;font-size:15px;line-height:1.35}
-.acct-menu button .sub{display:block;font-size:11px;line-height:1.3;opacity:.7;margin-top:1px;text-align:right}
+.acct-menu button .sub{display:block;font-size:13px;line-height:1.3;opacity:.7;margin-top:1px;text-align:right}
 .acct-menu button{min-height:44px}
 /* empty / miss — an invitation, not an apology */
   .empty{width:100%; max-width:460px; background:var(--cloud); border-radius:var(--r);
@@ -322,6 +327,7 @@ body.compact .typecount{display:none}
       <div class="view-menu" id="viewMenu" role="menu" aria-hidden="true"></div>
     </span>
     <button class="skin capd" id="skin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
+    <a class="help-btn" id="helpBtn" href="help.html" aria-label="مساعدة · Help" title="Help"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.6 2.3-2.6 4"/><path d="M12 17.4h.01"/></svg></a>
     <span class="account-wrap capd" id="acctWrap" data-cap="دخول" data-cap-key="hdr.signin">
       <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
       <div class="acct-menu" id="acctMenu" role="menu" aria-hidden="true">
@@ -505,7 +511,7 @@ AFDCore.errorSink(rec => addDoc(collection(db, "afd_client_errors"),
 AFDCore.eventSink(rec => addDoc(collection(db, "afd_events"),
   Object.assign({}, rec, { at: serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + 90*864e5) })));
 // an email sign-in link that came back to the dictionary (signInSheet → email link)
-finishEmailLink(auth, { label: (k)=> AFDCore.tHTML(k, "auto") });
+finishEmailLink(auth, { label: (k)=> AFDCore.tHTML(k, "bridge") });
 let currentUser = null;   // shared per-origin session — a speaker who signed in on the recorder is recognised here
 // A *named* account, not the anonymous key the find flow may already hold.
 // This mirrors notAnon() in afd-firestore.rules: anonymous can read (search
@@ -899,7 +905,7 @@ function paintAllBtn(show){
   const v = VIEWS.find(x=>x.id===currentView) || VIEWS[0];
   allBtn.innerHTML=`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>`+
     `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>`;
-  allBtn.setAttribute("aria-label", AFDCore.tf("list.back", displayMode, { w: (displayMode!=="auto" && v.ar) || v.en })); allBtn.title = v.en;
+  allBtn.setAttribute("aria-label", AFDCore.tf("list.back", displayMode, { w: (displayMode!=="bridge" && v.ar) || v.en })); allBtn.title = v.en;
   allBtn.setAttribute("data-cap", v.ar);
   allBtn.classList.toggle("hidden", !show);
 }
@@ -992,7 +998,7 @@ function setCoverage(withVoice, total){
   const el=$("coverage"); if(!el) return;
   const pct = total ? Math.round(withVoice/total*100) : 0;
   const lbl=el.querySelector(".cov-label"), fill=el.querySelector(".cov-fill");
-  if(lbl) lbl.textContent = withVoice+" / "+total + (displayMode==="auto" ? "  with a voice" : "");
+  if(lbl) lbl.textContent = withVoice+" / "+total + (displayMode==="bridge" ? "  with a voice" : "");
   if(fill) fill.style.width = pct+"%";
 }
 
@@ -1157,11 +1163,11 @@ function askWordsButton(items){
       .map(it => [Math.random(), it]).sort((a,c)=>a[0]-c[0]).slice(0,5).map(x=>x[1]);
     const head = AFDCore.STRINGS["needs.ask.text"];
     const lines = pick.map(it=>{
-      const m = it.meta, name = displayMode==="auto"
+      const m = it.meta, name = displayMode==="bridge"
         ? [m.gloss, m.glossAr].filter(Boolean).join(" · ") : (m.glossAr || m.gloss);
       return (m.pic ? m.pic+" " : "") + name + "\n" + new URL("index.html#"+encodeURIComponent(it.entryId), location.href).href;
     });
-    const text = (displayMode==="auto" ? head.ar+"\n"+head.en : head.ar) + "\n\n" + lines.join("\n\n");
+    const text = (displayMode==="bridge" ? head.ar+"\n"+head.en : head.ar) + "\n\n" + lines.join("\n\n");
     try{ if(navigator.share){ await navigator.share({ text }); return; } }
     catch(e){ if(e && e.name==="AbortError") return; }
     window.open("https://wa.me/?text="+encodeURIComponent(text), "_blank", "noopener");
@@ -1189,7 +1195,7 @@ function renderEmpty(best){
   const div=document.createElement("div");
   div.className="empty";
   const none = AFDCore.STRINGS["find.none"];
-  div.innerHTML=(displayMode==="auto"
+  div.innerHTML=(displayMode==="bridge"
     ? `<h2>${escapeHtml(none.en)}</h2>
     <p>Be the first — add this word.<span class="ar">${escapeHtml(none.ar)}</span></p>`
     : `<h2 dir="rtl">${escapeHtml(none.ar)}</h2>`)+`
@@ -1241,7 +1247,7 @@ function paintHint(){
   const s = h.key ? (AFDCore.STRINGS[h.key] || { en:h.key, ar:"" }) : h;
   // Audio-first tiers (sound / script) speak to non-readers in Arabic; auto keeps
   // English with Arabic beneath, for you and bilingual helpers.
-  if(displayMode!=="auto" && s.ar) hint.innerHTML = `<span class="ar solo">${escapeHtml(s.ar)}</span>`;
+  if(displayMode!=="bridge" && s.ar) hint.innerHTML = `<span class="ar solo">${escapeHtml(s.ar)}</span>`;
   else hint.innerHTML = escapeHtml(s.en||"") + (s.ar?`<span class="ar">${escapeHtml(s.ar)}</span>`:"");
   if(h.code){ const c=document.createElement("span"); c.className="code"; c.textContent=h.code; hint.appendChild(c); }
 }
@@ -1350,7 +1356,7 @@ function renderMasthead(){
   const ic=$("mastIcon"), arEl=$("mastAr"), enEl=$("mastEn");
   if(ic){ ic.innerHTML=m.ic; ic.style.color=m.color; }
   if(arEl){ arEl.textContent=ar; arEl.style.display=""; }   // Arabic title in every tier — an unlabeled page icon told a newcomer nothing
-  if(enEl){ enEl.textContent=en; enEl.style.display=(displayMode==="auto")?"":"none"; }
+  if(enEl){ enEl.textContent=en; enEl.style.display=(displayMode==="bridge")?"":"none"; }
 }
 function setMastView(v){ mastView=v; renderMasthead(); }
 
@@ -1358,7 +1364,7 @@ function setMastView(v){ mastView=v; renderMasthead(); }
 const viewMenu=$("viewMenu"), mastScreen=$("mastScreen");
 function viewMenuClose(){ if(viewMenu){ viewMenu.classList.remove("open"); viewMenu.setAttribute("aria-hidden","true"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","false"); }
 function viewMenuOpen(){ if(viewMenu){ viewMenu.classList.add("open"); viewMenu.setAttribute("aria-hidden","false"); } if(mastScreen) mastScreen.setAttribute("aria-expanded","true"); }
-function viewLabel(v){ if(displayMode==="sound") return ""; return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="auto"?'<span class="vm-en">'+v.en+'</span>':''); }
+function viewLabel(v){ if(displayMode==="sound") return ""; return '<span class="vm-ar" dir="rtl">'+v.ar+'</span>'+(displayMode==="bridge"?'<span class="vm-en">'+v.en+'</span>':''); }
 function renderViewMenu(){
   if(!viewMenu) return;
   let html="";
@@ -1410,12 +1416,12 @@ mic.addEventListener("keyup",   e=>{ if(e.key===" "||e.key==="Enter"){ e.prevent
 
 /* the wordless view-changer: cycles picture → sound → script and re-skins */
 const SKIN_ICON = {
-  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  bridge:  `<span class="lbl" style="display:inline-flex;align-items:center;gap:1.5px;direction:ltr;line-height:1"><span>أ</span><span style="font-size:.72em">A</span></span>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10v-3a6 6 0 1 1 12 0v6a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3v-1a2 2 0 0 1 4 0"/><path d="M15 16a3 3 0 0 1 -3 3"/></svg>`,
   script:`<span class="lbl">أ</span>`,
 };
-// The caption names the mode you're in (disp.auto / disp.script / disp.sound).
-function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.auto;
+// The caption names the mode you're in (disp.bridge / disp.script / disp.sound).
+function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[displayMode] || SKIN_ICON.bridge;
   document.body.dataset.mode = displayMode;      // CSS: no ⌨ in sound mode
   if(typeof paintTypeLabels === "function") try{ paintTypeLabels(); }catch(_){}
   { const s=(AFDCore.STRINGS||{})["disp."+displayMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+displayMode); b.setAttribute("data-cap", s.ar); } } }

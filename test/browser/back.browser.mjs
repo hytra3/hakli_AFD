@@ -4,7 +4,7 @@ import { ROOT, serve, launch, newPage, hold, hintText, ok, scenario, finish, sho
 
 const srv = await serve(ROOT);
 const browser = await launch();
-const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } };
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 const SOUND = ()=>{ try{ localStorage.setItem("afd_display_mode","sound"); }catch(_){ } };
 const USER = { uid:"uTest1", isAnonymous:false, displayName:"Test Steward", email:"test@example.com" };
 const FS = { "afd_entries/ent_camel": { gloss:"camel", glossAr:"جمل", pic:"🐪" } };
@@ -229,19 +229,21 @@ await scenario("N1 404 page: every link is absolute and leads into the app", asy
 await scenario("Add a word is always within reach", async ()=>{ const { page, ctx } = await openIndex("/");
   const at = ()=> page.evaluate(()=>{ const a=document.getElementById("addBtn"), r=a.getBoundingClientRect(), m=document.getElementById("mic").getBoundingClientRect(), b=document.getElementById("allBtn").getBoundingClientRect();
     const top = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    const rtl = document.documentElement.dir === "rtl";   // '+' and the back control mirror sides under rtl, each still clear of the mic
     return { href:a.getAttribute("href"), cap:a.getAttribute("data-cap"), onScreen: r.width>0 && r.top>=0 && r.bottom<=innerHeight, hit: !!(top && top.closest("#addBtn")),
-             rightOfMic: r.left >= m.right, clearOfBack: b.width===0 || b.right <= m.left, y: Math.round(scrollY) }; });
+             addClear: rtl ? r.right <= m.left : r.left >= m.right,
+             backClear: b.width===0 || (rtl ? b.left >= m.right : b.right <= m.left), y: Math.round(scrollY) }; });
   const list = await at();
   await page.evaluate(()=>window.scrollTo(0, 1500)); await page.waitForTimeout(400);
   const scrolled = await at();
-  ok("P1 a '+' beside the mic leads to the add page, on the list and after scrolling", list.href==="add.html" && list.cap==="أضِف كلمة" && list.onScreen && list.hit && list.rightOfMic && scrolled.y>1000 && scrolled.onScreen && scrolled.hit, JSON.stringify([list, scrolled]));
+  ok("P1 a '+' beside the mic leads to the add page, on the list and after scrolling", list.href==="add.html" && list.cap==="أضِف كلمة" && list.onScreen && list.hit && list.addClear && scrolled.y>1000 && scrolled.onScreen && scrolled.hit, JSON.stringify([list, scrolled]));
   await page.evaluate(()=>{ window.scrollTo(0,0); location.hash = "ent_camel"; }); await page.waitForTimeout(900);
   const word = await at();
-  ok("P2 over a word it sits on the mic's other side from the back control, neither touching the mic", word.onScreen && word.hit && word.rightOfMic && word.clearOfBack, JSON.stringify(word));
+  ok("P2 over a word it sits on the mic's other side from the back control, neither touching the mic", word.onScreen && word.hit && word.addClear && word.backClear, JSON.stringify(word));
   await shot(page, "add-and-back-beside-the-mic");
   await page.setViewportSize({ width:340, height:700 }); await page.waitForTimeout(300);
   const narrow = await at();
-  ok("P3 on a narrow phone (340 px) both controls still clear the mic", narrow.onScreen && narrow.rightOfMic && narrow.clearOfBack, JSON.stringify(narrow));
+  ok("P3 on a narrow phone (340 px) both controls still clear the mic", narrow.onScreen && narrow.addClear && narrow.backClear, JSON.stringify(narrow));
   await page.setViewportSize({ width:412, height:880 });
   await page.click("#allBtn"); await page.waitForTimeout(700);
   await page.click("#mastScreen"); await page.waitForTimeout(200);

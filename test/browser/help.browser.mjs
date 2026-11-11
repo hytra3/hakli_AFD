@@ -46,7 +46,7 @@ await scenario("a helper set in afd-instance.js shows 'Ask a person'", async ()=
 });
 
 await scenario("Help in the dictionary's ☰ menu (signed out)", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+  const { page, state } = await newPage(browser, srv.url, { init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
   await page.goto(srv.url + "/index.html"); await page.waitForTimeout(1500);
   await page.click("#mastScreen"); await page.waitForTimeout(200);
   const has = await page.evaluate(()=>{ const b=document.querySelector('#viewMenu [data-view="help"]'); return b ? b.textContent : null; });
@@ -58,7 +58,7 @@ await scenario("Help in the dictionary's ☰ menu (signed out)", async ()=>{
 
 for(const pg of ["index.html", "recorder.html"]){
   await scenario("Help in the account menu · " + pg, async ()=>{
-    const { page, state } = await newPage(browser, srv.url, { user:ME, init:()=>{ try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ } } });
+    const { page, state } = await newPage(browser, srv.url, { user:ME, init:()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } } });
     await page.goto(srv.url + "/" + pg); await page.waitForTimeout(2500);
     const label = await page.evaluate(()=> (document.getElementById("acctHelp")||{}).textContent || "");
     ok("the account menu has Help", label.includes("مساعدة"), label);

@@ -154,8 +154,8 @@
 .afdcard .slot .slot-label .slot-ic{font-size:21px; line-height:1; text-transform:none; letter-spacing:0}
 body[data-mode="sound"] .afdcard .slot-add{font-size:18px; padding:11px 15px}
 .afdcard .slot .slot-empty{font:400 12px/1 var(--sans); color:var(--mist)}
-.afdcard .slot-add{display:inline-flex; align-items:center; gap:6px; color:var(--mist); text-decoration:none;
-      border:1.5px dashed var(--mist-2); border-radius:12px; padding:9px 13px; font:600 13px/1 var(--sans); margin-top:10px}
+.afdcard .slot-add{display:inline-flex; align-items:center; justify-content:center; gap:6px; color:var(--mist); text-decoration:none;
+      border:1.5px dashed var(--mist-2); border-radius:12px; padding:9px 13px; min-height:44px; box-sizing:border-box; font:600 13px/1 var(--sans); margin-top:10px}
 .afdcard .slot-body{display:flex; flex-direction:column; gap:8px; align-items:flex-start}
 .afdcard .slot-body:empty{display:none}
 .afdcard .head-counts{display:flex;gap:12px;margin-top:5px;font:600 13px/1 var(--sans);color:var(--mist)}

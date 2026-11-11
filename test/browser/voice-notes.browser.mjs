@@ -21,7 +21,7 @@ const init = (m)=> new Function(`try{ localStorage.setItem("afd_display_mode","$
   globalThis.__URLS = { "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uOther/rN1.webm":"data:audio/wav;base64,", "afd/uOther/rN2.webm":"data:audio/wav;base64," };`);
 
 await scenario("the card has a voice-notes slot, and each note says its language", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:init("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:init("bridge") });
   await page.goto(srv.url + "/index.html#ent_father");
   await page.waitForSelector(".slot-say", { timeout:10000 }); await page.waitForTimeout(400);
   const chip = await page.$(".slot-say .voices-chip"); if(chip) await chip.click();
@@ -54,7 +54,7 @@ await scenario("sound view: the slot is there, with no language text", async ()=
 
 await scenario("your own note: tap its language pill to change it (11-10)", async ()=>{
   const fs = { ...FS, "afd_entries/ent_father/recordings/rMine": take("rMine", { type:"note", lang:"ar", uid:"uTest1", speakerId:"spk_t_01", storagePath:"afd/uTest1/rMine.webm" }) };
-  const { page, state } = await newPage(browser, srv.url, { fs, user:USER, init: new Function(`try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+  const { page, state } = await newPage(browser, srv.url, { fs, user:USER, init: new Function(`try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
     globalThis.__URLS = { "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uOther/rN1.webm":"data:audio/wav;base64,",
       "afd/uOther/rN2.webm":"data:audio/wav;base64,", "afd/uTest1/rMine.webm":"data:audio/wav;base64," };`) });
   await page.goto(srv.url + "/index.html#ent_father");
@@ -86,7 +86,7 @@ await scenario("your own note: tap its language pill to change it (11-10)", asyn
 
 await scenario("a narrow phone: your own voice's Withdraw · Erase never cover its ▶ (11-10)", async ()=>{
   const fs = { ...FS, "afd_entries/ent_father/recordings/rMine": take("rMine", { type:"note", lang:"ar", uid:"uTest1", speakerId:"spk_t_01", storagePath:"afd/uTest1/rMine.webm" }) };
-  const { page, state } = await newPage(browser, srv.url, { fs, user:USER, init: new Function(`try{ localStorage.setItem("afd_display_mode","auto"); }catch(_){ }
+  const { page, state } = await newPage(browser, srv.url, { fs, user:USER, init: new Function(`try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ }
     globalThis.__URLS = { "afd/uOther/rN1.webm":"data:audio/wav;base64,", "afd/uOther/rN2.webm":"data:audio/wav;base64,", "afd/uOther/rW.webm":"data:audio/wav;base64,", "afd/uTest1/rMine.webm":"data:audio/wav;base64," };`) });
   await page.setViewportSize({ width:360, height:1600 });
   await page.goto(srv.url + "/index.html#ent_father");
@@ -114,7 +114,7 @@ const notesIn = (page)=> page.evaluate(()=> Object.entries(globalThis.__FS||{})
   .filter(([k,v]) => /^afd_entries\/ent_father\/recordings\//.test(k) && v && v.type==="note" && v.uid==="uTest1").map(([,v]) => ({ lang:v.lang, type:v.type })));
 
 await scenario("recorder: a voice note asks its language on Keep", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:USER, init:init("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:USER, init:init("bridge") });
   await page.goto(srv.url + "/recorder.html#ent_father|note"); await page.waitForTimeout(1500);
   await toRecorder(page);
   const r = await page.evaluate(()=>({ type: document.getElementById("entryCardHost").getAttribute("data-rectype"),
@@ -154,7 +154,7 @@ await scenario("recorder: a voice note asks its language on Keep", async ()=>{
 });
 
 await scenario("recorder: the word slot is not asked a language", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:USER, init:init("auto") });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:USER, init:init("bridge") });
   await page.goto(srv.url + "/recorder.html#ent_father"); await page.waitForTimeout(1500);
   await toRecorder(page);
   await recordFor(page, 2000);
