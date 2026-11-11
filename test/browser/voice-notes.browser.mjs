@@ -104,7 +104,13 @@ await scenario("a narrow phone: your own voice's Withdraw · Erase never cover i
 const toRecorder = async (page)=>{
   await page.click("#toMic"); await page.waitForSelector("#miccheck:not(.hidden)", { timeout:8000 });
   if(await page.isVisible("#startMic")){ await page.click("#startMic"); await page.waitForSelector("#toRecord:not(.hidden)", { state:"visible", timeout:10000 }); }
-  await page.click("#toRecord"); await page.waitForSelector("#recorder:not(.hidden)", { timeout:8000 }); await page.waitForTimeout(900); };
+  await page.click("#toRecord"); await page.waitForSelector("#recorder:not(.hidden)", { timeout:8000 }); await page.waitForTimeout(900);
+  // record-first: the first keep now opens the consent gate. This file tests note
+  // language, not consent, so give the speaker an existing spoken-consent proof —
+  // a returning speaker skips the gate and keeps go straight through.
+  await page.evaluate(async ()=>{ try{ await window.AFD.settleSpeakerField(); }catch(_){}
+    const spk=(document.getElementById("spkId").value||"").trim();
+    globalThis.__FS["afd_speakers/"+spk]={ stewardUid:"uTest1", consent:"public", grant:{ audioPath:"afd_consents/uTest1/g.webm" } }; }); };
 const recordFor = async (page, ms)=>{
   const b = await page.$("#recBtn"); const box = await b.boundingBox();
   await page.mouse.move(box.x + box.width/2, box.y + box.height/2);
@@ -141,6 +147,8 @@ await scenario("recorder: a voice note asks its language on Keep", async ()=>{
   ok("the new note shows on the card without a reload (" + before + " → more)", shown,
      await page.evaluate(()=> (document.querySelector("#entryCardHost .slot-say")||{}).innerText));
 
+  // record-first: the finish step (sign-in + details) opens after the first keep — dismiss it to carry on
+  if(await page.isVisible("#fsLater").catch(()=>false)){ await page.click("#fsLater"); await page.waitForTimeout(200); }
   // a second note; closing the question files it under the dictionary's own language
   await page.click('#entryCardHost a.slot-add[href$="|note"]'); await page.waitForTimeout(800);
   if(await page.isVisible("#recBtn")){

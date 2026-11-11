@@ -56,9 +56,11 @@ body{
 /* Steps 1–2 now share the step-3 header, which carries the logo and the step
    readout — so their own copies are hidden. */
 #setup > .stepdots, #miccheck > .stepdots, #setup > .brand{display:none}
-/* Display tier on steps 1–2: those screens are forms and can't go wordless, so
-   "script" and "sound" both mean Arabic only — the English subtitle lines drop. */
-body:not([data-tier="bridge"]) :is(#setup,#miccheck) .sub{display:none}
+/* Display tier on the form screens and the record-first overlays: these are
+   forms and can't go wordless, so "script" and "sound" both mean Arabic only —
+   the English subtitle lines drop. (Covers the consent gate and the finish step,
+   where sign-in / permissions / details now live.) */
+body:not([data-tier="bridge"]) :is(#setup,#miccheck,#consentGate,#finishStep) .sub{display:none}
 /* ---------- brand mark ---------- */
 .brand{display:flex;align-items:center;gap:10px;margin:2px 0 16px;color:var(--mountain)}
 .brand svg{width:auto;height:32px;flex:0 0 auto}
@@ -422,6 +424,34 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 #grantProof .wd-confirm{background:var(--mountain);color:#fff;border:none}
 #grantProof .wd-cancel{margin-top:12px}
 #grantProof .wd-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
+/* record-first: the consent-at-keep gate and the deferred sign-in/details step,
+   same modal shell as the proofs above */
+#consentGate,#finishStep{position:fixed;inset:0;z-index:60;display:none;
+  background:rgba(23,36,31,.55);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;padding:20px}
+#consentGate.open,#finishStep.open{display:flex}
+#consentGate .sheet,#finishStep .sheet{
+  width:100%;max-width:460px;background:var(--paper);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:22px 20px 18px;max-height:92vh;overflow:auto}
+#consentGate h2,#finishStep h2{font-size:19px;margin:0 0 4px}
+#consentGate .ask,#finishStep .ask{font-size:15px;color:var(--ink-soft);line-height:1.5;margin:0 0 14px}
+/* agent-mode banner: shown only when recording someone else, foregrounding that
+   a recording of another person was just made before any consent */
+#consentGate .cg-agent{display:none;background:rgba(198,135,63,.14);color:var(--ink);
+  border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.45;margin:0 0 14px}
+#consentGate.agent .cg-agent{display:block}
+#consentGate .cg-row{display:flex;gap:10px;margin-top:16px}
+#consentGate .cg-row .btn{margin-top:0;flex:1}
+#consentGate .cg-decline{color:var(--alert)}
+#consentGate .cg-status,#finishStep .fs-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
+#finishStep .fs-later{margin-top:14px}
+/* 🔈 a screen's spoken prompt (non-readers): shown once the Hakli clip is
+   recorded; auto-plays in the sound view, and plays in any view when tapped */
+.say-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+  border:1px solid var(--hairline);border-radius:999px;background:var(--paper);font-size:19px;line-height:1;
+  cursor:pointer;padding:0;margin:8px 0 2px;-webkit-tap-highlight-color:transparent}
+.say-wrap{text-align:center}
+.say-btn[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -467,7 +497,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   <h1><span class="bi-ar" dir="rtl" data-str="setup.title">مُسجِّل كلمات الحَكلي</span><small class="sub">Hakli Word Recorder</small></h1>
   <p class="note" id="aboutNote"><span class="bi-ar" dir="rtl">جزءٌ من قاموس الصوت أوّلًا. تُحفَظ التسجيلات على هذا الهاتف وتُرفَع عند تسجيل الدخول.</span><small class="sub">Part of the Audio First Dictionary. Recordings are saved on this phone and uploaded when you're signed in.</small></p>
 
-  <div class="card" id="authCard">
+  <div class="card deferred" id="authCard">
     <h2><span class="bi-ar" dir="rtl" data-str="setup.signin.title">سجِّل الدخول للتسجيل</span><small class="sub">Sign in to record</small></h2>
     <p class="note" id="authNote" style="margin-bottom:10px"><span class="bi-ar" dir="rtl" data-str="setup.signin.note">يمكن لأيِّ أحدٍ أن يستمع. تسجيل الدخول مطلوبٌ فقط لإضافة تسجيل، حتى يُنسَب كلُّ صوتٍ إلى صاحبه.</span><small class="sub">Anyone can listen. Signing in is only needed to add a recording, so each word can be credited.</small></p>
 
@@ -487,7 +517,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn ghost" id="listenOnlyBtn" style="margin-top:14px"><span class="bi-ar" dir="rtl" data-str="setup.listenonly">الاستماع فقط — دون حساب أو ميكروفون</span><small class="sub">Just listen — no account, no microphone</small></button>
   </div>
 
-  <div class="card hidden" id="youCard">
+  <div class="card hidden deferred" id="youCard">
     <h2><span class="bi-ar" dir="rtl" data-str="profile.title">كيف تظهر</span><small class="sub">How you appear</small></h2>
     <p class="note" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl" data-str="profile.note">افتراضيًّا تظهر برمزٍ من الطبيعة دون اسم. يمكنك اختيار الظهور باسمك على تسجيلاتك أنت فقط.</span><small class="sub">By default you appear as a nature avatar, no name. You may choose to appear by name — on your own voices only.</small></p>
     <label class="check"><input type="radio" name="vis" id="visObscure" value="obscure" checked>
@@ -507,17 +537,20 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   </div>
 
   <div class="card">
-    <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl" data-str="speaker.title">عن المتحدِّث</span><small class="sub">About the speaker</small></h2>
-    <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl" data-str="speaker.about.self">هذه التفاصيل تصف صوتك.</span><small class="sub">These details describe your own voice.</small></p>
+    <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl" data-str="who.title">من المتحدِّث؟</span><small class="sub">Who's speaking?</small></h2>
+    <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl" data-str="who.note">سجّل الآن. يُطلب تسجيل الدخول وتفاصيل المتحدِّث بعد أوّل كلمة تحتفظ بها.</span><small class="sub">Record now. Sign-in and the speaker's details are asked after your first kept word.</small></p>
+    <div class="say-wrap"><button class="say-btn" id="whoSay" type="button" hidden aria-label="استمع">🔈</button></div>
     <label class="check" style="margin-bottom:12px"><input type="checkbox" id="agentMode">
       <span><span class="bi-ar" dir="rtl" data-str="speaker.agent">أُسجِّل صوت شخصٍ آخر (لستُ المتحدِّث)</span><small class="sub">I'm recording someone else's voice (I'm not the speaker)</small></span></label>
-    <label class="field"><span><span class="bi-ar" dir="rtl" data-str="speaker.code">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
+    <!-- Speaker code: a steward's detail, not shown to speakers (kept for the
+         code the takes file under). -->
+    <label class="field" style="display:none"><span><span class="bi-ar" dir="rtl" data-str="speaker.code">رمز المتحدِّث</span><small class="sub">Speaker code</small></span>
       <input type="text" id="spkId" placeholder="spk_01" value="spk_01"></label>
-    <!-- The speaker's fields come from afd-instance.js (AFDInstance.speaker):
-         which fields, their order, options and stored slot. Built right here,
-         while the page is still loading, so every later script finds the
-         same element ids it always has. -->
-    <div id="spkFields"></div>
+    <button class="btn" id="toMic"><span class="bi-ar" dir="rtl" data-str="who.start">ابدأ التسجيل</span><small class="sub">Start recording</small></button>
+    <!-- The speaker's details (town, tribe, age…) come from afd-instance.js; built
+         here at parse time so the ids exist, then relocated into the finish step
+         and asked after the first kept word (record-first). -->
+    <div id="spkDetails" class="deferred"><div id="spkFields"></div>
     <script>
     (function buildSpeakerFields(){
       var spec = (window.AFDInstance && window.AFDInstance.speaker) || { fields: [] };
@@ -587,10 +620,10 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
         }
       };
     })();
-    </script>
+    </script></div>
   </div>
 
-  <div class="card">
+  <div class="card deferred" id="consentCard">
     <h2><span class="bi-ar" dir="rtl" data-str="consent.title">الإذن</span><small class="sub">Permission</small></h2>
     <p class="note" style="margin-bottom:8px"><span class="bi-ar" dir="rtl" data-str="consent.separate">كلُّ إذنٍ منفصل. قد يوافق المتحدِّث على بعضها دون بعض.</span><small class="sub">Each permission is separate. The speaker may agree to some and not others.</small></p>
     <label class="check"><input type="checkbox" id="cArchive">
@@ -619,7 +652,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn secondary" id="grantRecordBtn" style="margin-top:2px">
       <span class="bi-ar" dir="rtl" data-str="consent.record">سجّل موافقة المتحدِّث المنطوقة</span><small class="sub">Record the speaker's spoken consent</small></button>
     <p class="note" id="grantNote" style="margin:6px 0 0"></p>
-    <button class="btn" id="toMic"><span class="bi-ar" dir="rtl" data-str="auth.continue">متابعة</span><small class="sub">Continue</small></button>
   </div>
 </section>
 
@@ -658,6 +690,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn ghost" id="hearOthers" style="margin-top:8px">Hear how others said it in Hakli</button>
     <p class="instruction" id="instruction">Say the Hakli word <b>twice</b>, with a short pause between.</p>
     <button class="gloss-audio hidden" id="playGloss" type="button">▶ Hear the word in English</button>
+    <!-- "Speaker doesn't know this word": a word-level action, up here with the
+         word — moved out from directly under the sticky Record button. -->
+    <button class="btn ghost" id="skipBtn" style="margin-top:12px">Speaker doesn't know this word</button>
   </div>
 
   <div class="silhouette">
@@ -697,9 +732,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn secondary" id="nextWord">Next word →</button>
   </div>
 
-  <div class="row">
-    <button class="btn ghost" id="skipBtn">Speaker doesn't know this word</button>
-  </div>
 
   <div class="card" id="sessionCard">
     <p class="eyebrow" id="sessionTitle">This session</p>
@@ -760,6 +792,41 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     </div>
     <p class="wd-status" id="grantStatus"></p>
     <button class="btn ghost wd-cancel" id="grantCancelBtn"></button>
+  </div>
+</div>
+
+<!-- Consent at the first keep (record-first). The permission controls + the
+     "record spoken consent" button are relocated in here from the old setup
+     screen at init (into #cgPerms), so speakerRecord() still reads the same ids.
+     Confirm (Keep) files the take; Decline discards it. In agent mode the amber
+     note shows, foregrounding that a recording of someone else was just made. -->
+<div id="consentGate" role="dialog" aria-modal="true" aria-labelledby="cgTitle">
+  <div class="sheet">
+    <h2 id="cgTitle"></h2>
+    <p class="ask" id="cgAsk"></p>
+    <p class="cg-agent" id="cgAgent"></p>
+    <div class="say-wrap"><button class="say-btn" id="cgSay" type="button" hidden aria-label="استمع">🔈</button></div>
+    <div id="cgPerms"></div>
+    <div class="cg-row">
+      <button class="btn secondary cg-decline" id="cgDecline"></button>
+      <button class="btn" id="cgKeep"></button>
+    </div>
+    <p class="cg-status" id="cgStatus"></p>
+  </div>
+</div>
+
+<!-- Deferred to just after the first kept take: sign in (so voices upload and
+     are credited), how you appear, and the speaker's details. The sign-in card,
+     the "how you appear" card and the speaker detail fields are relocated in
+     here at init (into #fsBody). Skippable — "later" closes it and uploads still
+     flush on a later sign-in via anon-adoption. -->
+<div id="finishStep" role="dialog" aria-modal="true" aria-labelledby="fsTitle">
+  <div class="sheet">
+    <h2 id="fsTitle"></h2>
+    <p class="ask" id="fsAsk"></p>
+    <div class="say-wrap"><button class="say-btn" id="fsSay" type="button" hidden aria-label="استمع">🔈</button></div>
+    <div id="fsBody"></div>
+    <button class="btn ghost fs-later" id="fsLater"></button>
   </div>
 </div>
 <script type="module">
@@ -836,8 +903,9 @@ if(CONFIGURED) onAuthStateChanged(auth, raw=>{
   $("signedOut").classList.toggle("hidden", !!u);
   $("signedIn").classList.toggle("hidden", !u);
   if(u) $("whoami").textContent = u.email || u.displayName || u.phoneNumber || u.uid;   // a phone-only account has a number, not an email
-  $("toMic").disabled = !u;
-  $("toMic").innerHTML = u ? biHTML("auth.continue") : biHTML("auth.signinfirst");
+  // record-first: Continue never waits on sign-in — the consent gate at the first
+  // keep is where sign-in is asked. Refresh that gate if it happens to be open.
+  if(typeof refreshConsentGate==="function") refreshConsentGate();
   if(window.afdOnAuth) window.afdOnAuth(u);
 });
 
@@ -1237,14 +1305,13 @@ function ensureSpeakerCode(){
    person you're recording? Town/tribe/age always describe the VOICE, so say so
    the moment the agent toggle flips. */
 function reflectAgent(){
-  const on=!!($("agentMode") && $("agentMode").checked);
+  // record-first: the who-card is a static "Who's speaking?" — the self/agent
+  // cue is the checkbox here and the amber banner in the consent gate. The
+  // "these describe the person you're recording" note now belongs with the
+  // deferred details in the finish step.
   const t=$("spkCardTitle"), a=$("spkAbout");
-  if(t) t.innerHTML = on
-    ? biHTML("speaker.title.agent")
-    : biHTML("speaker.title");
-  if(a) a.innerHTML = on
-    ? biHTML("speaker.about.agent")
-    : biHTML("speaker.about.self");
+  if(t) t.innerHTML = biHTML("who.title");
+  if(a) a.innerHTML = biHTML("who.note");
   renderRoster();
 }
 (function(){ const a=$("agentMode"); if(a) a.addEventListener("change", reflectAgent); reflectAgent(); })();
@@ -1270,9 +1337,8 @@ async function loadProfileCard(){
 }
 // Bring "How you appear" into view: step 1 if we're elsewhere, then scroll to it.
 function showProfileCard(){
-  if($("setup") && $("setup").classList.contains("hidden")) show("setup");
-  const yc=$("youCard"); if(!yc || yc.classList.contains("hidden")) return;
-  setTimeout(()=>{ try{ yc.scrollIntoView({behavior:"smooth",block:"start"}); }catch(_){} }, 60);
+  // "How you appear" lives in the finish step now (record-first) — open it.
+  if(typeof openFinishStep==="function") openFinishStep();
 }
 // Resize a chosen image to a small centred square JPEG — guarantees the storage
 // rule's allowed type and 2 MB cap, and keeps avatars light on slow links.
@@ -1571,6 +1637,7 @@ async function grApply(){
   try{
     await window.AFD.grantWithProof(uid, spk, gr.blob);
     grantProofFor.add(spk);
+    if(typeof refreshConsentGate==="function") refreshConsentGate();   // enable Keep in the consent gate
     closeGrantProof();
     const n=$("grantNote"); if(n){ n.classList.remove("warn"); n.innerHTML=biHTML("grant.proof.saved"); }
   }catch(e){
@@ -1596,20 +1663,12 @@ $("toMic").onclick=async ()=>{
   // came back here was otherwise sent through the mic check and dropped into
   // listening again, with no record button, until they reloaded the page.
   listenOnly=false;
-  // a new code goes into this account's own namespace before any take uses it
+  // record-first: no sign-in or consent wall here — consent (and sign-in) are
+  // asked at the first keep. settleSpeakerField only does anything once signed in.
   if(window.AFD && window.AFD.settleSpeakerField) await window.AFD.settleSpeakerField();
-  // Archiving needs the speaker's own spoken consent (a deposit promises it).
-  // Unknown (offline) lets them through; the archive export checks again.
-  if($("cArchive").checked && !(await grantProofOK())){
-    const n=$("grantNote"); if(n){ n.innerHTML=biHTML("grant.needed"); n.classList.add("warn"); }
-    $("grantRecordBtn").scrollIntoView({behavior:"smooth",block:"center"});
-    $("grantRecordBtn").focus();
-    return;
-  }
   if(switchingSpeaker){
     saveSpeaker();                       // the form is the live speaker; persist for reload
     switchingSpeaker=false;
-    $("toMic").innerHTML=biHTML("auth.continue");
     show("recorder"); renderPrompt();
   }else{
     show("miccheck");
@@ -1738,6 +1797,7 @@ function show(which, opt){
   paintStepHeader(which);
   window.scrollTo(0,0);
   renderSpeakerChip();
+  if(which==="setup" && typeof sayScreen==="function") sayScreen("rec.who", $("whoSay"));
   if(!recSteps) return;
   if(!(opt && (opt.fromPop || opt.auto))){
     const d = STEP_ORDER[which] - STEP_ORDER[from];
@@ -2717,6 +2777,7 @@ async function askNoteLang(){
 
 $("keepBtn").onclick=async ()=>{
   const w=WORDS[idx];
+  if(!(await ensureConsent())) return;   // record-first: consent (+ sign-in) at the first keep; decline discards the take
   let noteLang = null;
   if(recType==="note"){
     if($("keepBtn").dataset.asking) return;          // the language question is already up
@@ -2768,6 +2829,7 @@ $("keepBtn").onclick=async ()=>{
   $("reviewCard").classList.add("hidden"); paintWordNav();
   await syncOne(rec);                 // upload first so the comparison includes it
   showCompare(WORDS[idx], rec);
+  maybeFinishAfterKeep();             // record-first: after the first keep, offer sign-in + details (once, skippable)
 };
 
 /* ---- compare your take against other speakers ---- */
@@ -3191,7 +3253,7 @@ if(recAcct){
     (recMenu && recMenu.classList.contains("open")) ? recAcctClose() : recAcctOpen();
   });
 }
-if(recEdit) recEdit.addEventListener("click",()=>{ recAcctClose(); show("setup"); const yc=$("youCard"); if(yc) yc.scrollIntoView({behavior:"smooth",block:"start"}); });
+if(recEdit) recEdit.addEventListener("click",()=>{ recAcctClose(); openFinishStep(); });
 if(recHelp) recHelp.addEventListener("click",()=>{ recAcctClose(); location.href="help.html"; });
 if(recOut)  recOut.addEventListener("click",()=>{ recAcctClose(); const b=$("signoutBtn"); if(b) b.click(); });
 document.addEventListener("click",(e)=>{ if(recMenu && recMenu.classList.contains("open") && !e.target.closest(".account-wrap")) recAcctClose(); });
@@ -3220,6 +3282,95 @@ async function adoptAnonTakes(uid){
     if(n) console.log("[AFD] claimed", n, "take(s) kept under an anonymous session");
     return n;
   }catch(e){ console.warn("[AFD] adoptAnon", e); return 0; }
+}
+
+/* ===== record-first: relocate the deferred cards, and the consent-at-keep gate =====
+   Setup screen is "who's speaking?" only. Sign-in + permissions + the spoken-consent
+   button move into #consentGate (shown at the first keep). Speaker details + "how you
+   appear" move into #finishStep (shown just after the first keep, skippable). Every
+   id is preserved, so speakerRecord(), the sign-in mount and the proof handlers all
+   keep working wherever the nodes now live. */
+(function recordFirstLayout(){
+  const who = document.querySelector("#spkCardTitle") && document.querySelector("#spkCardTitle").closest(".card");
+  const lo = $("listenOnlyBtn");          if(lo && who) who.appendChild(lo);     // "just listen" stays up front
+  const perms = $("cgPerms");
+  if(perms){ const a=$("authCard"), c=$("consentCard"); if(a) perms.appendChild(a); if(c) perms.appendChild(c); }
+  const fsBody = $("fsBody");
+  if(fsBody){ const d=$("spkDetails"), y=$("youCard"); if(d) fsBody.appendChild(d); if(y) fsBody.appendChild(y); }
+})();
+
+// Spoken prompt for a screen (non-readers): shows the 🔈 once the Hakli clip is
+// recorded (tapping plays in any view), and auto-plays it on arrival in the sound
+// view only. Text until the clip exists. Keys live in afd-prompts.js (rec.*).
+async function sayScreen(key, btn, opt){
+  if(!btn) return;
+  const getUrl = (window.AFD && window.AFD.promptUrl) || (()=>Promise.resolve(null));
+  const k = (opt && opt.agentKey && $("agentMode") && $("agentMode").checked) ? opt.agentKey : key;
+  let url=null; try{ url = await getUrl(k); }catch(_){}
+  if(!url){ btn.hidden = true; return; }
+  btn.hidden = false;
+  btn.onclick = ()=>{ try{ AFDCore.playUI(url, "asked"); }catch(_){} };     // tapped → plays in any view
+  try{ AFDCore.playUI(url, "narration"); }catch(_){}                         // auto-plays only in the sound view
+}
+sayScreen("rec.who", $("whoSay"));   // the who-is-speaking card is the default screen
+
+const consentDone = new Set();            // speakers whose consent gate is complete this session
+let _cgResolve = null;
+
+function refreshConsentGate(){
+  const gate=$("consentGate"); if(!gate || !gate.classList.contains("open")) return;
+  const spk=($("spkId").value||"").trim();
+  const signedIn = !!(window.AFD && window.AFD.isSignedIn());
+  const spoken = grantProofFor.has(spk);
+  $("cgKeep").disabled = !(signedIn && spoken);
+  const st=$("cgStatus"); if(st) st.innerHTML = !signedIn ? biHTML("cg.needsignin") : !spoken ? biHTML("cg.needspoken") : "";
+}
+function openConsentGate(){
+  return new Promise(resolve=>{
+    _cgResolve = resolve;
+    $("cgTitle").innerHTML=biHTML("cg.title"); $("cgAsk").innerHTML=biHTML("cg.ask");
+    $("cgAgent").innerHTML=biHTML("cg.agent"); $("cgKeep").innerHTML=biHTML("cg.keep"); $("cgDecline").innerHTML=biHTML("cg.decline");
+    const gate=$("consentGate");
+    gate.classList.toggle("agent", !!($("agentMode") && $("agentMode").checked));
+    gate.classList.add("open");
+    sayScreen("rec.consent", $("cgSay"), { agentKey:"rec.consent.agent" });
+    refreshConsentGate();
+  });
+}
+function closeConsentGate(){ $("consentGate").classList.remove("open"); }
+async function ensureConsent(){
+  const spk=($("spkId").value||"").trim();
+  if(consentDone.has(spk)) return true;
+  // a returning speaker who already has a spoken-consent proof (and is signed in) is settled
+  if(window.AFD && window.AFD.isSignedIn() && await grantProofOK()){ consentDone.add(spk); return true; }
+  return await openConsentGate();
+}
+$("cgKeep").onclick=()=>{
+  consentDone.add(($("spkId").value||"").trim());
+  closeConsentGate();
+  const r=_cgResolve; _cgResolve=null; if(r) r(true);
+};
+$("cgDecline").onclick=()=>{
+  closeConsentGate();
+  try{ $("redoBtn").click(); }catch(_){}   // guardrail 1: decline discards the pending take
+  const r=_cgResolve; _cgResolve=null; if(r) r(false);
+};
+
+/* finish step — sign-in + details, just after the first kept word (skippable) */
+let finishShown=false;
+function openFinishStep(){
+  $("fsTitle").innerHTML=biHTML("fs.title"); $("fsAsk").innerHTML=biHTML("fs.ask"); $("fsLater").innerHTML=biHTML("fs.later");
+  $("finishStep").classList.add("open");
+  sayScreen("rec.finish", $("fsSay"));
+}
+function closeFinishStep(){ $("finishStep").classList.remove("open"); }
+$("fsLater").onclick=closeFinishStep;
+function maybeFinishAfterKeep(){
+  if(finishShown) return; finishShown=true;
+  const signedIn = !!(window.AFD && window.AFD.isSignedIn());
+  const haveDetails = !!(AFDSpeakerForm.val("origin.town") || AFDSpeakerForm.val("origin.tribe"));
+  if(signedIn && haveDetails) return;      // a returning, already-set-up speaker needs no finish step
+  openFinishStep();
 }
 
 window.afdOnAuth=(u)=>{

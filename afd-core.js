@@ -1135,7 +1135,24 @@ window.AFDCore = (function(){
     // A definition is a kind of thing said about the word; the per-note language
     // question does the sorting. New takes record as notes; old definitions still show.
     "slot.say":             { en:"SAY SOMETHING ABOUT THIS WORD", ar:"قل شيئًا عن هذه الكلمة", icon:"🗒" },
-    "slot.add.say":         { en:"Say something",      ar:"قل شيئًا", icon:"🗒" }
+    "slot.add.say":         { en:"Say something",      ar:"قل شيئًا", icon:"🗒" },
+
+    // ===== record-first (11-11): recorder step-1 reflow. Arabic is MSA draft —
+    // flag for Dhofari review (the consent lines especially). Added at the END so
+    // the prompt-number snapshot only gains lines. =====
+    "who.title":            { en:"Who's speaking?",    ar:"من المتحدِّث؟" },
+    "who.note":             { en:"Record now. Sign-in and the speaker's details are asked after your first kept word.", ar:"سجّل الآن. يُطلب تسجيل الدخول وتفاصيل المتحدِّث بعد أوّل كلمة تحتفظ بها." },
+    "who.start":            { en:"Start recording",    ar:"ابدأ التسجيل" },
+    "cg.title":             { en:"Keep this voice?",   ar:"أتحتفظ بهذا الصوت؟" },
+    "cg.ask":               { en:"To keep it, the speaker gives permission and says their consent aloud. Nothing is kept or shared until then.", ar:"للاحتفاظ به، يمنح المتحدِّث الإذن ويقول موافقته بصوته. لا يُحفَظ شيء ولا يُشارَك حتى ذلك الحين." },
+    "cg.agent":             { en:"You just recorded someone else's voice. Ask them before keeping it.", ar:"سجّلت صوت شخصٍ آخر للتوّ. استأذنه قبل الاحتفاظ به." },
+    "cg.keep":              { en:"Keep it",            ar:"احتفظ به" },
+    "cg.decline":           { en:"Discard",            ar:"تجاهل" },
+    "cg.needsignin":        { en:"Sign in above to keep this voice.", ar:"سجّل الدخول أعلاه للاحتفاظ بهذا الصوت." },
+    "cg.needspoken":        { en:"Record the speaker's spoken consent to keep it.", ar:"سجّل موافقة المتحدِّث المنطوقة للاحتفاظ به." },
+    "fs.title":             { en:"Save your voice",    ar:"احفظ صوتك" },
+    "fs.ask":               { en:"Sign in so your voices upload and are credited, and add where you're from. You can do this later.", ar:"سجّل الدخول لترفع أصواتك وتُنسَب إليك، وأضف من أين أنت. يمكنك فعل ذلك لاحقًا." },
+    "fs.later":             { en:"Later",              ar:"لاحقًا" }
   };
   function t(key, mode){
     const s = STRINGS[key];

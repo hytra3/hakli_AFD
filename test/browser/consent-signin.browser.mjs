@@ -99,16 +99,25 @@ await scenario("Sign-in by texted code on all three pages", async ()=>{
     ok("Add: no page errors", !state.errors.length, state.errors.join(" | "));
     await ctx.close();
   }
-  // Recorder (signed out): step 1 offers the phone, and a code signs in
+  // Recorder (signed out): recording needs no sign-in; the texted-code sign-in
+  // lives in the consent gate at the first Keep (record-first, 11-11).
   {
-    const { page, ctx, state } = await newPage(browser, srv.url, { init:AUTO });
-    await page.goto(srv.url + "/recorder.html"); await page.waitForTimeout(1500);
-    const vis = await page.isVisible("#signinHost #authPhone");
+    const { page, ctx, state } = await newPage(browser, srv.url, { fs:{ "afd_entries/ent_camel": { gloss:"camel", glossAr:"جمل", pic:"🐪" } }, init:AUTO });
+    await page.goto(srv.url + "/recorder.html#ent_camel"); await page.waitForTimeout(1500);
+    await page.click("#toMic"); await page.waitForSelector("#miccheck:not(.hidden)", { timeout:8000 });
+    if(await page.isVisible("#startMic").catch(()=>false)){ await page.click("#startMic"); await page.waitForSelector("#toRecord:not(.hidden)", { state:"visible", timeout:10000 }); }
+    await page.click("#toRecord"); await page.waitForSelector("#recorder:not(.hidden)", { timeout:8000 }); await page.waitForTimeout(700);
+    await page.dispatchEvent("#recBtn","pointerdown",{ pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });
+    await page.waitForTimeout(1300);
+    await page.dispatchEvent("#recBtn","pointerup",{ pointerId:1, pointerType:"touch", isPrimary:true, bubbles:true });
+    await page.waitForSelector("#reviewCard:not(.hidden)", { timeout:8000 });
+    await page.click("#keepBtn"); await page.waitForTimeout(500);                 // opens the consent gate
+    const vis = await page.isVisible("#authPhone");
     const legal = await page.evaluate(()=>{ const n=document.querySelector("#signinHost #recaptchaNote");
       const b=document.createElement("div"); b.className="grecaptcha-badge"; document.body.appendChild(b);
       const hidden = getComputedStyle(b).visibility==="hidden"; b.remove();
       return { links: n ? [...n.querySelectorAll("a")].map(a=>a.getAttribute("href")) : [], text: n ? n.innerText : "", hidden }; });
-    ok("Recorder: the reCAPTCHA badge is hidden and its notice shows, with Google's two links",
+    ok("Recorder: the gate's reCAPTCHA badge is hidden and its notice shows, with Google's two links",
        legal.hidden && legal.links.filter(h=>/policies\.google\.com\/(privacy|terms)/.test(h)).length >= 2 && /reCAPTCHA/.test(legal.text), JSON.stringify(legal));
     await shot(page, "signin-recorder");
     await page.fill("#authPhone", "91234567");
@@ -116,7 +125,7 @@ await scenario("Sign-in by texted code on all three pages", async ()=>{
     await page.fill("#authCode", "123456");
     await page.click("#codeBtn"); await page.waitForTimeout(900);
     const inn = await page.evaluate(()=> !document.getElementById("signedIn").classList.contains("hidden"));
-    ok("Recorder: the phone sign-in is offered, and a code signs in", vis && inn, JSON.stringify({ vis, inn }));
+    ok("Recorder: the phone sign-in is offered in the gate, and a code signs in", vis && inn, JSON.stringify({ vis, inn }));
     ok("Recorder: no page errors", !state.errors.length, state.errors.join(" | "));
     await ctx.close();
   }
