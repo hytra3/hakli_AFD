@@ -56,9 +56,11 @@ body{
 /* Steps 1–2 now share the step-3 header, which carries the logo and the step
    readout — so their own copies are hidden. */
 #setup > .stepdots, #miccheck > .stepdots, #setup > .brand{display:none}
-/* Display tier on steps 1–2: those screens are forms and can't go wordless, so
-   "script" and "sound" both mean Arabic only — the English subtitle lines drop. */
-body:not([data-tier="bridge"]) :is(#setup,#miccheck) .sub{display:none}
+/* Display tier on the form screens and the record-first overlays: these are
+   forms and can't go wordless, so "script" and "sound" both mean Arabic only —
+   the English subtitle lines drop. (Covers the consent gate and the finish step,
+   where sign-in / permissions / details now live.) */
+body:not([data-tier="bridge"]) :is(#setup,#miccheck,#consentGate,#finishStep) .sub{display:none}
 /* ---------- brand mark ---------- */
 .brand{display:flex;align-items:center;gap:10px;margin:2px 0 16px;color:var(--mountain)}
 .brand svg{width:auto;height:32px;flex:0 0 auto}
@@ -443,6 +445,13 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 #consentGate .cg-decline{color:var(--alert)}
 #consentGate .cg-status,#finishStep .fs-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
 #finishStep .fs-later{margin-top:14px}
+/* 🔈 a screen's spoken prompt (non-readers): shown once the Hakli clip is
+   recorded; auto-plays in the sound view, and plays in any view when tapped */
+.say-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+  border:1px solid var(--hairline);border-radius:999px;background:var(--paper);font-size:19px;line-height:1;
+  cursor:pointer;padding:0;margin:8px 0 2px;-webkit-tap-highlight-color:transparent}
+.say-wrap{text-align:center}
+.say-btn[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -530,6 +539,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   <div class="card">
     <h2 id="spkCardTitle"><span class="bi-ar" dir="rtl" data-str="who.title">من المتحدِّث؟</span><small class="sub">Who's speaking?</small></h2>
     <p class="note" id="spkAbout" style="margin:-4px 0 10px"><span class="bi-ar" dir="rtl" data-str="who.note">سجّل الآن. يُطلب تسجيل الدخول وتفاصيل المتحدِّث بعد أوّل كلمة تحتفظ بها.</span><small class="sub">Record now. Sign-in and the speaker's details are asked after your first kept word.</small></p>
+    <div class="say-wrap"><button class="say-btn" id="whoSay" type="button" hidden aria-label="استمع">🔈</button></div>
     <label class="check" style="margin-bottom:12px"><input type="checkbox" id="agentMode">
       <span><span class="bi-ar" dir="rtl" data-str="speaker.agent">أُسجِّل صوت شخصٍ آخر (لستُ المتحدِّث)</span><small class="sub">I'm recording someone else's voice (I'm not the speaker)</small></span></label>
     <!-- Speaker code: a steward's detail, not shown to speakers (kept for the
@@ -680,6 +690,9 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn ghost" id="hearOthers" style="margin-top:8px">Hear how others said it in Hakli</button>
     <p class="instruction" id="instruction">Say the Hakli word <b>twice</b>, with a short pause between.</p>
     <button class="gloss-audio hidden" id="playGloss" type="button">▶ Hear the word in English</button>
+    <!-- "Speaker doesn't know this word": a word-level action, up here with the
+         word — moved out from directly under the sticky Record button. -->
+    <button class="btn ghost" id="skipBtn" style="margin-top:12px">Speaker doesn't know this word</button>
   </div>
 
   <div class="silhouette">
@@ -719,9 +732,6 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <button class="btn secondary" id="nextWord">Next word →</button>
   </div>
 
-  <div class="row">
-    <button class="btn ghost" id="skipBtn">Speaker doesn't know this word</button>
-  </div>
 
   <div class="card" id="sessionCard">
     <p class="eyebrow" id="sessionTitle">This session</p>
@@ -795,6 +805,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
     <h2 id="cgTitle"></h2>
     <p class="ask" id="cgAsk"></p>
     <p class="cg-agent" id="cgAgent"></p>
+    <div class="say-wrap"><button class="say-btn" id="cgSay" type="button" hidden aria-label="استمع">🔈</button></div>
     <div id="cgPerms"></div>
     <div class="cg-row">
       <button class="btn secondary cg-decline" id="cgDecline"></button>
@@ -813,6 +824,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
   <div class="sheet">
     <h2 id="fsTitle"></h2>
     <p class="ask" id="fsAsk"></p>
+    <div class="say-wrap"><button class="say-btn" id="fsSay" type="button" hidden aria-label="استمع">🔈</button></div>
     <div id="fsBody"></div>
     <button class="btn ghost fs-later" id="fsLater"></button>
   </div>
@@ -1785,6 +1797,7 @@ function show(which, opt){
   paintStepHeader(which);
   window.scrollTo(0,0);
   renderSpeakerChip();
+  if(which==="setup" && typeof sayScreen==="function") sayScreen("rec.who", $("whoSay"));
   if(!recSteps) return;
   if(!(opt && (opt.fromPop || opt.auto))){
     const d = STEP_ORDER[which] - STEP_ORDER[from];
@@ -3286,6 +3299,21 @@ async function adoptAnonTakes(uid){
   if(fsBody){ const d=$("spkDetails"), y=$("youCard"); if(d) fsBody.appendChild(d); if(y) fsBody.appendChild(y); }
 })();
 
+// Spoken prompt for a screen (non-readers): shows the 🔈 once the Hakli clip is
+// recorded (tapping plays in any view), and auto-plays it on arrival in the sound
+// view only. Text until the clip exists. Keys live in afd-prompts.js (rec.*).
+async function sayScreen(key, btn, opt){
+  if(!btn) return;
+  const getUrl = (window.AFD && window.AFD.promptUrl) || (()=>Promise.resolve(null));
+  const k = (opt && opt.agentKey && $("agentMode") && $("agentMode").checked) ? opt.agentKey : key;
+  let url=null; try{ url = await getUrl(k); }catch(_){}
+  if(!url){ btn.hidden = true; return; }
+  btn.hidden = false;
+  btn.onclick = ()=>{ try{ AFDCore.playUI(url, "asked"); }catch(_){} };     // tapped → plays in any view
+  try{ AFDCore.playUI(url, "narration"); }catch(_){}                         // auto-plays only in the sound view
+}
+sayScreen("rec.who", $("whoSay"));   // the who-is-speaking card is the default screen
+
 const consentDone = new Set();            // speakers whose consent gate is complete this session
 let _cgResolve = null;
 
@@ -3305,6 +3333,7 @@ function openConsentGate(){
     const gate=$("consentGate");
     gate.classList.toggle("agent", !!($("agentMode") && $("agentMode").checked));
     gate.classList.add("open");
+    sayScreen("rec.consent", $("cgSay"), { agentKey:"rec.consent.agent" });
     refreshConsentGate();
   });
 }
@@ -3332,6 +3361,7 @@ let finishShown=false;
 function openFinishStep(){
   $("fsTitle").innerHTML=biHTML("fs.title"); $("fsAsk").innerHTML=biHTML("fs.ask"); $("fsLater").innerHTML=biHTML("fs.later");
   $("finishStep").classList.add("open");
+  sayScreen("rec.finish", $("fsSay"));
 }
 function closeFinishStep(){ $("finishStep").classList.remove("open"); }
 $("fsLater").onclick=closeFinishStep;

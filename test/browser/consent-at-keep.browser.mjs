@@ -8,6 +8,8 @@ const srv = await serve(ROOT);
 const browser = await launch();
 const USER = { uid:"uTest1", isAnonymous:false, displayName:"Test", email:"t@example.com" };
 const FS = { "afd_entries/ent_camel": { gloss:"camel", glossAr:"جمل", pic:"🐪" } };
+// bridge mode so the gate's English lines show (Arabic-only hides them in sound/script)
+const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
 
 const toRecorder = async (page)=>{
   await page.click("#toMic"); await page.waitForSelector("#miccheck:not(.hidden)", { timeout:8000 });
@@ -27,7 +29,7 @@ const uploadedRecs = (page)=> page.evaluate(()=> Object.keys(globalThis.__FS||{}
 // 1. Signed out: record, Keep → the gate opens with sign-in + permissions, Keep
 //    held until signed in AND the spoken consent is recorded.
 await scenario("record-first: the first Keep opens the consent gate (sign-in held, spoken consent needed)", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS });            // NO user — signed out
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:AUTO });            // NO user — signed out
   await page.goto(srv.url + "/recorder.html#ent_camel"); await page.waitForTimeout(1400);
   // reaching the recorder needs no sign-in
   await toRecorder(page);
@@ -53,7 +55,7 @@ await scenario("record-first: the first Keep opens the consent gate (sign-in hel
 
 // 2. Decline discards the pending take (guardrail 1).
 await scenario("Decline at the gate discards the take — nothing is kept or uploaded", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:AUTO });
   await page.goto(srv.url + "/recorder.html#ent_camel"); await page.waitForTimeout(1400);
   await toRecorder(page);
   await record(page);
@@ -70,7 +72,7 @@ await scenario("Decline at the gate discards the take — nothing is kept or upl
 
 // 3. Agent mode foregrounds the consent (guardrail 3).
 await scenario("agent mode: the gate shows the 'you just recorded someone else' banner", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, init:AUTO });
   await page.goto(srv.url + "/recorder.html#ent_camel"); await page.waitForTimeout(1400);
   await page.check("#agentMode");
   await toRecorder(page);
@@ -83,7 +85,7 @@ await scenario("agent mode: the gate shows the 'you just recorded someone else' 
 
 // 4. A returning speaker with a spoken-consent proof on file skips the gate.
 await scenario("a speaker with spoken consent already on file keeps straight through", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:USER });
+  const { page, state } = await newPage(browser, srv.url, { fs:FS, user:USER, init:AUTO });
   await page.goto(srv.url + "/recorder.html#ent_camel"); await page.waitForTimeout(1400);
   await toRecorder(page);
   await page.evaluate(()=>{ const spk=(document.getElementById("spkId").value||"").trim();

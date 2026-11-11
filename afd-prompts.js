@@ -143,4 +143,14 @@ window.AFDPrompts = [
     { key:"howto.sentence", en:"You can also say the word inside a sentence", ar:"ويمكنك أن تقول الكلمة داخل جملة", kind:"narration" },
     { key:"howto.say", en:"And you can say something about the word, in any language", ar:"ويمكنك أن تقول شيئًا عن الكلمة — بأيّ لغة", kind:"narration" },
   ]},
+  // 11-11 (record-first): the recorder's step-1 screens, spoken for non-readers.
+  // The who-is-speaking card, the consent gate at the first keep, and the finish
+  // step. Consent wording — GIVE IT TO THE STRONGEST REVIEWER. Text until recorded.
+  { tab:"record", later:true, name:"Recorder — record-first screens", ar:"المُسجِّل — شاشات «سجّل أوّلًا»",
+    note:"Spoken on the who-is-speaking card, the consent gate at the first keep, and the finish step.", items:[
+    { key:"rec.who", en:"Are you recording your own voice, or someone else's?", ar:"هل تُسجِّل صوتك أنت، أم صوت شخصٍ آخر؟", kind:"narration" },
+    { key:"rec.consent", en:"To keep this voice, give your permission and say your consent aloud. Nothing is kept or shared until then.", ar:"للاحتفاظ بهذا الصوت، امنح إذنك وقُل موافقتك بصوتك. لا يُحفَظ شيء ولا يُشارَك حتى ذلك الحين.", kind:"narration" },
+    { key:"rec.consent.agent", en:"You just recorded someone else's voice. Ask them before keeping it.", ar:"سجّلت صوت شخصٍ آخر للتوّ. استأذنه قبل الاحتفاظ به.", kind:"narration" },
+    { key:"rec.finish", en:"Sign in to keep your voices and have them credited, and say where you're from. You can do this later.", ar:"سجّل الدخول لحفظ أصواتك ونسبتها إليك، وقُل من أين أنت. يمكنك فعل ذلك لاحقًا.", kind:"narration" },
+  ]},
 ];
