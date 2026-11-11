@@ -29,8 +29,9 @@ const type = async (page, s)=>{ await page.fill("#typeIn", s); await page.waitFo
 await scenario("the ⌨ opens a box that narrows the list", async ()=>{
   const { page, state } = await openList("bridge");
   const b = await page.evaluate(()=>{ const e = document.getElementById("typeBtn"); const r = e.getBoundingClientRect();
-    return { shown: getComputedStyle(e).display !== "none", cap: e.dataset.cap, left: r.left < innerWidth/2 }; });
-  ok("⌨ shows over the list, on the mic's other side from +, captioned اكتب", b.shown && b.left && b.cap === "اكتب", JSON.stringify(b));
+    const rtl = document.documentElement.dir === "rtl", c = (r.left + r.right)/2;   // ⌨ mirrors to the mic's other side under rtl
+    return { shown: getComputedStyle(e).display !== "none", cap: e.dataset.cap, otherSide: rtl ? c > innerWidth/2 : c < innerWidth/2 }; });
+  ok("⌨ shows over the list, on the mic's other side from +, captioned اكتب", b.shown && b.otherSide && b.cap === "اكتب", JSON.stringify(b));
   await page.click("#typeBtn");
   const o = await page.evaluate(()=>({ box: getComputedStyle(document.getElementById("typeBox")).display,
     hint: getComputedStyle(document.getElementById("hint")).display, focus: document.activeElement.id,

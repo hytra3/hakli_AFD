@@ -581,7 +581,7 @@
   "A11.14": "screen:acct.signedin.as",
   "A11.15": "screen:acct.menu",
   "A11.16": "screen:acct.signin.manage",
-  "A11.17": "screen:disp.auto",
+  "A11.17": "screen:disp.bridge",
   "A11.18": "screen:disp.script",
   "A11.19": "screen:disp.sound",
   "A11.20": "screen:tools.mode.both",
