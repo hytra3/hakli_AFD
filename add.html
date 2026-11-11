@@ -411,8 +411,8 @@ const C = window.AFDCore;
    cover this page, as AFDCore.t() does elsewhere. */
 let MODE = C.getDisplayMode("sound");      // same default as the dictionary
 const SKIN_ICON = {
-  auto:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>`,
-  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 9v6M8 5v14M12 8v8M16 4v16M20 10v4"/></svg>`,
+  auto:  `<span class="lbl" style="display:inline-flex;align-items:center;gap:1.5px;direction:ltr;line-height:1"><span>أ</span><span style="font-size:.72em">A</span></span>`,
+  sound: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10v-3a6 6 0 1 1 12 0v6a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3v-1a2 2 0 0 1 4 0"/><path d="M15 16a3 3 0 0 1 -3 3"/></svg>`,
   script:`<span class="lbl">أ</span>`,
 };
 function applyMode(){
