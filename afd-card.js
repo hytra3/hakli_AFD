@@ -47,22 +47,7 @@ function thumbImg(url){ return `<img src="${escapeHtml(url)}" alt="" loading="la
 // steward's — 11-08) wins; else a picture that ships with the app for a seeded
 // word (afd-words.js img:, e.g. the fig, which has no emoji of its own).
 function faceImage(mt){ return (mt && (mt.image || mt.defaultImage)) || ""; }
-// Centre-square, 512px JPEG — the same as add.html. Drawing through a canvas
-// also drops the camera's EXIF (GPS included): the photo is public.
-function squareJpeg(file, size){
-  return new Promise((res, rej)=>{
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = ()=>{
-      const s = Math.min(img.width, img.height), c = document.createElement("canvas");
-      c.width = c.height = size;
-      c.getContext("2d").drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-      c.toBlob(b=> b ? res(b) : rej(new Error("encode failed")), "image/jpeg", 0.85);
-    };
-    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
-    img.src = url;
-  });
-}
+// Photo framing + square JPEG (EXIF-stripped) live in AFDCore.pickSquare.
 
 function downsampleEnv(frames, n){
   n=n||48; if(!frames||!frames.length) return [];
@@ -685,7 +670,7 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFa
       (steward ? `<div class="wt-field wt-photo"><span>${AFDCore.tHTML("card.photo", m)}</span>`+
         `<div class="wt-photo-btns"><button type="button" class="wt-btn wt-photo-take">\u{1F4F7} ${AFDCore.tHTML("card.photo.take", m)}</button>`+
         `<button type="button" class="wt-btn wt-photo-clear"${meta.image?"":" hidden"}>${AFDCore.tHTML("card.photo.clear", m)}</button></div>`+
-        `<input type="file" accept="image/*" capture="environment" hidden></div>` : "")+
+        `<input type="file" accept="image/*" hidden></div>` : "")+
       `<button type="button" class="wt-btn wt-save">${AFDCore.tHTML("card.edit.save", m)}</button>`;
     const inF=(f)=>fe.querySelector(`[data-f="${f}"]`);
     const picker=emojiPicker(fe.querySelector(".ep"), entryId, meta, m);
@@ -721,7 +706,8 @@ async function wordTools(entryId, meta, recs, cardEl, detail, paintTags, paintFa
         const f=pin.files && pin.files[0]; pin.value=""; if(!f) return;
         take.disabled=clr.disabled=true; take.classList.add("busy");
         try{
-          const blob=await squareJpeg(f, 512);
+          const blob=await AFDCore.pickSquare(f, 512);
+          if(!blob) return;                                   // backed out (finally re-enables the buttons)
           const path=`afd_pics/${u.uid}/${entryId}~${Date.now()}.jpg`;
           await uploadBytes(ref(CFG.store, path), blob, { contentType:"image/jpeg", cacheControl:"private, max-age=31536000, immutable" });
           const url="https://firebasestorage.googleapis.com/v0/b/afd-dev.firebasestorage.app/o/"+encodeURIComponent(path)+"?alt=media";

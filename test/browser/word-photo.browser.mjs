@@ -42,6 +42,8 @@ await scenario("a steward takes a photo for a seeded word, then removes it", asy
   ok("the steward sees the photo button", await page.evaluate(()=> !!document.querySelector(".wt-photo-take")));
   ok("no Remove photo while there's no photo", await page.evaluate(()=> document.querySelector(".wt-photo-clear").hidden));
   await page.setInputFiles(".wt-photo input[type=file]", { name:"sun.png", mimeType:"image/png", buffer:PNG });
+  await page.waitForSelector(".afd-crop__btn--ok", { timeout:8000 });   // the framing overlay
+  await page.click(".afd-crop__btn--ok");                               // accept the default square
   await page.waitForFunction(()=> globalThis.__FS["afd_entries/ent_sun"].image, null, { timeout:8000 });
   const d = await page.evaluate(()=> globalThis.__FS["afd_entries/ent_sun"]);
   ok("saved: the steward's own ~stamped file for this word, who + when",
