@@ -6,11 +6,11 @@
 <meta name="google" content="notranslate" />
 <title>عزيب · Azeeb</title>
 <meta name="theme-color" content="#17241F">
-<link rel="icon" href="favicon.svg?v=b1112d" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1112d" sizes="any">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112d">
-<link rel="manifest" href="manifest.webmanifest?v=b1112d">
-<script src="afd-instance.js?v=b1112d"></script>
+<link rel="icon" href="favicon.svg?v=b1112e" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1112e" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112e">
+<link rel="manifest" href="manifest.webmanifest?v=b1112e">
+<script src="afd-instance.js?v=b1112e"></script>
 <style>
   :root{
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
@@ -105,7 +105,7 @@
   <main>
     <div class="coin-disc">
       <button class="coin-btn" id="coinBtn" type="button" disabled>
-        <img class="coin" src="img/azeeb-coin.png?v=b1112d" width="600" height="610"
+        <img class="coin" src="img/azeeb-coin.png?v=b1112e" width="600" height="610"
              alt="سِكّة عزيب — ذئب يعوي فوق جذور من دوائر إلكترونية / The Azeeb coin: a howling wolf above circuit-root engraving">
         <span class="sound-badge" id="soundBadge" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9.5v5h3.6L12 18V6L7.6 9.5H4z"/><path d="M15.5 9a3.6 3.6 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -126,8 +126,8 @@
     </section>
 
     <section>
-      <p class="ar" lang="ar">هذا القاموس مِلْكُ أهلِه؛ فالذين يتكلّمون اللغة هم مَن يحفظونه ويُنمّونه. وإطارُه مُعَدٌّ، في حينه، ليَخدم لغاتٍ أخرى لم تُكتَب بعد.</p>
-      <p class="en" lang="en">This dictionary belongs to its community — the people who speak the language are the ones who keep it and grow it. Its framework is meant, in time, to serve other languages that have never been written down.</p>
+      <p class="ar" lang="ar">جمعنا هذا القاموس ارثاً ثمينا للأجيال القادمة ليكون بوابةً نعبر منها الى العالم ويعبر العالم منها إلى لغتنا و حضارتنا وتاريخنا .</p>
+      <p class="en" lang="en">We gathered this dictionary as a precious inheritance for the generations to come — a gateway we cross to reach the world, and the world crosses to reach our language, our civilization, and our history.</p>
     </section>
 
     <p class="creed" lang="ar">للصالح العام.
@@ -211,7 +211,7 @@
           import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js")
         ]);
         var app=FB[0].initializeApp(cfg);
-        try{ (await import("./afd-appcheck.js?v=b1112d")).startAppCheck(app); }catch(_){}
+        try{ (await import("./afd-appcheck.js?v=b1112e")).startAppCheck(app); }catch(_){}
         var db=FB[1].getFirestore(app), store=FB[2].getStorage(app);
         var snap=await FB[1].getDoc(FB[1].doc(db,"afd_ui_prompts","about.welcome"));
         var data=snap.exists()?snap.data():null;
