@@ -153,4 +153,11 @@ window.AFDPrompts = [
     { key:"rec.consent.agent", en:"You just recorded someone else's voice. Ask them before keeping it.", ar:"سجّلت صوت شخصٍ آخر للتوّ. استأذنه قبل الاحتفاظ به.", kind:"narration" },
     { key:"rec.finish", en:"Sign in to keep your voices and have them credited, and say where you're from. You can do this later.", ar:"سجّل الدخول لحفظ أصواتك ونسبتها إليك، وقُل من أين أنت. يمكنك فعل ذلك لاحقًا.", kind:"narration" },
   ]},
+  // 11-12: the About page plays this one greeting when it opens (and when the coin
+  // is tapped). Recorded here like any other prompt; the page fetches it from
+  // afd_ui/ (public-read). Text until recorded. ar is an MSA draft — DHOFARI REVIEW.
+  { tab:"record", name:"About page", ar:"صفحة التعريف",
+    note:"Played when the About page opens — a greeting behind the Azeeb mark.", items:[
+    { key:"about.welcome", en:"Welcome home", ar:"مرحبًا بك في البيت", kind:"narration" },
+  ]},
 ];

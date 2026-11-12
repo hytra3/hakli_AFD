@@ -1170,7 +1170,11 @@ window.AFDCore = (function(){
     "mic.inapp.title":      { en:"Open in Safari or Chrome", ar:"افتحه في Safari أو Chrome" },
     "mic.inapp.body":       { en:"This in-app browser can't use the microphone. Open hakli.app in Safari or Chrome (tap ⋮ or the share icon, then “Open in browser”), then come back.", ar:"متصفّح التطبيق هذا لا يمكنه استخدام الميكروفون. افتح hakli.app في Safari أو Chrome (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)، ثم عُد." },
     // consent-gate "more" disclosure summary (11-12; MSA draft → Dhofari review)
-    "consent.more":         { en:"More: naming & visibility", ar:"المزيد: النسبة والظهور" }
+    "consent.more":         { en:"More: naming & visibility", ar:"المزيد: النسبة والظهور" },
+    // About page menu label (about.html, and in the account menu). Placed LAST on
+    // purpose so it lands at the end of the review tab's "Other" group and never
+    // renumbers existing on-screen lines. ar PROVISIONAL — pending Dhofari review.
+    "about.menu":           { en:"About", ar:"حول" }
   };
   function t(key, mode){
     const s = STRINGS[key];
