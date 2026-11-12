@@ -446,6 +446,28 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
 #consentGate .cg-decline{color:var(--alert)}
 #consentGate .cg-status,#finishStep .fs-status{font-size:13px;color:var(--ink-soft);margin-top:12px;min-height:1.2em}
 #finishStep .fs-later{margin-top:14px}
+/* Consent-gate density (11-12). The sign-in + permission cards are relocated
+   INTO the sheet, so their own card chrome (fill, border, shadow, 20px padding)
+   just doubles up and makes a wall. Flatten them to plain sections split by a
+   hairline, tighten the checkboxes, and shrink the sub-titles. No consent
+   content is removed and no Arabic is reworded — layout only. */
+#consentGate #cgPerms .card{background:none;border:0;box-shadow:none;border-radius:0;
+  padding:0;margin:14px 0 0;border-top:1px solid var(--hairline);padding-top:14px}
+#consentGate #cgPerms .card:first-child{border-top:0;padding-top:0;margin-top:2px}
+#consentGate #cgPerms .card h2{font-size:15px;margin:0 0 6px}
+#consentGate #cgPerms .check{margin:9px 0}
+#consentGate #cgPerms label.field{margin:12px 0 0}
+/* The optional finer choices — how the speaker is credited (already defaults to
+   a code name only) and the off-by-default "show my town" — tuck under one tap,
+   so the gate leads with the core permissions and the spoken-consent button. */
+#consentGate .cg-more{margin:12px 0 0}
+#consentGate .cg-more>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  min-height:44px;font:600 13.5px/1.3 var(--sans);color:var(--mountain)}
+#consentGate .cg-more>summary::-webkit-details-marker{display:none}
+#consentGate .cg-more>summary::after{content:"";width:8px;height:8px;flex:0 0 auto;
+  border-inline-end:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(45deg);transition:transform .15s;margin-inline-start:auto}
+#consentGate .cg-more[open]>summary::after{transform:rotate(-135deg)}
 /* 🔈 a screen's spoken prompt (non-readers): shown once the Hakli clip is
    recorded; auto-plays in the sound view, and plays in any view when tapped */
 .say-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
@@ -633,6 +655,11 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
       <span><span class="bi-ar" dir="rtl" data-str="consent.ml">استخدام هذه التسجيلات لتعليم الحاسوب فهم الحَكلي</span><small class="sub">Use these recordings to teach a computer to understand Hakli</small></span></label>
     <label class="check"><input type="checkbox" id="cPlay" checked>
       <span><span class="bi-ar" dir="rtl" data-str="consent.play">السماح للآخرين بالاستماع إلى هذه التسجيلات في التطبيق</span><small class="sub">Let other people listen to these recordings in the app</small></span></label>
+    <!-- The finer, optional choices tuck under one tap (11-12) so the gate leads
+         with the core permissions + the spoken-consent button. Both have safe
+         defaults: credited "by a code name only", town-showing off. -->
+    <details class="cg-more">
+      <summary><span class="bi-ar" dir="rtl" data-str="consent.more">المزيد: النسبة والظهور</span><small class="sub">More: naming &amp; visibility</small></summary>
     <!-- Opt-in public origin (ROADMAP: speaker origin visibility, tier 3): the
          town only, shown beside this speaker's voices. Off by default; part of
          the spoken consent like the others. Hidden if this instance's speaker
@@ -650,6 +677,7 @@ input:focus,select:focus{outline:2px solid var(--frank);outline-offset:1px;borde
         <option value="named" data-str="form.attr.named">بالاسم · By name</option>
         <option value="anonymous" data-str="form.attr.anonymous">دون نسبة · Not at all</option>
       </select></label>
+    </details>
     <button class="btn secondary" id="grantRecordBtn" style="margin-top:2px">
       <span class="bi-ar" dir="rtl" data-str="consent.record">سجّل موافقة المتحدِّث المنطوقة</span><small class="sub">Record the speaker's spoken consent</small></button>
     <p class="note" id="grantNote" style="margin:6px 0 0"></p>

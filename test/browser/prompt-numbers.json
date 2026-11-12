@@ -386,6 +386,7 @@
   "A5.65": "screen:profile.err.save",
   "A5.66": "screen:consent.origin",
   "A5.67": "screen:consent.origin.note",
+  "A5.68": "screen:consent.more",
   "A6.1": "screen:mic.step",
   "A6.2": "screen:mic.title",
   "A6.3": "screen:mic.note",
