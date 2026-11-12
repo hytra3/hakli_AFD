@@ -107,12 +107,12 @@
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
   body.en .enter{font-family:var(--en); font-style:italic}
 </style>
-<link rel="icon" href="favicon.svg?v=b1112b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1112b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1112b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1112b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112b">
-<link rel="manifest" href="manifest.webmanifest?v=b1112b">
+<link rel="icon" href="favicon.svg?v=b1112c" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1112c" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1112c">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1112c">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112c">
+<link rel="manifest" href="manifest.webmanifest?v=b1112c">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -168,8 +168,8 @@
 </main>
 <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 
-<script src="afd-core.js?v=b1112b"></script>
-<script src="afd-instance.js?v=b1112b"></script>
+<script src="afd-core.js?v=b1112c"></script>
+<script src="afd-instance.js?v=b1112c"></script>
 <script>
 const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
 // build stamp at the foot — the ?v= sync-stamp.sh writes on this page's own
@@ -315,8 +315,8 @@ document.getElementById("wa").addEventListener("click", () => track("help", "ask
 // three numbers, readable by anyone) and the usage counts above. If either
 // fails the page is unchanged: the counter simply stays hidden.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { startAppCheck } from "./afd-appcheck.js?v=b1112b";
-import { stats as savedStats, clearAll as savedClear, trim as savedTrim } from "./afd-voices.js?v=b1112b";
+import { startAppCheck } from "./afd-appcheck.js?v=b1112c";
+import { stats as savedStats, clearAll as savedClear, trim as savedTrim } from "./afd-voices.js?v=b1112c";
 // voices kept on this phone: the count and the Remove button above
 window.AFDSaved = { stats: savedStats, clearAll: savedClear };
 savedTrim().catch(()=>{}).then(() => { try{ paintSaved(); }catch(_){} });
