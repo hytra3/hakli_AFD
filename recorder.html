@@ -1924,16 +1924,46 @@ async function acquireMic(){
   return {ok, bt, sr, track:r.track};
 }
 
+function isInAppBrowser(){
+  return /FBAN|FBAV|FB_IAB|Instagram|Line\/|WhatsApp|WeChat|Twitter|; GSA\//i.test(navigator.userAgent||"");
+}
+/* When the mic is blocked, re-run the check the moment the permission flips to
+   granted — the speaker allowed it in Settings, or the OS re-prompt resolved — so
+   they don't have to find the button again. Progressive: not every browser fires
+   this, which is why "Check again" stays. */
+let _micPermWatch=null;
+async function watchMicPermission(){
+  if(_micPermWatch || !(navigator.permissions && navigator.permissions.query)) return;
+  try{
+    const p=await navigator.permissions.query({name:"microphone"});
+    _micPermWatch=p;
+    p.onchange=()=>{ if(p.state==="granted") openMic(); };
+  }catch(_){}
+}
+/* The microphone didn't open. Say why, in a way the speaker can act on, and keep
+   "Check again" and "Listen only" as the ways forward. The raw error stays in the
+   readout for a steward. */
+function showMicError(err){
+  $("micResult").classList.remove("hidden");
+  $("toRecord").classList.add("hidden");
+  $("levelBtn").classList.add("hidden");
+  $("levelResult").classList.add("hidden");
+  $("verdict").className="verdict bad";
+  const name=(err&&err.name)||"";
+  let tKey, bKey;
+  if(name==="NotFoundError"||name==="OverconstrainedError"){ tKey="mic.nomic.title"; bKey="mic.nomic.body"; }
+  else if(name==="NotReadableError"||name==="AbortError"){ tKey="mic.busy.title"; bKey="mic.busy.body"; }
+  else if(name==="NotAllowedError"||name==="SecurityError"||name===""){
+    if(isInAppBrowser()){ tKey="mic.inapp.title"; bKey="mic.inapp.body"; }
+    else { tKey="mic.blocked.title"; bKey="mic.blocked.body"; watchMicPermission(); }
+  }else{ tKey="mic.err.title"; bKey="mic.err.body"; }
+  $("verdict").innerHTML=verdictHTML(tKey,bKey);
+  $("readout").textContent=String((err&&err.message)||err||"");
+}
+
 async function openMic(){
   const r=await acquireMic();
-  if(r.err){
-    $("micResult").classList.remove("hidden");
-    $("verdict").className="verdict bad";
-    $("verdict").innerHTML=verdictHTML("mic.err.title","mic.err.body");
-    $("readout").textContent=String(r.err&&r.err.message||r.err);
-    $("toRecord").classList.add("hidden");
-    return;
-  }
+  if(r.err){ showMicError(r.err); return; }
   const {ok, bt, sr, track}=r;
 
   $("micResult").classList.remove("hidden");
