@@ -1826,6 +1826,21 @@ window.AFDCore = (function(){
     })).catch(()=> squareJpeg(file, size));
   }
 
+  // Shared page footer: the live build stamp (read off this page's own afd-core.js
+  // ?v= so it can't disagree with what's loaded) and a copyright line that links to
+  // the About page. Pages call AFDCore.renderFooter() once the DOM is ready.
+  function buildStampValue(){
+    try{ const el = document.querySelector('script[src*="afd-core.js"]');
+      return (el && new URL(el.src).searchParams.get("v")) || ""; }catch(_){ return ""; }
+  }
+  function renderFooter(id){
+    const el = document.getElementById(id || "buildStamp"); if(!el) return;
+    const v = buildStampValue(), yr = new Date().getFullYear();
+    el.innerHTML = (v ? '<span class="bs-build" aria-hidden="true">build ' + v + ' · </span>' : '')
+      + '© ' + yr + ' <a href="about.html" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Azeeb</a>';
+    el.removeAttribute("aria-hidden");   // the © / Azeeb link is meaningful content; only the build span stays hidden
+  }
+
   return {
     ask, notice, askNoteLang,
     errorSink, report, eventSink, track,
@@ -1836,6 +1851,7 @@ window.AFDCore = (function(){
     hushUI, setCapturing, isCapturing, langs, langPill, ownLang,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
-    identicon, stepHistory, dotsHTML, escHtml, buzz, squareJpeg, pickSquare
+    identicon, stepHistory, dotsHTML, escHtml, buzz, squareJpeg, pickSquare,
+    renderFooter
   };
 })();

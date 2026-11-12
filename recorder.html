@@ -1297,7 +1297,7 @@ let rafId=null, liveBars=[];
 
 const BUILD="b1112a";   // bump every publish; shown in the header + console
 try{ document.querySelector(".brand small").textContent = "Audio First Dictionary · " + BUILD; }catch(_){}
-try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
+try{ AFDCore.renderFooter("buildStamp"); }catch(_){}
 console.log("[AFD] recorder build", BUILD, "·", location.href);
 
 /* ================= step 1 → 2 ================= */

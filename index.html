@@ -1340,7 +1340,7 @@ function banner(msg){
 
 /* press-and-hold on the mic (pointer covers touch + mouse) */
 // Visible build stamp — compare laptop vs phone to catch a stale cache.
-try{ $("buildStamp").textContent = "build " + BUILD; }catch(_){}
+try{ AFDCore.renderFooter("buildStamp"); }catch(_){}
 console.log("[AFD] build", BUILD, "·", location.href);
 
 /* The shifting masthead: a find identity on the speak view, a dictionary identity
