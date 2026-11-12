@@ -6,11 +6,11 @@
 <meta name="google" content="notranslate" />
 <title>عزيب · Azeeb</title>
 <meta name="theme-color" content="#17241F">
-<link rel="icon" href="favicon.svg?v=b1112a" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1112a" sizes="any">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112a">
-<link rel="manifest" href="manifest.webmanifest?v=b1112a">
-<script src="afd-instance.js?v=b1112a"></script>
+<link rel="icon" href="favicon.svg?v=b1112b" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1112b" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112b">
+<link rel="manifest" href="manifest.webmanifest?v=b1112b">
+<script src="afd-instance.js?v=b1112b"></script>
 <style>
   :root{
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
@@ -105,7 +105,7 @@
   <main>
     <div class="coin-disc">
       <button class="coin-btn" id="coinBtn" type="button" disabled>
-        <img class="coin" src="img/azeeb-coin.png?v=b1112a" width="600" height="610"
+        <img class="coin" src="img/azeeb-coin.png?v=b1112b" width="600" height="610"
              alt="سِكّة عزيب — ذئب يعوي فوق جذور من دوائر إلكترونية / The Azeeb coin: a howling wolf above circuit-root engraving">
         <span class="sound-badge" id="soundBadge" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9.5v5h3.6L12 18V6L7.6 9.5H4z"/><path d="M15.5 9a3.6 3.6 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -211,7 +211,7 @@
           import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js")
         ]);
         var app=FB[0].initializeApp(cfg);
-        try{ (await import("./afd-appcheck.js?v=b1112a")).startAppCheck(app); }catch(_){}
+        try{ (await import("./afd-appcheck.js?v=b1112b")).startAppCheck(app); }catch(_){}
         var db=FB[1].getFirestore(app), store=FB[2].getStorage(app);
         var snap=await FB[1].getDoc(FB[1].doc(db,"afd_ui_prompts","about.welcome"));
         var data=snap.exists()?snap.data():null;
