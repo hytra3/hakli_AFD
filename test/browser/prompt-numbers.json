@@ -12,6 +12,7 @@
   "R10": "Everywhere (shared)",
   "R11": "How-to segments",
   "R12": "Recorder — record-first screens",
+  "R13": "About page",
   "A1": "Dictionary page (speak to find, lists, page not found)",
   "A2": "Dictionary card",
   "A3": "Add a word",
@@ -112,6 +113,7 @@
   "R12.2": "rec.consent",
   "R12.3": "rec.consent.agent",
   "R12.4": "rec.finish",
+  "R13.1": "about.welcome",
   "A1.1": "screen:find.waking",
   "A1.2": "screen:find.retrying",
   "A1.3": "screen:find.err.offline",
@@ -858,6 +860,7 @@
   "A11.275": "screen:cg.needspoken",
   "A11.276": "screen:fs.title",
   "A11.277": "screen:fs.ask",
-  "A11.278": "screen:fs.later"
+  "A11.278": "screen:fs.later",
+  "A11.279": "screen:about.menu"
  }
 }

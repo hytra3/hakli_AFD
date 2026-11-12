@@ -881,8 +881,6 @@ window.AFDCore = (function(){
     // Help (help.html, and "Help" in the dictionary menu and the account menus; added 10-16, kept last so review numbers hold)
     "help.menu":            { en:"Help", ar:"مساعدة" },
     "help.title":           { en:"Help", ar:"مساعدة" },
-    // About (about.html — the quiet page behind the Azeeb mark; menu entry only; added 11-12). Arabic PROVISIONAL — pending speaker review.
-    "about.menu":           { en:"About", ar:"حول" },
     "help.lead":            { en:"Short clips that show each step, and answers to what people ask most.", ar:"مقاطع قصيرة تُريك كلّ خطوة، وإجابات عن أكثر ما يسأل عنه الناس." },
     "help.clips":           { en:"How to…", ar:"كيف…" },
     "help.tour":            { en:"Watch the whole welcome tour", ar:"شاهد جولة الترحيب كاملة" },
@@ -1172,7 +1170,11 @@ window.AFDCore = (function(){
     "mic.inapp.title":      { en:"Open in Safari or Chrome", ar:"افتحه في Safari أو Chrome" },
     "mic.inapp.body":       { en:"This in-app browser can't use the microphone. Open hakli.app in Safari or Chrome (tap ⋮ or the share icon, then “Open in browser”), then come back.", ar:"متصفّح التطبيق هذا لا يمكنه استخدام الميكروفون. افتح hakli.app في Safari أو Chrome (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)، ثم عُد." },
     // consent-gate "more" disclosure summary (11-12; MSA draft → Dhofari review)
-    "consent.more":         { en:"More: naming & visibility", ar:"المزيد: النسبة والظهور" }
+    "consent.more":         { en:"More: naming & visibility", ar:"المزيد: النسبة والظهور" },
+    // About page menu label (about.html, and in the account menu). Placed LAST on
+    // purpose so it lands at the end of the review tab's "Other" group and never
+    // renumbers existing on-screen lines. ar PROVISIONAL — pending Dhofari review.
+    "about.menu":           { en:"About", ar:"حول" }
   };
   function t(key, mode){
     const s = STRINGS[key];
