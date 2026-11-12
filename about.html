@@ -6,11 +6,11 @@
 <meta name="google" content="notranslate" />
 <title>عزيب · Azeeb</title>
 <meta name="theme-color" content="#17241F">
-<link rel="icon" href="favicon.svg?v=b1112e" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1112e" sizes="any">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112e">
-<link rel="manifest" href="manifest.webmanifest?v=b1112e">
-<script src="afd-instance.js?v=b1112e"></script>
+<link rel="icon" href="favicon.svg?v=b1112f" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1112f" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1112f">
+<link rel="manifest" href="manifest.webmanifest?v=b1112f">
+<script src="afd-instance.js?v=b1112f"></script>
 <style>
   :root{
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
@@ -73,6 +73,10 @@
     color:var(--head);margin:16px 0 2px}
   .tagline .en{display:block;font-family:var(--serif);font-style:italic;font-size:15px;
     font-weight:400;color:var(--muted);letter-spacing:.02em;margin-top:5px;direction:ltr}
+  .greet-sub{margin:6px 0 0}
+  .greet-sub span{display:block}
+  .greet-sub [lang="ar"]{font-family:var(--sans);font-size:clamp(16px,4.4vw,18px);color:var(--muted)}
+  .greet-sub .g-en{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--muted);margin-top:3px;direction:ltr}
   .rule{height:1px;background:var(--divider);max-width:120px;margin:28px auto;border:0}
   section{margin:24px 0}
   p.ar{font-size:clamp(16px,4.4vw,18px);color:var(--text);margin:0 0 10px}
@@ -105,7 +109,7 @@
   <main>
     <div class="coin-disc">
       <button class="coin-btn" id="coinBtn" type="button" disabled>
-        <img class="coin" src="img/azeeb-coin.png?v=b1112e" width="600" height="610"
+        <img class="coin" src="img/azeeb-coin.png?v=b1112f" width="600" height="610"
              alt="سِكّة عزيب — ذئب يعوي فوق جذور من دوائر إلكترونية / The Azeeb coin: a howling wolf above circuit-root engraving">
         <span class="sound-badge" id="soundBadge" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9.5v5h3.6L12 18V6L7.6 9.5H4z"/><path d="M15.5 9a3.6 3.6 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -114,8 +118,10 @@
     </div>
     <p class="mark" lang="ar">عزيب</p>
 
-    <p class="tagline" lang="ar">مرحبًا بك.
-      <span class="en" lang="en">Welcome home.</span>
+    <p class="tagline" lang="qhk" dir="rtl">تبذ حي</p>
+    <p class="greet-sub">
+      <span lang="ar" dir="rtl">مرحبًا بك</span>
+      <span class="g-en" lang="en">Welcome</span>
     </p>
 
     <hr class="rule">
@@ -127,12 +133,8 @@
 
     <section>
       <p class="ar" lang="ar">جمعنا هذا القاموس ارثاً ثمينا للأجيال القادمة ليكون بوابةً نعبر منها الى العالم ويعبر العالم منها إلى لغتنا و حضارتنا وتاريخنا .</p>
-      <p class="en" lang="en">We gathered this dictionary as a precious inheritance for the generations to come — a gateway we cross to reach the world, and the world crosses to reach our language, our civilization, and our history.</p>
+      <p class="en" lang="en">We gathered this dictionary as a precious inheritance for the generations to come — a gateway we cross to reach the world, and the world crosses to reach our language, our heritage, and our history.</p>
     </section>
-
-    <p class="creed" lang="ar">للصالح العام.
-      <span class="en" lang="en">For the common good.</span>
-    </p>
 
     <footer>hakli.app</footer>
   </main>
@@ -190,7 +192,7 @@
   function enable(){ if(ready||!audio) return; ready=true;
     if(badge) badge.hidden=false;
     if(coin){ coin.disabled=false; coin.classList.add("playable");
-      coin.setAttribute("aria-label","استمع: مرحبًا بك · Hear: welcome home"); }
+      coin.setAttribute("aria-label","استمع: تبذ حي · Hear: welcome in Hakli"); }
     if(!played()&&mayAuto()){
       audio.addEventListener("play", markPlayed, {once:true});
       var p; try{ p=audio.play(); }catch(_){ arm(); return; }
@@ -211,7 +213,7 @@
           import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js")
         ]);
         var app=FB[0].initializeApp(cfg);
-        try{ (await import("./afd-appcheck.js?v=b1112e")).startAppCheck(app); }catch(_){}
+        try{ (await import("./afd-appcheck.js?v=b1112f")).startAppCheck(app); }catch(_){}
         var db=FB[1].getFirestore(app), store=FB[2].getStorage(app);
         var snap=await FB[1].getDoc(FB[1].doc(db,"afd_ui_prompts","about.welcome"));
         var data=snap.exists()?snap.data():null;
