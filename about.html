@@ -10,6 +10,7 @@
 <link rel="icon" href="favicon.ico?v=b1111i" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1111i">
 <link rel="manifest" href="manifest.webmanifest?v=b1111i">
+<script src="afd-instance.js?v=b1111i"></script>
 <style>
   :root{
     --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
@@ -136,7 +137,7 @@
     <footer>hakli.app</footer>
   </main>
 
-  <audio id="welcomeAudio" preload="metadata" src="media/welcome-home.webm?v=b1111i"></audio>
+  <audio id="welcomeAudio" preload="none"></audio>
 
 <script>
 (function(){
@@ -159,12 +160,14 @@
     applyTheme(theme); try{ localStorage.setItem("azeeb.theme", theme); }catch(_){}
   });
 
-  // Welcome-home voice. Plays once per session on open, but only where the app's
-  // own on-arrival rule allows a volunteered Hakli clip: not when quiet, and only
-  // in the sound (non-reader) view — unset defaults to sound, as in the app. A tap
-  // on the coin plays it in ANY view. Browsers may block autoplay on a fresh page,
-  // so we fall back to the first interaction. Until media/welcome-home.webm exists
-  // the page stays silent and the speaker hint stays hidden.
+  // Welcome-home voice. The clip is the "about.welcome" prompt — recorded in the
+  // prompts tool like any other, stored under afd_ui/ (public-read). We resolve it
+  // the same way welcome.html does; no sign-in. It plays once per session on open,
+  // but only where the app's on-arrival rule allows a volunteered Hakli clip (not
+  // when quiet, and only in the sound view — unset defaults to sound, as in the
+  // app), with a first-interaction fallback for autoplay blocking. A tap on the
+  // coin plays it in ANY view. Until a speaker records it, the page stays silent
+  // and the speaker hint stays hidden.
   var audio=document.getElementById("welcomeAudio"),
       coin=document.getElementById("coinBtn"),
       badge=document.getElementById("soundBadge"),
@@ -176,7 +179,7 @@
       var m=localStorage.getItem("afd_display_mode"); if(m==="auto") m="bridge";
       return !m || m==="sound";
     }catch(_){ return true; } }
-  function tryPlay(reset){ if(!audio) return; try{ if(reset) audio.currentTime=0;
+  function tryPlay(reset){ if(!audio||!audio.src) return; try{ if(reset) audio.currentTime=0;
       var p=audio.play(); if(p&&p.then){ p.then(markPlayed).catch(function(){}); } else markPlayed(); }catch(_){} }
   function arm(){ if(armed||played()) return; armed=true;
     var h=function(){ document.removeEventListener("pointerdown",h); document.removeEventListener("keydown",h);
@@ -194,12 +197,33 @@
       if(p&&p.then) p.then(markPlayed).catch(arm); else markPlayed();
     }
   }
-  if(audio){
-    audio.addEventListener("loadedmetadata", enable);
-    audio.addEventListener("canplay", enable);
-    audio.addEventListener("error", function(){ if(badge) badge.hidden=true; });
-  }
   if(coin) coin.addEventListener("click", function(){ if(!ready) return; tryPlay(true); });
+
+  // Resolve the recorded clip from Storage (afd_ui/ is public-read, no sign-in),
+  // mirroring welcome.html. Any failure leaves the page silent.
+  var cfg=(window.AFDInstance && window.AFDInstance.firebase) || null;
+  if(cfg && audio){
+    (async function(){
+      try{
+        var FB=await Promise.all([
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js")
+        ]);
+        var app=FB[0].initializeApp(cfg);
+        try{ (await import("./afd-appcheck.js?v=b1111i")).startAppCheck(app); }catch(_){}
+        var db=FB[1].getFirestore(app), store=FB[2].getStorage(app);
+        var snap=await FB[1].getDoc(FB[1].doc(db,"afd_ui_prompts","about.welcome"));
+        var data=snap.exists()?snap.data():null;
+        if(!data || data.status!=="recorded") return;       // not recorded yet
+        var url=await FB[2].getDownloadURL(FB[2].ref(store, data.storagePath || "afd_ui/about.welcome.webm"));
+        audio.addEventListener("loadedmetadata", enable);
+        audio.addEventListener("canplay", enable);
+        audio.addEventListener("error", function(){ if(badge) badge.hidden=true; });
+        audio.src=url; audio.load();
+      }catch(e){ /* audio unavailable — page stays silent */ }
+    })();
+  }
 })();
 </script>
 

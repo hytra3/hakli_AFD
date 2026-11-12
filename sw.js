@@ -35,7 +35,7 @@ const NAV_TIMEOUT_MS = 4000;
 // missing one is skipped, not fatal.
 const CORE = ["./", "index.html", "recorder.html", "add.html", "welcome.html",
               "help.html", "about.html", "howto.html", "hakli-welcome-walkthrough.html",
-              "img/azeeb-coin.png", "media/welcome-home.webm",
+              "img/azeeb-coin.png",
               "manifest.webmanifest", "favicon.svg"];
 
 self.addEventListener("install", (e) => {
