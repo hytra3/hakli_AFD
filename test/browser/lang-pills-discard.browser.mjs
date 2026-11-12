@@ -1,7 +1,6 @@
 // 11-10, from the field: one way of naming languages, and a way out of Add.
-//  · Pills mark translations and a note's language; bold amber marks Hakli. The
-//    open card's English and Arabic each carry a pill; a closed card in the list
-//    shows none. Add's translation boxes are named by the same pills.
+//  · Pills mark a note's language and Add's translation boxes; bold amber marks
+//    Hakli. (Open-card header pills were removed in #99.)
 //  · Add: "Back to the dictionary" on the first step (the word waits);
 //    "Throw this word away" once there's something to lose — asks, Keep is the
 //    safe answer; throwing away clears the draft and goes to the dictionary.
@@ -11,22 +10,6 @@ const srv = await serve(ROOT);
 const browser = await launch();
 const ME = { uid:"uP1", isAnonymous:false, displayName:"S", email:"s@e.org" };
 const AUTO = ()=>{ try{ localStorage.setItem("afd_display_mode","bridge"); }catch(_){ } };
-
-await scenario("card: translations carry pills once the card is open", async ()=>{
-  const { page, state } = await newPage(browser, srv.url, { fs:{}, init:AUTO });
-  await page.goto(srv.url + "/index.html");
-  await page.waitForFunction(()=> [...document.querySelectorAll(".card")].some(c=>/^sun\b/.test((c.querySelector(".gloss")||{}).innerText||"")), null, { timeout:10000 }).catch(()=>{});
-  const pills = ()=> page.evaluate(()=>{ const c=[...document.querySelectorAll(".card")].find(c=>/^sun\b/.test((c.querySelector(".gloss")||{}).innerText||""));
-    return c && [...c.querySelectorAll(".head .gloss .lang-pill")].filter(p => getComputedStyle(p).display !== "none").map(p => p.dataset.lang + ":" + p.textContent); });
-  const closed = await pills();
-  ok("in the list (closed): no pills showing", Array.isArray(closed) && closed.length === 0, JSON.stringify(closed));
-  await page.evaluate(()=>{ const c=[...document.querySelectorAll(".card")].find(c=>/^sun\b/.test((c.querySelector(".gloss")||{}).innerText||"")); c.querySelector(".head .gloss").click(); });
-  await page.waitForTimeout(1200);
-  const open = await pills();
-  await shot(page, "pills-card");
-  ok("open: 'sun' has an English pill and 'الشمس' an Arabic one", JSON.stringify(open) === JSON.stringify(["en:English","ar:عربي"]), JSON.stringify(open));
-  ok("no page errors", !state.errors.length, state.errors.join(" | "));
-});
 
 const sayWord = async (page)=>{
   await page.dispatchEvent("#sayBtn","pointerdown",{pointerId:1,pointerType:"touch",isPrimary:true,bubbles:true}); await page.waitForTimeout(1600);
