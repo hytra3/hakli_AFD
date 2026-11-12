@@ -881,6 +881,8 @@ window.AFDCore = (function(){
     // Help (help.html, and "Help" in the dictionary menu and the account menus; added 10-16, kept last so review numbers hold)
     "help.menu":            { en:"Help", ar:"مساعدة" },
     "help.title":           { en:"Help", ar:"مساعدة" },
+    // About (about.html — the quiet page behind the Azeeb mark; menu entry only; added 11-12). Arabic PROVISIONAL — pending speaker review.
+    "about.menu":           { en:"About", ar:"حول" },
     "help.lead":            { en:"Short clips that show each step, and answers to what people ask most.", ar:"مقاطع قصيرة تُريك كلّ خطوة، وإجابات عن أكثر ما يسأل عنه الناس." },
     "help.clips":           { en:"How to…", ar:"كيف…" },
     "help.tour":            { en:"Watch the whole welcome tour", ar:"شاهد جولة الترحيب كاملة" },

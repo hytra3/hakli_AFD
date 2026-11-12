@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="google" content="notranslate" />
+<title>عزيب · Azeeb</title>
+<meta name="theme-color" content="#17241F">
+<link rel="icon" href="favicon.svg?v=b1111i" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1111i" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1111i">
+<link rel="manifest" href="manifest.webmanifest?v=b1111i">
+<style>
+  :root{
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    /* light — the app's khareef palette */
+    --page-bg:radial-gradient(120% 80% at 50% -10%, #F3F7F5 0%, #EAF0EE 55%, #DFE8E4 100%);
+    --text:#17241F; --head:#1F3A34; --muted:#8CA39B; --accent:#C6873F; --divider:#C4D2CC;
+    --disc-bg:#1F3A34; --disc-shadow:24px 24px 60px rgba(31,58,52,.10),0 8px 20px rgba(31,58,52,.20);
+    --coin-glow:transparent; --coin-drop:0 10px 24px rgba(31,58,52,.20);
+    --ctl:#8CA39B; --ctl-hover:#1F3A34;
+  }
+  [data-theme="dark"]{
+    --page-bg:radial-gradient(120% 80% at 50% -10%, #1e1a16 0%, #141210 55%, #0e0c0a 100%);
+    --text:#e9ddc9; --head:#f1e7d5; --muted:#a2957f; --accent:#d2a764; --divider:rgba(210,167,100,.22);
+    --disc-bg:transparent; --disc-shadow:none;
+    --coin-glow:radial-gradient(closest-side, rgba(210,167,100,.22), rgba(210,167,100,.06) 55%, transparent 72%);
+    --coin-drop:0 16px 34px rgba(0,0,0,.6);
+    --ctl:#a2957f; --ctl-hover:#e9ddc9;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--page-bg) fixed; color:var(--text); font-family:var(--sans);
+    line-height:1.85; -webkit-font-smoothing:antialiased; min-height:100dvh;
+    padding:clamp(18px,4vw,40px); padding-top:max(18px,env(safe-area-inset-top));
+    transition:background-color .25s ease, color .25s ease}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .back{display:inline-flex;align-items:center;gap:.4em;font-family:var(--sans);
+    font-size:14px;color:var(--ctl);text-decoration:none}
+  .back:hover{color:var(--ctl-hover)}
+  .back .chev{font-size:1.15em;line-height:1}
+  .theme-toggle{background:none;border:0;cursor:pointer;color:var(--ctl);padding:7px;
+    border-radius:9px;line-height:0;display:inline-flex}
+  .theme-toggle:hover{color:var(--ctl-hover)}
+  .theme-toggle svg{width:19px;height:19px}
+  .theme-toggle .to-light{display:none}
+  [data-theme="dark"] .theme-toggle .to-dark{display:none}
+  [data-theme="dark"] .theme-toggle .to-light{display:inline}
+  main{max-width:600px;margin:clamp(14px,5vh,52px) auto 0;text-align:center;
+    animation:rise .8s ease both}
+  .coin-disc{display:inline-grid;place-items:center;position:relative;background:var(--disc-bg);
+    border-radius:50%;padding:clamp(11px,3.2vw,16px);margin:0 auto 4px;box-shadow:var(--disc-shadow);
+    transition:background-color .25s ease, box-shadow .25s ease}
+  .coin-disc::before{content:"";position:absolute;inset:-12%;border-radius:50%;
+    background:var(--coin-glow);z-index:0;pointer-events:none}
+  .coin-btn{-webkit-appearance:none;appearance:none;background:none;border:0;padding:0;margin:0;
+    line-height:0;display:block;position:relative;z-index:1;border-radius:50%;opacity:1}
+  .coin-btn[disabled]{cursor:default}
+  .coin-btn.playable{cursor:pointer}
+  .coin-btn:focus-visible{outline:2px solid var(--accent);outline-offset:5px}
+  .coin{width:clamp(190px,50vw,272px);height:auto;display:block;filter:drop-shadow(var(--coin-drop))}
+  .sound-badge{position:absolute;z-index:2;inset-inline-end:7%;inset-block-end:7%;
+    width:33px;height:33px;border-radius:50%;display:grid;place-items:center;
+    background:var(--accent);color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.28);
+    animation:pulse 2.4s ease 1}
+  .sound-badge[hidden]{display:none}
+  .sound-badge svg{width:15px;height:15px}
+  .mark{font-family:var(--sans);font-size:14px;letter-spacing:.14em;color:var(--accent);
+    opacity:.95;margin:4px 0 0}
+  .tagline{font-family:var(--sans);font-weight:600;font-size:clamp(22px,6vw,30px);
+    color:var(--head);margin:16px 0 2px}
+  .tagline .en{display:block;font-family:var(--serif);font-style:italic;font-size:15px;
+    font-weight:400;color:var(--muted);letter-spacing:.02em;margin-top:5px;direction:ltr}
+  .rule{height:1px;background:var(--divider);max-width:120px;margin:28px auto;border:0}
+  section{margin:24px 0}
+  p.ar{font-size:clamp(16px,4.4vw,18px);color:var(--text);margin:0 0 10px}
+  p.en{font-family:var(--serif);direction:ltr;text-align:center;font-size:14.5px;
+    line-height:1.7;color:var(--muted);margin:0 auto;max-width:46ch}
+  .creed{font-family:var(--sans);font-size:clamp(18px,5vw,22px);color:var(--accent);
+    font-weight:600;margin:28px 0 4px}
+  .creed .en{display:block;font-family:var(--serif);font-style:italic;font-weight:400;
+    font-size:14px;color:var(--muted);margin-top:5px;direction:ltr}
+  footer{margin:48px auto 10px;text-align:center;font-family:var(--sans);font-size:12px;
+    letter-spacing:.14em;color:var(--muted);direction:ltr}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%{transform:scale(.6);opacity:0}40%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){main,.sound-badge{animation:none}}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <a class="back" href="index.html" aria-label="الرجوع">
+      <span class="chev" aria-hidden="true">&#8594;</span><span>الرجوع</span>
+    </a>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false"
+            aria-label="تبديل العرض الفاتح / الداكن · Light / dark">
+      <svg class="to-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>
+      <svg class="to-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/></svg>
+    </button>
+  </div>
+
+  <main>
+    <div class="coin-disc">
+      <button class="coin-btn" id="coinBtn" type="button" disabled>
+        <img class="coin" src="img/azeeb-coin.png?v=b1111i" width="600" height="610"
+             alt="سِكّة عزيب — ذئب يعوي فوق جذور من دوائر إلكترونية / The Azeeb coin: a howling wolf above circuit-root engraving">
+        <span class="sound-badge" id="soundBadge" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 9.5v5h3.6L12 18V6L7.6 9.5H4z"/><path d="M15.5 9a3.6 3.6 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+      </button>
+    </div>
+    <p class="mark" lang="ar">عزيب</p>
+
+    <p class="tagline" lang="ar">مرحبًا بك في البيت.
+      <span class="en" lang="en">Welcome home.</span>
+    </p>
+
+    <hr class="rule">
+
+    <section>
+      <p class="ar" lang="ar">عزيبٌ مكانٌ في البرّ يأوي إليه أهلُه ومواشيهم، ثمّ يعودون إليه. ونُريد لهذه اللغة مِثلَه: بيتًا تعود إليه وتبقى فيه.</p>
+      <p class="en" lang="en">An <em>azeeb</em> is a homestead out in the land — a place people and their herds shelter in and return to. We want the same for this language: a home it can come back to, and stay.</p>
+    </section>
+
+    <section>
+      <p class="ar" lang="ar">هذا القاموس مِلْكُ أهلِه؛ فالذين يتكلّمون اللغة هم مَن يحفظونه ويُنمّونه. وإطارُه مُعَدٌّ، في حينه، ليَخدم لغاتٍ أخرى لم تُكتَب بعد.</p>
+      <p class="en" lang="en">This dictionary belongs to its community — the people who speak the language are the ones who keep it and grow it. Its framework is meant, in time, to serve other languages that have never been written down.</p>
+    </section>
+
+    <p class="creed" lang="ar">للصالح العام.
+      <span class="en" lang="en">For the common good.</span>
+    </p>
+
+    <footer>hakli.app</footer>
+  </main>
+
+  <audio id="welcomeAudio" preload="metadata" src="media/welcome-home.webm?v=b1111i"></audio>
+
+<script>
+(function(){
+  var root=document.documentElement;
+  function applyTheme(t){
+    if(t==="dark") root.setAttribute("data-theme","dark"); else root.removeAttribute("data-theme");
+    var b=document.getElementById("themeToggle");
+    if(b) b.setAttribute("aria-pressed", t==="dark"?"true":"false");
+  }
+  var params=new URLSearchParams(location.search);
+  var urlTheme=params.get("theme"); if(!urlTheme && location.hash.toLowerCase()==="#dark") urlTheme="dark";
+  if(urlTheme!=="dark" && urlTheme!=="light") urlTheme=null;
+  var saved=null; try{ saved=localStorage.getItem("azeeb.theme"); }catch(_){}
+  var theme=urlTheme||saved||"light";
+  applyTheme(theme);
+  if(urlTheme){ try{ localStorage.setItem("azeeb.theme", urlTheme); }catch(_){} }
+  var tgl=document.getElementById("themeToggle");
+  if(tgl) tgl.addEventListener("click", function(){
+    theme=(root.getAttribute("data-theme")==="dark")?"light":"dark";
+    applyTheme(theme); try{ localStorage.setItem("azeeb.theme", theme); }catch(_){}
+  });
+
+  // Welcome-home voice. Plays once per session on open, but only where the app's
+  // own on-arrival rule allows a volunteered Hakli clip: not when quiet, and only
+  // in the sound (non-reader) view — unset defaults to sound, as in the app. A tap
+  // on the coin plays it in ANY view. Browsers may block autoplay on a fresh page,
+  // so we fall back to the first interaction. Until media/welcome-home.webm exists
+  // the page stays silent and the speaker hint stays hidden.
+  var audio=document.getElementById("welcomeAudio"),
+      coin=document.getElementById("coinBtn"),
+      badge=document.getElementById("soundBadge"),
+      PLAYED="azeeb.welcome.played", ready=false, armed=false;
+  function played(){ try{ return sessionStorage.getItem(PLAYED)==="1"; }catch(_){ return false; } }
+  function markPlayed(){ try{ sessionStorage.setItem(PLAYED,"1"); }catch(_){} }
+  function mayAuto(){ try{
+      if(localStorage.getItem("afd_quiet")==="1") return false;
+      var m=localStorage.getItem("afd_display_mode"); if(m==="auto") m="bridge";
+      return !m || m==="sound";
+    }catch(_){ return true; } }
+  function tryPlay(reset){ if(!audio) return; try{ if(reset) audio.currentTime=0;
+      var p=audio.play(); if(p&&p.then){ p.then(markPlayed).catch(function(){}); } else markPlayed(); }catch(_){} }
+  function arm(){ if(armed||played()) return; armed=true;
+    var h=function(){ document.removeEventListener("pointerdown",h); document.removeEventListener("keydown",h);
+      if(!played()&&mayAuto()) tryPlay(false); };
+    document.addEventListener("pointerdown",h,{once:true});
+    document.addEventListener("keydown",h,{once:true});
+  }
+  function enable(){ if(ready||!audio) return; ready=true;
+    if(badge) badge.hidden=false;
+    if(coin){ coin.disabled=false; coin.classList.add("playable");
+      coin.setAttribute("aria-label","استمع: مرحبًا بك في البيت · Hear: welcome home"); }
+    if(!played()&&mayAuto()){
+      audio.addEventListener("play", markPlayed, {once:true});
+      var p; try{ p=audio.play(); }catch(_){ arm(); return; }
+      if(p&&p.then) p.then(markPlayed).catch(arm); else markPlayed();
+    }
+  }
+  if(audio){
+    audio.addEventListener("loadedmetadata", enable);
+    audio.addEventListener("canplay", enable);
+    audio.addEventListener("error", function(){ if(badge) badge.hidden=true; });
+  }
+  if(coin) coin.addEventListener("click", function(){ if(!ready) return; tryPlay(true); });
+})();
+</script>
+
+</body>
+</html>

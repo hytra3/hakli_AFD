@@ -34,7 +34,8 @@ const NAV_TIMEOUT_MS = 4000;
 // help.html may not be published yet: each file is fetched on its own, so a
 // missing one is skipped, not fatal.
 const CORE = ["./", "index.html", "recorder.html", "add.html", "welcome.html",
-              "help.html", "howto.html", "hakli-welcome-walkthrough.html",
+              "help.html", "about.html", "howto.html", "hakli-welcome-walkthrough.html",
+              "img/azeeb-coin.png", "media/welcome-home.webm",
               "manifest.webmanifest", "favicon.svg"];
 
 self.addEventListener("install", (e) => {
