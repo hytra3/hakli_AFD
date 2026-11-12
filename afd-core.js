@@ -1665,6 +1665,148 @@ window.AFDCore = (function(){
     });
   }
 
+  /* ---- a chosen image → a square JPEG --------------------------------------
+     squareJpeg(): the old centre-crop, shared here so add / card / recorder
+     stop carrying three copies of it. Re-encoding through a canvas also strips
+     the camera's EXIF (GPS included) — these pictures are public.
+     pickSquare(): same output, but the person frames the square first — drag to
+     move, pinch / slider / wheel to zoom — so a screenshot or an off-centre
+     photo isn't blindly cut through the middle. Resolves a JPEG Blob, or null
+     if they back out. Falls back to the centre crop wherever it can't run. */
+  function squareJpeg(file, size){
+    return new Promise((res, rej)=>{
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = ()=>{
+        const s = Math.min(img.width, img.height), c = document.createElement("canvas");
+        c.width = c.height = size;
+        c.getContext("2d").drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        c.toBlob(b=> b ? res(b) : rej(new Error("encode failed")), "image/jpeg", 0.85);
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+
+  function injectCropCSS(){
+    if(document.getElementById("afdCropCSS")) return;
+    const st = document.createElement("style"); st.id = "afdCropCSS";
+    st.textContent =
+      '.afd-crop{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(14,20,18,.92);padding:20px;-webkit-user-select:none;user-select:none;touch-action:none}'+
+      '.afd-crop__stage{position:relative;border-radius:14px;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.92)}'+
+      '.afd-crop__stage canvas{display:block;touch-action:none;cursor:grab}'+
+      '.afd-crop__stage canvas:active{cursor:grabbing}'+
+      '.afd-crop__zoom{width:min(86vw,420px);max-width:90vw;accent-color:#C6873F}'+
+      '.afd-crop__bar{display:flex;gap:44px;align-items:center;justify-content:center}'+
+      '.afd-crop__btn{width:64px;height:64px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3)}'+
+      '.afd-crop__btn--ok{background:#2E6B57;color:#fff}'+
+      '.afd-crop__btn--no{background:#f3efe8;color:#3a3a3a}'+
+      '.afd-crop__btn svg{width:30px;height:30px}';
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  // A File → a drawable source. createImageBitmap honours EXIF orientation;
+  // <img> is the fallback. Returns { src, w, h, done() }.
+  function loadDrawable(file){
+    if(window.createImageBitmap){
+      return createImageBitmap(file, { imageOrientation:"from-image" })
+        .then(bm => ({ src:bm, w:bm.width, h:bm.height, done(){ try{ bm.close(); }catch(_){} } }))
+        .catch(()=> loadViaImg(file));
+    }
+    return loadViaImg(file);
+  }
+  function loadViaImg(file){
+    return new Promise((res, rej)=>{
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = ()=> res({ src:img, w:img.naturalWidth, h:img.naturalHeight, done(){ URL.revokeObjectURL(url); } });
+      img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
+      img.src = url;
+    });
+  }
+
+  function pickSquare(file, size){
+    if(typeof document === "undefined" || !document.body) return squareJpeg(file, size);
+    return loadDrawable(file).then(d => new Promise((resolve, reject)=>{
+      if(!(d.w > 0 && d.h > 0)){ try{ d.done(); }catch(_){} squareJpeg(file, size).then(resolve, reject); return; }
+      injectCropCSS();
+      const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+      const F = Math.round(Math.max(200, Math.min(window.innerWidth*0.86, window.innerHeight*0.60, 420)));
+      const cover = Math.max(F/d.w, F/d.h);          // smallest scale that still fills the square
+      const maxScale = cover * 5;
+      let scale = cover, ox = (F - d.w*scale)/2, oy = (F - d.h*scale)/2;
+
+      const ov = document.createElement("div"); ov.className = "afd-crop";
+      ov.setAttribute("role","dialog"); ov.setAttribute("aria-modal","true"); ov.setAttribute("aria-label","Frame the picture");
+      const stage = document.createElement("div"); stage.className = "afd-crop__stage";
+      stage.style.width = stage.style.height = F + "px";
+      const cv = document.createElement("canvas"); cv.width = Math.round(F*dpr); cv.height = Math.round(F*dpr);
+      cv.style.width = cv.style.height = F + "px"; stage.appendChild(cv);
+      const zoom = document.createElement("input"); zoom.type = "range"; zoom.className = "afd-crop__zoom";
+      zoom.min = "1"; zoom.max = "5"; zoom.step = "0.01"; zoom.value = "1"; zoom.setAttribute("aria-label","Zoom");
+      const bar = document.createElement("div"); bar.className = "afd-crop__bar";
+      const no = document.createElement("button"); no.type = "button"; no.className = "afd-crop__btn afd-crop__btn--no"; no.setAttribute("aria-label","Cancel");
+      no.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      const ok = document.createElement("button"); ok.type = "button"; ok.className = "afd-crop__btn afd-crop__btn--ok"; ok.setAttribute("aria-label","Use this picture");
+      ok.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>';
+      bar.appendChild(no); bar.appendChild(ok);
+      ov.appendChild(stage); ov.appendChild(zoom); ov.appendChild(bar);
+      document.body.appendChild(ov);
+
+      const ctx = cv.getContext("2d");
+      function clamp(){
+        const w = d.w*scale, h = d.h*scale;
+        ox = w <= F ? (F-w)/2 : Math.min(0, Math.max(F-w, ox));
+        oy = h <= F ? (F-h)/2 : Math.min(0, Math.max(F-h, oy));
+      }
+      function render(){
+        clamp();
+        ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+        ctx.setTransform(scale*dpr,0,0,scale*dpr, ox*dpr, oy*dpr);
+        ctx.drawImage(d.src, 0, 0);
+        ctx.setTransform(1,0,0,1,0,0);
+      }
+      function setScale(ns, cx, cy){
+        ns = Math.max(cover, Math.min(maxScale, ns));
+        const k = ns/scale; ox = cx - (cx-ox)*k; oy = cy - (cy-oy)*k; scale = ns;
+        zoom.value = String(1 + (scale-cover)/(maxScale-cover)*4);
+        render();
+      }
+      render();
+
+      const pts = new Map(); let pinchD = 0;
+      cv.addEventListener("pointerdown", e=>{ cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, {x:e.clientX,y:e.clientY}); });
+      cv.addEventListener("pointermove", e=>{
+        if(!pts.has(e.pointerId)) return;
+        const prev = pts.get(e.pointerId); pts.set(e.pointerId, {x:e.clientX,y:e.clientY});
+        if(pts.size === 1){ ox += e.clientX-prev.x; oy += e.clientY-prev.y; render(); return; }
+        if(pts.size === 2){
+          const a = [...pts.values()], dist = Math.hypot(a[0].x-a[1].x, a[0].y-a[1].y), r = stage.getBoundingClientRect();
+          if(pinchD) setScale(scale * dist/pinchD, (a[0].x+a[1].x)/2 - r.left, (a[0].y+a[1].y)/2 - r.top);
+          pinchD = dist;
+        }
+      });
+      function drop(e){ pts.delete(e.pointerId); if(pts.size < 2) pinchD = 0; }
+      cv.addEventListener("pointerup", drop); cv.addEventListener("pointercancel", drop);
+      cv.addEventListener("wheel", e=>{ e.preventDefault(); const r = stage.getBoundingClientRect(); setScale(scale * (e.deltaY<0?1.1:1/1.1), e.clientX-r.left, e.clientY-r.top); }, {passive:false});
+      zoom.addEventListener("input", ()=> setScale(cover + (parseFloat(zoom.value)-1)/4*(maxScale-cover), F/2, F/2));
+
+      function close(){ try{ document.body.removeChild(ov); }catch(_){} document.removeEventListener("keydown", onKey); }
+      function onKey(e){ if(e.key === "Escape"){ e.preventDefault(); cancel(); } }
+      function cancel(){ close(); try{ d.done(); }catch(_){} resolve(null); }
+      function confirmPick(){
+        const out = document.createElement("canvas"); out.width = out.height = size;
+        const srcSide = F/scale, sx = -ox/scale, sy = -oy/scale;
+        out.getContext("2d").drawImage(d.src, sx, sy, srcSide, srcSide, 0, 0, size, size);
+        close(); try{ d.done(); }catch(_){}        // draw is done; the source can go
+        out.toBlob(b => b ? resolve(b) : reject(new Error("encode failed")), "image/jpeg", 0.85);
+      }
+      no.addEventListener("click", cancel);
+      ok.addEventListener("click", confirmPick);
+      ov.addEventListener("pointerdown", e=>{ if(e.target === ov) cancel(); });
+      document.addEventListener("keydown", onKey);
+    })).catch(()=> squareJpeg(file, size));
+  }
+
   return {
     ask, notice, askNoteLang,
     errorSink, report, eventSink, track,
@@ -1675,6 +1817,6 @@ window.AFDCore = (function(){
     hushUI, setCapturing, isCapturing, langs, langPill, ownLang,
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
-    identicon, stepHistory, dotsHTML, escHtml, buzz
+    identicon, stepHistory, dotsHTML, escHtml, buzz, squareJpeg, pickSquare
   };
 })();

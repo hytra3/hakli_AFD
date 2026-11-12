@@ -1341,29 +1341,14 @@ function showProfileCard(){
   // "How you appear" lives in the finish step now (record-first) — open it.
   if(typeof openFinishStep==="function") openFinishStep();
 }
-// Resize a chosen image to a small centred square JPEG — guarantees the storage
-// rule's allowed type and 2 MB cap, and keeps avatars light on slow links.
-function squareJpeg(file, size){
-  return new Promise((res,rej)=>{
-    const img=new Image(), url=URL.createObjectURL(file);
-    img.onload=()=>{
-      const s=Math.min(img.width,img.height), c=document.createElement("canvas");
-      c.width=c.height=size;
-      c.getContext("2d").drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);
-      URL.revokeObjectURL(url);
-      c.toBlob(b=> b?res(b):rej(new Error("encode failed")), "image/jpeg", 0.85);
-    };
-    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
-    img.src=url;
-  });
-}
+// Avatar framing + square JPEG (storage-rule type + 2 MB cap) live in AFDCore.pickSquare.
 (function(){
   const o=$("visObscure"), k=$("visKnown"), f=$("avatarFile"), save=$("saveProfileBtn");
   if(o) o.addEventListener("change", reflectVis);
   if(k) k.addEventListener("change", reflectVis);
   if(f) f.addEventListener("change", async ()=>{
     const file=f.files && f.files[0]; if(!file) return;
-    try{ const b=await squareJpeg(file,256); f._blob=b;
+    try{ const b=await AFDCore.pickSquare(file,256); if(!b) return; f._blob=b;
          if($("avatarImg")){ $("avatarImg").src=URL.createObjectURL(b); $("avatarPreview").classList.remove("hidden"); } }
     catch(e){ if($("profileNote")) $("profileNote").textContent=tBi("profile.err.image"); }
   });

@@ -241,7 +241,7 @@ a.btn.linkish{display:flex; flex-direction:column; align-items:center; justify-c
       <button class="tile" id="tileWrite" type="button"><span class="tick">✓</span><span class="ic">✍️</span><span data-k="add.show.write"></span></button>
       <button class="tile wide" id="tileSpell" type="button" hidden><span class="tick">✓</span><span class="ic">✒️</span><span data-k="add.show.spell"></span></button>
     </div>
-    <input type="file" id="photoIn" accept="image/*" capture="environment" hidden>
+    <input type="file" id="photoIn" accept="image/*" hidden>
 
     <div class="card panel" id="panelPhoto" hidden>
       <p class="note" data-k="add.show.photo.note"></p>
@@ -860,28 +860,15 @@ $("emojiIn").addEventListener("input", ()=>{ const e = firstEmoji($("emojiIn").v
 $("glossArIn").addEventListener("input", async ()=>{ draft.glossAr = $("glossArIn").value.slice(0,80); await saveDraft(); paintShowTiles(); });
 $("glossEnIn").addEventListener("input", async ()=>{ draft.glossEn = $("glossEnIn").value.slice(0,80); await saveDraft(); paintShowTiles(); });
 
-// Centre-square, 512px JPEG. Drawing through a canvas also drops the camera's
-// EXIF (GPS included) — the photo is public, its location shouldn't be.
-function squareJpeg(file, size){
-  return new Promise((res, rej)=>{
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = ()=>{
-      const s = Math.min(img.width, img.height), c = document.createElement("canvas");
-      c.width = c.height = size;
-      c.getContext("2d").drawImage(img, (img.width-s)/2, (img.height-s)/2, s, s, 0, 0, size, size);
-      URL.revokeObjectURL(url);
-      c.toBlob(b=> b ? res(b) : rej(new Error("encode failed")), "image/jpeg", 0.85);
-    };
-    img.onerror = ()=>{ URL.revokeObjectURL(url); rej(new Error("bad image")); };
-    img.src = url;
-  });
-}
+// Photo framing + square JPEG (EXIF-stripped) live in AFDCore.pickSquare.
 $("photoIn").addEventListener("change", async ()=>{
   const f = $("photoIn").files && $("photoIn").files[0];
   $("photoIn").value = "";
   if(!f) return;
   try{
-    draft.photo = await squareJpeg(f, 512);
+    const sq = await C.pickSquare(f, 512);
+    if(!sq) return;                                // backed out of framing
+    draft.photo = sq;
     if(photoUrl){ URL.revokeObjectURL(photoUrl); photoUrl=null; }
     draft.up.photo = false;
     openPanel = "photo";
