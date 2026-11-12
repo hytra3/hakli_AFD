@@ -1168,7 +1168,9 @@ window.AFDCore = (function(){
     "mic.busy.title":       { en:"Another app is using the microphone", ar:"تطبيق آخر يستخدم الميكروفون" },
     "mic.busy.body":        { en:"Close the other app — a call, or a voice recorder — then tap “Check again”.", ar:"أغلِق التطبيق الآخر — مكالمة أو مسجّل صوت — ثم اضغط «افحص مرّة أخرى»." },
     "mic.inapp.title":      { en:"Open in Safari or Chrome", ar:"افتحه في Safari أو Chrome" },
-    "mic.inapp.body":       { en:"This in-app browser can't use the microphone. Open hakli.app in Safari or Chrome (tap ⋮ or the share icon, then “Open in browser”), then come back.", ar:"متصفّح التطبيق هذا لا يمكنه استخدام الميكروفون. افتح hakli.app في Safari أو Chrome (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)، ثم عُد." }
+    "mic.inapp.body":       { en:"This in-app browser can't use the microphone. Open hakli.app in Safari or Chrome (tap ⋮ or the share icon, then “Open in browser”), then come back.", ar:"متصفّح التطبيق هذا لا يمكنه استخدام الميكروفون. افتح hakli.app في Safari أو Chrome (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)، ثم عُد." },
+    // consent-gate "more" disclosure summary (11-12; MSA draft → Dhofari review)
+    "consent.more":         { en:"More: naming & visibility", ar:"المزيد: النسبة والظهور" }
   };
   function t(key, mode){
     const s = STRINGS[key];
