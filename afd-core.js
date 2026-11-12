@@ -1174,7 +1174,10 @@ window.AFDCore = (function(){
     // About page menu label (about.html, and in the account menu). Placed LAST on
     // purpose so it lands at the end of the review tab's "Other" group and never
     // renumbers existing on-screen lines. ar PROVISIONAL — pending Dhofari review.
-    "about.menu":           { en:"About", ar:"حول" }
+    "about.menu":           { en:"About", ar:"حول" },
+    // Welcome page menu label (welcome.html — the narrated intro tour). Placed last like
+    // about.menu so it never renumbers the review tab. ar PROVISIONAL — pending review.
+    "welcome.menu":         { en:"Welcome", ar:"الترحيب" }
   };
   function t(key, mode){
     const s = STRINGS[key];
