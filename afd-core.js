@@ -1155,7 +1155,20 @@ window.AFDCore = (function(){
     "cg.needspoken":        { en:"Record the speaker's spoken consent to keep it.", ar:"سجّل موافقة المتحدِّث المنطوقة للاحتفاظ به." },
     "fs.title":             { en:"Save your voice",    ar:"احفظ صوتك" },
     "fs.ask":               { en:"Sign in so your voices upload and are credited, and add where you're from. You can do this later.", ar:"سجّل الدخول لترفع أصواتك وتُنسَب إليك، وأضف من أين أنت. يمكنك فعل ذلك لاحقًا." },
-    "fs.later":             { en:"Later",              ar:"لاحقًا" }
+    "fs.later":             { en:"Later",              ar:"لاحقًا" },
+
+    // ===== mic-denied recovery (11-11): clearer, per-reason guidance when the
+    // microphone can't open, instead of one generic error. Arabic is MSA draft —
+    // Dhofari review. Added at the END so the prompt-number snapshot only gains
+    // lines. =====
+    "mic.blocked.title":    { en:"The microphone is blocked", ar:"الميكروفون محجوب" },
+    "mic.blocked.body":     { en:"Tap “Check again” — your phone may ask once more. If it stays blocked, allow the microphone for this site in your browser or phone settings, then tap “Check again”.", ar:"اضغط «افحص مرّة أخرى» — قد يسألك هاتفك مرّة أخرى. إن ظلّ محجوبًا، اسمح باستخدام الميكروفون لهذا الموقع من إعدادات المتصفّح أو الهاتف، ثم اضغط «افحص مرّة أخرى»." },
+    "mic.nomic.title":      { en:"No microphone found", ar:"لم يُعثَر على ميكروفون" },
+    "mic.nomic.body":       { en:"This device has no microphone we can use. You can still listen to other speakers.", ar:"لا يوجد ميكروفون يمكن استخدامه على هذا الجهاز. لا يزال بإمكانك الاستماع إلى متحدّثين آخرين." },
+    "mic.busy.title":       { en:"Another app is using the microphone", ar:"تطبيق آخر يستخدم الميكروفون" },
+    "mic.busy.body":        { en:"Close the other app — a call, or a voice recorder — then tap “Check again”.", ar:"أغلِق التطبيق الآخر — مكالمة أو مسجّل صوت — ثم اضغط «افحص مرّة أخرى»." },
+    "mic.inapp.title":      { en:"Open in Safari or Chrome", ar:"افتحه في Safari أو Chrome" },
+    "mic.inapp.body":       { en:"This in-app browser can't use the microphone. Open hakli.app in Safari or Chrome (tap ⋮ or the share icon, then “Open in browser”), then come back.", ar:"متصفّح التطبيق هذا لا يمكنه استخدام الميكروفون. افتح hakli.app في Safari أو Chrome (اضغط ⋮ أو أيقونة المشاركة ثم «فتح في المتصفّح»)، ثم عُد." }
   };
   function t(key, mode){
     const s = STRINGS[key];
