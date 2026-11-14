@@ -131,12 +131,12 @@
     text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
   body.en .enter{font-family:var(--en); font-style:italic}
 </style>
-<link rel="icon" href="favicon.svg?v=b1113b" type="image/svg+xml">
-<link rel="icon" href="favicon.ico?v=b1113b" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1113b">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1113b">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1113b">
-<link rel="manifest" href="manifest.webmanifest?v=b1113b">
+<link rel="icon" href="favicon.svg?v=b1114a" type="image/svg+xml">
+<link rel="icon" href="favicon.ico?v=b1114a" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=b1114a">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=b1114a">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=b1114a">
+<link rel="manifest" href="manifest.webmanifest?v=b1114a">
 <meta name="theme-color" content="#17241F">
 </head>
 <body>
@@ -205,8 +205,8 @@
 </main>
 <footer class="buildstamp" id="buildStamp" aria-hidden="true"></footer>
 
-<script src="afd-core.js?v=b1113b"></script>
-<script src="afd-instance.js?v=b1113b"></script>
+<script src="afd-core.js?v=b1114a"></script>
+<script src="afd-instance.js?v=b1114a"></script>
 <script>
 const STR = (window.AFDCore && window.AFDCore.STRINGS) || {};
 // build stamp at the foot — the ?v= sync-stamp.sh writes on this page's own
@@ -368,8 +368,8 @@ window.__helpW = (k, v) => { let s = W(k); if(v && v.s != null) s = s.replace("{
 // three numbers, readable by anyone) and the usage counts above. If either
 // fails the page is unchanged: the counter simply stays hidden.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { startAppCheck } from "./afd-appcheck.js?v=b1113b";
-import { stats as savedStats, clearAll as savedClear, trim as savedTrim } from "./afd-voices.js?v=b1113b";
+import { startAppCheck } from "./afd-appcheck.js?v=b1114a";
+import { stats as savedStats, clearAll as savedClear, trim as savedTrim } from "./afd-voices.js?v=b1114a";
 // voices kept on this phone: the count and the Remove button above
 window.AFDSaved = { stats: savedStats, clearAll: savedClear };
 savedTrim().catch(()=>{}).then(() => { try{ paintSaved(); }catch(_){} });
@@ -379,7 +379,7 @@ import { getStorage, ref, getDownloadURL, uploadBytes }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 // #7: reuse the recorder widget the report/notice composers use
-import { voiceNote, audioExt } from "./afd-flag.js?v=b1113b";
+import { voiceNote, audioExt } from "./afd-flag.js?v=b1114a";
 try{
   const app = initializeApp(window.AFDInstance.firebase);
   startAppCheck(app);            // App Check (10-19)
