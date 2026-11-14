@@ -166,6 +166,12 @@
   .st-axis{display:flex; justify-content:space-between; font-size:11px; color:var(--muted); direction:ltr}
   .st-err{font-size:13px; margin:4px 0; overflow-wrap:anywhere}
   .st-err b{font-variant-numeric:tabular-nums; margin-inline-end:6px}
+  .st-ids{margin-top:10px; font-size:13px}
+  .st-ids summary{cursor:pointer; color:var(--accent); font-weight:600; min-height:32px; display:flex; align-items:center}
+  .st-idacc{display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:5px 0; border-top:1px solid var(--line)}
+  .st-idacc .acc{font-size:11px; color:var(--muted); min-width:66px; font-variant-numeric:tabular-nums}
+  .st-idacc .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; background:var(--bg); border:1px solid var(--line); padding:2px 7px; border-radius:8px}
+  .st-idacc.dup .code{border-color:var(--accent); color:var(--accent)}
   @media (max-width:420px){
     .word{grid-template-columns:64px 1fr; gap:10px;}
     .thumb{width:64px; height:64px; font-size:32px; border-radius:14px;}
@@ -419,6 +425,7 @@ async function loadStats(){
                  .sort((a, b) => a.id < b.id ? -1 : 1).slice(-30);
   stats = {
     pub: docs.public || null, watch: docs.watch || {}, days,
+    roster: docs.roster || null,
     events: ev.docs.map(s => s.data() || {}),
     errors: er.docs.map(s => s.data() || {}),
     fieldUntil: fw && fw.exists() ? ms(fw.data().openUntil) : 0
@@ -473,6 +480,29 @@ async function paintStats(){
       `<div class="tip">${H("stw.st.updated", { when: esc(when(P.at)) })}</div>`
     : `<div class="tip">${H("stw.st.nototals")}</div>`;
 
+  // Collapsible: the actual speaker codes behind the "speakers" count, grouped by
+  // account. Codes are spk_<uid6>_… — a shared prefix is one login (one person, or
+  // a steward recording several); different prefixes are different accounts. Lets
+  // Marty tell "news is spreading" (new accounts) from one account's extra codes.
+  const roster = (S.roster && Array.isArray(S.roster.codes)) ? S.roster.codes.slice().sort() : [];
+  let idsCard = "";
+  if(roster.length){
+    const groups = new Map();
+    roster.forEach(c => {
+      const m = /^spk_([^_]+)_/.exec(c);
+      const key = m ? m[1] : c;
+      if(!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(c);
+    });
+    const body = [...groups.entries()].map(([acc, cs]) =>
+      `<div class="st-idacc${cs.length > 1 ? " dup" : ""}" dir="ltr">` +
+      `<span class="acc">${esc(acc)}</span>` +
+      cs.map(c => `<span class="code">${esc(c)}</span>`).join("") +
+      `</div>`).join("");
+    idsCard = `<details class="st-ids"><summary>${H("stw.st.ids", { n: roster.length, accts: groups.size })}</summary>` +
+      `<div class="tip">${H("stw.st.ids.note")}</div>` + body + `</details>`;
+  }
+
   // one bar chart per measure (never two scales on one axis); the table above is the readable view
   const bars = (label, pick) => {
     const vals = S.days.map(x => pick((x.d && x.d.counts) || {}));
@@ -504,7 +534,7 @@ async function paintStats(){
     `<div class="btnrow" style="margin-top:8px"><button class="btn${fieldOn ? "" : " primary"}" id="fieldBtn">${H(fieldOn ? "stw.st.field.end" : "stw.st.field.start")}</button></div>`;
 
   list.innerHTML =
-    `<div class="card"><h2>${H("stw.st.totals")}</h2>${totals}</div>` +
+    `<div class="card"><h2>${H("stw.st.totals")}</h2>${totals}${idsCard}</div>` +
     `<div class="card"><h2>${H("stw.st.use")}</h2>${table}${daily}</div>` +
     `<div class="card"><h2>${H("stw.st.errors")}</h2>${errors}</div>` +
     `<div class="card"><h2>${H("stw.st.watch")}</h2>${watch}</div>` +
