@@ -191,6 +191,37 @@ service cloud.firestore {
                && textOK('gloss') && textOK('glossAr') && picOK()
                && (!('glosses' in request.resource.data) || glossesOK(request.resource.data.glosses));
       }
+      //  • WRITE THE TRANSLATION (11-13, decision "b") — the gloss fields only,
+      //    never the pic/tags; stamped editedBy/editedAt; not on a removed word.
+      //    Two ways in for a non-creator/non-steward (creator & steward go through
+      //    faceEditOK): any signed-in contributor may FILL an empty gloss (no
+      //    gloss/glossAr yet) — on a contributed OR seeded word alike, so a word
+      //    added audio-first isn't stuck on its maker; and whoever LAST wrote the
+      //    gloss (editedBy) may re-edit their own — to fix a typo — and may clear
+      //    it. A fill must add text; an existing gloss can only be changed by its
+      //    last writer here (others never overwrite it; creator/steward use
+      //    faceEditOK).
+      function noGlossYet() {
+        return resource.data.get('gloss', '') == '' && resource.data.get('glossAr', '') == '';
+      }
+      function addsGloss() {
+        return request.resource.data.get('gloss', '') != ''
+               || request.resource.data.get('glossAr', '') != '';
+      }
+      function isGlossAuthor() {
+        return resource.data.get('editedBy', '') == request.auth.uid;
+      }
+      function translationWriteOK() {
+        return notAnon()
+               && !('removedAt' in resource.data)
+               && (noGlossYet() || isGlossAuthor())          // fill an empty one, or re-edit your own
+               && (addsGloss()  || isGlossAuthor())          // a fill must add text; the author may clear
+               && onlyChanged(['gloss','glossAr','glosses','editedAt','editedBy'])
+               && request.resource.data.editedAt == request.time
+               && request.resource.data.editedBy == request.auth.uid
+               && textOK('gloss') && textOK('glossAr')
+               && (!('glosses' in request.resource.data) || glossesOK(request.resource.data.glosses));
+      }
       //  • REPORTED (10-26) — anyone signed in who reports a contributed word
       //    holds it out of sight until a steward looks: heldAt, set to now,
       //    once. Only in the same batch as their own report
@@ -247,6 +278,7 @@ service cloud.firestore {
                         && onlyChanged(['tags'])
                         && tagsOK(request.resource.data.tags))
                     || ((isCreator() || isSteward()) && faceEditOK())
+                    || translationWriteOK()
                     || (isSteward() && isContributed()
                         && onlyChanged(['reviewedAt'])
                         && request.resource.data.reviewedAt == request.time)

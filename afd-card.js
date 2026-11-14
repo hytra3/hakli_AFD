@@ -1201,7 +1201,16 @@ async function translationSection(entryId, meta, paintFace){
   sec.className = "slot slot-tr";
   if(m === "sound"){ sec.hidden = true; return sec; }     // non-readers: no written translations
   const u = CFG.user();
-  const canEdit = !!u && ((meta.source==="user" && meta.createdBy===u.uid) || await amSteward());
+  // Who may write the translation (11-13, decision "b"): FILL an empty gloss — any
+  // signed-in (non-anon) contributor, on a contributed or seeded word alike, so a
+  // word added without its Arabic isn't stuck on the one person who made the card.
+  // EDIT an existing one — the card's creator, a steward, or whoever last wrote the
+  // gloss (so the person who filled it can fix their own typo); anyone else's gloss
+  // is never silently overwritten. Firestore rules enforce the same split
+  // (translationWriteOK / faceEditOK).
+  const canEditExisting = !!u && ((meta.source==="user" && meta.createdBy===u.uid)
+                                  || meta.editedBy===u.uid || await amSteward());
+  const canFillEmpty = !!u && !u.isAnonymous;
   const L = AFDCore.STRINGS["slot.translation"] || { en:"TRANSLATION", ar:"الترجمة" };
   const labelHtml = m==="bridge" ? escapeHtml(L.en)+' <span class="ar">'+escapeHtml(L.ar)+'</span>'
                                  : '<span class="ar solo">'+escapeHtml(L.ar)+'</span>';
@@ -1211,24 +1220,27 @@ async function translationSection(entryId, meta, paintFace){
 
   function paint(){
     const has = !!(meta.glossAr || meta.gloss);
+    // An existing translation is the creator's/steward's/filler's to edit; an empty
+    // one is open to any signed-in contributor to fill (decision "b").
+    const canWrite = has ? canEditExisting : (canEditExisting || canFillEmpty);
     body.innerHTML = "";
-    if(canEdit){
-      // Editors keep the add/edit affordance. No read-only reprint of the gloss:
-      // the card header already carries it (bold Hakli + grey Arabic/English), so
-      // echoing it here just doubled it on screen (11-13). The form opens prefilled.
+    if(canWrite){
+      // The add/edit affordance. No read-only reprint of the gloss: the card header
+      // already carries it (bold Hakli + grey Arabic/English), so echoing it here
+      // just doubled it on screen (11-13). The form opens prefilled when one exists.
       sec.hidden = false;
       const btn=document.createElement("button"); btn.type="button"; btn.className="slot-add tr-open";
       btn.innerHTML = plus + " " + escapeHtml(AFDCore.t("add.show.write", m));
       btn.addEventListener("click", openEditor);
       body.appendChild(btn);
     }else if(!has){
-      // Nobody can edit here and nothing is written yet: a quiet "none".
+      // Nobody signed in to write it and nothing written yet: a quiet "none".
       sec.hidden = false;
       const none=document.createElement("span"); none.className="slot-empty"; none.textContent=AFDCore.t("slot.none", m);
       body.appendChild(none);
     }else{
-      // Non-editor and the translation is already shown in the header → drop the
-      // whole slot so it isn't a labelled section repeating what's up top.
+      // A translation exists and this viewer can't edit it → drop the whole slot so
+      // it isn't a labelled section repeating what the header already shows.
       sec.hidden = true;
     }
   }
@@ -1255,7 +1267,7 @@ async function translationSection(entryId, meta, paintFace){
           gloss:en, glossAr:ar,
           glosses: Object.keys(glosses).length ? glosses : deleteField(),
           editedAt: serverTimestamp(), editedBy: u.uid });
-        meta.gloss=en; meta.glossAr=ar; meta.glosses=glosses;
+        meta.gloss=en; meta.glossAr=ar; meta.glosses=glosses; meta.editedBy=u.uid;
         if(typeof paintFace==="function") paintFace(meta);
         paint();
       }catch(e){ console.warn("[AFD] translation", e); CFG.banner(AFDCore.t("card.failed", m)); sv.disabled=false; }

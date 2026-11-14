@@ -241,6 +241,62 @@ describe("entry — edit the word's face (text + emoji, 10-14)", () => {
   });
 });
 
+describe("entry — fill an empty translation (any contributor, 11-13)", () => {
+  // a contributed, audio-first word added without its Arabic/English
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => {
+      await setDoc(entry(c.firestore()), { source: "user", createdBy: "uA", createdAt: 1, pic: "🪺" });
+      await setDoc(entry(c.firestore(), "ent_seed_bare"), {});   // seeded, no gloss, no creator
+    });
+  });
+  const stamp = (uid) => ({ editedAt: serverTimestamp(), editedBy: uid });
+  it("another signed-in contributor can add the first Arabic", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uB")),
+      { gloss: "", glossAr: "عش", glosses: { ar: "عش" }, ...stamp("uB") }));
+  });
+  it("…or the first English", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uB")),
+      { gloss: "nest", glossAr: "", glosses: { en: "nest" }, ...stamp("uB") }));
+  });
+  it("anonymous can't fill it", async () => {
+    await assertFails(updateDoc(entry(fsAs("uAnon", true)), { glossAr: "عش", ...stamp("uAnon") }));
+  });
+  it("the fill must be stamped with the writer and now", async () => {
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش" }));
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش", editedAt: 5, editedBy: "uB" }));
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش", editedAt: serverTimestamp(), editedBy: "uA" }));
+  });
+  it("it must add text, and ride no other field", async () => {
+    await assertFails(updateDoc(entry(fsAs("uB")), { gloss: "", glossAr: "", ...stamp("uB") }));   // clears nothing in
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش", pic: "🐣", ...stamp("uB") }));  // pic rides along
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش", tags: ["x"], ...stamp("uB") }));
+  });
+  it("once it has a translation, someone who didn't write it can't change it", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => { await updateDoc(entry(c.firestore()), { glossAr: "عش" }); });
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش كبير", ...stamp("uB") }));
+  });
+  it("but the contributor who filled it can fix their own (decision 1)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => { await updateDoc(entry(c.firestore()), { glossAr: "عش", editedBy: "uB", editedAt: 2 }); });
+    await assertSucceeds(updateDoc(entry(fsAs("uB")), { glossAr: "عش كبير", ...stamp("uB") }));
+  });
+  it("…and can clear their own fill", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => { await updateDoc(entry(c.firestore()), { glossAr: "عش", editedBy: "uB", editedAt: 2 }); });
+    await assertSucceeds(updateDoc(entry(fsAs("uB")), { gloss: "", glossAr: "", glosses: deleteField(), ...stamp("uB") }));
+  });
+  it("…but not someone else's fill", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => { await updateDoc(entry(c.firestore()), { glossAr: "عش", editedBy: "uB", editedAt: 2 }); });
+    await assertFails(updateDoc(entry(fsAs("uC")), { glossAr: "عش كبير", ...stamp("uC") }));
+  });
+  it("a seeded word's missing gloss is fillable too, like any card (decision 2)", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uB"), "ent_seed_bare"),
+      { glossAr: "عش", glosses: { ar: "عش" }, ...stamp("uB") }));
+  });
+  it("a removed word can't be filled", async () => {
+    await testEnv.withSecurityRulesDisabled(async (c) => { await updateDoc(entry(c.firestore()), { removedAt: 1 }); });
+    await assertFails(updateDoc(entry(fsAs("uB")), { glossAr: "عش", ...stamp("uB") }));
+  });
+});
+
 describe("entry — steward review (steward.html)", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (c) => {
