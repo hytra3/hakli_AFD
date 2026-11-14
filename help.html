@@ -81,6 +81,30 @@
   .contact p{margin:0 2px 10px; font-size:17px}
   .wa{display:inline-flex; align-items:center; gap:8px; font-size:18px; color:#fff; background:#1F7A4D; border-radius:999px;
     padding:12px 26px; text-decoration:none; box-shadow:0 12px 30px rgba(31,58,52,.18)}
+  /* #7 leave-a-message */
+  .ask{margin-top:6px}
+  .ask p{margin:0 2px 12px; font-size:17px; color:var(--mist)}
+  .ask .say{display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; min-width:40px;
+    margin-inline-end:8px; vertical-align:middle; border:1px solid var(--line); border-radius:999px;
+    background:var(--cloud); font-size:19px; line-height:1; cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent}
+  .ask-rec{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 2px}
+  .ask-rec .fl-btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:52px; padding:10px 20px;
+    border:1.5px solid var(--mountain); background:var(--cloud); color:var(--mountain); border-radius:999px; font:inherit; font-size:18px; cursor:pointer}
+  .ask-rec .fl-btn.rec{background:#9E4433; border-color:transparent; color:#fff}
+  .ask-rec .fl-btn.fl-play{min-height:44px; padding:8px 16px}
+  .ask-rec .fl-btn[hidden]{display:none}
+  .ask-rec .fl-secs{font-variant-numeric:tabular-nums; font-weight:700}
+  .ask-rec .fl-status{flex-basis:100%; font-size:14px; color:var(--mist); margin-top:2px}
+  .ask-rec .fl-status.ok{color:#1F7A4D; font-weight:700}
+  .ask-rec .fl-status.warn{color:#9E4433}
+  .ask-rec .fl-status:empty{display:none}
+  .ask-text{width:100%; font:inherit; font-size:17px; padding:12px 14px; border:1.5px solid var(--line); border-radius:16px;
+    background:var(--cloud); color:var(--ink); margin-top:14px; min-height:64px; resize:vertical}
+  body.en .ask-text{font-family:var(--en)}
+  .ask-send{margin-top:14px}
+  .ask-status{font-size:16px}
+  .ask-status.ok{color:#1F7A4D; font-weight:700}
+  .ask-status.warn{color:#9E4433}
   .count{margin-top:6px}
   .count .nums{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
   .count .num{display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 6px; border-radius:18px;
@@ -137,6 +161,19 @@
     <h2 id="contactH"></h2>
     <p id="contactLead"></p>
     <a class="wa" id="wa" target="_blank" rel="noopener"><span aria-hidden="true">💬</span><span class="t"></span></a>
+  </section>
+
+  <!-- #7: leave a voice message — a channel, not a person. Shown when
+       afd-instance.js sets help.contact = { message:true }. The recorder reuses
+       afd-flag.js's voiceNote; the message goes to afd_help for a steward to
+       pick up in the inbox; a spoken confirmation plays if it's been recorded. -->
+  <section class="ask" id="ask" hidden>
+    <h2 id="askH"></h2>
+    <p id="askLead"><button type="button" class="say" id="askSay" hidden aria-label="Listen">🔈</button><span id="askLeadT"></span></p>
+    <div class="ask-rec" id="askRec"></div>
+    <textarea class="ask-text" id="askText" dir="auto" maxlength="600"></textarea>
+    <div class="ask-send"><button class="wa" id="askSend" type="button"><span aria-hidden="true">📨</span><span class="t"></span></button></div>
+    <p class="ask-status" id="askStatus" role="status" hidden></p>
   </section>
 
   <section class="count" id="count" hidden>
@@ -199,11 +236,14 @@ function paintAtHome(){
   document.getElementById("athomeStep").textContent = t(IS_IOS ? ATHOME.ios : ATHOME.other);
 }
 
-// "Ask a person": shown only once afd-instance.js names someone with a WhatsApp number.
+// "Ask for help": either a named person on WhatsApp, or (#7) the async
+// leave-a-voice-message channel. afd-instance.js decides which (help.contact).
 function contact(){
   const c = window.AFDInstance && AFDInstance.help && AFDInstance.help.contact;
-  const num = c && String(c.whatsapp || "").replace(/\D/g, "");
-  return num ? { num, name: (c.name && (c.name[mode] || c.name.ar || c.name.en)) || "" } : null;
+  if(!c) return null;
+  if(c.message === true) return { mode: "message" };
+  const num = String(c.whatsapp || "").replace(/\D/g, "");
+  return num ? { mode: "whatsapp", num, name: (c.name && (c.name[mode] || c.name.ar || c.name.en)) || "" } : null;
 }
 
 function render(){
@@ -224,14 +264,24 @@ function render(){
     const say = au ? '<button type="button" class="say" data-k="help.voice.a'+n+'" aria-label="'+(mode==="en"?"Listen":"استمع")+'">🔈</button> ' : "";
     return '<details><summary>'+esc(W("help.voice.q"+n))+'</summary><p>'+say+esc(W("help.voice.a"+n))+'</p></details>';
   }).join("");
-  const c = contact(), box = document.getElementById("contact");
-  box.hidden = !c;
-  if(c){
+  const c = contact(), box = document.getElementById("contact"), askBox = document.getElementById("ask");
+  box.hidden = !(c && c.mode === "whatsapp");
+  askBox.hidden = !(c && c.mode === "message");
+  if(c && c.mode === "whatsapp"){
     document.getElementById("contactH").textContent = W("help.contact.title");
     document.getElementById("contactLead").textContent = W("help.contact.lead").replace("{name}", c.name);
     const wa = document.getElementById("wa");
     wa.href = "https://wa.me/" + c.num + "?text=" + encodeURIComponent(W("help.contact.msg"));
     wa.querySelector(".t").textContent = W("help.contact.btn");
+  }
+  if(c && c.mode === "message"){
+    document.getElementById("askH").textContent = W("help.ask.title");
+    document.getElementById("askLeadT").textContent = W("help.ask.lead");
+    document.getElementById("askText").placeholder = W("help.ask.text");
+    document.querySelector("#askSend .t").textContent = W("help.ask.send");
+    const say = document.getElementById("askSay");
+    say.hidden = !((window.AFD_HELP_AUDIO || {})["help.msg.invite"]);
+    say.setAttribute("aria-label", mode === "en" ? "Listen" : "استمع");
   }
   document.getElementById("countH").textContent = W("help.count.title");
   paintCount();
@@ -309,6 +359,9 @@ document.getElementById("faq").addEventListener("click", e => {
   if(url){ try{ AFDCore.playUI(url, "asked"); }catch(_){} track("help", "faq.say"); }
 });
 document.getElementById("wa").addEventListener("click", () => track("help", "ask"));
+// the #7 message wiring lives in the module below (it has Firebase); hand it a
+// string helper that follows the language toggle ({s} fills the seconds count).
+window.__helpW = (k, v) => { let s = W(k); if(v && v.s != null) s = s.replace("{s}", v.s); return s; };
 </script>
 <script type="module">
 // Firestore, for two small things only: the public counter (afd_stats/public —
@@ -320,10 +373,13 @@ import { stats as savedStats, clearAll as savedClear, trim as savedTrim } from "
 // voices kept on this phone: the count and the Remove button above
 window.AFDSaved = { stats: savedStats, clearAll: savedClear };
 savedTrim().catch(()=>{}).then(() => { try{ paintSaved(); }catch(_){} });
-import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, Timestamp }
+import { getFirestore, doc, getDoc, addDoc, setDoc, collection, serverTimestamp, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, getDownloadURL }
+import { getStorage, ref, getDownloadURL, uploadBytes }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+// #7: reuse the recorder widget the report/notice composers use
+import { voiceNote, audioExt } from "./afd-flag.js?v=b1113b";
 try{
   const app = initializeApp(window.AFDInstance.firebase);
   startAppCheck(app);            // App Check (10-19)
@@ -351,6 +407,65 @@ try{
     }));
     if(Object.keys(AUD).length){ window.AFD_FAQ_AUDIO = AUD; render(); }
   }catch(e){ console.warn("[AFD help] voice answers", e); }
+
+  // #7: the "leave a voice message" channel. Mount it only when afd-instance
+  // asks for it (help.contact = { message:true }); the page is unchanged
+  // otherwise. A failure here never breaks the rest of Help.
+  try{
+    const cc = window.AFDInstance && AFDInstance.help && AFDInstance.help.contact;
+    if(cc && cc.message === true){
+      const store = getStorage(app), auth = getAuth(app);
+      // spoken invite + confirmation, if they've been recorded in the prompts tool
+      const HA = {};
+      await Promise.all(["help.msg.invite", "help.msg.saved"].map(async k => {
+        try{
+          const s = await getDoc(doc(db, "afd_ui_prompts", k));
+          const x = s.exists() ? (s.data() || {}) : {};
+          if(x.status === "recorded") HA[k] = await getDownloadURL(ref(store, x.storagePath || x.path || ("afd_ui/" + k + ".webm")));
+        }catch(_){}
+      }));
+      window.AFD_HELP_AUDIO = HA; render();   // reveals the 🔈 invite if present
+
+      const W = window.__helpW;                               // string helper (follows the toggle)
+      const track = (ev, v) => { try{ AFDCore.track(ev, v); }catch(_){} };
+      const note = voiceNote(document.getElementById("askRec"), W,
+        { say:"help.ask.say", stop:"help.ask.stop", again:"help.ask.again", nomic:"help.ask.nomic", done:"help.ask.done" }, 120000);
+
+      document.getElementById("askSay").addEventListener("click", () => {
+        const u = (window.AFD_HELP_AUDIO || {})["help.msg.invite"];
+        if(u){ try{ AFDCore.playUI(u, "asked"); }catch(_){} track("help", "msg.invite"); }
+      });
+
+      const statusEl = document.getElementById("askStatus");
+      const status = (msg, cls) => { statusEl.hidden = !msg; statusEl.textContent = msg || ""; statusEl.className = "ask-status" + (cls ? " " + cls : ""); };
+      const send = document.getElementById("askSend"), textEl = document.getElementById("askText");
+      send.onclick = async () => {
+        await note.stop();                                  // finish a take still recording
+        const blob = note.blob(), text = (textEl.value || "").trim().slice(0, 600);
+        if(!blob && !text){ status(W("help.ask.need"), "warn"); return; }
+        send.disabled = true; status(W("help.ask.send") + "…");
+        try{
+          const u = auth.currentUser || (await signInAnonymously(auth)).user;
+          const id = doc(collection(db, "afd_help")).id;    // mint the id (storage path must match)
+          const data = { uid: u.uid, at: serverTimestamp(), page: "help",
+                         expireAt: Timestamp.fromMillis(Date.now() + 180 * 864e5) };
+          if(text) data.text = text;
+          try{ if(AFDCore.BUILD) data.build = String(AFDCore.BUILD).slice(0, 16); }catch(_){}
+          if(blob){
+            const path = "afd_help/" + u.uid + "/" + id + "." + audioExt(blob);
+            await uploadBytes(ref(store, path), blob, { contentType: blob.type || "audio/webm" });
+            data.audioPath = path;
+          }
+          await setDoc(doc(db, "afd_help", id), data);
+          note.close(); textEl.value = ""; send.disabled = false;
+          status(W("help.ask.saved"), "ok");
+          const sv = (window.AFD_HELP_AUDIO || {})["help.msg.saved"];
+          if(sv){ try{ AFDCore.playUI(sv, "asked"); }catch(_){} }
+          track("help", "msg.sent");
+        }catch(e){ console.warn("[AFD help] message", e); send.disabled = false; status(W("help.ask.err"), "warn"); }
+      };
+    }
+  }catch(e){ console.warn("[AFD help] message channel", e); }
 }catch(e){ console.warn("[AFD help] counter", e); }
 </script>
 </body>

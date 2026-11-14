@@ -909,6 +909,13 @@ async function openEntry(entryId){
     clearEntryHash(); await renderBrowse(); if(renderToken===my+1) setHintKey("find.missing");
     return;
   }
+  if(lead.movedTo){
+    // this card was joined into another (#6, steward.html): follow the pointer to
+    // the survivor, where its voices now live. replaceState so a reload lands
+    // there directly (no hashchange, so no second open).
+    try{ history.replaceState(null, "", location.pathname + location.search + "#" + encodeURIComponent(lead.movedTo)); }catch(_){}
+    return openEntry(lead.movedTo);
+  }
   resultsEl.innerHTML="";                       // clear again in case of a race
   paintAllBtn(true); reskinPending = false;
   if(lead.removed){
@@ -1091,9 +1098,11 @@ async function renderBrowse(){
     const snap = { docs: all.docs.filter(d=>(d.data()||{}).source==="user") };
     // a word its creator removed leaves the list at once (the purge deletes it
     // later); one a steward hid (steward.html), or that was reported and is
-    // waiting for a steward (heldAt, 10-26), stays out until shown again
+    // waiting for a steward (heldAt, 10-26), stays out until shown again; one a
+    // steward joined into another card (mergedInto, #6) is gone from the list —
+    // its voices now live on the survivor, which this list still shows.
     userDocs = snap.docs.filter(d=>{ const x=d.data()||{};
-      return !seen.has(d.id) && !x.removedAt && !x.hiddenAt && !x.heldAt; });
+      return !seen.has(d.id) && !x.removedAt && !x.hiddenAt && !x.heldAt && !x.mergedInto; });
     // A contributed word is listed for everyone only once it has a voice they
     // can hear — otherwise it's a blank tile nobody else can say (no meaning to
     // go on) or a word whose only voice is private. Its creator always sees it,

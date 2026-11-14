@@ -170,6 +170,17 @@
     .word{grid-template-columns:64px 1fr; gap:10px;}
     .thumb{width:64px; height:64px; font-size:32px; border-radius:14px;}
   }
+  /* Inbox (#6 join + #7 messages) */
+  .jprev{margin-top:6px}
+  .jcard{display:flex; align-items:center; gap:10px; font-size:14px}
+  .jface{width:36px; height:36px; border-radius:9px; overflow:hidden; background:var(--bg); border:1px solid var(--line);
+    display:inline-flex; align-items:center; justify-content:center; font-size:20px; color:var(--muted); flex:0 0 auto}
+  .jface img{width:100%; height:100%; object-fit:cover; display:block}
+  .vwrap{display:inline-flex; align-items:center; gap:2px}
+  .voices .btn.mv{padding:5px 9px; font-weight:700; color:var(--accent); border-color:var(--accent)}
+  .ledger{margin-top:8px}
+  .ledger:empty{display:none}
+  .ledger .st-err{font-size:12px; color:var(--muted); margin:3px 0}
 </style>
 </head>
 <body>
@@ -204,6 +215,7 @@
         <button class="tab" data-tab="all"><span data-t="stw.tab.all">All</span><span class="n" id="n-all"></span></button>
         <button class="tab" data-tab="coverage"><span data-t="stw.tab.coverage">Coverage</span><span class="n" id="n-coverage"></span></button>
         <button class="tab" data-tab="stats"><span data-t="stw.tab.stats">Stats</span></button>
+        <button class="tab" data-tab="inbox"><span data-t="stw.tab.inbox">Inbox</span><span class="n" id="n-inbox"></span></button>
       </div>
       <a href="#" id="refresh" class="small" data-t="tools.refresh">refresh</a>
     </div>
@@ -298,6 +310,7 @@ async function load(){
     words = snap.docs.map(s => ({ id: s.id, d: s.data() || {} }))
                      .sort((a, b) => ms(b.d.createdAt) - ms(a.d.createdAt));
     try{ await loadFlags(); }catch(e){ console.warn("[steward] reports", e); flagGroups = []; }
+    try{ await loadHelp(); }catch(e){ console.warn("[steward] inbox", e); helpMsgs = []; }
     paint();
   }catch(e){
     $("list").innerHTML = '<div class="empty">' + H("tools.err.load", { code: code(e) }) + '</div>';
@@ -320,9 +333,11 @@ function paint(){
   $("n-hidden").textContent = words.filter(inHidden).length;
   $("n-all").textContent    = words.length;
   $("n-flags").textContent  = (flagGroups || []).filter(g => g.open).length || "";
+  $("n-inbox").textContent  = (helpMsgs || []).filter(m => !m.d.resolvedAt).length || "";
   if(tab === "flags"){ paintFlags(); return; }
   if(tab === "coverage"){ paintCoverage(); return; }
   if(tab === "stats"){ paintStats(); return; }
+  if(tab === "inbox"){ paintInbox(); return; }
   const shown = words.filter(FILTER[tab]);
   const list = $("list"); list.innerHTML = "";
   if(!shown.length){ list.innerHTML = '<div class="empty">' + H(EMPTY[tab]) + '</div>'; return; }
@@ -507,6 +522,7 @@ async function paintStats(){
 // hakli.app/steward.html#stats (the digest links here) opens on this tab
 if(location.hash === "#stats") tab = "stats";
 if(location.hash === "#reports") tab = "flags";
+if(location.hash === "#inbox") tab = "inbox";
 
 /* ---- reports (10-26) -------------------------------------------------------
    Every report, grouped by the thing reported (one voice, or one word card).
@@ -769,6 +785,180 @@ function composer(g, to){
   return box;
 }
 
+/* ---- inbox (#6 join/refile + ledger, #7 help messages) --------------------
+   Three steward tools in one tab:
+     • Messages (#7) — voice (or written) help people left from help.html, in
+       afd_help. Listen, then mark handled. Steward-only, never public; the TTL
+       ages them out, so this is a queue, not an archive.
+     • Join two cards (#6) — two cards turn out to be the same word. Every voice
+       on the card you merge away is copied onto the card you keep (same speaker,
+       consent and audio — refileOne, which the rules force to mirror the source
+       exactly), the source take is tombstoned, and the merged-away card is
+       marked `mergedInto` so the dictionary stops listing it and follows the
+       pointer. Non-destructive: nothing is deleted.
+     • Move a voice (#6) — the per-voice "move" control (in the voice lists)
+       refiles one misfiled take onto the right card (the manual cleanup for #5).
+   Join and move both write a provenance-ledger event on the cards they touch. */
+let helpMsgs = null;
+async function loadHelp(){
+  const snap = await getDocs(collection(db, "afd_help"));
+  helpMsgs = snap.docs.map(s => ({ id: s.id, d: s.data() || {} }))
+    .sort((a, b) => (a.d.resolvedAt ? 1 : 0) - (b.d.resolvedAt ? 1 : 0) || ms(b.d.at) - ms(a.d.at));
+}
+$("refresh").addEventListener("click", () => { helpMsgs = null; });
+
+// Copy one take onto another card, then tombstone the source. The copy MIRRORS
+// the source's owner, speaker, audio, consent and playback exactly — the rules
+// (refileCopyOK) enforce that, so a steward can never invent or elevate a voice.
+// The source keeps its bytes and id; it just leaves this card (allowPlayback
+// false) with a refiledTo pointer. A deleted-consent take is skipped by callers.
+const MIRROR = ["gloss","domain","speakerId","phase","type","promptTier","repetitionIndex",
+                "capture","qc","envelope","storagePath","recordedAt","uid","consent",
+                "viaAgent","allowPlayback","uploadedAt","source","lang"];
+async function refileOne(fromEntry, recId, toEntry, t){
+  const uid = auth.currentUser.uid;
+  const newId = "refile_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  const copy = {};
+  MIRROR.forEach(k => { if(t[k] !== undefined) copy[k] = t[k]; });
+  copy.recordingId = newId; copy.entryId = toEntry;
+  copy.refiledFrom = { entryId: fromEntry, recordingId: recId };
+  copy.refiledBy = uid; copy.refiledAt = serverTimestamp();
+  await setDoc(doc(db, "afd_entries", toEntry, "recordings", newId), copy);
+  await updateDoc(doc(db, "afd_entries", fromEntry, "recordings", recId),
+    { refiledTo: { entryId: toEntry, recordingId: newId }, refiledBy: uid, refiledAt: serverTimestamp(), allowPlayback: false });
+  return newId;
+}
+async function addLedger(entryId, ev){
+  const data = { type: ev.type, at: serverTimestamp(), by: auth.currentUser.uid, entryId };
+  if(ev.recordingId) data.recordingId = ev.recordingId;
+  if(ev.from) data.from = ev.from;
+  if(ev.to) data.to = ev.to;
+  if(ev.note) data.note = ev.note;
+  await setDoc(doc(collection(db, "afd_entries", entryId, "ledger")), data);
+}
+// Move one take to another card (the per-voice control), with its ledger trail.
+async function refileVoice(fromEntry, recId, toEntry, t){
+  const newId = await refileOne(fromEntry, recId, toEntry, t);
+  try{ await addLedger(fromEntry, { type: "refileout", recordingId: recId, to: toEntry }); }catch(_){}
+  try{ await addLedger(toEntry,   { type: "refilein",  recordingId: newId, from: fromEntry }); }catch(_){}
+}
+// Join `fromEntry` into `toEntry`: move every live take, then mark it merged.
+async function joinCards(fromEntry, toEntry){
+  const uid = auth.currentUser.uid;
+  const snap = await getDocs(collection(db, "afd_entries", fromEntry, "recordings"));
+  const takes = snap.docs.map(s => ({ id: s.id, d: s.data() || {} }))
+    .filter(x => x.d.consent !== "deleted" && !x.d.refiledTo);
+  let moved = 0;
+  for(const x of takes){ await refileOne(fromEntry, x.id, toEntry, x.d); moved++; }
+  await updateDoc(doc(db, "afd_entries", fromEntry),
+    { mergedInto: toEntry, mergedAt: serverTimestamp(), mergedBy: uid });
+  try{ await addLedger(toEntry, { type: "join", from: fromEntry, note: String(moved) }); }catch(_){}
+  return moved;
+}
+// Preview a card by id (gloss/face + how many voices) before joining.
+async function cardPreview(id){
+  const sn = await getDoc(doc(db, "afd_entries", id));
+  if(!sn.exists()) return null;
+  const d = sn.data() || {};
+  let n = 0;
+  try{ n = (await getDocs(collection(db, "afd_entries", id, "recordings"))).size; }catch(_){}
+  return { d, n, gloss: d.gloss || d.glossAr || id, face: d.image ? `<img src="${esc(d.image)}" alt="">` : esc(d.pic || "?") };
+}
+
+function paintInbox(){
+  const list = $("list");
+  if(!helpMsgs){
+    list.innerHTML = AFDCore.dotsHTML(true);
+    loadHelp().then(() => { if(tab === "inbox") paint(); },
+      e => { list.innerHTML = '<div class="empty">' + H(notAllowed(e) ? "tools.notallowed" : "tools.err.load", { code: code(e) }) + '</div>'; });
+    return;
+  }
+  list.innerHTML = `<div class="tip">${H("stw.inbox.lead")}</div>`;
+
+  // ---- messages (#7) ----
+  const msgs = document.createElement("div");
+  msgs.className = "card";
+  msgs.innerHTML = `<h2>${H("stw.inbox.msgs")}</h2>`;
+  const open = helpMsgs.filter(m => !m.d.resolvedAt), done = helpMsgs.filter(m => m.d.resolvedAt);
+  if(!helpMsgs.length){ msgs.insertAdjacentHTML("beforeend", `<div class="empty">${H("stw.inbox.msgs.none")}</div>`); }
+  (open.concat(done)).forEach(m => msgs.appendChild(msgRow(m)));
+  list.appendChild(msgs);
+
+  // ---- join two cards (#6) ----
+  const jc = document.createElement("div");
+  jc.className = "card";
+  jc.innerHTML =
+    `<h2>${H("stw.join.title")}</h2><div class="tip">${H("stw.join.lead")}</div>` +
+    `<label class="meta">${H("stw.join.from")}</label>` +
+    `<input id="joinFrom" dir="ltr" placeholder="${esc(T("stw.join.idph"))}" />` +
+    `<div class="jprev" id="prevFrom"></div>` +
+    `<label class="meta" style="margin-top:10px;display:block">${H("stw.join.to")}</label>` +
+    `<input id="joinTo" dir="ltr" placeholder="${esc(T("stw.join.idph"))}" />` +
+    `<div class="jprev" id="prevTo"></div>` +
+    `<div class="btnrow" style="margin-top:12px">` +
+      `<button class="btn" id="joinLook">${H("stw.join.look")}</button>` +
+      `<button class="btn danger" id="joinDo">${H("stw.join.do")}</button></div>`;
+  list.appendChild(jc);
+
+  const look = async () => {
+    for(const [inp, box] of [["joinFrom","prevFrom"],["joinTo","prevTo"]]){
+      const id = $(inp).value.trim();
+      if(!id){ $(box).innerHTML = ""; continue; }
+      $(box).innerHTML = AFDCore.dotsHTML();
+      try{
+        const p = await cardPreview(id);
+        $(box).innerHTML = p
+          ? `<div class="jcard"><span class="jface">${p.face}</span><span>${esc(p.gloss)}` +
+            `<span class="meta"> · ${H("stw.join.voicesn", { n: p.n })}</span></span></div>`
+          : `<div class="meta">${H("stw.join.badid")}</div>`;
+      }catch(e){ $(box).innerHTML = `<div class="meta">${H("stw.join.badid")}</div>`; }
+    }
+  };
+  $("joinLook").onclick = look;
+  $("joinFrom").onchange = look; $("joinTo").onchange = look;
+  $("joinDo").onclick = async () => {
+    const from = $("joinFrom").value.trim(), to = $("joinTo").value.trim();
+    if(!from || !to){ say("msg", "stw.join.badid"); return; }
+    if(from === to){ say("msg", "stw.join.same"); return; }
+    const pf = await cardPreview(from).catch(() => null), pt = await cardPreview(to).catch(() => null);
+    if(!pf || !pt){ say("msg", "stw.join.badid"); return; }
+    if(!confirm(T("stw.join.confirm", { from: pf.gloss, to: pt.gloss }))) return;
+    $("joinDo").disabled = true; say("msg", "stw.join.working", { n: pf.n });
+    try{
+      const moved = await joinCards(from, to);
+      say("msg", "stw.join.done", { n: moved });
+      // drop the merged card from our in-memory list and repaint
+      const w = words.find(x => x.id === from); if(w) w.d.mergedInto = to;
+      load();
+    }catch(e){ $("joinDo").disabled = false; console.warn("[steward] join", e); say("msg", notAllowed(e) ? "tools.notallowed" : "tools.err.save", { code: code(e) }); }
+  };
+}
+function msgRow(m){
+  const el = document.createElement("div");
+  el.className = "flagrow" + (m.d.resolvedAt ? " done" : "");
+  el.innerHTML = `<span class="ic" aria-hidden="true">🔊</span>` +
+    (m.d.text ? `<span class="meta" dir="auto">${esc(m.d.text)}</span>` : "") +
+    `<span class="meta">${H("stw.inbox.msg.when")} ${esc(when(m.d.at))}` +
+      (m.d.resolvedAt ? ` · ${H("stw.inbox.msg.done")}` : "") + `</span>`;
+  if(m.d.audioPath){
+    const b = document.createElement("button"); b.className = "btn"; b.innerHTML = H("stw.inbox.msg.play");
+    b.onclick = () => play(m.d.audioPath);
+    el.appendChild(b);
+  }
+  if(!m.d.resolvedAt){
+    const r = document.createElement("button"); r.className = "btn primary"; r.innerHTML = H("stw.inbox.msg.resolve");
+    r.onclick = async () => {
+      r.disabled = true; say("msg", "tools.saving");
+      try{
+        await updateDoc(doc(db, "afd_help", m.id), { resolvedAt: serverTimestamp(), resolvedBy: auth.currentUser.uid });
+        m.d.resolvedAt = Date.now(); say("msg", "tools.saved"); paint();
+      }catch(e){ r.disabled = false; say("msg", notAllowed(e) ? "tools.notallowed" : "tools.err.save", { code: code(e) }); }
+    };
+    el.appendChild(r);
+  }
+  return el;
+}
+
 /* ---- one word ------------------------------------------------------------ */
 function row(w){
   const { id, d } = w;
@@ -796,6 +986,7 @@ function row(w){
       `<div class="badges">${badges.join("")}</div>` +
       `<div class="voices"><button class="btn" data-a="listen">${H("stw.voices")}</button></div>` +
       `<div class="actions btnrow"></div>` +
+      `<div class="ledger"></div>` +
     `</div>`;
 
   el.querySelector('[data-a="listen"]').onclick = e => voices(e.currentTarget, id);
@@ -820,7 +1011,34 @@ function row(w){
   }
   if(d.image) add("stw.act.photo", "danger", () => takeDownPhoto(w));
   if(d.pic)   add("stw.act.emoji", "danger", () => clearField(w, "pic"));
+  // provenance ledger (#6): joins and refiles that touched this card. A plain
+  // read (not routed through add()'s save flow); steward-only, never viewer-facing.
+  const lbtn = document.createElement("button"); lbtn.className = "btn"; lbtn.innerHTML = H("stw.ledger.show");
+  const lmount = el.querySelector(".ledger");
+  lbtn.onclick = () => {
+    if(lmount.innerHTML){ lmount.innerHTML = ""; return; }
+    lmount.innerHTML = AFDCore.dotsHTML(); showLedger(id, lmount, lbtn);
+  };
+  acts.appendChild(lbtn);
   return el;
+}
+// Render a card's provenance ledger into `mount`.
+async function showLedger(entryId, mount, btn){
+  btn.disabled = true;
+  try{
+    const snap = await getDocs(collection(db, "afd_entries", entryId, "ledger"));
+    const evs = snap.docs.map(s => s.data() || {}).sort((a, b) => ms(a.at) - ms(b.at));
+    if(!evs.length){ mount.innerHTML = `<div class="meta">${H("stw.ledger.none")}</div>`; return; }
+    mount.innerHTML = evs.map(e => {
+      const lbl = e.type === "join"      ? H("stw.ledger.join",      { from: e.from || "" })
+                : e.type === "refilein"  ? H("stw.ledger.refilein",  { from: e.from || "" })
+                : e.type === "refileout" ? H("stw.ledger.refileout", { to:   e.to   || "" })
+                : e.type === "unjoin"    ? H("stw.ledger.unjoin")
+                : esc(e.type);
+      return `<div class="st-err" dir="ltr">${esc(when(e.at))} — ${lbl}</div>`;
+    }).join("");
+  }catch(e){ mount.innerHTML = `<div class="meta">${H(notAllowed(e) ? "tools.notallowed" : "tools.err.load", { code: code(e) })}</div>`; }
+  finally{ btn.disabled = false; }
 }
 
 /* ---- actions (each is one write the rules allow on its own) -------------- */
@@ -864,11 +1082,12 @@ async function voices(btn, entryId){
   try{
     const snap = await getDocs(query(collection(db, "afd_entries", entryId, "recordings"),
                                      where("allowPlayback", "==", true)));
-    const recs = snap.docs.map(s => s.data() || {}).filter(r => r.storagePath)
+    const recs = snap.docs.map(s => Object.assign({ _id: s.id }, s.data() || {})).filter(r => r.storagePath)
                      .sort((a, b) => ms(a.recordedAt) - ms(b.recordedAt));
     btn.remove();
     if(!recs.length){ box.insertAdjacentHTML("beforeend", "<span>" + H("stw.voices.none") + "</span>"); return; }
     recs.forEach((r, i)=>{
+      const wrap = document.createElement("span"); wrap.className = "vwrap";
       const b = document.createElement("button"); b.className = "btn";
       const kind = { word:"stw.voice.word", context:"stw.voice.context", definition:"stw.voice.definition", note:"stw.voice.note" }[r.type];
       b.textContent = "▶ " + (kind ? T(kind) : (r.type || "voice")) + " " + (i + 1);
@@ -880,7 +1099,21 @@ async function voices(btn, entryId){
           await player.play();
         }catch(e){ say("msg", "stw.err.play", { code: code(e) }); }
       };
-      box.appendChild(b);
+      wrap.appendChild(b);
+      // #6: move this one voice to another card (the manual cleanup for #5)
+      const recId = r.recordingId || r._id;
+      const mv = document.createElement("button"); mv.className = "btn mv"; mv.textContent = "→";
+      mv.title = T("stw.refile.action"); mv.setAttribute("aria-label", T("stw.refile.action"));
+      mv.onclick = async ()=>{
+        const to = prompt(T("stw.refile.to")); if(to == null) return;
+        const toId = to.trim(); if(!toId || toId === entryId) return;
+        if(!confirm(T("stw.refile.confirm", { to: toId }))) return;
+        mv.disabled = b.disabled = true; say("msg", "tools.saving");
+        try{ await refileVoice(entryId, recId, toId, r); say("msg", "stw.refile.done"); wrap.remove(); }
+        catch(e){ mv.disabled = b.disabled = false; console.warn("[steward] refile", e); say("msg", notAllowed(e) ? "tools.notallowed" : "tools.err.save", { code: code(e) }); }
+      };
+      wrap.appendChild(mv);
+      box.appendChild(wrap);
     });
   }catch(e){
     btn.disabled = false; btn.innerHTML = H("stw.voices");

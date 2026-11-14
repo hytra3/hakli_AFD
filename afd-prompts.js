@@ -160,4 +160,13 @@ window.AFDPrompts = [
     note:"Played when the About page opens — a greeting behind the Azeeb mark.", items:[
     { key:"about.welcome", en:"Welcome home", ar:"مرحبًا بك في البيت", kind:"narration" },
   ]},
+  // #7: the "leave a voice message" help channel (help.html). The invite plays
+  // in the sound view; the confirmation plays after a message is sent, so it
+  // doesn't feel like a void. Text until recorded. ar is an MSA draft — DHOFARI
+  // REVIEW (this is help wording a stuck non-reader hears).
+  { tab:"record", later:true, name:"Help — leave a message", ar:"المساعدة — اترك رسالة",
+    note:"Played on the Help page's leave-a-message section: the invitation, and the spoken confirmation after sending.", items:[
+    { key:"help.msg.invite", en:"If you're stuck, leave a short message in your own voice — someone who speaks Hakli will listen.", ar:"إن تعثّرت، اترك رسالة قصيرة بصوتك — سيستمع إليها من يتكلّم الحَكلي.", kind:"narration" },
+    { key:"help.msg.saved", en:"Your question was saved. Someone will listen.", ar:"حُفِظ سؤالك. سيستمع إليه أحدهم.", kind:"narration" },
+  ]},
 ];

@@ -62,6 +62,14 @@ service cloud.firestore {
     function speaker(sid) {
       return get(/databases/$(database)/documents/afd_speakers/$(sid)).data;
     }
+    // A word card, for the join-duplicates rule (steward merges one card into
+    // another). Safe to get() only after exists() is checked.
+    function entryExists(id) {
+      return exists(/databases/$(database)/documents/afd_entries/$(id));
+    }
+    function entryData(id) {
+      return get(/databases/$(database)/documents/afd_entries/$(id)).data;
+    }
     // A NEW speaker code must sit in the caller's own namespace,
     // spk_<first 6 of uid>_… (what the recorder mints). Codes are visible on
     // public recording docs, so without this anyone could create a steward's
@@ -256,6 +264,34 @@ service cloud.firestore {
                             'https://firebasestorage[.]googleapis[.]com/v0/b/afd-dev[.]firebasestorage[.]app/o/afd_pics%2F'
                             + request.auth.uid + '%2F' + entryId + '~[0-9]{10,16}[.]jpg[?]alt=media')));
       }
+      //  • JOIN DUPLICATES (#6, steward) — two cards turn out to be the same
+      //    word. Mark THIS card merged into a survivor (mergedInto), or undo it.
+      //    Non-destructive: this card's bytes stay; the dictionary just stops
+      //    listing it and follows the pointer to the survivor, where its voices
+      //    have been refiled (refileCopyOK, in recordings). Stamped mergedAt/By.
+      //    The survivor must exist, isn't this card, and isn't itself already
+      //    merged (no chains). Reversible — a steward may clear mergedInto.
+      function mergeSetOK() {
+        return isSteward()
+               && onlyChanged(['mergedInto','mergedAt','mergedBy'])
+               && !('mergedInto' in resource.data)
+               && !('removedAt' in resource.data)
+               && request.resource.data.mergedInto is string
+               && request.resource.data.mergedInto != entryId
+               && request.resource.data.mergedAt == request.time
+               && request.resource.data.get('mergedBy','') == request.auth.uid
+               && entryExists(request.resource.data.mergedInto)
+               && entryData(request.resource.data.mergedInto).get('mergedInto','') == ''
+               && !('removedAt' in entryData(request.resource.data.mergedInto));
+      }
+      function mergeClearOK() {
+        return isSteward()
+               && onlyChanged(['mergedInto','mergedAt','mergedBy'])
+               && ('mergedInto' in resource.data)
+               && !('mergedInto' in request.resource.data)
+               && !('mergedAt' in request.resource.data)
+               && !('mergedBy' in request.resource.data);
+      }
       allow update: if stewardPhotoOK()
                     || (notAnon() && isContributed()
                         && resource.data.get('createdBy', '') != request.auth.uid
@@ -292,7 +328,9 @@ service cloud.firestore {
                         && (!('image' in request.resource.data)
                             || request.resource.data.image == resource.data.get('image', null))
                         && (!('pic' in request.resource.data)
-                            || request.resource.data.pic == resource.data.get('pic', null)));
+                            || request.resource.data.pic == resource.data.get('pic', null)))
+                    || mergeSetOK()
+                    || mergeClearOK();
       allow delete: if false;
 
       // ------------------------------- spellings -------------------------------
@@ -388,7 +426,10 @@ service cloud.firestore {
                           'afd/' + request.auth.uid + '/' + recordingId + '.wav'];
         }
 
-        allow create: if notAnon()
+        // A normal new take — the recorder / upload path. (A steward re-homing
+        // a misfiled take, or joining a duplicate card, goes through
+        // refileCopyOK below, not here.)
+        function freshTakeOK() { return notAnon()
                       // Explicit allowlist — keep in step with uploadClip() in
                       // recorder.html. Server-owned fields (embedding, reps,
                       // nReps, …, written by the embed trigger) and the consent
@@ -440,7 +481,53 @@ service cloud.firestore {
                       // Restoring stays the deliberate roster "share again".
                       && (request.resource.data.allowPlayback == false
                           || !speakerExists(request.resource.data.speakerId)
-                          || speaker(request.resource.data.speakerId).consent == 'public');
+                          || speaker(request.resource.data.speakerId).consent == 'public'); }
+
+        // STEWARD REFILE — copy half (#6). A steward re-homes a misfiled take
+        // (the manual cleanup for #5), or every take of a card being joined,
+        // onto the right entry. This is NOT a new recording: the copy must
+        // MIRROR an existing take exactly — same owner (uid), same audio object
+        // (storagePath), same speaker, same consent and playback flag — so a
+        // steward can never invent audio, elevate a withdrawn voice, or
+        // re-attribute one. refiledFrom names the source; the source take is
+        // tombstoned in the same operation (the refile branch of update below).
+        // The copy's doc id (recordingId) is a NEW id the tool mints, so the
+        // source take keeps its own id, vector and bytes untouched.
+        function srcPath() {
+          return /databases/$(database)/documents/afd_entries/$(request.resource.data.refiledFrom.entryId)/recordings/$(request.resource.data.refiledFrom.recordingId);
+        }
+        function src() { return get(srcPath()).data; }
+        function refileCopyOK() {
+          return isSteward()
+                 && request.resource.data.keys().hasOnly(
+                      ['recordingId','entryId','gloss','domain','speakerId',
+                       'phase','type','promptTier','repetitionIndex','capture',
+                       'qc','envelope','storagePath','recordedAt','uid',
+                       'consent','viaAgent','allowPlayback','uploadedAt','source',
+                       'lang','refiledFrom','refiledBy','refiledAt'])
+                 && request.resource.data.entryId == entryId
+                 && (!('recordingId' in request.resource.data)
+                     || request.resource.data.recordingId == recordingId)
+                 && request.resource.data.refiledFrom is map
+                 && request.resource.data.refiledFrom.keys().hasOnly(['entryId','recordingId'])
+                 && request.resource.data.refiledFrom.entryId is string
+                 && request.resource.data.refiledFrom.recordingId is string
+                 && request.resource.data.refiledFrom.entryId != entryId
+                 && request.resource.data.refiledBy == request.auth.uid
+                 && request.resource.data.refiledAt == request.time
+                 && exists(srcPath())
+                 // mirror the source take's frozen identity & consent exactly
+                 && request.resource.data.uid == src().uid
+                 && request.resource.data.speakerId == src().speakerId
+                 && request.resource.data.consent == src().get('consent','public')
+                 && request.resource.data.allowPlayback == src().get('allowPlayback', false)
+                 && request.resource.data.get('storagePath','') == src().get('storagePath','')
+                 // and, as on a fresh take, a playable copy needs its speaker public
+                 && (request.resource.data.allowPlayback == false
+                     || !speakerExists(request.resource.data.speakerId)
+                     || speaker(request.resource.data.speakerId).consent == 'public');
+        }
+        allow create: if freshTakeOK() || refileCopyOK();
 
         // Mutable: the consent label (its manager) and, apart from it, the
         // moderation hold (10-26, below). The audio and everything else stay frozen.
@@ -523,10 +610,49 @@ service cloud.firestore {
                                 && !('heldAt' in request.resource.data)
                                 && !('modHiddenAt' in request.resource.data)
                                 && (!speakerExists(resource.data.speakerId)
-                                    || speaker(resource.data.speakerId).consent == 'public'))));
+                                    || speaker(resource.data.speakerId).consent == 'public'))))
+                    // STEWARD REFILE — tombstone half (#6). Once the copy exists
+                    // under the destination (refileCopyOK, create), the source
+                    // take is retired here: refiledTo names the copy and
+                    // allowPlayback goes false so it leaves this card. Consent is
+                    // NOT touched — the take moved, it was not withdrawn; its
+                    // bytes survive (delete stays off).
+                    || (isSteward()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['refiledTo','refiledBy','refiledAt','allowPlayback'])
+                        && !('refiledTo' in resource.data)
+                        && request.resource.data.refiledTo is map
+                        && request.resource.data.refiledTo.keys().hasOnly(['entryId','recordingId'])
+                        && request.resource.data.refiledTo.entryId is string
+                        && request.resource.data.refiledTo.recordingId is string
+                        && request.resource.data.refiledBy == request.auth.uid
+                        && request.resource.data.refiledAt == request.time
+                        && request.resource.data.allowPlayback == false
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.speakerId == resource.data.speakerId
+                        && request.resource.data.consent == resource.data.get('consent','public'));
 
         // Destruction is server-side (purge Function on consent == 'deleted').
         allow delete: if false;
+      }
+
+      // ---------------------------- provenance ledger (#6) ----------------------------
+      // A steward-only, append-only trail of what has happened to this card:
+      // joins and refiles now; the withdrawal / restore / added events the
+      // consent machinery already records can be surfaced here later (one shared
+      // component with #1 Ship 2's "which take plays" stack). NEVER shown to
+      // viewers — the word card keeps its flat, undated set of voices. Read and
+      // written only by stewards; never changed or deleted (the record stands).
+      match /ledger/{eventId} {
+        allow read:   if isSteward();
+        allow create: if isSteward()
+                      && request.resource.data.by == request.auth.uid
+                      && request.resource.data.at == request.time
+                      && request.resource.data.type is string
+                      && request.resource.data.type.size() <= 40
+                      && request.resource.data.keys().hasOnly(
+                           ['type','at','by','entryId','recordingId','from','to','note']);
+        allow update, delete: if false;
       }
     }
 
@@ -786,6 +912,43 @@ service cloud.firestore {
                     && !('seenAt' in resource.data)
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenAt'])
                     && request.resource.data.seenAt == request.time;
+      allow delete: if false;
+    }
+
+    // ------------------------ help voice messages (#7) ------------------------
+    // The "leave a voice message" channel on the Help page: someone who is stuck
+    // records a short message (recorder reuse) and a steward picks it up in the
+    // inbox. A CHANNEL, not a person — it fits "no individual fronts the app
+    // until the community accepts it" while closing the dead-end gap. Walled off
+    // from the corpus: steward-only read, never public, never a word card.
+    // Anyone signed in may leave one — the Help page signs in anonymously if
+    // needed. Anonymous is thereby boxed into non-corpus namespaces (afd_ui and
+    // now afd_help) and still cannot reach the corpus. Thin and self-expiring
+    // (TTL on expireAt, ≤180 d): a support queue, not an archive. A steward
+    // marks one handled (resolvedAt); the TTL ages it (and its audio) out.
+    // Audio bytes live at afd_help/{uid}/{id} in Storage (afd-storage.rules).
+    match /afd_help/{id} {
+      function hd() { return request.resource.data; }
+      allow read:   if isSteward();
+      allow create: if signedIn()
+                    && hd().keys().hasOnly(['uid','at','expireAt','audioPath','text','lang','page','build'])
+                    && hd().uid == request.auth.uid
+                    && hd().at == request.time
+                    && hd().expireAt is timestamp
+                    && hd().expireAt <= request.time + duration.value(180, 'd')
+                    && (('audioPath' in hd()) || ('text' in hd()))
+                    && (!('audioPath' in hd())
+                        || hd().audioPath in ['afd_help/' + request.auth.uid + '/' + id + '.webm',
+                                              'afd_help/' + request.auth.uid + '/' + id + '.m4a'])
+                    && (!('text' in hd()) || (hd().text is string && hd().text.size() <= 600))
+                    && (!('lang' in hd()) || langOK(hd().lang))
+                    && (!('page' in hd()) || (hd().page is string && hd().page.size() <= 40))
+                    && (!('build' in hd()) || (hd().build is string && hd().build.size() <= 16));
+      allow update: if isSteward()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['resolvedAt','resolvedBy'])
+                    && request.resource.data.resolvedAt == request.time
+                    && request.resource.data.resolvedBy == request.auth.uid;
       allow delete: if false;
     }
 

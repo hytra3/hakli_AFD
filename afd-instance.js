@@ -132,10 +132,17 @@ window.AFDInstance = {
     note: "speaker.nodialect"
   },
 
-  // Help page (help.html): a local Hakli speaker people can message for help.
-  // null hides "Ask a person" entirely. To show it:
-  //   help: { contact: { name: { ar:"…", en:"…" }, whatsapp: "9689XXXXXXX" } }   // digits only, with country code
-  help: { contact: null },
+  // Help page (help.html) — the "Ask for help" section. `help.contact` is one of:
+  //   null                              hide the section entirely.
+  //   { message: true }                 the async "leave a voice message" channel
+  //       (#7): the person records a short message a steward picks up in the
+  //       inbox (steward.html). A CHANNEL, not a person — it fits "no individual
+  //       fronts the app until the community accepts it," and closes the
+  //       dead-end gap meanwhile. This is Hakli's setting.
+  //   { name:{ar,en}, whatsapp:"9689XXXXXXX" }   a named local speaker on
+  //       WhatsApp (digits only, country code) — kept for instances that do have
+  //       a person willing to front support.
+  help: { contact: { message: true } },
 
   // The speak-to-find embedding service (Cloud Run). Shared across instances
   // in future; per-instance for now.

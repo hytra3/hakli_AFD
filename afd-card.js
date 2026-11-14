@@ -1796,7 +1796,10 @@ async function entryCard(res, lead){
   // missing: Firestore answered "no such entry" and it isn't a seeded word either —
   // a mistyped or cut-off link. (No answer at all, e.g. offline, is NOT missing.)
   // (10-26) held after a report: out of sight too, until a steward decides
-  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt || meta.heldAt),
+  // joined into another card by a steward (#6): out of sight like a removed one,
+  // and movedTo points at the survivor so a deep link can follow the pointer.
+  return { el, playBtn, removed: !!(meta.removedAt || meta.hiddenAt || meta.heldAt || meta.mergedInto),
+           movedTo: meta.mergedInto || null,
            missing: known===false && !localWord(res.entryId), get firstPlayable(){ return firstPlayable; } };
 }
 

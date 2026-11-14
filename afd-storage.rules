@@ -235,6 +235,25 @@ service firebase.storage {
                     && request.resource.contentType.matches('audio/.*');
       allow update, delete: if false;
     }
+    // ---------------- help voice messages (#7) ----------------
+    // afd_help/{uid}/…  — a short spoken message from someone stuck on the Help
+    //                     page, for a steward to pick up in the inbox. Evidence
+    //                     for support, NOT corpus and never public: the owner
+    //                     may read their own (to replay before sending) and
+    //                     stewards read any; write-once, audio only, small cap.
+    // Anonymous is allowed here on purpose (the Help page may sign the person in
+    // anonymously). Like afd_ui, this namespace is walled off from the corpus,
+    // so the "anonymous can't write corpus audio" guarantee still holds.
+    match /afd_help/{uid}/{fileName} {
+      allow read:   if isSteward()
+                    || (request.auth != null && request.auth.uid == uid);
+      allow create: if request.auth != null
+                    && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('audio/.*');
+      allow update, delete: if false;
+    }
     // everything else is closed
     match /{allPaths=**} {
       allow read, write: if false;
