@@ -302,4 +302,10 @@ body[data-mode="sound"] .afdcard .slot-add{font-size:18px; padding:11px 15px}
   display:grid; place-items:center; -webkit-tap-highlight-color:transparent}
 .afdcard .vr-flag:hover, .afdcard .vr-flag:focus-visible{color:var(--danger); border-color:var(--danger)}
 .afdcard .solo-voice{display:flex; align-items:center; gap:10px}
-.afdcard .reportit{width:100%; margin-top:6px; border-style:dashed; color:var(--mist); font-weight:500}
+/* Report this word (11-13): a rare corrective action, not a peer of Share. A
+   quiet centred link under the full-width Share button rather than a matching
+   bordered button — per-recording flags carry the common case. */
+.afdcard .reportit{align-self:center; width:auto; margin-top:-6px; padding:6px 10px;
+         border:none; border-radius:10px; background:transparent;
+         color:var(--mist); font-weight:500; font-size:13.5px}
+.afdcard .reportit:hover, .afdcard .reportit:focus-visible{color:var(--mountain)}
