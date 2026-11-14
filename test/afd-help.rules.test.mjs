@@ -28,7 +28,14 @@ const asUser = () => as("uUser"), asStew = () => as("uStew"), asOther = () => as
 const asAnon = () => testEnv.authenticatedContext("uAnon", { firebase: { sign_in_provider: "anonymous" } }).firestore();
 const asPublic = () => testEnv.unauthenticatedContext().firestore();
 
-const msg = (uid, over = {}) => ({ uid, at: serverTimestamp(), expireAt: soon(), page: "help", text: "please help", ...over });
+// Build a message; a key set to undefined in `over` is DROPPED (the Firestore
+// SDK rejects an undefined field value before the request reaches the rules),
+// so `{ text: undefined }` means "no text", not "text = undefined".
+const msg = (uid, over = {}) => {
+  const m = { uid, at: serverTimestamp(), expireAt: soon(), page: "help", text: "please help", ...over };
+  for(const k of Object.keys(m)) if(m[k] === undefined) delete m[k];
+  return m;
+};
 
 before(async () => {
   testEnv = await initializeTestEnvironment({
