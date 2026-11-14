@@ -9,9 +9,9 @@ import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup,
 import { ref, getDownloadURL, uploadBytes }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 // voices already heard, kept on the phone for playing without signal (10-19)
-import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1112h";
+import { savedUrl, remember, forgetGone } from "./afd-voices.js?v=b1113a";
 // reporting a voice or a word (10-26)
-import { reportSheet } from "./afd-flag.js?v=b1112h";
+import { reportSheet } from "./afd-flag.js?v=b1113a";
 
 let CFG = { db:null, store:null, recorderUrl:"index.html",
             mode:()=>"bridge", user:()=>null, banner:()=>{} };
