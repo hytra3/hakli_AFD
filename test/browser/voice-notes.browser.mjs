@@ -34,7 +34,7 @@ await scenario("the card has a voice-notes slot, and each note says its language
       addText: (s.querySelector(".slot-add")||{}).textContent.trim(),
       tags: [...s.querySelectorAll(".note-lang")].map(t => t.textContent.trim()).sort(),
       wordTags: document.querySelectorAll(".slot-word .note-lang").length }; });
-  ok("the combined 'say something' slot comes last", JSON.stringify(a.order.slice(-2)) === JSON.stringify(["slot-context","slot-say"]), JSON.stringify(a.order));
+  ok("audio-first: the three spoken slots lead — word · sentence · say-something", JSON.stringify(a.order.slice(0,3)) === JSON.stringify(["slot-word","slot-context","slot-say"]), JSON.stringify(a.order));
   ok("it is labelled 'say something about this word', in English and Arabic", /say something/i.test(a.label) && /قل شيئًا/.test(a.label), a.label);
   ok("'+ Say something' opens the recorder on this word's notes", /recorder(\.html)?#ent_father\|note$/.test(a.add) && a.addText === "Say something", JSON.stringify([a.add, a.addText]));
   ok("each note shows its language as a pill (حَكلي · عربي); the word's voice has none", JSON.stringify(a.tags) === JSON.stringify(["حَكلي","عربي"]) && a.wordTags === 0, JSON.stringify(a));

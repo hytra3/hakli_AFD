@@ -1210,22 +1210,26 @@ async function translationSection(entryId, meta, paintFace){
   const plus = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`;
 
   function paint(){
-    const ar = meta.glossAr || "", en = meta.gloss || "";
+    const has = !!(meta.glossAr || meta.gloss);
     body.innerHTML = "";
-    if(ar || en){
-      const show = document.createElement("div"); show.className = "tr-show";
-      if(ar){ const s=document.createElement("span"); s.className="tr-ar"; s.dir="rtl"; s.textContent=ar; show.appendChild(s); }
-      if(en){ const s=document.createElement("span"); s.className="tr-en"; s.dir="ltr"; s.textContent=en; show.appendChild(s); }
-      body.appendChild(show);
-    }else if(!canEdit){
-      const none=document.createElement("span"); none.className="slot-empty"; none.textContent=AFDCore.t("slot.none", m);
-      body.appendChild(none);
-    }
     if(canEdit){
+      // Editors keep the add/edit affordance. No read-only reprint of the gloss:
+      // the card header already carries it (bold Hakli + grey Arabic/English), so
+      // echoing it here just doubled it on screen (11-13). The form opens prefilled.
+      sec.hidden = false;
       const btn=document.createElement("button"); btn.type="button"; btn.className="slot-add tr-open";
       btn.innerHTML = plus + " " + escapeHtml(AFDCore.t("add.show.write", m));
       btn.addEventListener("click", openEditor);
       body.appendChild(btn);
+    }else if(!has){
+      // Nobody can edit here and nothing is written yet: a quiet "none".
+      sec.hidden = false;
+      const none=document.createElement("span"); none.className="slot-empty"; none.textContent=AFDCore.t("slot.none", m);
+      body.appendChild(none);
+    }else{
+      // Non-editor and the translation is already shown in the header → drop the
+      // whole slot so it isn't a labelled section repeating what's up top.
+      sec.hidden = true;
     }
   }
 
@@ -1641,11 +1645,16 @@ async function entryCard(res, lead){
     let wordSlot = slotSection("slot.word","word",res.entryId, wordRecs, thumbEl, playBtn, setUrl);
     let ctxSlot  = slotSection("slot.sentence","context",res.entryId, contextRecs, null, playBtn, ()=>{});
     let saySlot  = slotSection("slot.say","say",res.entryId, sayRecs, null, playBtn, ()=>{});
+    // Audio-first order (11-13): the three spoken slots lead — word · sentence ·
+    // say-something — then the written translation add/edit, and the Hakli spelling
+    // list last. The bold Hakli headword is painted into the card header separately
+    // (paintHeadSpelling at card build), so it still shows up top wherever the
+    // spelling list sits in the body.
     detail.appendChild(wordSlot);
-    detail.appendChild(spellingSection(res.entryId, gc));
-    detail.appendChild(await translationSection(res.entryId, meta, paintFace));
     detail.appendChild(ctxSlot);
     detail.appendChild(saySlot);
+    detail.appendChild(await translationSection(res.entryId, meta, paintFace));
+    detail.appendChild(spellingSection(res.entryId, gc));
     // More voices (10-19): the card holds a page of public voices, newest first.
     // When there are more, one row under the slots fetches the next page and the
     // slots are redrawn with every voice so far; a slot whose list was open stays
