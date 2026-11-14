@@ -122,7 +122,8 @@ def public_totals():
         parent = snap.reference.parent.parent
         if r.get("allowPlayback") is True and parent is not None and parent.id in live and r.get("speakerId"):
             speakers.add(r["speakerId"])
-    return {"words": words, "voices": voices, "speakers": len(speakers), "wordsAll": words_all}
+    return {"words": words, "voices": voices, "speakers": len(speakers),
+            "speakerCodes": sorted(speakers), "wordsAll": words_all}
 
 
 # ---------------------------------------------------------------- the checks (pure)
@@ -325,8 +326,18 @@ def state_ref():
 
 def refresh_public(now):
     t = public_totals()
+    # Codes are pulled out of t so the rest (words/voices/speakers/wordsAll) keeps
+    # its original shape for state, the digest and the day docs.
+    codes = t.pop("speakerCodes", [])
     db().collection("afd_stats").document("public").set(
         {"words": t["words"], "voices": t["voices"], "speakers": t["speakers"], "at": now})
+    # Steward-only roster: the actual speaker codes behind the "speakers" count, so
+    # a steward can see whether a jump is new accounts or one account's extra codes
+    # (codes are spk_<uid6>_…, so a shared prefix is one login). Never in the
+    # world-readable "public" doc — the afd_stats rule gates any non-"public" id to
+    # stewards (isSteward()).
+    db().collection("afd_stats").document("roster").set(
+        {"codes": codes, "speakers": t["speakers"], "at": now})
     state_ref().set({"publicAt": now, "totals": t}, merge=True)
     log("INFO", "public totals", **t)
     return t

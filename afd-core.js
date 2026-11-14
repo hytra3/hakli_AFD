@@ -1022,6 +1022,8 @@ window.AFDCore = (function(){
     "stw.st.words":         { en:"words with a voice", ar:"كلمة لها صوت" },
     "stw.st.voices":        { en:"voices", ar:"صوت" },
     "stw.st.speakers":      { en:"speakers", ar:"متحدّث" },
+    "stw.st.ids":           { en:"Show speaker codes ({n} codes · {accts} accounts)", ar:"إظهار رموز المتحدّثين ({n} رمز · {accts} حساب)" },
+    "stw.st.ids.note":      { en:"Each code is spk_<account>_… — codes that share an account prefix are one login (one person, or a steward recording several). Different prefixes are different accounts.", ar:"كلّ رمز بصيغة spk_<حساب>_… — الرموز التي تشترك في بادئة الحساب هي دخولٌ واحد (شخص واحد، أو راوٍ يسجّل عدّة أشخاص). البادئات المختلفة حساباتٌ مختلفة." },
     "stw.st.updated":       { en:"Recounted {when}.", ar:"أُعيد العدّ {when}." },
     "stw.st.nototals":      { en:"Not counted yet: the watch function fills this in once it's deployed.", ar:"لم يُعَدّ بعد: تملؤه دالّة المراقبة بعد نشرها." },
     "stw.st.use":           { en:"How it's used", ar:"كيف يُستعمل" },
