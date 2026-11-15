@@ -258,11 +258,24 @@ function avCaption(rec){
 /* A voice note's language (11-09), as a short tag beside the voice: notes are
    the one place a take may be in any language, so each says which. The
    dictionary's own language reads "Hakli"; "mul" is a mix. No tag in sound view,
-   which has no text; nothing on a note recorded before the language was asked. */
+   which has no text. A note recorded before the language was asked has none yet:
+   its own uploader sees a "set the language" pill, everyone else sees nothing. */
 function noteLangTag(rec){                  // the same pill as everywhere a language is named (11-10)
-  if(rec.type !== "note" || !rec.lang || CFG.mode() === "sound") return "";
-  const pill = AFDCore.langPill(rec.lang, { cls:"note-lang" + (noteLangEditable(rec) ? " note-lang-edit" : "") });
-  if(!noteLangEditable(rec)) return pill;
+  if(rec.type !== "note" || CFG.mode() === "sound") return "";
+  const editable = noteLangEditable(rec);
+  if(!rec.lang){
+    // A note recorded before the language was asked (11-15) has none yet. Its
+    // own uploader gets a dashed "set the language" pill to add one; to everyone
+    // else it stays silent, exactly as an unlabelled note did before.
+    if(!editable) return "";
+    const tip = escapeHtml(AFDCore.t("note.lang.set", CFG.mode()));
+    return AFDCore.langPill("", { cls:"note-lang note-lang-edit note-lang-empty" })
+             .replace('<span class="lang-pill', `<span role="button" tabindex="0" aria-label="${tip}" data-tip="${tip}" class="lang-pill`)
+             .replace(/ title="[^"]*"/, ` title="${tip}"`)
+             .replace(/>[^<]*<\/span>$/, `>${tip} \u25BE</span>`);
+  }
+  const pill = AFDCore.langPill(rec.lang, { cls:"note-lang" + (editable ? " note-lang-edit" : "") });
+  if(!editable) return pill;
   // your own note: the pill is a button that changes the language (11-10)
   const tip = escapeHtml(AFDCore.t("note.lang.change", CFG.mode()));
   return pill.replace('<span class="lang-pill', `<span role="button" tabindex="0" aria-label="${tip}" data-tip="${tip}" class="lang-pill`)
