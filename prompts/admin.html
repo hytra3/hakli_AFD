@@ -77,6 +77,16 @@
   .qsug{font-size:19px; direction:rtl; text-align:right; margin-top:2px;}
   .qmeta{font-size:12px; color:var(--muted); margin-top:3px;}
   .qempty{font-size:13px; color:var(--muted); padding:8px 0;}
+  /* "which take plays" picker (#1 Ship 2) */
+  .takerow{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .takerow .when{font-size:12px; color:var(--muted); direction:ltr;}
+  .takerow .btn{padding:7px 11px; font-size:13px;}
+  .badge{font-size:11px; letter-spacing:.04em; padding:2px 8px; border-radius:20px;
+    border:1px solid var(--go); color:var(--go); background:var(--go-bg);}
+  .ledger{margin-top:8px;}
+  .ledger:empty{display:none;}
+  .ledger .st-err{font-size:12px; color:var(--muted); margin:3px 0;}
+  .meta{font-size:12px; color:var(--muted); margin:3px 0;}
 </style>
 </head>
 <body>
@@ -132,6 +142,15 @@
       <div id="queue"><div class="qempty">—</div></div>
     </div>
 
+    <div class="card" id="takescard">
+      <div class="top">
+        <h2><span aria-hidden="true">🎚️</span> <span data-t="win.take.title">Which take plays</span></h2>
+        <a href="#" id="refreshtakes" class="small" data-t="tools.refresh">refresh</a>
+      </div>
+      <div class="note" data-t="win.take.hint"></div>
+      <div id="takes"><div class="qempty">—</div></div>
+    </div>
+
     <div class="msg" id="msg"></div>
     <div class="note" data-t="win.note"></div>
   </div>
@@ -148,6 +167,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { startAppCheck } from "../afd-appcheck.js?v=b1114b";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
 
@@ -156,6 +176,7 @@ const app = initializeApp(firebaseConfig);
 startAppCheck(app);              // App Check (10-19)
 const auth = getAuth(app);
 const db = getFirestore(app);
+const store = getStorage(app);
 // Interface text: AFDCore.STRINGS via ../afd-tools.js, in Arabic or Arabic + English.
 const T = AFDTools.text, H = AFDTools.html;
 const code = e => (e && (e.code || e.message)) || "error";
@@ -165,7 +186,7 @@ function say(id, key, vars){ said[id] = key ? [key, vars] : null; $(id).textCont
 AFDTools.onChange(()=>{
   for(const id in said) if(said[id]) $(id).textContent = T(said[id][0], said[id][1]);
   ["recording","suggestions"].forEach(paintState);
-  if(!$("panel").classList.contains("hidden")) loadQueue();
+  if(!$("panel").classList.contains("hidden")){ loadQueue(); loadTakes(); }
 });
 
 function fmt(ts){
@@ -257,6 +278,87 @@ async function loadQueue(){
 }
 $("refreshq").onclick = (e)=>{ e.preventDefault(); loadQueue(); };
 
+/* ---- "which take plays" picker (#1 Ship 2) ------------------------------- */
+/* Prompt lines carry an append-only takes[] manifest (Ship 1). A re-record never
+   overwrites the prior take; the steward chooses here which take the app plays by
+   pointing storagePath (and canonicalTakeId) at it — a same-length write the
+   append-only rule allows. Nothing is deleted. */
+const takeAudio = new Audio();
+const escT = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const takeWhen = t => { try{ return (t && t.at) ? new Date(t.at).toLocaleString() : ""; }catch(_){ return ""; } };
+const canonOf = x => x.canonicalTakeId || x.latestTakeId || (x.takes && x.takes.length ? x.takes[x.takes.length-1].id : null);
+
+async function playTake(path){
+  try{ takeAudio.src = await getDownloadURL(ref(store, path)); await takeAudio.play(); }
+  catch(e){ say("msg", "stw.err.play", { code: code(e) }); }
+}
+async function pickTake(key, take){
+  say("msg", "tools.saving");
+  try{
+    await setDoc(doc(db, "afd_ui_prompts", key), { storagePath: take.path, canonicalTakeId: take.id }, { merge:true });
+    say("msg", "win.take.saved");
+    await loadTakes();
+  }catch(e){
+    say("msg", e.code === "permission-denied" ? "tools.notallowed" : "tools.err.save", { code: code(e) });
+  }
+}
+// Each line's take history, rendered for the shared provenance panel
+// (AFDCore.ledgerPanel) — the same component the steward word-card ledger uses.
+function takeLedgerRows(takes, canon){
+  return takes.map(t => {
+    const row = escT(takeWhen(t)) + " — " + H("win.take.event") + (t.id === canon ? " · " + H("win.take.plays") : "");
+    return '<div class="st-err" dir="ltr">' + row + '</div>';
+  }).join("");
+}
+async function loadTakes(){
+  const box = $("takes");
+  box.innerHTML = AFDCore.dotsHTML(true);
+  try{
+    const snap = await getDocs(collection(db, "afd_ui_prompts"));
+    const lines = [];
+    snap.forEach(d => { const x = d.data() || {}; if(Array.isArray(x.takes) && x.takes.length >= 2) lines.push({ key:d.id, x }); });
+    if(!lines.length){ box.innerHTML = '<div class="qempty">' + H("win.take.empty") + '</div>'; return; }
+    lines.sort((a, b) => a.key.localeCompare(b.key));
+    box.innerHTML = "";
+    for(const { key, x } of lines){
+      const canon = canonOf(x);
+      const takes = x.takes.slice().sort((a, b) => (a.at || 0) - (b.at || 0));
+      const group = document.createElement("div"); group.className = "qgroup";
+      group.innerHTML =
+        '<div class="qkey">' + escT(key) + ' · ' + H("win.take.count", { n: takes.length }) + '</div>' +
+        (x.intentAr ? '<div class="qsug" dir="rtl">' + escT(x.intentAr) + '</div>' : '') +
+        (x.intent   ? '<div class="qmeta">' + escT(x.intent) + '</div>' : '');
+      takes.forEach(t => {
+        const row = document.createElement("div"); row.className = "qitem takerow";
+        const listen = document.createElement("button"); listen.className = "btn";
+        listen.innerHTML = "▶ " + H("win.take.listen"); listen.onclick = () => playTake(t.path);
+        const when = document.createElement("span"); when.className = "when"; when.textContent = takeWhen(t);
+        row.appendChild(listen); row.appendChild(when);
+        if(t.id === canon){
+          const b = document.createElement("span"); b.className = "badge"; b.innerHTML = H("win.take.plays"); row.appendChild(b);
+        }else{
+          const mk = document.createElement("button"); mk.className = "btn primary";
+          mk.innerHTML = H("win.take.makeplay"); mk.onclick = () => pickTake(key, t); row.appendChild(mk);
+        }
+        group.appendChild(row);
+      });
+      const lbtn = document.createElement("button"); lbtn.className = "btn"; lbtn.style.marginTop = "8px";
+      lbtn.innerHTML = H("stw.ledger.show");
+      const lmount = document.createElement("div"); lmount.className = "ledger";
+      AFDCore.ledgerPanel(lbtn, lmount, {
+        load: () => takeLedgerRows(takes, canon),
+        onError: (e) => '<div class="meta">' + H("tools.err.load", { code: code(e) }) + '</div>'
+      });
+      group.appendChild(lbtn); group.appendChild(lmount);
+      box.appendChild(group);
+    }
+  }catch(e){
+    box.innerHTML = '<div class="qempty">' + (e.code === "permission-denied"
+      ? H("win.queue.notallowed") : H("win.take.err", { code: code(e) })) + '</div>';
+  }
+}
+$("refreshtakes").onclick = (e) => { e.preventDefault(); loadTakes(); };
+
 document.querySelectorAll("#panel .btn[data-win]").forEach(b=>{
   b.onclick = async ()=>{
     const name = b.getAttribute("data-win");
@@ -293,6 +395,7 @@ onAuthStateChanged(auth, async (u)=>{
     $("signout").classList.remove("hidden");
     await refresh();
     loadQueue();
+    loadTakes();
   }else{
     $("panel").classList.add("hidden");
     $("signin").classList.remove("hidden");
