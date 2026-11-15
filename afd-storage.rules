@@ -125,18 +125,36 @@ service firebase.storage {
     // ---------------- UI voice prompts ----------------
     // Recorded remotely over anonymous sign-in; played openly by the app.
     // 25 MB cap — the consent narration is a longer connected phrase.
-    match /afd_ui/{fileName} {
+    //
+    // APPEND-ONLY TAKE STORAGE (decision #1, Ship 1): each new take lands at its
+    // OWN path — afd_ui/<key>/<takeId>.webm — so a re-record never lands on a
+    // path that already has bytes. The rule enforces that at the write: create
+    // only (resource == null), never update, never delete. A prior take's bytes
+    // therefore always survive; the prompt doc in Firestore keeps the pointer to
+    // whichever take the app should play. (Legacy flat takes at afd_ui/<key>.webm
+    // from before this change stay readable — the {file=**} match covers them —
+    // and are simply never overwritten.) The recursive wildcard is what lets the
+    // nested per-take path match.
+    match /afd_ui/{file=**} {
       allow read: if true;
       // Writes follow the SAME recording window as the afd_ui_prompts doc in
       // Firestore (afd_ui_config/recording, set from prompts/admin.html): while
       // it is open, the anonymous prompt-tool session may record; once it lapses
       // only a steward (afd_admins) can. Replaces the old hand-deployed
       // afd-storage.rules.frozen — the window now closes Storage by itself.
-      allow create, update: if request.auth != null
+      //
+      // Write-once (append-only, decision #1 Ship 1): resource == null means no
+      // object yet at this path, so only a first write lands. A re-record goes to
+      // a new per-take path, so a prior take's bytes are never overwritten. In
+      // Storage rules a content overwrite is evaluated as `create` (not update),
+      // so immutability is enforced here with resource == null — exactly as the
+      // recording/withdrawal blocks above do — not via `allow update`.
+      allow create: if request.auth != null
+                    && resource == null
                     && (uiRecordingOpen() || isSteward())
                     && request.resource.size < 25 * 1024 * 1024
                     && request.resource.contentType.matches('audio/.*');
-      allow delete: if false;
+      allow update, delete: if false;
     }
     // ---------------- contributor avatar (opt-in "known" profile) ----------------
     // A steward's OWN profile picture, shown on their voices only while they have

@@ -212,8 +212,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { startAppCheck } from "../afd-appcheck.js?v=b1114b";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 /* ---- 1. Firebase web config: shared, in ../afd-instance.js ---- */
 const firebaseConfig = window.AFDInstance.firebase;   // afd-instance.js
@@ -285,7 +285,7 @@ const IDB = (()=>{
 })();
 
 const $ = id => document.getElementById(id);
-const state = { i:0, tab:"record", recorded:new Set(), recordedMeta:new Map(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null, week:null };
+const state = { i:0, tab:"record", recorded:new Set(), remote:new Set(), recordedMeta:new Map(), pending:new Map(), stream:null, rec:null, chunks:[], blob:null, t0:0, timer:null, week:null };
 
 /* ---- tabs and links ----
    #record / #review open a tab; #R1, #A3 … open a section at its first item, so
@@ -415,9 +415,11 @@ async function loadProgress(db){
     snap.forEach(d => { const x = d.data() || {};
       if(x.status !== "recorded") return;
       state.recorded.add(d.id);
-      // Remember the text this take was recorded against and which phone made it,
-      // so a line whose wording has since drifted can be flagged for re-recording
-      // and a replace by a DIFFERENT phone can ask first (decision #1 guard).
+      state.remote.add(d.id);   // has at least one uploaded take (permanent history)
+      // Remember the text this take was recorded against, so a line whose wording
+      // has since drifted can be flagged for re-recording. (`by` is kept too; it
+      // no longer gates keeping — append-only means a second phone just adds a
+      // take rather than replacing one.)
       state.recordedMeta.set(d.id, { en: x.intent||"", ar: x.intentAr||"", by: x.by||"" });
       const t = x.recordedAt && typeof x.recordedAt.toMillis === "function" ? x.recordedAt.toMillis() : 0;
       if(t > weekAgo){ lines++; if(x.by) people.add(x.by); }
@@ -701,30 +703,40 @@ async function startRec(){
 $("redo").onclick = ()=>{ resetRecUI(); };
 
 /* Play the active prompt's saved recording — before it's uploaded the blob is
-   local (state.pending); after upload the local copy is gone, so fetch Storage. */
+   local (state.pending); after upload the local copy is gone, so fetch the take
+   the app would play (the doc's storagePath — the most recent take; append-only,
+   decision #1). Legacy docs without storagePath fall back to the old flat path. */
 $("playactive").onclick = async ()=>{
   const it = ITEMS[state.i], player = $("player");
   const local = state.pending.get(it.key);
   try{
-    player.src = local ? URL.createObjectURL(local)
-                       : await getDownloadURL(ref(state.store, "afd_ui/"+it.key+".webm"));
+    if(local){ player.src = URL.createObjectURL(local); }
+    else {
+      const sn = await getDoc(doc(state.db, "afd_ui_prompts", it.key));
+      const x = sn.exists() ? (sn.data()||{}) : {};
+      player.src = await getDownloadURL(ref(state.store, x.storagePath || ("afd_ui/"+it.key+".webm")));
+    }
   }catch(e){ alert("Couldn't load that recording to play — is it uploaded yet?"); return; }
   player.classList.remove("hidden");
   player.play().catch(()=>{});
 };
 
-/* Delete the active prompt's recording (local + Storage + Firestore), so it
-   drops back to "not recorded" and can be redone. Each remote step is best-effort
-   — a not-yet-uploaded take simply has no Storage/Firestore copy to remove. */
+/* "Remove" is discard-before-upload only now. A take that has already uploaded
+   is part of the line's permanent history (append-only, decision #1) and is
+   never destroyed here — record again to add a take, or pick which one plays in
+   admin.html (Ship 2). So this only drops a not-yet-sent local take; nothing
+   already saved is touched. */
 $("delactive").onclick = async ()=>{
   const it = ITEMS[state.i], key = it.key;
-  if(!(state.recorded.has(key) || state.pending.has(key))) return;
-  if(!confirm("Delete this recording? You can record it again afterward.")) return;
+  if(!state.pending.has(key)){
+    if(state.recorded.has(key))
+      alert("هذا التسجيل محفوظ — لا تُحذف التسجيلات هنا. سجّل مرة أخرى لإضافة تسجيل جديد، ويختار المشرف أيّها يُشغَّل.\n\nThis take is kept — takes here are never deleted. Record again to add another; a steward chooses which one plays.");
+    return;
+  }
+  if(!confirm("Drop this take before it's sent? It hasn't uploaded yet — nothing already saved is removed.")) return;
   state.pending.delete(key);
-  state.recorded.delete(key);
+  if(!state.remote.has(key)) state.recorded.delete(key);   // keep "recorded" if an uploaded take already exists
   try{ await IDB.del(key); }catch(_){}
-  try{ await deleteObject(ref(state.store, "afd_ui/"+key+".webm")); }catch(_){}
-  try{ await deleteDoc(doc(state.db, "afd_ui_prompts", key)); }catch(_){}
   render();
 };
 
@@ -744,14 +756,12 @@ async function keepTake(key, blob){
 $("keep").onclick = async ()=>{
   const it = ITEMS[state.i];
   if(!state.blob) return;
-  // Decision #1 guard: this line already has a recording from ANOTHER phone, and
-  // keeping overwrites the one file for this prompt. Ask first, so a helper's take
-  // can't vanish without anyone knowing. (Your own earlier take replaces silently —
-  // that's a redo. Keeping every take as history is the fuller follow-up.)
-  const m = state.recordedMeta.get(it.key);
-  if(m && m.by && state.uid && m.by !== state.uid && !state.pending.has(it.key)){
-    if(!window.confirm("هذا السطر مُسجَّل بالفعل من جهازٍ آخر. هل تستبدله؟\n\nThis line already has a recording from another phone. Replace it?")) return;
-  }
+  // Append-only now (decision #1, Ship 1): keeping ADDS a take, it never
+  // overwrites — a prior take, from this phone or another, always survives — so
+  // the old "this line already has a recording from another phone, replace?"
+  // confirm is gone (it was the one place a voice could be knowingly lost). A
+  // steward chooses which take plays in admin.html (Ship 2); until then the app
+  // plays the most recent.
   const blob = state.blob; state.blob = null;
   $("keep").disabled = true;
   await keepTake(it.key, blob);
@@ -763,6 +773,11 @@ $("keep").onclick = async ()=>{
 // Leaving or reloading the page with a take not yet kept: ask before losing it.
 window.addEventListener("beforeunload", (e)=>{ if(state.blob){ e.preventDefault(); e.returnValue = ""; } });
 
+/* A take's id: short, sortable-ish, path-safe (so it can sit in a Storage
+   object name). Each take gets its own, so no two takes of one line ever share
+   a path. */
+function newTakeId(){ return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
 /* ---- upload pending to Firebase ---- */
 let syncing = false;
 async function syncPending(){
@@ -771,11 +786,21 @@ async function syncPending(){
   for(const [key, blob] of Array.from(state.pending.entries())){
     try{
       const it = ITEMS.find(x=>x.key===key) || {};
-      await uploadBytes(ref(state.store, "afd_ui/"+key+".webm"), blob, { contentType: blob.type || "audio/webm" });
+      // Append-only take storage (decision #1, Ship 1): the take lands at its
+      // OWN path afd_ui/<key>/<takeId>.webm, so a re-record never overwrites the
+      // prior take — its bytes survive (Storage is write-once on afd_ui/**). The
+      // prompt doc keeps a growing takes[] manifest and points storagePath at
+      // this newest take, so the whole app keeps playing the most recent take
+      // (every player reads storagePath) until a steward picks one in admin.html.
+      const takeId = newTakeId();
+      const path = "afd_ui/" + key + "/" + takeId + ".webm";
+      const ct = blob.type || "audio/webm";
+      await uploadBytes(ref(state.store, path), blob, { contentType: ct });
       await setDoc(doc(state.db,"afd_ui_prompts",key), {
         key, intent: it.en||"", intentAr: it.ar||"", kind: it.kind||"label", section: it.section||"",
-        status:"recorded", storagePath:"afd_ui/"+key+".webm", by: state.uid || "",
-        contentType: blob.type||"audio/webm", recordedAt: serverTimestamp()
+        status:"recorded", storagePath:path, latestTakeId:takeId, by: state.uid || "",
+        contentType: ct, recordedAt: serverTimestamp(),
+        takes: arrayUnion({ id: takeId, path, by: state.uid || "", ct, at: Date.now() })
       }, { merge:true });
       state.pending.delete(key);
       await IDB.del(key);

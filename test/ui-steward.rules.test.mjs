@@ -112,6 +112,49 @@ describe("afd_ui_prompts — publishing outside the recording window", () => {
   });
 });
 
+describe("afd_ui_prompts — append-only take manifest (decision #1, Ship 1)", () => {
+  // Each prompt doc carries a takes[] ledger. A write may ADD takes but never
+  // drop or shrink the list, so no take is ever erased from the record — even
+  // though a re-record points storagePath at a newer clip, and even for a
+  // steward (byte immutability itself lives in Storage: afd_ui/** is write-once).
+  const prompt = db => doc(db, "afd_ui_prompts", "howto.find");
+  const take = id => ({ id, path: "afd_ui/howto.find/" + id + ".webm" });
+  const bodyWith = (takes, extra = {}) =>
+    ({ status: "recorded", storagePath: takes[takes.length - 1].path, takes, ...extra });
+  const seed = (takes) => testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(prompt(ctx.firestore()), bodyWith(takes));
+  });
+  const openRecording = () => testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(cfg(ctx.firestore(), "recording"), { openUntil: inHours(24) });
+  });
+
+  it("the steward may ADD a take (list grows)", async () => {
+    await seed([take("t1")]);
+    await assertSucceeds(setDoc(prompt(asSteward()), bodyWith([take("t1"), take("t2")])));
+  });
+  it("NOBODY may drop a take (list shrinks) — not even the steward", async () => {
+    await seed([take("t1"), take("t2")]);
+    await assertFails(setDoc(prompt(asSteward()), bodyWith([take("t1")])));
+  });
+  it("a same-length write is allowed (a steward pointing at which take plays — Ship 2)", async () => {
+    await seed([take("t1"), take("t2")]);
+    await assertSucceeds(setDoc(prompt(asSteward()),
+      bodyWith([take("t1"), take("t2")], { storagePath: take("t1").path, canonicalTakeId: "t1" })));
+  });
+  it("window open: the anonymous tool may append a take, but never clear the list", async () => {
+    await openRecording();
+    await assertSucceeds(setDoc(prompt(asAnon()), bodyWith([take("t1")])));             // first take (create)
+    await assertSucceeds(setDoc(prompt(asAnon()), bodyWith([take("t1"), take("t2")]))); // append (grows)
+    await assertFails(setDoc(prompt(asAnon()), { status: "recorded", storagePath: take("t2").path, takes: [] })); // clear → refused
+  });
+  it("a legacy doc with no takes[] can still receive its first take", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(prompt(ctx.firestore()), { status: "recorded", storagePath: "afd_ui/howto.find.webm" });
+    });
+    await assertSucceeds(setDoc(prompt(asSteward()), bodyWith([take("t1")])));
+  });
+});
+
 describe("afd_ui_suggestions — reading the queue", () => {
   beforeEach(async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {

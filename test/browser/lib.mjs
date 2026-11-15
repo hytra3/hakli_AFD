@@ -104,8 +104,19 @@ export async function getDocs(q){ const pre = q.__p.join("/") + "/"; LOG.push("l
   if(after != null){ const i = docs.findIndex(d=>d.id===after); docs = i<0 ? [] : docs.slice(i+1); }
   docs = docs.slice(0, lim);
   return { docs, empty:!docs.length, size:docs.length, forEach:(f)=>docs.forEach(f) }; }
-export async function setDoc(ref, data, o){ LOG.push("set "+ref.path); FS[ref.path] = (o&&o.merge) ? Object.assign({}, FS[ref.path], data) : data; }
-export async function updateDoc(ref, data){ LOG.push("update "+ref.path); FS[ref.path] = Object.assign({}, FS[ref.path], data); }
+// arrayUnion(…elems) is a sentinel resolved at write time against the stored
+// array (append, de-duped by value) — mirrors Firestore's FieldValue transform.
+export function arrayUnion(...elems){ return { __arrayUnion: elems }; }
+function resolveUnions(prev, data){ const out = {};
+  for(const k in data){ const v = data[k];
+    if(v && typeof v==="object" && Array.isArray(v.__arrayUnion)){
+      const cur = (prev && Array.isArray(prev[k])) ? prev[k].slice() : [];
+      for(const el of v.__arrayUnion) if(!cur.some(x=> JSON.stringify(x)===JSON.stringify(el))) cur.push(el);
+      out[k] = cur;
+    } else out[k] = v; }
+  return out; }
+export async function setDoc(ref, data, o){ LOG.push("set "+ref.path); const prev = FS[ref.path]; const d = resolveUnions(prev, data); FS[ref.path] = (o&&o.merge) ? Object.assign({}, prev, d) : d; }
+export async function updateDoc(ref, data){ LOG.push("update "+ref.path); const prev = FS[ref.path]; FS[ref.path] = Object.assign({}, prev, resolveUnions(prev, data)); }
 export async function addDoc(col, data){ const r = doc(col); FS[r.path]=data; return r; }
 export async function deleteDoc(ref){ delete FS[ref.path]; }
 // a batch applies its writes in order on commit (reports: report + hold, afd-flag.js)

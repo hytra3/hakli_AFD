@@ -770,7 +770,20 @@ service cloud.firestore {
       // stops new anonymous publishes without disturbing anything already live.
       // A real steward account is never gated. The afd_ui/ audio in Storage
       // reads this same window (afd-storage.rules), so it closes there too.
-      allow write: if signedIn() && (recordingOpen() || isSteward());
+      //
+      // APPEND-ONLY MANIFEST (decision #1, Ship 1): the doc carries a takes[]
+      // ledger — one entry per recorded take. A write may ADD takes but never
+      // drop or shrink the list, so a take can't be erased from the record even
+      // though a later re-record points `storagePath` at a newer clip. (Byte
+      // immutability lives in Storage: afd_ui/** is write-once.) The size-only-
+      // grows guard is the enforceable subset of append-only for an array; docs
+      // from before this change carry no takes[] (treated as length 0) and are
+      // unaffected. A steward setting which take plays (Ship 2) leaves takes[]
+      // the same length, so it passes too.
+      allow create: if signedIn() && (recordingOpen() || isSteward());
+      allow update: if signedIn() && (recordingOpen() || isSteward())
+                    && request.resource.data.get('takes', []).size()
+                         >= resource.data.get('takes', []).size();
     }
 
     // ------------------- Arabic prompt-edit suggestions --------------------
