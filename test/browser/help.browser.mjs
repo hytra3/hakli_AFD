@@ -7,7 +7,7 @@ import { ROOT, serve, launch, newPage, ok, scenario, finish, shot } from "./lib.
 const srv = await serve(ROOT);
 // the same site with a helper configured in afd-instance.js
 const cSrv = await serve(ROOT, (p, body)=> p === "/afd-instance.js"
-  ? String(body).replace("help: { contact: null }", 'help: { contact: { name:{ ar:"سالم", en:"Salim" }, whatsapp:"+968 9123 4567" } }') : undefined);
+  ? String(body).replace("help: { contact: { message: true } }", 'help: { contact: { name:{ ar:"سالم", en:"Salim" }, whatsapp:"+968 9123 4567" } }') : undefined);
 const browser = await launch();
 const ME = { uid:"uHelp1", isAnonymous:false, displayName:"Fatma", email:"f@example.org", providerData:[{ providerId:"phone" }] };
 const look = (page)=> page.evaluate(()=>({
