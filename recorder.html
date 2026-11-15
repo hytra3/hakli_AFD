@@ -2874,9 +2874,17 @@ $("keepBtn").onclick=async ()=>{
       speechRatio:+lastQC.speechRatio.toFixed(3),
       bursts:lastQC.bursts,
       burstBalance:lastQC.burstBalance===null?null:+lastQC.burstBalance.toFixed(3),
-      passed: recType==="word"
-        ? (lastQC.sampleRate>=44100 && lastQC.bursts>=2 && !isClipped(lastQC))
-        : (lastQC.sampleRate>=44100 && !isClipped(lastQC) && lastQC.speechRatio>=0.1)
+      // 2026-11-15 (ROADMAP #5): `passed` means the recording is USABLE —
+      // adequate rate, not clipped, speech present — the same test for every
+      // slot. It no longer requires two reps for a word: one clear rep is
+      // keepable, and the burst counter is a fragile estimate (two reps said
+      // close together merge into one; a breath or a long rep splits one into
+      // two). So a single or miscounted rep is no longer durably stamped
+      // "failed" — it files as a valid take on its line. The two-rep judgement
+      // stays available, un-gated, in `bursts`/`burstBalance` for QC and the
+      // steward misfiling backstop; the second rep is still encouraged (the
+      // nudge and the prompt for two), never required.
+      passed: lastQC.sampleRate>=44100 && !isClipped(lastQC) && lastQC.speechRatio>=0.1
     },
     envelope:lastQC.envelope||[],
     recordedAt:new Date().toISOString(),

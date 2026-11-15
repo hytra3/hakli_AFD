@@ -8,6 +8,26 @@ within each group.
 
 ## ✅ Shipped (recent)
 
+- **Burst-count robustness — one rep is a valid take, not a failed one (11-15)** —
+  decision #5 (`claude/decisions-resolved-2026-11-12.md`): the second rep is
+  encouraged, never required. The 11-11 change already made Keep non-blocking in the
+  UI (`bursts<2` is an amber nudge on a still-green verdict). This closes the last
+  place the two-rep requirement still lived: the `qc.passed` flag a take carries into
+  storage. It was computed as `sampleRate≥44100 && bursts≥2 && !clipped` for a word,
+  so a valid single or **miscounted** rep was durably stamped `passed:false`. The
+  burst counter is a fragile energy-VAD estimate — two reps said close together merge
+  into one, a breath or a long rep splits one into two — so gating a durable flag on
+  the exact count was the defect. `passed` now means a **usable** recording (rate,
+  level, speech present), the same test for every slot, independent of rep count; the
+  take files as valid on its line. The two-rep judgement stays available and un-gated
+  in `qc.bursts`/`qc.burstBalance` — the signal `scripts/find-misfiled.mjs` reads and
+  that future rep-calibration uses — and the steward refile op (#6) remains the manual
+  backstop for an actual misfile. Client-only (`recorder.html`, `add.html` qc block);
+  no rules change (the recording rules allowlist `qc` but don't validate its inner
+  fields); the server VAD already accepts one rep (`test_functions.py`, 11-11). No
+  reader consumes `passed` today, so no runtime behaviour changes — this corrects what
+  the durable record says about a one-rep take.
+
 - **A view-mode switch keeps the open word open (11-01)** — from Marty in Dhofar:
   switching Arabic · English ↔ Arabic with a word open folded it, because the list
   is redrawn in the new mode. `reskinView` now notes which cards were open, redraws,

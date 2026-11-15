@@ -678,9 +678,14 @@ function qcOf(q, type){
   return {
     peak:+q.peak.toFixed(3), clipped:q.clipped||0, speechRatio:+q.speechRatio.toFixed(3),
     bursts:q.bursts, burstBalance:q.burstBalance===null?null:+q.burstBalance.toFixed(3),
-    passed: type==="word"
-      ? (q.sampleRate>=44100 && q.bursts>=2 && !isClipped(q))
-      : (q.sampleRate>=44100 && !isClipped(q) && q.speechRatio>=0.1)
+    // 2026-11-15 (ROADMAP #5): `passed` = a USABLE recording (rate, level,
+    // speech), the same test for every slot — no longer gated on two reps for a
+    // word. A single or miscounted rep (the burst counter is a fragile
+    // estimate) files as a valid take on its line instead of being stamped
+    // "failed"; the two-rep signal stays, un-gated, in `bursts`/`burstBalance`.
+    // The second rep is still encouraged (qc.saytwice nudge), never required.
+    // Mirrors recorder.html's qc block.
+    passed: q.sampleRate>=44100 && !isClipped(q) && q.speechRatio>=0.1
   };
 }
 // Coach, don't block: only silence and a broken-up take ask for another go.
