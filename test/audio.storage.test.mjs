@@ -17,7 +17,7 @@ import {
   assertFails,
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
-import { ref, uploadBytes, getBytes } from "firebase/storage";
+import { ref, uploadBytes, getBytes, deleteObject } from "firebase/storage";
 import { doc, setDoc, Timestamp, setLogLevel } from "firebase/firestore";
 
 setLogLevel("error");
@@ -134,5 +134,36 @@ describe("UI prompt audio — writes follow the recording window", () => {
     });
     await assertSucceeds(getBytes(ref(publik(), P)));
     await assertFails(uploadBytes(ref(steward(), "afd_ui/x.txt"), AUDIO, { contentType: "text/plain" }));
+  });
+
+  // Append-only take storage (decision #1, Ship 1): each take lands at its own
+  // nested path afd_ui/<key>/<takeId>.webm (the {file=**} match covers it), and
+  // a path is write-once — a re-record can never overwrite or delete the prior
+  // take's bytes.
+  const t1 = "afd_ui/find_hint/t1.webm", t2 = "afd_ui/find_hint/t2.webm";
+  const putTake = (s, p) => uploadBytes(ref(s, p), AUDIO, { contentType: "audio/webm" });
+  it("append-only: a take at its own nested path is accepted (window open)", async () => {
+    await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
+    await assertSucceeds(putTake(anon(), t1));
+  });
+  it("append-only: a SECOND write to the same take path is refused — prior bytes survive", async () => {
+    await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
+    await assertSucceeds(putTake(anon(), t1));   // create
+    await assertFails(putTake(anon(), t1));       // overwrite denied (update:false)
+    await assertFails(putTake(steward(), t1));    // not even a steward may overwrite bytes
+  });
+  it("append-only: a new take at its OWN path is allowed, and both stay readable", async () => {
+    await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
+    await assertSucceeds(putTake(anon(), t1));
+    await assertSucceeds(putTake(anon(), t2));
+    await assertSucceeds(getBytes(ref(publik(), t1)));
+    await assertSucceeds(getBytes(ref(publik(), t2)));
+  });
+  it("append-only: a prompt take can never be deleted", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await uploadBytes(ref(ctx.storage(), t1), AUDIO, { contentType: "audio/webm" });
+    });
+    await assertFails(deleteObject(ref(steward(), t1)));
+    await assertFails(deleteObject(ref(anon(), t1)));
   });
 });
