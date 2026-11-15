@@ -27,6 +27,12 @@ within each group.
   fields); the server VAD already accepts one rep (`test_functions.py`, 11-11). No
   reader consumes `passed` today, so no runtime behaviour changes — this corrects what
   the durable record says about a one-rep take.
+  Also flipped the QC verdict copy so a single rep reads as *accepted*, not warned:
+  in Add the one-rep verdict is now a green "ok" carrying the "one time is enough —
+  say it again for a stronger record" nudge, so Continue is the primary action and
+  Record-again is offered, not pushed; in the recorder the "Repetitions heard" row
+  now passes on one **or** two reps (only no reps / a miscounted >2 stay an amber
+  nudge). The prompt for two and the nudge wording are unchanged — the ask stays.
 
 - **A view-mode switch keeps the open word open (11-01)** — from Marty in Dhofar:
   switching Arabic · English ↔ Arabic with a word open folded it, because the list

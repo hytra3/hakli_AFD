@@ -2777,15 +2777,16 @@ function renderQC(q){
   if(!speechOk) fails.push(AFDCore.t("qc.fail.quiet",dispMode));
 
   if(isWord){
-    // 2026-11-11: one clear repetition is enough to keep. The second rep is
-    // encouraged — it feeds QC (do the reps agree?) and threshold calibration —
-    // but never required: bursts<2 is now an amber nudge on a still-GREEN verdict,
-    // not a hard fail, so Keep stays the primary action. Mirrors add.html's
-    // keepable warn. Costs some calibration data by design (ROADMAP decision #5).
-    const twoReps=q.bursts===2;
-    rows.push(row(twoReps,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
+    // One clear repetition is enough to keep (ROADMAP decision #5). 2026-11-11
+    // made Keep non-blocking — bursts<2 on a still-GREEN verdict, Keep primary.
+    // 2026-11-15 also stops the reps row itself flagging a single rep: one OR two
+    // reps PASS this row, with the second still encouraged (qc.saytwice) because
+    // it feeds QC (do the reps agree?) and threshold calibration — never required.
+    // Only no reps, or a miscounted >2, stay an amber nudge. Mirrors add.html.
+    const okReps = q.bursts===1 || q.bursts===2;
+    rows.push(row(okReps,AFDCore.t("qc.reps.heard",dispMode),String(q.bursts),
       q.bursts<2?AFDCore.t("qc.saytwice",dispMode):q.bursts>2?"extra speech detected":"",
-      twoReps?undefined:"warn"));
+      "warn"));
     if(q.bursts<2 && !softNote) softNote=AFDCore.t("qc.saytwice",dispMode);
     else if(q.bursts>2 && !softNote) softNote=AFDCore.t("qc.note.extra",dispMode);
 

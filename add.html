@@ -692,7 +692,11 @@ function qcOf(q, type){
 function verdict(q, type){
   if(q.peak < 0.02 || q.speechRatio < 0.03) return { cls:"bad",  key:"add.say.silent", keep:false };
   if(isClipped(q))                          return { cls:"bad",  key:"add.say.loud",   keep:false };
-  if(type==="word" && q.bursts < 2)         return { cls:"warn", key:"qc.saytwice",    keep:true };
+  // 2026-11-15 (#5): one rep is accepted, not warned — a green verdict that still
+  // carries the "say it again for a stronger record" nudge, so Continue stays the
+  // primary action and Record-again is offered, not pushed. Second rep encouraged,
+  // never required.
+  if(type==="word" && q.bursts < 2)         return { cls:"ok",   key:"qc.saytwice",    keep:true };
   return { cls:"ok", key:"qc.good", keep:true };
 }
 
