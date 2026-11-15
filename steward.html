@@ -1043,32 +1043,30 @@ function row(w){
   if(d.pic)   add("stw.act.emoji", "danger", () => clearField(w, "pic"));
   // provenance ledger (#6): joins and refiles that touched this card. A plain
   // read (not routed through add()'s save flow); steward-only, never viewer-facing.
+  // Uses the shared collapsible panel (AFDCore.ledgerPanel) — the same component
+  // the prompt-take picker uses in prompts/admin.html.
   const lbtn = document.createElement("button"); lbtn.className = "btn"; lbtn.innerHTML = H("stw.ledger.show");
   const lmount = el.querySelector(".ledger");
-  lbtn.onclick = () => {
-    if(lmount.innerHTML){ lmount.innerHTML = ""; return; }
-    lmount.innerHTML = AFDCore.dotsHTML(); showLedger(id, lmount, lbtn);
-  };
+  AFDCore.ledgerPanel(lbtn, lmount, {
+    load: () => ledgerRows(id),
+    onError: (e) => `<div class="meta">${H(notAllowed(e) ? "tools.notallowed" : "tools.err.load", { code: code(e) })}</div>`
+  });
   acts.appendChild(lbtn);
   return el;
 }
-// Render a card's provenance ledger into `mount`.
-async function showLedger(entryId, mount, btn){
-  btn.disabled = true;
-  try{
-    const snap = await getDocs(collection(db, "afd_entries", entryId, "ledger"));
-    const evs = snap.docs.map(s => s.data() || {}).sort((a, b) => ms(a.at) - ms(b.at));
-    if(!evs.length){ mount.innerHTML = `<div class="meta">${H("stw.ledger.none")}</div>`; return; }
-    mount.innerHTML = evs.map(e => {
-      const lbl = e.type === "join"      ? H("stw.ledger.join",      { from: e.from || "" })
-                : e.type === "refilein"  ? H("stw.ledger.refilein",  { from: e.from || "" })
-                : e.type === "refileout" ? H("stw.ledger.refileout", { to:   e.to   || "" })
-                : e.type === "unjoin"    ? H("stw.ledger.unjoin")
-                : esc(e.type);
-      return `<div class="st-err" dir="ltr">${esc(when(e.at))} — ${lbl}</div>`;
-    }).join("");
-  }catch(e){ mount.innerHTML = `<div class="meta">${H(notAllowed(e) ? "tools.notallowed" : "tools.err.load", { code: code(e) })}</div>`; }
-  finally{ btn.disabled = false; }
+// Build a card's provenance-ledger rows (an HTML string) for the shared panel.
+async function ledgerRows(entryId){
+  const snap = await getDocs(collection(db, "afd_entries", entryId, "ledger"));
+  const evs = snap.docs.map(s => s.data() || {}).sort((a, b) => ms(a.at) - ms(b.at));
+  if(!evs.length) return `<div class="meta">${H("stw.ledger.none")}</div>`;
+  return evs.map(e => {
+    const lbl = e.type === "join"      ? H("stw.ledger.join",      { from: e.from || "" })
+              : e.type === "refilein"  ? H("stw.ledger.refilein",  { from: e.from || "" })
+              : e.type === "refileout" ? H("stw.ledger.refileout", { to:   e.to   || "" })
+              : e.type === "unjoin"    ? H("stw.ledger.unjoin")
+              : esc(e.type);
+    return `<div class="st-err" dir="ltr">${esc(when(e.at))} — ${lbl}</div>`;
+  }).join("");
 }
 
 /* ---- actions (each is one write the rules allow on its own) -------------- */

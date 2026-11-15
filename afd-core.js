@@ -1227,7 +1227,19 @@ window.AFDCore = (function(){
     "about.menu":           { en:"About", ar:"حول" },
     // Welcome page menu label (welcome.html — the narrated intro tour). Placed last like
     // about.menu so it never renumbers the review tab. ar PROVISIONAL — pending review.
-    "welcome.menu":         { en:"Welcome", ar:"الترحيب" }
+    "welcome.menu":         { en:"Welcome", ar:"الترحيب" },
+    // prompts/admin.html — "which take plays" picker (#1 Ship 2). Placed last so
+    // it never renumbers the review tab. ar PROVISIONAL — pending Dhofari review.
+    "win.take.title":       { en:"Which take plays", ar:"أيّ تسجيل يُشغَّل" },
+    "win.take.hint":        { en:"Lines with more than one recorded take. Pick the one the app plays — the others are kept, nothing is deleted.", ar:"الأسطر التي لها أكثر من تسجيل. اختر ما يُشغِّله التطبيق — وتبقى البقية محفوظة، لا يُحذف شيء." },
+    "win.take.empty":       { en:"No line has more than one take yet.", ar:"لا يوجد سطر له أكثر من تسجيل بعد." },
+    "win.take.plays":       { en:"plays", ar:"يُشغَّل" },
+    "win.take.makeplay":    { en:"Play this one", ar:"شغِّل هذا" },
+    "win.take.listen":      { en:"Listen", ar:"استمع" },
+    "win.take.event":       { en:"take added", ar:"أُضيف تسجيل" },
+    "win.take.saved":       { en:"Saved — this take now plays.", ar:"حُفِظ — يُشغَّل هذا التسجيل الآن." },
+    "win.take.count":       { en:"{n} takes", ar:"{n} تسجيلات" },
+    "win.take.err":         { en:"Couldn't load takes ({code}).", ar:"تعذّر تحميل التسجيلات ({code})." }
   };
   function t(key, mode){
     const s = STRINGS[key];
@@ -1894,6 +1906,25 @@ window.AFDCore = (function(){
     el.removeAttribute("aria-hidden");   // the © / Azeeb link is meaningful content; only the build span stays hidden
   }
 
+  /* A collapsible provenance panel, shared by the steward word-card ledger (#6,
+     steward.html) and the prompt-take picker (#1 Ship 2, prompts/admin.html).
+     Wires a toggle button to a mount: the first open shows the waiting dots and
+     then whatever `opts.load()` resolves to (an HTML string — the rows, or an
+     empty-state line); a second click collapses it. `opts.onError(err)` supplies
+     the failure line, since each page words its own errors. */
+  function ledgerPanel(btn, mount, opts){
+    const o = opts || {};
+    btn.addEventListener("click", async () => {
+      if(mount.innerHTML){ mount.innerHTML = ""; return; }   // collapse
+      mount.innerHTML = dotsHTML();
+      btn.disabled = true;
+      try{ mount.innerHTML = await o.load(); }
+      catch(e){ mount.innerHTML = o.onError ? o.onError(e)
+                  : ('<div class="meta">' + escHtml(String((e && e.message) || e)) + '</div>'); }
+      finally{ btn.disabled = false; }
+    });
+  }
+
   return {
     ask, notice, askNoteLang,
     errorSink, report, eventSink, track,
@@ -1905,6 +1936,6 @@ window.AFDCore = (function(){
     MIC_CONSTRAINTS, openStream,
     STRINGS, t, tf, tHTML, authErrorKey,
     identicon, stepHistory, dotsHTML, escHtml, buzz, squareJpeg, pickSquare,
-    renderFooter
+    ledgerPanel, renderFooter
   };
 })();

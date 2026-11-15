@@ -912,6 +912,16 @@
   "A11.323": "screen:fs.title",
   "A11.324": "screen:fs.ask",
   "A11.325": "screen:fs.later",
-  "A11.326": "screen:about.menu"
+  "A11.326": "screen:about.menu",
+  "A11.327": "screen:win.take.title",
+  "A11.328": "screen:win.take.hint",
+  "A11.329": "screen:win.take.empty",
+  "A11.330": "screen:win.take.plays",
+  "A11.331": "screen:win.take.makeplay",
+  "A11.332": "screen:win.take.listen",
+  "A11.333": "screen:win.take.event",
+  "A11.334": "screen:win.take.saved",
+  "A11.335": "screen:win.take.count",
+  "A11.336": "screen:win.take.err"
  }
 }
