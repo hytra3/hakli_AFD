@@ -1183,6 +1183,9 @@ window.AFDCore = (function(){
     // 11-10: the person who uploaded a voice note can fix its language — tap
     // its pill. Asked with the same four choices as on Keep.
     "note.lang.change":     { en:"Change the language", ar:"غيّر اللغة" },
+    // 11-15: a note recorded before the language was asked has none; its uploader
+    // taps this to add one (same four choices). Arabic provisional — Dhofari review.
+    "note.lang.set":        { en:"Set the language", ar:"حدِّد اللغة" },
     "note.lang.fail":       { en:"Couldn't change it — try again with signal.", ar:"تعذّر التغيير — حاول مجددًا عند توفّر الشبكة." },
     // 11-10: meaning + voice notes merged into ONE "say something" slot (three slots).
     // A definition is a kind of thing said about the word; the per-note language
