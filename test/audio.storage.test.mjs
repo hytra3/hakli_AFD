@@ -111,24 +111,28 @@ describe("corpus audio — listening follows consent", () => {
 });
 
 describe("UI prompt audio — writes follow the recording window", () => {
-  const P = "afd_ui/find_hint.webm";
-  const up = (s) => uploadBytes(ref(s, P), AUDIO, { contentType: "audio/webm" });
+  // afd_ui/** is write-once now (resource == null; append-only, decision #1
+  // Ship 1), so every test uses its OWN path — a path a previous test already
+  // wrote would read as "exists" and skew the result. (clearStorage between
+  // tests doesn't reset the rules-layer resource in this emulator.)
+  const up = (s, p) => uploadBytes(ref(s, p), AUDIO, { contentType: "audio/webm" });
   it("window open: the anonymous prompt tool can record", async () => {
     await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
-    await assertSucceeds(up(anon()));
+    await assertSucceeds(up(anon(), "afd_ui/open.webm"));
   });
   it("window lapsed: anonymous writes are refused", async () => {
     await setWindow(Timestamp.fromMillis(Date.now() - 1000));
-    await assertFails(up(anon()));
+    await assertFails(up(anon(), "afd_ui/lapsed.webm"));
   });
   it("no window doc: anonymous and ordinary accounts are refused", async () => {
-    await assertFails(up(anon()));
-    await assertFails(up(stranger()));
+    await assertFails(up(anon(), "afd_ui/nowin_a.webm"));
+    await assertFails(up(stranger(), "afd_ui/nowin_b.webm"));
   });
   it("a steward can always record", async () => {
-    await assertSucceeds(up(steward()));
+    await assertSucceeds(up(steward(), "afd_ui/steward.webm"));
   });
   it("still public to play, still no delete-by-anyone, still audio-only", async () => {
+    const P = "afd_ui/public.webm";
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await uploadBytes(ref(ctx.storage(), P), AUDIO, { contentType: "audio/webm" });
     });
@@ -137,33 +141,35 @@ describe("UI prompt audio — writes follow the recording window", () => {
   });
 
   // Append-only take storage (decision #1, Ship 1): each take lands at its own
-  // nested path afd_ui/<key>/<takeId>.webm (the {file=**} match covers it), and
-  // a path is write-once — a re-record can never overwrite or delete the prior
-  // take's bytes.
-  const t1 = "afd_ui/find_hint/t1.webm", t2 = "afd_ui/find_hint/t2.webm";
+  // nested path afd_ui/<key>/<takeId>.webm (the {file=**} match covers it), and a
+  // path is write-once — a re-record can never overwrite or delete prior bytes.
+  // Each test uses its own line key so paths never collide across tests.
   const putTake = (s, p) => uploadBytes(ref(s, p), AUDIO, { contentType: "audio/webm" });
   it("append-only: a take at its own nested path is accepted (window open)", async () => {
     await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
-    await assertSucceeds(putTake(anon(), t1));
+    await assertSucceeds(putTake(anon(), "afd_ui/l6/t1.webm"));
   });
   it("append-only: a SECOND write to the same take path is refused — prior bytes survive", async () => {
     await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
-    await assertSucceeds(putTake(anon(), t1));   // create
-    await assertFails(putTake(anon(), t1));       // overwrite denied (resource != null)
-    await assertFails(putTake(steward(), t1));    // not even a steward may overwrite bytes
+    const p = "afd_ui/l7/t1.webm";
+    await assertSucceeds(putTake(anon(), p));     // create
+    await assertFails(putTake(anon(), p));         // overwrite denied (resource != null)
+    await assertFails(putTake(steward(), p));      // not even a steward may overwrite bytes
   });
   it("append-only: a new take at its OWN path is allowed, and both stay readable", async () => {
     await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
-    await assertSucceeds(putTake(anon(), t1));
-    await assertSucceeds(putTake(anon(), t2));
-    await assertSucceeds(getBytes(ref(publik(), t1)));
-    await assertSucceeds(getBytes(ref(publik(), t2)));
+    const a = "afd_ui/l8/t1.webm", b = "afd_ui/l8/t2.webm";
+    await assertSucceeds(putTake(anon(), a));
+    await assertSucceeds(putTake(anon(), b));
+    await assertSucceeds(getBytes(ref(publik(), a)));
+    await assertSucceeds(getBytes(ref(publik(), b)));
   });
   it("append-only: a prompt take can never be deleted", async () => {
+    const p = "afd_ui/l9/t1.webm";
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await uploadBytes(ref(ctx.storage(), t1), AUDIO, { contentType: "audio/webm" });
+      await uploadBytes(ref(ctx.storage(), p), AUDIO, { contentType: "audio/webm" });
     });
-    await assertFails(deleteObject(ref(steward(), t1)));
-    await assertFails(deleteObject(ref(anon(), t1)));
+    await assertFails(deleteObject(ref(steward(), p)));
+    await assertFails(deleteObject(ref(anon(), p)));
   });
 });
