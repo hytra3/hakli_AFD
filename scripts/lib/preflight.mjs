@@ -46,6 +46,19 @@ export async function checkGoogle({ probe = probeHttps, token = adcToken, timeou
   }
   try{ await within(token(), timeoutMs, "ETIMEDOUT"); }
   catch(e){
+    const msg = String((e && (e.message || e.code)) || "");
+    // "fetchImpl is not a function" (and the like): the auth libraries can't make
+    // their HTTP call because the fetch stack is broken — a DEPENDENCY problem, not
+    // a sign-in one. Usually a skewed node_modules (e.g. a mismatched/deduped
+    // gaxios). Signing in again does nothing, so don't send the user to gcloud.
+    if(/is not a function/i.test(msg)){
+      throw new Error([
+        `Signed in, but the scripts' Google libraries can't make a request (${e.code || e.message}).`,
+        "  This is a dependency problem, not a sign-in one — reinstalling fixes it.",
+        "  From the repo root:  rm -rf node_modules && npm install",
+        `  If it persists:      npm ls gaxios   (watch for two versions)   [node ${process.version}]`,
+      ].join("\n"));
+    }
     throw new Error([
       `Google is reachable, but this computer isn't signed in for the scripts (${e.code || e.message}).`,
       "  Run:  gcloud auth application-default login",
