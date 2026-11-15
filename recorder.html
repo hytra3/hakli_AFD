@@ -928,10 +928,19 @@ if(CONFIGURED) onAuthStateChanged(auth, raw=>{
   // claimed by the real account that signs in next (afdNoteAnon / adoptAnon).
   if(raw && raw.isAnonymous && window.afdNoteAnon) window.afdNoteAnon(raw.uid);
   const u = (raw && !raw.isAnonymous) ? raw : null;
+  const prevUid = currentUser && currentUser.uid;
   currentUser = u;
   $("signedOut").classList.toggle("hidden", !!u);
   $("signedIn").classList.toggle("hidden", !u);
   if(u) $("whoami").textContent = u.email || u.displayName || u.phoneNumber || u.uid;   // a phone-only account has a number, not an email
+  // Shared-device guard (see settleSpeakerCode): when the signed-in account
+  // changes on one device, the code box and the device-saved speaker belong to
+  // the PREVIOUS login. Reset to this account's own default so a keep can't carry
+  // another account's code (which used to nest into spk_<me>_<them>_…). The
+  // settleSpeakerCode backstop is the hard guarantee; this keeps the box honest.
+  if(u && ((prevUid && prevUid !== u.uid) || (savedSpeakerOwner && savedSpeakerOwner !== u.uid))){
+    resetSpeakerForNewAccount();
+  }
   // record-first: Continue never waits on sign-in — the consent gate at the first
   // keep is where sign-in is asked. Refresh that gate if it happens to be open.
   if(typeof refreshConsentGate==="function") refreshConsentGate();
@@ -1111,6 +1120,10 @@ window.AFD.settleSpeakerCode = async (code)=>{
       if(typeof myClips==="function" && myClips().some(k=>k.speakerId===code)) return code;
     }
   }
+  // A whole foreign speaker code (spk_<someone>_…) carried over from another
+  // account on a shared phone must NOT be folded into our suffix — that nested
+  // into spk_<me>_<them>_<me>…. Treat it as no code and use our clean default.
+  if(/^spk_[^_]+_./.test(code)) return prefix + "01";
   // Keep letters in any script (an Arabic name stays Arabic); anything that
   // leaves nothing usable gets a fresh suffix rather than colliding with _01.
   const bare = code.replace(/^spk_/,"").replace(/[^\p{L}\p{N}_-]+/gu,"_").replace(/^_+|_+$/g,"");
@@ -1328,6 +1341,15 @@ function ensureSpeakerCode(){
   if(!(window.AFD && window.AFD.user && window.AFD.user())) return;  // no account yet — keep placeholder
   if(spkTouched || hasSavedSpeaker) return;               // never overwrite a typed or restored code
   if(!el.value || /^spk_0*1$/.test(el.value)) el.value = defaultSpeakerCode();
+}
+// Start the speaker form fresh for the account now signed in — used when the
+// account changes on a shared device. Resets the code box and the per-speaker
+// "About" fields; consent is re-asked at the keep gate anyway.
+function resetSpeakerForNewAccount(){
+  spkTouched=false; hasSavedSpeaker=false; savedSpeakerOwner=null;
+  const el=$("spkId"); if(el) el.value=defaultSpeakerCode();
+  try{ AFDSpeakerForm.write({}); }catch(_){}
+  try{ renderRoster(); }catch(_){}
 }
 
 /* Whose details is the "About the speaker" card collecting — yours, or the
@@ -1871,7 +1893,7 @@ function paintStepHeader(which){
    or the mic fails the 48 kHz / no-Bluetooth gate, we fall back to the mic-check
    screen — but the speaker form is still skipped. The recorder is only shown once
    `stream` is confirmed, so the hold-button is never dead. */
-let hasSavedSpeaker=false, fastPathTried=false;
+let hasSavedSpeaker=false, fastPathTried=false, savedSpeakerOwner=null;
 async function maybeFastPath(){
   if(fastPathTried || listenOnly) return;
   // "Edit how you appear" (#profile, from the dictionary's account menu) wants
@@ -3052,6 +3074,7 @@ $("skipBtn").onclick=async ()=>{
 function speakerRecord(){
   return {
     key:"speaker",
+    ownerUid:(currentUser && currentUser.uid) || "",   // which account this device-saved speaker belongs to
     speakerId:$("spkId").value,
     viaAgent:!!($("agentMode") && $("agentMode").checked),
     ...AFDSpeakerForm.read(),   // origin {town, tribe}, ageBand, gender
@@ -3462,15 +3485,23 @@ const restored = (async function restore(){
     }
     const spk=await idbGet(META,"speaker");
     if(spk){
-      hasSavedSpeaker=true;
-      $("spkId").value=spk.speakerId||"spk_01";
-      AFDSpeakerForm.write(spk);
-      if(spk.consent){
-        $("cArchive").checked=!!spk.consent.archivalDeposit;
-        $("cML").checked=!!spk.consent.mlTraining;
-        $("cPlay").checked=!!spk.consent.publicPlayback;
-        if($("cOrigin")) $("cOrigin").checked=!!spk.consent.publicOrigin;
-        $("cAttr").value=spk.consent.attribution||"pseudonymous";
+      // Only adopt the device-saved speaker if it belongs to the account now
+      // signed in (or the account isn't known yet, or it's a pre-stamp record).
+      // A foreign saved speaker is ignored — ensureSpeakerCode / the onAuth guard
+      // give this account its own default — so a shared phone can't reuse another
+      // account's code and nest it (spk_<me>_<them>_…).
+      savedSpeakerOwner = spk.ownerUid || null;
+      if(!savedSpeakerOwner || !currentUser || savedSpeakerOwner===currentUser.uid){
+        hasSavedSpeaker=true;
+        $("spkId").value=spk.speakerId||"spk_01";
+        AFDSpeakerForm.write(spk);
+        if(spk.consent){
+          $("cArchive").checked=!!spk.consent.archivalDeposit;
+          $("cML").checked=!!spk.consent.mlTraining;
+          $("cPlay").checked=!!spk.consent.publicPlayback;
+          if($("cOrigin")) $("cOrigin").checked=!!spk.consent.publicOrigin;
+          $("cAttr").value=spk.consent.attribution||"pseudonymous";
+        }
       }
     }
     reflectAgent();                    // saved viaAgent doesn't drive the form yet, but keep labels honest
