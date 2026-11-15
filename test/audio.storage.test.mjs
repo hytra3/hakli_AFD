@@ -149,7 +149,7 @@ describe("UI prompt audio — writes follow the recording window", () => {
   it("append-only: a SECOND write to the same take path is refused — prior bytes survive", async () => {
     await setWindow(Timestamp.fromMillis(Date.now() + 3600_000));
     await assertSucceeds(putTake(anon(), t1));   // create
-    await assertFails(putTake(anon(), t1));       // overwrite denied (update:false)
+    await assertFails(putTake(anon(), t1));       // overwrite denied (resource != null)
     await assertFails(putTake(steward(), t1));    // not even a steward may overwrite bytes
   });
   it("append-only: a new take at its OWN path is allowed, and both stay readable", async () => {
