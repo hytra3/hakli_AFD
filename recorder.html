@@ -3081,9 +3081,10 @@ $("skipBtn").onclick=async ()=>{
 };
 
 function speakerRecord(){
+  const u = (window.AFD && window.AFD.user && window.AFD.user()) || null;   // currentUser lives in the firebase module scope, not here
   return {
     key:"speaker",
-    ownerUid:(currentUser && currentUser.uid) || "",   // which account this device-saved speaker belongs to
+    ownerUid:(u && u.uid) || "",   // which account this device-saved speaker belongs to
     speakerId:$("spkId").value,
     viaAgent:!!($("agentMode") && $("agentMode").checked),
     ...AFDSpeakerForm.read(),   // origin {town, tribe}, ageBand, gender
@@ -3500,7 +3501,8 @@ const restored = (async function restore(){
       // give this account its own default — so a shared phone can't reuse another
       // account's code and nest it (spk_<me>_<them>_…).
       savedSpeakerOwner = spk.ownerUid || null;
-      if(!savedSpeakerOwner || !currentUser || savedSpeakerOwner===currentUser.uid){
+      const curUser = (window.AFD && window.AFD.user && window.AFD.user()) || null;   // currentUser is module-scoped; read it through AFD here
+      if(!savedSpeakerOwner || !curUser || savedSpeakerOwner===curUser.uid){
         hasSavedSpeaker=true;
         $("spkId").value=spk.speakerId||"spk_01";
         AFDSpeakerForm.write(spk);
