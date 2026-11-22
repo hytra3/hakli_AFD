@@ -1562,3 +1562,14 @@ talking *about* the word — use, a story, another form — in **any language**.
   meaning takes stay frozen. Tests: `test/note-lang.rules.test.mjs`; browser scenario in
   `voice-notes.browser.mjs`. **Deploy the Firestore rules with the site.**
 - Notes are never search matches, so a change needs no re-indexing.
+
+
+## Mode marks: one letter per display mode (2026-11-22)
+- The wordless display toggle (`#skin` on the finder and Add, `#dispSkin` on the recorder) now
+  shows a single letter per mode, each the initial consonant of *ḥakli* in its own script:
+  **sound** (Hakli) = the Dhofari **ḥ** from the HGR decipherment — replacing the headphones icon
+  that Hakli readers found unmeaningful; **script** (Arabic) = **ح** (ḥāʾ, Amiri); **bridge**
+  (Arabic · English) = **H** (Spectral).
+- Icons are inline SVG outlines filled with `currentColor`, so they follow the theme. `SKIN_ICON`
+  (index.html, add.html) and `DISP_ICON` (recorder.html) are kept identical. The favicon and the
+  brand mark are unchanged.
