@@ -196,6 +196,14 @@ describe("reporting a word card", () => {
     await assertFails(reportCard(asOther(), "uOther", { e: SEED }));
     await assertSucceeds(reportCard(asOther(), "uOther", { e: SEED, hold: false }));
   });
+  it("D-A: a steward hides a seeded word, then shows it again", async () => {
+    await assertSucceeds(updateDoc(ent(asStew(), SEED), { hiddenAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ent(asStew(), SEED), { hiddenAt: deleteField() }));
+  });
+  it("D-A: a steward marks a seeded word reviewed; a non-steward still can't moderate it", async () => {
+    await assertSucceeds(updateDoc(ent(asStew(), SEED), { reviewedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ent(asOther(), SEED), { hiddenAt: serverTimestamp() }));
+  });
   it("steward clears it → a later report can't hold it again", async () => {
     await reportCard(asOther(), "uOther");
     await assertSucceeds(updateDoc(ent(asStew()), { heldAt: deleteField(), modClearedAt: serverTimestamp(), modBy: "uStew", reviewedAt: serverTimestamp() }));

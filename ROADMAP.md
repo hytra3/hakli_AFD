@@ -1622,3 +1622,36 @@ talking *about* the word — use, a story, another form — in **any language**.
   `spellingCandidate`) until a contributor or steward writes a real spelling; it becomes the bold
   word only then. This keeps "spellings are equal, no approved flag" intact while honouring "never
   auto-promote the scan." Applies when seeding is built — not now.
+
+
+## Seed and contributed words are the same thing (2026-11-23)
+- **Decision (D-A, option A): git owns a seed's wording; otherwise a seed is just a card.** The
+  seed/added barrier is artificial — a dictionary wants some starting words, but once a card exists
+  nothing should treat it as a separate class. (Motivating case: a seed can be *wrong* — "barber"
+  has no Hakli word — so a steward must be able to hide it like any card.) The scanned wordlist in
+  `afd-words.js` + `seed-entries.mjs` stays the source of truth for a seed's **initial** gloss /
+  translations / emoji; everything else about the card is uniform.
+- **Already uniform (no change needed).** Seeds and contributed cards share one `afd_entries` shape
+  and one render path, so a voiceless seed and a voiceless contributed card look identical (thumbnail
+  + "add your voice"). Wording edits already work on seeds: `faceEditOK` / `translationWriteOK` are
+  not contributed-gated, and `seed-entries.mjs` skips any field of a word that carries `editedAt` — so
+  an in-app edit to a seed's gloss/emoji sticks and the next seed run won't clobber it. Tags, voices,
+  spellings, the citation flag (D-C), join/refile and the provenance ledger all already treat a seed
+  like any card.
+- **The one real gap, now closed: steward moderation.** Hide / hold-release / "looks fine" / photo
+  takedown were gated on `isContributed()` (`source == 'user'`), so a steward couldn't hide or clear
+  a seed. Dropped `isContributed()` from those steward branches in `afd-firestore.rules`, so steward
+  moderation applies to any entry. A seed with no `createdBy`/`createdAt` now reads "seeded (from the
+  wordlist)" in the steward row instead of a blank "added … by ?".
+- **Deliberately NOT changed: public auto-hold.** A public flag may *report* a seed (it surfaces to a
+  steward) but still can't *auto-hold* one — `isContributed()` stays on that branch on purpose, so a
+  single community flag can't hide a curated word. Only a steward hides a seed. (Test:
+  `moderation.rules.test.mjs` — "a seeded word can be reported but not held" + the new D-A steward
+  cases.)
+- **Carries forward (from D-B):** a seed's scanned Arabic-letter *candidate* spelling must never be
+  written into `afd_entries/{id}/spellings` (flat, unranked — anything there renders as the bold
+  headword); hold it as a review-only field until a real spelling is written. Applies when the
+  ~150–180-gloss seeding is built.
+- **Files:** `afd-firestore.rules` (steward moderation branches seed-inclusive), `steward.html`
+  ("seeded" row label), `afd-core.js` (`stw.seeded` string — Arabic MSA draft, flag for review),
+  `test/moderation.rules.test.mjs`. **Deploy the Firestore rules with the site.**
