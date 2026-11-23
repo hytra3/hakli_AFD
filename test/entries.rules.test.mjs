@@ -338,8 +338,8 @@ describe("entry — steward review (steward.html)", () => {
     await assertFails(updateDoc(entry(fsAs("uA")), { hiddenAt: serverTimestamp() }));
     await assertFails(updateDoc(entry(fsAs("uB")), { hiddenAt: serverTimestamp() }));
   });
-  it("seeded words aren't hidden from here", async () => {
-    await assertFails(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { hiddenAt: serverTimestamp() }));
+  it("D-A: a steward can hide a seeded word too (e.g. a word Hakli lacks)", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { hiddenAt: serverTimestamp() }));
   });
 
   // picture takedown
@@ -356,8 +356,8 @@ describe("entry — steward review (steward.html)", () => {
   it("the creator can't take their picture off (or change it) this way", async () => {
     await assertFails(updateDoc(entry(fsAs("uA")), { image: deleteField() }));
   });
-  it("seeded pictures aren't taken down from here", async () => {
-    await assertFails(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { pic: deleteField() }));
+  it("D-A: a steward can take a seeded word's picture down too (a re-seed restores the git-owned emoji)", async () => {
+    await assertSucceeds(updateDoc(entry(fsAs("uSteward"), "ent_sun"), { pic: deleteField() }));
   });
   it("each action rides alone", async () => {
     await assertFails(updateDoc(steward(), { hiddenAt: serverTimestamp(), reviewedAt: serverTimestamp() }));
