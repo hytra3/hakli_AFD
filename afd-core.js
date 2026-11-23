@@ -869,6 +869,12 @@ window.AFDCore = (function(){
     "stw.ledger.refilein":  { en:"voice moved in from {from}", ar:"نُقل صوت من {from}" },
     "stw.ledger.refileout": { en:"voice moved to {to}", ar:"نُقل صوت إلى {to}" },
     "stw.ledger.unjoin":    { en:"join undone", ar:"أُلغي الدمج" },
+    // steward citation-form flag (D-C). Arabic is MSA draft — flag for Dhofari review.
+    "stw.cite.mark":        { en:"Mark citation form", ar:"ضع علامة: الصيغة المفردة" },
+    "stw.cite.on":          { en:"Citation form", ar:"الصيغة المفردة" },
+    "stw.cite.title":       { en:"A clean citation (isolation) form. Several voices on a card can be marked — it isn't a single “canonical” pick.", ar:"صيغة استشهاد (منفردة) نقيّة. يمكن وضع العلامة على عدّة أصوات في البطاقة — ليست اختيارًا واحدًا «معتمدًا»." },
+    "stw.ledger.markcite":  { en:"marked a citation form", ar:"وُضعت علامة صيغة الاستشهاد" },
+    "stw.ledger.uncite":    { en:"citation-form mark removed", ar:"أُزيلت علامة صيغة الاستشهاد" },
     // prompts/admin.html — prompt windows
     "win.lead":             { en:"Open or close the recording and Arabic-edit windows. Both close themselves when the time runs out — you don't have to come back.", ar:"افتح نافذتَي التسجيل وتعديل العربية أو أغلِقهما. تُغلَق كلتاهما من تلقاء نفسها حين ينتهي الوقت — لا حاجة للعودة." },
     "win.recording":        { en:"Recording", ar:"التسجيل" },

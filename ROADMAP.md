@@ -1573,3 +1573,29 @@ talking *about* the word — use, a story, another form — in **any language**.
 - Icons are inline SVG outlines filled with `currentColor`, so they follow the theme. `SKIN_ICON`
   (index.html, add.html) and `DISP_ICON` (recorder.html) are kept identical. The favicon and the
   brand mark are unchanged.
+
+
+## Steward citation-form flag (2026-11-23)
+- **The recorder never asks "is this a headword?"** That is a metalinguistic call a non-reader
+  would misapply — the same reasoning that keeps recording language to one instance-wide default
+  rather than a per-take toggle. The word · sentence · say-something slot already carries it: a take
+  in the **word** slot is the citation form. Any citation-vs-connected-speech judgment (the
+  *indoh / in doh* register difference) is a steward call made after the fact, not a question put to
+  the speaker.
+- **The control.** In `steward.html`, each voice in a card's word slot gets a reversible
+  `☆ citation form` / `★ citation form` toggle beside its ▶ and move (→) buttons. It is **not
+  canonical**: several takes on a card may be marked (unlike the prompt-take `canonicalTakeId`
+  picker), and marking changes nothing a viewer sees — the card keeps its flat, undated set of
+  voices. Marking writes a steward-only provenance-ledger event (`markcite` / `uncite`), beside the
+  existing join/refile events.
+- **Data.** A mutable `register: 'citation'` label on the recording doc — immutable recordings,
+  mutable labels. Only ever set by a steward via the update rule; never written at create, and not
+  mirrored by a refile (a moved take is re-judged on its new card).
+- **Rules:** a steward-only recording-update branch — on a word take (`type` or `phase` = word),
+  only `register` may move, and only to `'citation'` or absent. No consent, playback, slot, matching
+  or viewer effect; a held/hidden take is untouched. Tests: `test/citation.rules.test.mjs`.
+  **Deploy the Firestore rules with the site.**
+- **Inert for v1 (deferred):** the flag does not surface to viewers (no "how's it said on its own?"
+  play-first) and does not feed the matcher or dictionary ordering. It accumulates as steward QC
+  and is the natural sort-key candidate for the later Allosaurus phonetic ordering; surfacing and
+  ordering are separate decisions taken once there's data.

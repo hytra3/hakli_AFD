@@ -630,7 +630,22 @@ service cloud.firestore {
                         && request.resource.data.allowPlayback == false
                         && request.resource.data.uid == resource.data.uid
                         && request.resource.data.speakerId == resource.data.speakerId
-                        && request.resource.data.consent == resource.data.get('consent','public'));
+                        && request.resource.data.consent == resource.data.get('consent','public'))
+                    // STEWARD CITATION FLAG (D-C) — a reversible register label
+                    // on a WORD-slot take: register == 'citation' marks a clean
+                    // citation (isolation) form; removing the field clears it.
+                    // A pure label over the frozen atom — only `register` moves,
+                    // and only on a word take. NOT canonical: several takes on a
+                    // card may carry it. Touches no consent, playback, matching
+                    // or viewer surface; steward-only, and a held/hidden take is
+                    // untouched by it (allowPlayback never moves here).
+                    || (isSteward()
+                        && (resource.data.get('type', '') == 'word'
+                            || resource.data.get('phase', '') == 'word')
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['register'])
+                        && (!('register' in request.resource.data)
+                            || request.resource.data.register == 'citation'));
 
         // Destruction is server-side (purge Function on consent == 'deleted').
         allow delete: if false;
