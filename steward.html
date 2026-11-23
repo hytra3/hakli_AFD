@@ -1012,8 +1012,12 @@ function row(w){
     `<div class="thumb">${face}</div>` +
     `<div>` +
       `<div class="gloss">${esc(gloss)}${d.glossAr ? `<span class="ar" dir="rtl">${esc(d.glossAr)}</span>` : ""}</div>` +
-      `<div class="meta">${d.domain ? esc(d.domain) + " · " : ""}${H("stw.added")} ${esc(when(d.createdAt))} · ${H("stw.by")} ` +
-        `<span title="${esc(d.createdBy)}">${esc(String(d.createdBy||"?").slice(0,6))}</span> · ` +
+      `<div class="meta">${d.domain ? esc(d.domain) + " · " : ""}` +
+        // D-A: a seed has no createdBy/createdAt (it carries seededAt) — label it
+        // "seeded" rather than an empty "added … by ?"; otherwise show who added it.
+        ((d.createdBy || d.createdAt)
+          ? `${H("stw.added")} ${esc(when(d.createdAt))} · ${H("stw.by")} <span title="${esc(d.createdBy)}">${esc(String(d.createdBy||"?").slice(0,6))}</span>`
+          : H("stw.seeded")) + ` · ` +
         `<a class="small" href="index.html#${encodeURIComponent(id)}" target="_blank" rel="noopener">${H("stw.open")}</a></div>` +
       `<div class="badges">${badges.join("")}</div>` +
       `<div class="voices"><button class="btn" data-a="listen">${H("stw.voices")}</button></div>` +

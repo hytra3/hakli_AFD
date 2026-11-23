@@ -818,6 +818,7 @@ window.AFDCore = (function(){
     "stw.badge.new":        { en:"new", ar:"جديدة" },
     "stw.badge.reviewed":   { en:"reviewed", ar:"رُوجِعت" },
     "stw.added":            { en:"added", ar:"أُضيفت" },
+    "stw.seeded":           { en:"seeded (from the wordlist)", ar:"كلمة مبدئية (من القائمة)" },
     "stw.by":               { en:"by", ar:"بواسطة" },
     "stw.open":             { en:"open", ar:"افتح" },
     "stw.voices":           { en:"▶ Voices", ar:"▶ الأصوات" },

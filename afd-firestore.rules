@@ -293,6 +293,10 @@ service cloud.firestore {
                && !('mergedBy' in request.resource.data);
       }
       allow update: if stewardPhotoOK()
+                    // D-A: a PUBLIC flag may report a seed (surfaced to a steward) but
+                    // never auto-HOLDS one — isContributed stays here on purpose, so the
+                    // curated wordlist can't be hidden by a single community flag. Only a
+                    // steward hides a seed (the branches below, now seed-inclusive).
                     || (notAnon() && isContributed()
                         && resource.data.get('createdBy', '') != request.auth.uid
                         && onlyChanged(['heldAt'])
@@ -300,7 +304,7 @@ service cloud.firestore {
                         && !('heldAt' in resource.data) && !('hiddenAt' in resource.data)
                         && !('removedAt' in resource.data) && !('modClearedAt' in resource.data)
                         && existsAfter(/databases/$(database)/documents/afd_flags/$(entryId + '~card~' + request.auth.uid)))
-                    || (isSteward() && isContributed()
+                    || (isSteward()   // D-A: steward moderation applies to any entry, seeds included
                         && onlyChanged(['heldAt','hiddenAt','modClearedAt','modBy','reviewedAt'])
                         && request.resource.data.get('modBy', '') == request.auth.uid
                         && (!('heldAt' in request.resource.data)
@@ -315,15 +319,15 @@ service cloud.firestore {
                         && tagsOK(request.resource.data.tags))
                     || ((isCreator() || isSteward()) && faceEditOK())
                     || translationWriteOK()
-                    || (isSteward() && isContributed()
+                    || (isSteward()   // D-A: seeds included
                         && onlyChanged(['reviewedAt'])
                         && request.resource.data.reviewedAt == request.time)
-                    || (isSteward() && isContributed()
+                    || (isSteward()   // D-A: seeds included — a wrong seed (e.g. a word Hakli lacks) can be hidden
                         && onlyChanged(['hiddenAt'])
                         && (!('hiddenAt' in request.resource.data)
                             || (!('hiddenAt' in resource.data)
                                 && request.resource.data.hiddenAt == request.time)))
-                    || (isSteward() && isContributed()
+                    || (isSteward()   // D-A: seeds included (a seed's git-owned emoji is restored on the next seed run)
                         && onlyChanged(['image', 'pic'])
                         && (!('image' in request.resource.data)
                             || request.resource.data.image == resource.data.get('image', null))
