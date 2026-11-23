@@ -184,6 +184,8 @@
   .jface img{width:100%; height:100%; object-fit:cover; display:block}
   .vwrap{display:inline-flex; align-items:center; gap:2px}
   .voices .btn.mv{padding:5px 9px; font-weight:700; color:var(--accent); border-color:var(--accent)}
+  .voices .btn.cite{padding:5px 9px}
+  .voices .btn.cite.is-on{color:var(--accent); border-color:var(--accent); font-weight:700}
   .ledger{margin-top:8px}
   .ledger:empty{display:none}
   .ledger .st-err{font-size:12px; color:var(--muted); margin:3px 0}
@@ -1064,6 +1066,8 @@ async function ledgerRows(entryId){
               : e.type === "refilein"  ? H("stw.ledger.refilein",  { from: e.from || "" })
               : e.type === "refileout" ? H("stw.ledger.refileout", { to:   e.to   || "" })
               : e.type === "unjoin"    ? H("stw.ledger.unjoin")
+              : e.type === "markcite"  ? H("stw.ledger.markcite")
+              : e.type === "uncite"    ? H("stw.ledger.uncite")
               : esc(e.type);
     return `<div class="st-err" dir="ltr">${esc(when(e.at))} — ${lbl}</div>`;
   }).join("");
@@ -1141,6 +1145,32 @@ async function voices(btn, entryId){
         catch(e){ mv.disabled = b.disabled = false; console.warn("[steward] refile", e); say("msg", notAllowed(e) ? "tools.notallowed" : "tools.err.save", { code: code(e) }); }
       };
       wrap.appendChild(mv);
+      // D-C: steward citation-form flag — only on the WORD slot. A reversible
+      // label (register:'citation'); several takes on a card may carry it, so it
+      // is NOT a canonical pick. Writes a ledger event. Inert: no consent,
+      // playback, matching or viewer-facing effect.
+      if(r.type === "word" || r.phase === "word"){
+        const cb = document.createElement("button"); cb.className = "btn cite";
+        let on = r.register === "citation";
+        const paintCite = () => {
+          cb.setAttribute("aria-pressed", on ? "true" : "false");
+          cb.classList.toggle("is-on", on);
+          cb.textContent = (on ? "★ " : "☆ ") + T(on ? "stw.cite.on" : "stw.cite.mark");
+        };
+        cb.title = T("stw.cite.title"); paintCite();
+        cb.onclick = async ()=>{
+          const next = !on;
+          cb.disabled = mv.disabled = b.disabled = true; say("msg", "tools.saving");
+          try{
+            await updateDoc(doc(db, "afd_entries", entryId, "recordings", recId),
+              { register: next ? "citation" : deleteField() });
+            try{ await addLedger(entryId, { type: next ? "markcite" : "uncite", recordingId: recId }); }catch(_){}
+            r.register = next ? "citation" : undefined; on = next; paintCite(); say("msg", "tools.saved");
+          }catch(e){ console.warn("[steward] cite", e); say("msg", notAllowed(e) ? "tools.notallowed" : "tools.err.save", { code: code(e) }); }
+          finally{ cb.disabled = mv.disabled = b.disabled = false; }
+        };
+        wrap.appendChild(cb);
+      }
       box.appendChild(wrap);
     });
   }catch(e){
