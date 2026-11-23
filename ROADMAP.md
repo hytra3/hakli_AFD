@@ -1599,3 +1599,26 @@ talking *about* the word — use, a story, another form — in **any language**.
   play-first) and does not feed the matcher or dictionary ordering. It accumulates as steward QC
   and is the natural sort-key candidate for the later Allosaurus phonetic ordering; surfacing and
   ordering are separate decisions taken once there's data.
+
+
+## A card with no Hakli spelling yet — leave the header light (2026-11-23)
+- **Decision: no change — the current light display stays.** When a card has no Hakli spelling, the
+  header carries no bold word: the card leads on its picture + voice, and the gloss stays the small
+  grey line (Arabic in script mode; dark English + grey Arabic in bridge mode, since the bridge
+  language is meant to stay readable). The `bold amber = Hakli only` invariant already holds — amber
+  weight-700 is only ever a `.spell`, and with no spelling nothing is bold. This is already how
+  `afd-card.js` renders; no code change.
+- **Why not darken the Arabic.** We looked at making the lone Arabic gloss dark (ink) or a dark 22px
+  headword so the card wouldn't look empty. Rejected: a dark Arabic word reads as *"the word is
+  Arabic,"* which undercuts the Hakli-first intent (the pull toward it is print-dictionary habit); a
+  larger dark variant also has to shrink **and** grey out when a real spelling arrives, a jarring
+  reflow after the card spent its empty life implying Arabic was the headword. The faint grey is a
+  feature, not a gap: it signals the card is unfinished — still lacking its Hakli — which is true.
+- **Constraint handed to the seeding work (D-A / seed glosses).** The spellings model is deliberately
+  flat — every spelling equal, **no ranking, no `approved` flag** (`afd-firestore.rules` spellings
+  block; `afd-card.js` header) — and anything written into `afd_entries/{id}/spellings` renders as
+  the bold headword at once. So a seed's **scanned Arabic-letter candidate spelling must never be
+  written into `spellings`.** Hold it as a review-only field on the entry doc (e.g.
+  `spellingCandidate`) until a contributor or steward writes a real spelling; it becomes the bold
+  word only then. This keeps "spellings are equal, no approved flag" intact while honouring "never
+  auto-promote the scan." Applies when seeding is built — not now.
