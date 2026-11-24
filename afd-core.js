@@ -1249,7 +1249,14 @@ window.AFDCore = (function(){
     "win.take.event":       { en:"take added", ar:"أُضيف تسجيل" },
     "win.take.saved":       { en:"Saved — this take now plays.", ar:"حُفِظ — يُشغَّل هذا التسجيل الآن." },
     "win.take.count":       { en:"{n} takes", ar:"{n} تسجيلات" },
-    "win.take.err":         { en:"Couldn't load takes ({code}).", ar:"تعذّر تحميل التسجيلات ({code})." }
+    "win.take.err":         { en:"Couldn't load takes ({code}).", ar:"تعذّر تحميل التسجيلات ({code})." },
+    // steward promote-candidate-to-spelling (D-B) — appended at the end so the
+    // review line numbers above don't shift. Arabic is MSA draft, flag for review.
+    "stw.cand.label":          { en:"Candidate spelling", ar:"صيغة مقترحة" },
+    "stw.cand.promote":        { en:"Make this the word", ar:"اجعلها الكلمة" },
+    "stw.cand.dismiss":        { en:"Dismiss", ar:"تجاهل" },
+    "stw.ledger.promotespell": { en:"candidate made the word", ar:"اعتُمدت الصيغة المقترحة كلمةً" },
+    "stw.ledger.dismisscand":  { en:"candidate dismissed", ar:"أُزيلت الصيغة المقترحة" }
   };
   function t(key, mode){
     const s = STRINGS[key];

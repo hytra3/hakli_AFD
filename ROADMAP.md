@@ -1682,5 +1682,28 @@ talking *about* the word — use, a story, another form — in **any language**.
   gloss fills in later, without blocking.
 - **Files:** `scripts/sheet_to_words.py` (new, Python + openpyxl — an author-time tool, not shipped
   to the app), `scripts/seed-entries.mjs` (writes `spellingCandidate`/`seedSource`; edit-guard now
-  covers the candidate), `ROADMAP.md`. **Still to build:** the steward control to promote a
-  `spellingCandidate` into a real spelling.
+  covers the candidate), `ROADMAP.md`. The steward control to promote a `spellingCandidate` is built
+  — see below.
+
+
+## Promote a candidate spelling (2026-11-24)
+- **Closes the loop on seeding.** Seeding writes a review-only `spellingCandidate` onto a card
+  (Fatma's written Hakli); this adds the steward control to act on it. On a card with a candidate,
+  the steward sees it and gets two actions: **Make this the word** (promote) or **Dismiss**.
+- **Promote is project-attributed, never personal.** It writes the real spelling under a reserved
+  `seed` writer (`by:'seed'`), not the steward's uid — so a promoted spelling credits the project,
+  not the steward. This matters because the steward is herself an Omani collaborator; her name must
+  stay off the data (the card only ever shows a *known steward's* display name as a spelling's
+  author, and `seed` isn't one, so it shows the word with no name). Both actions clear the
+  `spellingCandidate` from the entry and write a ledger event (`promotespell` / `dismisscand`).
+- **A promoted spelling is otherwise ordinary** — it lands in the `spellings` subcollection, flat and
+  unranked like any other, and becomes the bold word via the normal path. A steward can remove the
+  seed spelling again; the usual steward *hide* also applies.
+- **Rules:** a steward-only create branch for a `writer == 'seed'` spelling (`by` must be `'seed'`), a
+  steward-only delete of the `seed` spelling, and an entry-update branch letting a steward clear only
+  the candidate fields (can't piggyback another change). Regular users' own spellings are unchanged.
+- **Files:** `afd-firestore.rules`, `steward.html` (candidate display + promote/dismiss + two ledger
+  rows), `afd-core.js` (`stw.cand.*` / `stw.ledger.promotespell|dismisscand` — appended at the end of
+  the table so review numbers don't shift; Arabic MSA draft, flag for review),
+  `test/spelling-candidate.rules.test.mjs`, `test/browser/prompt-numbers.json` (refreshed).
+  **Deploy the Firestore rules with the site.**
