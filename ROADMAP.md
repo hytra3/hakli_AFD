@@ -1655,3 +1655,32 @@ talking *about* the word — use, a story, another form — in **any language**.
 - **Files:** `afd-firestore.rules` (steward moderation branches seed-inclusive), `steward.html`
   ("seeded" row label), `afd-core.js` (`stw.seeded` string — Arabic MSA draft, flag for review),
   `test/moderation.rules.test.mjs`. **Deploy the Firestore rules with the site.**
+
+
+## Seeding pipeline: the glossing sheet feeds the wordlist (2026-11-23)
+- **The glossing Google Sheet is an authoring surface, not a live source.** One tab per notebook
+  page; Hannan (Fatma's sister) fills the Arabic gloss, Fatma confirms the Hakli. git owns the
+  wording: `scripts/sheet_to_words.py` bakes a *confirmed* tab's rows into `afd-words.js`, which is
+  committed, and `seed-entries.mjs` then writes them to Firestore. The app and recorder never read
+  the Sheet, so they stay offline-safe in the field — consistent with the private-build posture.
+- **Pipeline:** Sheet → download as .xlsx → `python scripts/sheet_to_words.py <file> --tab "<tab>"
+  [--apply]` → `afd-words.js` → `node scripts/seed-entries.mjs`. Dry-run by default; run `--apply`
+  only on a tab Fatma/Hannan have confirmed. Idempotent — it skips ids already in `afd-words.js`, so
+  an in-app edit is never clobbered (the `editedAt` guard in `seed-entries.mjs` covers the Firestore
+  side). Emoji are still assigned separately by the existing concepts pass (`apply-concepts.mjs`).
+- **Provenance (decision): git is the owner; the Sheet is upstream.** Each sheet-derived word carries
+  a batch-level `src` (e.g. `nb:body-parts`) that `seed-entries.mjs` writes as `seedSource` on the
+  card — steward-visible, never public, and distinct from the original hand-authored words (which
+  have no `src`). **No individual names on cards:** Fatma's and Hannan's names stay in the Sheet and
+  our notes, per the attributable-to-the-project posture.
+- **D-B honoured:** Fatma's written Hakli imports as `spellingCandidate` (+ `spellingCandidatePl`) —
+  a review-only field, never written into `spellings` and never the bold word on its own. A steward
+  promotes it later (promote-to-spelling control still to build). The `editedAt` guard also strips
+  the candidate on re-seed, so a promotion or clear sticks.
+- **Two doors, same card (D-A):** a word can enter as a seed (this pipeline) or be recorded fresh in
+  the app — both are the same card. So English can be deferred: Fatma records Hakli-first and the
+  gloss fills in later, without blocking.
+- **Files:** `scripts/sheet_to_words.py` (new, Python + openpyxl — an author-time tool, not shipped
+  to the app), `scripts/seed-entries.mjs` (writes `spellingCandidate`/`seedSource`; edit-guard now
+  covers the candidate), `ROADMAP.md`. **Still to build:** the steward control to promote a
+  `spellingCandidate` into a real spelling.
