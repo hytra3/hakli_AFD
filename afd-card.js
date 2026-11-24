@@ -269,12 +269,12 @@ function noteLangTag(rec){                  // the same pill as everywhere a lan
     // else it stays silent, exactly as an unlabelled note did before.
     if(!editable) return "";
     const tip = escapeHtml(AFDCore.t("note.lang.set", CFG.mode()));
-    return AFDCore.langPill("", { cls:"note-lang note-lang-edit note-lang-empty" })
+    return AFDCore.langPill("", { symbol:true, cls:"note-lang note-lang-edit note-lang-empty" })
              .replace('<span class="lang-pill', `<span role="button" tabindex="0" aria-label="${tip}" data-tip="${tip}" class="lang-pill`)
              .replace(/ title="[^"]*"/, ` title="${tip}"`)
              .replace(/>[^<]*<\/span>$/, `>${tip} \u25BE</span>`);
   }
-  const pill = AFDCore.langPill(rec.lang, { cls:"note-lang" + (editable ? " note-lang-edit" : "") });
+  const pill = AFDCore.langPill(rec.lang, { symbol:true, cls:"note-lang" + (editable ? " note-lang-edit" : "") });
   if(!editable) return pill;
   // your own note: the pill is a button that changes the language (11-10)
   const tip = escapeHtml(AFDCore.t("note.lang.change", CFG.mode()));
