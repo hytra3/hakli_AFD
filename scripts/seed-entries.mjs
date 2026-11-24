@@ -64,6 +64,13 @@ function entryDoc(w){
     domain:  w.dom || "",
     pic:     w.pic || "",         // the pictograph `find` shows in the box
     ref:     w.ref || "",         // rough Hakli transliteration, if noted
+    // Hakli-as-written from the glossing sheet is a REVIEW-ONLY candidate (D-B):
+    // it never goes into the spellings subcollection and never becomes the bold
+    // word on its own — a steward promotes it later. Kept here for that review.
+    ...(w.spellCand   ? { spellingCandidate:   w.spellCand }   : {}),
+    ...(w.spellCandPl ? { spellingCandidatePl: w.spellCandPl } : {}),
+    // provenance, batch-level and internal (never a person's name): e.g. nb:body
+    ...(w.src ? { seedSource: w.src } : {}),
     // language-keyed glosses (gloss / glossAr kept until every reader moves over)
     glosses: { ...(w.en ? { en: w.en } : {}), ...(w.ar ? { ar: w.ar } : {}) },
     lang:    INSTANCE.language.code,
@@ -99,7 +106,9 @@ for(const w of words){
   // edit: the wordlist no longer owns those fields for it.
   const cur = await ref.get();
   if(cur.exists && cur.get("editedAt")){
-    for(const k of ["gloss","glossAr","glosses","pic"]) delete data[k];
+    // once a word is touched in the app, the wordlist no longer owns its text,
+    // picture, or the candidate spelling (a steward may have promoted/cleared it)
+    for(const k of ["gloss","glossAr","glosses","pic","spellingCandidate","spellingCandidatePl"]) delete data[k];
     kept++;
   }
   await ref.set(data, { merge: true });
