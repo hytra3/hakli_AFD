@@ -929,6 +929,11 @@
   "A11.340": "screen:win.take.event",
   "A11.341": "screen:win.take.saved",
   "A11.342": "screen:win.take.count",
-  "A11.343": "screen:win.take.err"
+  "A11.343": "screen:win.take.err",
+  "A11.344": "screen:stw.cand.label",
+  "A11.345": "screen:stw.cand.promote",
+  "A11.346": "screen:stw.cand.dismiss",
+  "A11.347": "screen:stw.ledger.promotespell",
+  "A11.348": "screen:stw.ledger.dismisscand"
  }
 }

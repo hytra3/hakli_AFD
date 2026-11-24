@@ -333,6 +333,12 @@ service cloud.firestore {
                             || request.resource.data.image == resource.data.get('image', null))
                         && (!('pic' in request.resource.data)
                             || request.resource.data.pic == resource.data.get('pic', null)))
+                    // D-B: promoting or dismissing a card's scanned candidate spelling
+                    // clears the candidate fields on the entry (the real spelling, when
+                    // promoted, lives in the spellings subcollection, not here).
+                    || (isSteward()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['spellingCandidate','spellingCandidatePl']))
                     || mergeSetOK()
                     || mergeClearOK();
       allow delete: if false;
@@ -358,13 +364,24 @@ service cloud.firestore {
           return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
         }
         allow read: if true;
-        allow create: if notAnon()
+        allow create: if (notAnon()
                       && writer == request.auth.uid
                       && request.resource.data.keys().hasOnly(['text','searchKey','lang','by','at'])
                       && request.resource.data.by == request.auth.uid
                       && request.resource.data.at == request.time
                       && spellOK(request.resource.data)
-                      && exists(/databases/$(database)/documents/afd_entries/$(entryId));
+                      && exists(/databases/$(database)/documents/afd_entries/$(entryId)))
+                      // D-B: a steward promotes a card's scanned candidate into a real
+                      // spelling under the reserved 'seed' writer — attributed to the
+                      // project, not a person, so a collaborator's name stays off the
+                      // data. Same shape as any spelling; by is 'seed', not a uid.
+                      || (isSteward()
+                      && writer == 'seed'
+                      && request.resource.data.keys().hasOnly(['text','searchKey','lang','by','at'])
+                      && request.resource.data.by == 'seed'
+                      && request.resource.data.at == request.time
+                      && spellOK(request.resource.data)
+                      && exists(/databases/$(database)/documents/afd_entries/$(entryId)));
         allow update: if (notAnon()
                           && writer == request.auth.uid
                           && spellChanged(['text','searchKey','lang','at'])
@@ -375,7 +392,8 @@ service cloud.firestore {
                           && (!('hiddenAt' in request.resource.data)
                               || (!('hiddenAt' in resource.data)
                                   && request.resource.data.hiddenAt == request.time)));
-        allow delete: if notAnon() && writer == request.auth.uid;
+        allow delete: if (notAnon() && writer == request.auth.uid)
+                      || (isSteward() && writer == 'seed');   // D-B: remove a promoted seed spelling
       }
 
       // -------------------------- contributed recordings --------------------------

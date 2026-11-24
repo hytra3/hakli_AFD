@@ -1012,6 +1012,9 @@ function row(w){
     `<div class="thumb">${face}</div>` +
     `<div>` +
       `<div class="gloss">${esc(gloss)}${d.glossAr ? `<span class="ar" dir="rtl">${esc(d.glossAr)}</span>` : ""}</div>` +
+      // D-B: a scanned candidate spelling (from the seed), shown for review. It is
+      // NOT the bold word until a steward promotes it (the actions below).
+      (d.spellingCandidate ? `<div class="meta cand" dir="rtl">${H("stw.cand.label")}: <b>${esc(d.spellingCandidate)}</b>${d.spellingCandidatePl ? ` · ${esc(d.spellingCandidatePl)}` : ""}</div>` : "") +
       `<div class="meta">${d.domain ? esc(d.domain) + " · " : ""}` +
         // D-A: a seed has no createdBy/createdAt (it carries seededAt) — label it
         // "seeded" rather than an empty "added … by ?"; otherwise show who added it.
@@ -1047,6 +1050,12 @@ function row(w){
   }
   if(d.image) add("stw.act.photo", "danger", () => takeDownPhoto(w));
   if(d.pic)   add("stw.act.emoji", "danger", () => clearField(w, "pic"));
+  // D-B: promote a scanned candidate into the real (project-attributed) spelling,
+  // or dismiss it. Both clear the candidate; promote also writes the seed spelling.
+  if(d.spellingCandidate){
+    add("stw.cand.promote", "primary", () => promoteCand(w));
+    add("stw.cand.dismiss", "", () => dismissCand(w));
+  }
   // provenance ledger (#6): joins and refiles that touched this card. A plain
   // read (not routed through add()'s save flow); steward-only, never viewer-facing.
   // Uses the shared collapsible panel (AFDCore.ledgerPanel) — the same component
@@ -1072,6 +1081,8 @@ async function ledgerRows(entryId){
               : e.type === "unjoin"    ? H("stw.ledger.unjoin")
               : e.type === "markcite"  ? H("stw.ledger.markcite")
               : e.type === "uncite"    ? H("stw.ledger.uncite")
+              : e.type === "promotespell" ? H("stw.ledger.promotespell")
+              : e.type === "dismisscand"  ? H("stw.ledger.dismisscand")
               : esc(e.type);
     return `<div class="st-err" dir="ltr">${esc(when(e.at))} — ${lbl}</div>`;
   }).join("");
@@ -1097,6 +1108,26 @@ async function clearField(w, key){
   await updateDoc(doc(db, "afd_entries", w.id), { [key]: deleteField() });
   delete w.d[key];
   await alsoReviewed(w);
+}
+// D-B: promote a card's scanned candidate into its real spelling. The spelling is
+// written under the reserved 'seed' writer (by:'seed') so it is attributed to the
+// project, never to the steward — keeping a collaborator's name off the data.
+async function promoteCand(w){
+  const { id, d } = w;
+  const text = (AFDCore.spellingText ? AFDCore.spellingText(d.spellingCandidate || "") : String(d.spellingCandidate || "").trim()).slice(0, 60);
+  if(!text) return;
+  await setDoc(doc(db, "afd_entries", id, "spellings", "seed"),
+    { text, searchKey: AFDCore.spellingKey(text).slice(0, 60), lang: AFDCore.spellingLang(), by: "seed", at: serverTimestamp() });
+  await updateDoc(doc(db, "afd_entries", id), { spellingCandidate: deleteField(), spellingCandidatePl: deleteField() });
+  delete d.spellingCandidate; delete d.spellingCandidatePl;
+  try{ await addLedger(id, { type: "promotespell", text }); }catch(_){}
+}
+// D-B: dismiss the candidate without promoting it (the scanned reading was wrong).
+async function dismissCand(w){
+  const { id, d } = w;
+  await updateDoc(doc(db, "afd_entries", id), { spellingCandidate: deleteField(), spellingCandidatePl: deleteField() });
+  delete d.spellingCandidate; delete d.spellingCandidatePl;
+  try{ await addLedger(id, { type: "dismisscand" }); }catch(_){}
 }
 // Clear the entry's image FIRST, so the dictionary never points at a deleted
 // file; then delete the bytes. The path comes from the entry's creator and id
