@@ -32,12 +32,12 @@ await scenario("the card has a voice-notes slot, and each note says its language
     return { order, label: s.querySelector(".slot-label").textContent.trim(),
       add: (s.querySelector(".slot-add")||{}).getAttribute ? s.querySelector(".slot-add").getAttribute("href") : null,
       addText: (s.querySelector(".slot-add")||{}).textContent.trim(),
-      tags: [...s.querySelectorAll(".note-lang")].map(t => t.textContent.trim()).sort(),
+      tags: [...s.querySelectorAll(".note-lang")].map(t => t.getAttribute("data-lang")).sort(),
       wordTags: document.querySelectorAll(".slot-word .note-lang").length }; });
   ok("audio-first: the three spoken slots lead — word · sentence · say-something", JSON.stringify(a.order.slice(0,3)) === JSON.stringify(["slot-word","slot-context","slot-say"]), JSON.stringify(a.order));
   ok("it is labelled 'say something about this word', in English and Arabic", /say something/i.test(a.label) && /قل شيئًا/.test(a.label), a.label);
   ok("'+ Say something' opens the recorder on this word's notes", /recorder(\.html)?#ent_father\|note$/.test(a.add) && a.addText === "Say something", JSON.stringify([a.add, a.addText]));
-  ok("each note shows its language as a pill (حَكلي · عربي); the word's voice has none", JSON.stringify(a.tags) === JSON.stringify(["حَكلي","عربي"]) && a.wordTags === 0, JSON.stringify(a));
+    ok("each note shows its language as a symbol pill (ḥ · ع); the word's voice has none", JSON.stringify(a.tags) === JSON.stringify(["ar","qhk"]) && a.wordTags === 0, JSON.stringify(a));
   const amber = await page.evaluate(()=>{ const p = document.querySelector('.slot-say .lang-pill[data-lang="qhk"]'), q = document.querySelector('.slot-say .lang-pill[data-lang="ar"]');
     return p && q && { own: p.hasAttribute("data-own"), ownBg: getComputedStyle(p).backgroundColor, arBg: getComputedStyle(q).backgroundColor }; });
   ok("the Hakli pill is amber-tinted (data-own); the Arabic one is neutral", !!amber && amber.own && amber.ownBg !== amber.arBg, JSON.stringify(amber));
