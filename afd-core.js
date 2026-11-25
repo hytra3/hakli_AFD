@@ -789,6 +789,7 @@ window.AFDCore = (function(){
     "disp.bridge":            { en:"Arabic · English", ar:"عربي · EN" },
     "disp.script":          { en:"Arabic",           ar:"عربي" },
     "disp.sound":           { en:"Sound",            ar:"صوت" },
+    "disp.nudge":           { en:"Want to read it? Tap here", ar:"تريد أن تقرأها؟ اضغط هنا" },
 
     // Steward tool pages (steward.html, prompts/admin.html), via afd-tools.js.
     // *x* is bold, `x` is code. Commands and file names stay as they are.
