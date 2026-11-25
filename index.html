@@ -116,6 +116,16 @@ body[data-mode="sound"] .cov-label{display:none}
   pointer-events:none; letter-spacing:0; direction:rtl}
 
 .skin .lbl{font-family:var(--serif); font-size:18px; line-height:1}
+/* First-visit nudge: points a reader at the wordless view switch. Juniper tip
+   under the skin glyph; suppresses the glyph's own caption while it shows. */
+.skin-wrap{position:relative; display:inline-flex}
+.mode-nudge{position:absolute; top:calc(100% + 11px); inset-inline-end:0; z-index:70;
+  max-width:172px; padding:7px 11px; border-radius:11px; background:var(--mountain); color:var(--cloud);
+  font:500 12px/1.4 var(--sans); direction:rtl; text-align:center; box-shadow:0 3px 12px rgba(31,58,52,.22)}
+.mode-nudge[hidden]{display:none}
+.mode-nudge::before{content:""; position:absolute; bottom:100%; inset-inline-end:15px;
+  border:6px solid transparent; border-bottom-color:var(--mountain)}
+body.mode-nudging #skin.capd::after{display:none}
 .buildstamp{margin-top:auto; padding:14px 0 calc(12px + env(safe-area-inset-bottom)); text-align:center;
         font-family:var(--sans); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--mist)}
 /* ---------------------------------------------------------------- hero */
@@ -326,7 +336,7 @@ body.compact .typecount{display:none}
       </span>
       <div class="view-menu" id="viewMenu" role="menu" aria-hidden="true"></div>
     </span>
-    <button class="skin capd" id="skin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button>
+    <span class="skin-wrap" id="skinWrap"><button class="skin capd" id="skin" data-cap="العرض" title="How words are shown" aria-label="Change how words are shown"></button><span class="mode-nudge" id="modeNudge" role="note" dir="rtl" hidden></span></span>
     <a class="help-btn" id="helpBtn" href="help.html" aria-label="مساعدة · Help" title="Help"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.2"/><path d="M9.2 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.6 2.3-2.6 4"/><path d="M12 17.4h.01"/></svg></a>
     <span class="account-wrap capd" id="acctWrap" data-cap="دخول" data-cap-key="hdr.signin">
       <button class="account" id="account" aria-label="Sign in to manage your voice"></button>
@@ -1479,6 +1489,7 @@ function updateSkinIcon(){ const b=$("skin"); if(b) b.innerHTML = SKIN_ICON[disp
   if(typeof paintTypeLabels === "function") try{ paintTypeLabels(); }catch(_){}
   { const s=(AFDCore.STRINGS||{})["disp."+displayMode]; if(b && s){ b.setAttribute("data-cap-key","disp."+displayMode); b.setAttribute("data-cap", s.ar); } } }
 $("skin").addEventListener("click", ()=>{
+  hideModeNudge();                               // a tap stores a mode, so the nudge won't return anyway
   const next = MODES[(MODES.indexOf(displayMode)+1) % MODES.length];
   setDisplayMode(next); updateSkinIcon(); syncAcctLabels();
   paintHint();                                   // the hint says the same thing, in the new mode
@@ -1491,6 +1502,30 @@ $("skin").addEventListener("click", ()=>{
 updateSkinIcon();
 AFDCore.attachQuietToggle($("skin"));   // long-press = quiet mode (mute bubble on the circle)
 setHintKey("find.idle");   // idle hint, rendered in the current tier
+
+/* First-visit mode nudge (B): a one-time tip pointing a reader at the view
+   switch. Forgiving — the app only stores a display mode once the person taps
+   the switch, so "no mode stored" IS "hasn't found it yet". A tap retires it
+   for good (a mode gets stored); a timeout or a scroll just hides it, and it
+   returns on a later visit. Only shown in the wordless sound view. */
+let modeNudgeTimer = null;
+function hideModeNudge(){
+  const n = $("modeNudge"); if(n) n.hidden = true;
+  document.body.classList.remove("mode-nudging");
+  if(modeNudgeTimer){ clearTimeout(modeNudgeTimer); modeNudgeTimer = null; }
+  window.removeEventListener("scroll", hideModeNudge, true);
+}
+function maybeShowModeNudge(){
+  const n = $("modeNudge"); if(!n) return;
+  let stored = null; try{ stored = localStorage.getItem("afd_display_mode"); }catch(_){}
+  if(stored || displayMode !== "sound") return;  // already chose a mode, or not the wordless view
+  n.textContent = AFDCore.t("disp.nudge", displayMode);   // MSA draft — Dhofari review
+  n.hidden = false;
+  document.body.classList.add("mode-nudging");
+  modeNudgeTimer = setTimeout(hideModeNudge, 6000);
+  window.addEventListener("scroll", hideModeNudge, true);
+}
+maybeShowModeNudge();
 
 // Account: shared per-origin session drives owner-only voice controls. A small
 // button lets a fresh visitor sign in (Google); a speaker who used the recorder
