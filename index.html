@@ -103,7 +103,7 @@ body[data-mode="sound"] .cov-label{display:none}
 .screen-t{display:flex;flex-direction:column;line-height:1.05;min-width:0}
 .screen-ar{font-family:var(--serif); font-size:19px; letter-spacing:.2px; direction:rtl}
 .screen-en{color:var(--mist); font-family:var(--sans); font-size:13px; letter-spacing:.12em; text-transform:uppercase; margin-top:2px}
-.skin{margin-inline-start:auto; width:44px; height:44px; flex:0 0 auto; border-radius:50%;
+.skin{width:44px; height:44px; flex:0 0 auto; border-radius:50%;
         border:1px solid var(--hairline); background:var(--cloud); color:var(--mountain);
         display:grid; place-items:center; cursor:pointer; box-shadow:0 2px 8px rgba(31,58,52,.10)}
 .skin svg{width:20px;height:20px}
@@ -118,7 +118,7 @@ body[data-mode="sound"] .cov-label{display:none}
 .skin .lbl{font-family:var(--serif); font-size:18px; line-height:1}
 /* First-visit nudge: points a reader at the wordless view switch. Juniper tip
    under the skin glyph; suppresses the glyph's own caption while it shows. */
-.skin-wrap{position:relative; display:inline-flex}
+.skin-wrap{position:relative; display:inline-flex; margin-inline-start:auto}
 .mode-nudge{position:absolute; top:calc(100% + 11px); inset-inline-end:0; z-index:70;
   max-width:172px; padding:7px 11px; border-radius:11px; background:var(--mountain); color:var(--cloud);
   font:500 12px/1.4 var(--sans); direction:rtl; text-align:center; box-shadow:0 3px 12px rgba(31,58,52,.22)}
