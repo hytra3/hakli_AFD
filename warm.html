@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en" translate="no">
+<head>
+<meta name="google" content="notranslate" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<title>Hakli — warm the matcher</title>
+<link rel="icon" href="favicon.svg?v=b1125b" type="image/svg+xml" />
+<!--
+  Steward-only control to keep the speak-to-find matcher (afd-embed, Cloud Run)
+  warm for a set stretch — a demo, a field session — from a phone, with no
+  laptop and no gcloud. Not linked from the app; a steward opens it directly and
+  signs in with the steward account, exactly like steward.html and
+  prompts/admin.html.
+
+  It only ever talks to the afd-warm Cloud Function (warm/main.py), sending the
+  steward's Firebase ID token. The function is what actually changes Cloud Run's
+  min-instances and writes the off-at timer to afd_ui_config/warm; a Cloud
+  Scheduler sweep (afd-warm reconcile) cools the service back down when the timer
+  runs out, so a forgotten "warm" turns itself off. WARM is a billed always-on
+  instance — hence the timer and the cap.
+-->
+<style>
+  :root{
+    --bg:#faf7f2; --card:#ffffff; --ink:#2b2620; --muted:#8a8175;
+    --line:#e7e0d5; --warm:#b06a2c; --warm-bg:#f6ead9;
+    --go:#2f7d5b; --go-bg:#e3f2ea; --stop:#b23b3b; --stop-bg:#f8e4e2;
+    --accent:#3a6ea5; --accent-bg:#e7f0f8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#1a1713; --card:#241f19; --ink:#efe8dd; --muted:#a49a8c;
+      --line:#3a332a; --warm:#e0a163; --warm-bg:#33281c;
+      --go:#5bbd8e; --go-bg:#1d3329; --stop:#e2726f; --stop-bg:#3a2121;
+      --accent:#7fb0e0; --accent-bg:#1e2b3a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px; margin:0 auto; padding:16px 16px 48px;}
+  h1{font-size:18px; margin:8px 0 4px;}
+  .lead{font-size:13px; color:var(--muted); margin-bottom:14px;}
+  .ar{display:block; font-size:max(14px,1em)}
+  .en{display:block; opacity:.72; font-size:max(13px,.92em)}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:12px;}
+  .btn{border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:12px; padding:12px 14px; min-height:48px; font-size:15px; cursor:pointer; width:100%;}
+  .btn.primary{background:var(--go-bg); border-color:var(--go); color:var(--go); font-weight:600;}
+  .btn.danger{background:var(--stop-bg); border-color:var(--stop); color:var(--stop);}
+  .btn:disabled{opacity:.5; cursor:default;}
+  .btnrow{display:flex; gap:8px; margin-top:10px;}
+  .btnrow .btn{width:auto; flex:1;}
+  input{width:100%; font:inherit; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--ink); margin-top:8px;}
+  input[type=email], input[type=password]{direction:ltr; text-align:left;}
+  .msg{font-size:12px; color:var(--muted); margin-top:10px; min-height:16px;}
+  .hidden{display:none !important;}
+  .top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .who{font-size:12px; color:var(--muted); text-align:right;}
+  a.small{font-size:12px; color:var(--accent); cursor:pointer;}
+  .status{display:flex; align-items:center; gap:12px;}
+  .dot{width:14px; height:14px; border-radius:50%; background:var(--muted); flex:0 0 auto;}
+  .dot.on{background:var(--go);} .dot.off{background:var(--muted);}
+  .state-h{font-size:17px; font-weight:600;}
+  .count{font-variant-numeric:tabular-nums; font-size:13px; color:var(--muted);}
+  .note{background:var(--warm-bg); color:var(--warm); border-radius:12px; padding:12px 14px; font-size:13px; margin-top:14px; line-height:1.5;}
+  .nav{font-size:13px; margin-top:16px;} .nav a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>التسخين · Warm the matcher</h1>
+    <div class="who"><span id="who"></span> <a id="signout" class="small hidden">خروج · Sign out</a></div>
+  </div>
+  <p class="lead">أبقِ البحث الصوتي جاهزاً لفترة قصيرة. Keep speak-to-find instant for a set stretch, then it sleeps on its own.</p>
+
+  <!-- sign in -->
+  <div id="signin" class="card hidden">
+    <h2 class="ar">دخول المشرف</h2><div class="en">Steward sign-in</div>
+    <input id="email" type="email" autocomplete="username" placeholder="Email" />
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Password" />
+    <button id="dosignin" class="btn primary" style="margin-top:10px">دخول · Sign in</button>
+    <div id="authmsg" class="msg"></div>
+  </div>
+
+  <!-- panel -->
+  <div id="panel" class="card hidden">
+    <div class="status">
+      <span id="dot" class="dot"></span>
+      <div>
+        <div id="stateh" class="state-h">…</div>
+        <div id="count" class="count"></div>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn warmbtn" data-min="30">٣٠ د<br><span class="en">30 min</span></button>
+      <button class="btn warmbtn" data-min="60">ساعة<br><span class="en">1 hour</span></button>
+      <button class="btn warmbtn" data-min="120">ساعتان<br><span class="en">2 hours</span></button>
+    </div>
+    <button id="sleep" class="btn danger" style="margin-top:8px">إيقاف الآن · Sleep now</button>
+    <div id="msg" class="msg"></div>
+    <div class="note">يبدأ البحث الأول بسرعة بمجرد التسخين. First search is instant once warm. It cools down by itself when the timer ends — safe to close this page.</div>
+  </div>
+
+  <div class="nav"><a href="steward.html">← المشرف · Steward</a></div>
+</div>
+
+<script src="afd-instance.js?v=b1125b"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { startAppCheck } from "./afd-appcheck.js?v=b1125b";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+const cfg = window.AFDInstance.firebase;
+const WARM_URL = window.AFDInstance.warmUrl;   // afd-instance.js
+const app = initializeApp(cfg);
+startAppCheck(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const code = e => (e && (e.code || e.message)) || "error";
+let skew = 0;           // serverNow - clientNow, to keep the countdown honest
+let timer = null;
+
+/* ---- sign in ---- */
+$("dosignin").onclick = async () => {
+  $("authmsg").textContent = "…";
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch (e) { $("authmsg").textContent = "Sign-in failed: " + code(e); }
+};
+$("pass").addEventListener("keydown", e => { if (e.key === "Enter") $("dosignin").click(); });
+$("signout").onclick = e => { e.preventDefault(); signOut(auth); };
+
+onAuthStateChanged(auth, async user => {
+  const named = user && !user.isAnonymous;
+  $("who").textContent = named ? (user.email || "") : "";
+  $("signout").classList.toggle("hidden", !named);
+  if (!named) { show("signin"); return; }
+  let steward = false;
+  try { steward = (await getDoc(doc(db, "afd_admins", user.uid))).exists(); } catch (_) {}
+  if (!steward) { show("signin"); $("authmsg").textContent = "This account isn't a steward."; return; }
+  show("panel");
+  refresh();
+});
+
+function show(which) {
+  $("signin").classList.toggle("hidden", which !== "signin");
+  $("panel").classList.toggle("hidden", which !== "panel");
+}
+
+/* ---- call the function ---- */
+async function call(method, body) {
+  const token = await auth.currentUser.getIdToken();
+  const res = await fetch(WARM_URL, {
+    method,
+    headers: { "Authorization": "Bearer " + token, ...(body ? { "Content-Type": "application/json" } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ("http " + res.status));
+  return data;
+}
+
+function apply(state) {
+  skew = (state.now || Date.now()) - Date.now();
+  const warm = (state.min_instances || 0) >= 1;
+  $("dot").className = "dot " + (warm ? "on" : "off");
+  $("stateh").textContent = warm ? "جاهز · Warm" : "نائم · Asleep";
+  window.__offAt = warm ? (state.off_at || 0) : 0;
+  tick();
+}
+
+function tick() {
+  if (timer) { clearTimeout(timer); timer = null; }
+  const off = window.__offAt || 0;
+  if (!off) { $("count").textContent = ""; return; }
+  const left = Math.round((off - (Date.now() + skew)) / 1000);
+  if (left <= 0) { $("count").textContent = "cooling down…"; return; }
+  const m = Math.floor(left / 60), s = left % 60;
+  $("count").textContent = "ينطفئ بعد · sleeps in " + m + ":" + String(s).padStart(2, "0");
+  timer = setTimeout(tick, 1000);
+}
+
+async function refresh() {
+  try { apply(await call("GET")); }
+  catch (e) { $("msg").textContent = "Couldn't read status: " + e.message; }
+}
+
+async function setWarm(minutes) {
+  $("msg").textContent = "…";
+  document.querySelectorAll(".warmbtn,#sleep").forEach(b => b.disabled = true);
+  try {
+    apply(await call("POST", { minutes }));
+    $("msg").textContent = minutes ? "Warm for " + minutes + " min." : "Sleeping.";
+  } catch (e) {
+    $("msg").textContent = "Failed: " + e.message;
+  } finally {
+    document.querySelectorAll(".warmbtn,#sleep").forEach(b => b.disabled = false);
+  }
+}
+
+document.querySelectorAll(".warmbtn").forEach(b =>
+  b.onclick = () => setWarm(parseInt(b.dataset.min, 10)));
+$("sleep").onclick = () => setWarm(0);
+
+// keep status fresh while the page is open
+setInterval(() => { if (!$("panel").classList.contains("hidden")) refresh(); }, 30000);
+
+if (!WARM_URL) { show("panel"); $("msg").textContent = "warmUrl is not set in afd-instance.js."; }
+</script>
+</body>
+</html>

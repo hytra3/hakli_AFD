@@ -483,6 +483,27 @@ something makes them matter.
   field weeks (no cold start at all). `deploy-service.sh` no longer sets it, so a
   redeploy keeps the last choice. Check Billing after a day of "on" before leaving it.
 
+- **✅ Steward "warm from my phone", timed (2026-11-27).** `set-warm.sh` needs a
+  laptop and gcloud, and nothing turns it back off — so a demo that follows a quiet
+  spell still hits a cold start, and a forgotten "on" bills an idle 8 GiB box. New
+  steward-only page `warm.html` (not linked from the app; steward sign-in + an
+  `afd_admins/{uid}` gate, like `steward.html`) with **30 min / 1 h / 2 h** and
+  **Sleep now**, plus a live countdown. It calls `afd-warm`, a gen2 HTTP function
+  (`warm/main.py`) that verifies the steward's Firebase ID token and sets
+  `afd-embed`'s `min-instances` via the Run Admin API — so the browser never touches
+  Cloud Run or Firestore directly. The timer (`off_at`) lives in
+  `afd_ui_config/warm`; a second entry point `afd-warm-reconcile` (Pub/Sub topic
+  `afd-warm-tick`, Cloud Scheduler every 10 min) drops it back to `min-instances=0`
+  once the timer passes — so a forgotten warm cools itself down (≤10 min overshoot).
+  `WARM_MAX_MINUTES=240` caps any single request. The model loads at **container
+  startup** (`app.py` `@app.on_event("startup")`), so a warmed instance has no slow
+  first search — warming genuinely removes the cold start. **One-time setup:**
+  `bash scripts/deploy-warm.sh --setup` grants the compute SA `run.admin` on
+  `afd-embed` + `serviceAccountUser` on itself, creates the topic + Scheduler job,
+  then deploys both functions. `warmUrl` added to `afd-instance.js`. No Firestore
+  rules change (the functions use admin credentials; the page reads status only
+  through `afd-warm`). Supersedes the parked laptop-bound `warm-demo.sh` idea.
+
 ## Quick wins + guardrails (2026-10-16)
 
 From the improvement review (project doc `claude/improvement-review-2026-10-16.md`).

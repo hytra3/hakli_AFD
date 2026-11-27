@@ -1,0 +1,4 @@
+functions-framework==3.*
+firebase-admin==6.*
+google-cloud-firestore==2.20.0
+google-cloud-run>=0.10,<1
