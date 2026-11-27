@@ -272,7 +272,7 @@ body.has-results .control .addbtn{inset-inline-end:22px}
    Same mic, same place: a search is always one hold away. */
 .control{transition:padding .25s ease}
 body.compact .control{flex-direction:row; justify-content:center; gap:14px; padding:20px 0 16px}   /* the top ~14px sits under the header */
-body.compact .stage{width:52px}
+body.compact .stage{width:52px; margin-inline-start:56px}   /* right gutter (RTL) so the shrunk mic clears the all-words pill pinned to that edge */
 body.compact .control .allbtn, body.compact .control .addbtn{top:24px}   /* centred on the 52px mic: 20 + (52-44)/2 */
 body.compact .control .capd::after{display:none}
 body.compact .hint{font-size:17px; text-align:start; max-width:calc(100% - 200px)}
