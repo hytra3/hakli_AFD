@@ -148,6 +148,11 @@ window.AFDInstance = {
   // in future; per-instance for now.
   embedUrl: "https://afd-embed-454829954488.europe-west1.run.app",
 
+  // The steward "warm the matcher" endpoint (afd-warm Cloud Function, warm/main.py).
+  // Used only by warm.html. Changing min-instances is billed, so the function
+  // verifies a steward's Firebase ID token before it touches anything.
+  warmUrl: "https://europe-west1-afd-dev.cloudfunctions.net/afd-warm",
+
   // App Check (afd-appcheck.js): the Fraud Defense key the web app is registered
   // with in Firebase → App Check. Public by design. null turns App Check off.
   appCheckKey: "6LehXvctAAAAACi87vHzcUuHnWRxjSU53rHOF1sR"
