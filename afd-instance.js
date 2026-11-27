@@ -151,7 +151,11 @@ window.AFDInstance = {
   // The steward "warm the matcher" endpoint (afd-warm Cloud Function, warm/main.py).
   // Used only by warm.html. Changing min-instances is billed, so the function
   // verifies a steward's Firebase ID token before it touches anything.
-  warmUrl: "https://europe-west1-afd-dev.cloudfunctions.net/afd-warm",
+  // The direct Cloud Run URL of the gen2 function (gcloud's `uri`), not the
+  // europe-west1-afd-dev.cloudfunctions.net/afd-warm alias — the alias 404s for a
+  // while after deploy. If a redeploy ever changes this, take the new value from
+  // `gcloud functions describe afd-warm --gen2 --region=europe-west1 --format='value(serviceConfig.uri)'`.
+  warmUrl: "https://afd-warm-7tnpubpqxa-ew.a.run.app",
 
   // App Check (afd-appcheck.js): the Fraud Defense key the web app is registered
   // with in Firebase → App Check. Public by design. null turns App Check off.
