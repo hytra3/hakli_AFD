@@ -159,7 +159,7 @@ body.rec .ring{animation:ripple 1.8s ease-out infinite}
     border:none; border-radius:50%; cursor:pointer; color:var(--cloud);
     background:radial-gradient(120% 120% at 30% 25%, #2C5349 0%, var(--mountain) 70%);
     box-shadow:var(--shadow), inset 0 2px 0 rgba(255,255,255,.14);
-    display:grid; place-items:center; transition:transform .18s ease, background .2s ease;
+    display:grid; place-items:center; transition:transform .18s ease, background .2s ease, filter .5s ease;
     touch-action:none; user-select:none;
   }
 .mic:active{transform:scale(.97)}
@@ -176,6 +176,14 @@ body.busy .mic{background:radial-gradient(120% 120% at 30% 25%, #8CA39B 0%, #6E8
     border:2px solid var(--resin); pointer-events:none; opacity:0; }
 body.busy .mic::after{ animation:sonar 1.15s ease-out infinite; }
 @keyframes sonar{ 0%{opacity:.6; transform:scale(1)} 100%{opacity:0; transform:scale(1.9)} }
+/* Warmth cue (temporary — until real traffic keeps the matcher busy). The idle
+   mic shows whether speak-to-find is ready: dim while the matcher is cold/waking,
+   full green once a warm-up search has come back. Idle only — rec/busy own the
+   mic's look otherwise. Driven by warmPing(): body.warm-warming / .warm-ready. */
+  body:not(.rec):not(.busy) .mic{ filter:grayscale(.5) brightness(.92) opacity(.8); }
+  body.warm-warming:not(.rec):not(.busy) .mic{ animation:breathe 4.5s ease-in-out infinite, warmpulse 1.7s ease-in-out infinite; }
+  @keyframes warmpulse{ 0%,100%{filter:grayscale(.5) brightness(.9) opacity(.72)} 50%{filter:grayscale(.25) brightness(1.02) opacity(1)} }
+  body.warm-ready:not(.rec):not(.busy) .mic{ filter:none; }
 /* live level bloom */
   .bloom{position:absolute; inset:0; margin:auto; border-radius:50%;
          background:radial-gradient(circle, rgba(198,135,63,.32), transparent 62%);
@@ -465,10 +473,14 @@ function warmPing(reason){
     const fd=new FormData();
     fd.append("file", new Blob([view.buffer],{type:"audio/wav"}), "warm.wav");
     _warmInFlight = true;
+    // Warmth cue (temporary): dim mic = cold/waking, full green = ready. Show
+    // "warming" unless we already know it's ready (don't flicker on a keepwarm re-ping).
+    if(!document.body.classList.contains("warm-ready")) document.body.classList.add("warm-warming");
     // with the App Check token too, or every page open counts as "missing" (10-20)
     appCheckHeaders().then(headers=> fetch(`${EMBED_URL}/search?top_k=1`, {method:"POST", body:fd, headers}))
-      .then(()=>{ if(reason!=="keepwarm") console.log("[AFD] matcher pre-warmed"); })
-      .catch(()=>{})                              // silent — a failed warm-up is not the user's problem
+      .then(()=>{ document.body.classList.add("warm-ready"); document.body.classList.remove("warm-warming");
+                  if(reason!=="keepwarm") console.log("[AFD] matcher pre-warmed"); })
+      .catch(()=>{ document.body.classList.remove("warm-warming"); })  // silent — a failed warm-up is not the user's problem
       .finally(()=>{ _warmInFlight = false; });
   }catch(_){ _warmInFlight = false; }
 }
@@ -806,6 +818,7 @@ async function runSearch(blob){
   clearTimeout(slow);
   if(my!==searchSeq) return;                           // a newer hold, or Home, took over
   document.body.classList.remove("busy");
+  if(!err){ document.body.classList.add("warm-ready"); document.body.classList.remove("warm-warming"); }  // a real search came back — the matcher is hot
   letScreenSleep();
   if(err){
     // Name the failure, and put back whatever was on screen before the hold
